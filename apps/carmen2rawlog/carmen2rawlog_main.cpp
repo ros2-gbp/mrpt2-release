@@ -21,7 +21,7 @@
 // ===========================================================================
 
 #include <mrpt/io/CFileGZOutputStream.h>
-#include <mrpt/math/lightweight_geom_data.h>
+#include <mrpt/math/TPose2D.h>
 #include <mrpt/system/datetime.h>
 #include <mrpt/system/filesystem.h>
 #include <mrpt/system/os.h>
@@ -132,7 +132,7 @@ int main(int argc, char** argv)
 				//  a "corrected" odometry from some SLAM program, so save it as
 				//  ground truth:
 				if (importedObservations.size() > 1 &&
-					IS_CLASS(importedObservations[i], CObservationOdometry))
+					IS_CLASS(*importedObservations[i], CObservationOdometry))
 				{
 					CObservationOdometry::Ptr odo =
 						std::dynamic_pointer_cast<CObservationOdometry>(

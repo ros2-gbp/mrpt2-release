@@ -20,19 +20,12 @@
 #include <wx/tglbtn.h>
 //*)
 
-#include <wx/busyinfo.h>
-#include <wx/dirdlg.h>
-#include <wx/filedlg.h>
-#include <wx/log.h>
-#include <wx/msgdlg.h>
-#include <wx/statbox.h>
-#include <wx/textdlg.h>
-#include <wx/tipdlg.h>
-
 #include <mrpt/config/CConfigFileMemory.h>
 #include <mrpt/config/CConfigFilePrefixer.h>
 #include <mrpt/containers/printf_vector.h>
 #include <mrpt/io/CFileGZInputStream.h>
+#include <mrpt/math/TLine3D.h>
+#include <mrpt/math/TObject3D.h>
 #include <mrpt/math/geometry.h>  // intersect()
 #include <mrpt/math/utils.h>
 #include <mrpt/opengl/CDisk.h>
@@ -44,16 +37,30 @@
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/filesystem.h>
 #include <mrpt/system/string_utils.h>
+#include <wx/busyinfo.h>
+#include <wx/dirdlg.h>
+#include <wx/filedlg.h>
+#include <wx/log.h>
+#include <wx/msgdlg.h>
+#include <wx/statbox.h>
+#include <wx/textdlg.h>
+#include <wx/tipdlg.h>
 #include <algorithm>  // replace()
+#include <fstream>
 
 extern std::string global_fileToOpen;
 
-const double fy = 9,
-			 Ay = 12;  // Font size & line spaces for GUI-overlayed text lines
-#define ADD_WIN_TEXTMSG_COL(__MSG, __COL)                                      \
-	win1->addTextMessage(                                                      \
-		5.0, 5 + (lineY++) * Ay, __MSG, __COL, "mono", fy, mrpt::opengl::NICE, \
-		unique_id++);
+// Configure look:
+const auto glTxtFillStyle = mrpt::opengl::FILL;
+const auto glTxtFont = std::string("mono");
+const auto glTxtSize = 10;
+// Font size & line spaces for GUI-overlayed text lines
+
+const double Ay = glTxtSize + 3;
+#define ADD_WIN_TEXTMSG_COL(__MSG, __COL)                            \
+	win1->addTextMessage(                                            \
+		5.0, 5 + (lineY++) * Ay, __MSG, __COL, glTxtFont, glTxtSize, \
+		glTxtFillStyle, unique_id++, 1.5, 0.1, true /*shadow*/);
 
 #define ADD_WIN_TEXTMSG(__MSG) \
 	ADD_WIN_TEXTMSG_COL(__MSG, mrpt::img::TColorf(1, 1, 1))
@@ -100,9 +107,8 @@ const long navlog_viewer_GUI_designDialog::ID_MENUITEM2 = wxNewId();
 const long navlog_viewer_GUI_designDialog::ID_MENUITEM1 = wxNewId();
 const long navlog_viewer_GUI_designDialog::ID_MENUITEM3 = wxNewId();
 //*)
-
+const long navlog_viewer_GUI_designDialog::ID_MENUITEM100 = wxNewId();
 const long ID_MENUITEM_SAVE_MATLAB_PATH = wxNewId();
-
 const long navlog_viewer_GUI_designDialog::ID_TIMER3 = wxNewId();
 
 BEGIN_EVENT_TABLE(navlog_viewer_GUI_designDialog, wxFrame)
@@ -136,6 +142,8 @@ navlog_viewer_GUI_designDialog::navlog_viewer_GUI_designDialog(
 {
 	// Load my custom icons:
 	wxArtProvider::Push(new MyArtProvider);
+
+	wxMenuItem* mnuSaveCurrentObstacles;
 
 	//(*Initialize(navlog_viewer_GUI_designDialog)
 	wxStaticBoxSizer* StaticBoxSizer2;
@@ -354,6 +362,10 @@ navlog_viewer_GUI_designDialog::navlog_viewer_GUI_designDialog(
 		(&mnuMoreOps), ID_MENUITEM2, _("See PTG params..."), wxEmptyString,
 		wxITEM_NORMAL);
 	mnuMoreOps.Append(mnuSeePTGParams);
+	mnuSaveCurrentObstacles = new wxMenuItem(
+		(&mnuMoreOps), ID_MENUITEM100, _("Save current obstacle map..."),
+		wxEmptyString, wxITEM_NORMAL);
+	mnuMoreOps.Append(mnuSaveCurrentObstacles);
 	mnuMatlabPlots = new wxMenuItem(
 		(&mnuMoreOps), ID_MENUITEM1, _("Export map plot to MATLAB..."),
 		wxEmptyString, wxITEM_NORMAL);
@@ -421,6 +433,10 @@ navlog_viewer_GUI_designDialog::navlog_viewer_GUI_designDialog(
 		(wxObjectEventFunction)&navlog_viewer_GUI_designDialog::
 			OnmnuSaveScoreMatrixSelected);
 	//*)
+	Connect(
+		ID_MENUITEM100, wxEVT_COMMAND_MENU_SELECTED,
+		(wxObjectEventFunction)&navlog_viewer_GUI_designDialog::
+			OnmnuSaveCurrentObstacles);
 
 	{
 		wxMenuItem* mnuMatlabExportPaths;
@@ -538,7 +554,7 @@ void navlog_viewer_GUI_designDialog::loadLogfile(const std::string& filName)
 			m_logdata.push_back(obj);
 
 			// generate time stats:
-			if (IS_CLASS(obj, CLogFileRecord))
+			if (IS_CLASS(*obj, CLogFileRecord))
 			{
 				const CLogFileRecord::Ptr logptr =
 					std::dynamic_pointer_cast<CLogFileRecord>(obj);
@@ -694,7 +710,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 		CDisplayWindow3D::Ptr& win1 = m_mywins3D["WS_obs"];
 		if (!win1)
 		{
-			win1 = mrpt::make_aligned_shared<CDisplayWindow3D>(
+			win1 = std::make_shared<CDisplayWindow3D>(
 				"Sensed obstacles", 500, 400);
 			win1->setPos(800, 20);
 			win1->setCameraAzimuthDeg(-90);
@@ -705,7 +721,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 
 				// XY ground plane:
 				mrpt::opengl::CGridPlaneXY::Ptr gl_grid =
-					mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
+					mrpt::opengl::CGridPlaneXY::Create(
 						-20, 20, -20, 20, 0, 1, 0.75f);
 				gl_grid->setColor_u8(mrpt::img::TColor(0xa0a0a0, 0x90));
 				scene->insert(gl_grid);
@@ -731,8 +747,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 					scene->getByName("robot_frame");  // Get or create if new
 				if (!gl_rbframe_r)
 				{
-					gl_robot_frame = mrpt::make_aligned_shared<
-						mrpt::opengl::CSetOfObjects>();
+					gl_robot_frame = mrpt::opengl::CSetOfObjects::Create();
 					gl_robot_frame->setName("robot_frame");
 					scene->insert(gl_robot_frame);
 				}
@@ -788,8 +803,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 						"relposes");  // Get or create if new
 				if (!gl_relposes_r)
 				{
-					gl_relposes = mrpt::make_aligned_shared<
-						mrpt::opengl::CSetOfObjects>();
+					gl_relposes = mrpt::opengl::CSetOfObjects::Create();
 					gl_relposes->setName("relposes");
 					gl_robot_frame->insert(gl_relposes);
 				}
@@ -832,8 +846,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 						"obs-raw");  // Get or create if new
 				if (!gl_obs_r)
 				{
-					gl_obs =
-						mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
+					gl_obs = mrpt::opengl::CPointCloud::Create();
 					gl_obs->setName("obs-raw");
 					gl_obs->setPointSize(3);
 					gl_obs->setColor_u8(mrpt::img::TColor(0xff, 0xff, 0x00));
@@ -857,8 +870,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 					gl_robot_frame->getByName("obs");  // Get or create if new
 				if (!gl_obs_r)
 				{
-					gl_obs =
-						mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
+					gl_obs = mrpt::opengl::CPointCloud::Create();
 					gl_obs->setName("obs");
 					gl_obs->setPointSize(3.0);
 					gl_obs->setColor_u8(mrpt::img::TColor(0x00, 0x00, 0xff));
@@ -884,8 +896,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 					gl_robot_frame->getByName("path");  // Get or create if new
 				if (!gl_path_r)
 				{
-					gl_path =
-						mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
+					gl_path = mrpt::opengl::CSetOfLines::Create();
 					gl_path->setName("path");
 					gl_path->setLineWidth(2.0);
 					gl_path->setColor_u8(mrpt::img::TColor(0x00, 0x00, 0xff));
@@ -967,7 +978,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 									"shape");  // Get or create if new
 							if (!gl_shape_r)
 							{
-								gl_shape = mrpt::make_aligned_shared<
+								gl_shape = std::make_shared<
 									mrpt::opengl::CSetOfLines>();
 								gl_shape->setName("shape");
 								gl_shape->setLineWidth(4.0);
@@ -990,7 +1001,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 									"velocity");  // Get or create if new
 							if (!gl_shape_r)
 							{
-								gl_shape = mrpt::make_aligned_shared<
+								gl_shape = std::make_shared<
 									mrpt::opengl::CSetOfLines>();
 								gl_shape->setName("velocity");
 								gl_shape->setLineWidth(4.0);
@@ -1020,8 +1031,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 						"target");  // Get or create if new
 				if (!gl_trg_r)
 				{
-					gl_trg =
-						mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
+					gl_trg = mrpt::opengl::CPointCloud::Create();
 					gl_trg->setName("target");
 					gl_trg->enableShowName(true);
 					gl_trg->setPointSize(9.0);
@@ -1190,23 +1200,22 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 			const static int W = 290;
 			const static int H = 270;
 
-			win = mrpt::make_aligned_shared<CDisplayWindow3D>(
+			win = std::make_shared<CDisplayWindow3D>(
 				format("%u|TP-Obstacles", nPTG), W, H);
 			win->setPos(
 				20 + (W + 10) * (nPTG % 3), 280 + (H + 10) * (nPTG / 3));
 			win->addTextMessage(
 				4, 4,
 				format("[%u]:%s", nPTG, log.infoPerPTG[nPTG].PTG_desc.c_str()),
-				TColorf(1.0f, 1.0f, 1.0f), "sans", 8, mrpt::opengl::NICE,
+				TColorf(1.0f, 1.0f, 1.0f), glTxtFont, glTxtSize, glTxtFillStyle,
 				0 /*id*/, 1.5, 0.1, true /*shadow*/);
 
 			{
 				mrpt::opengl::COpenGLScene::Ptr scene;
 				mrpt::gui::CDisplayWindow3DLocker locker(*win, scene);
 
-				scene->insert(
-					mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
-						-1.0f, 1.0f, -1.0f, 1.0f, .0f, 1.0f));
+				scene->insert(mrpt::opengl::CGridPlaneXY::Create(
+					-1.0f, 1.0f, -1.0f, 1.0f, .0f, 1.0f));
 				scene->insert(
 					mrpt::opengl::stock_objects::CornerXYSimple(0.4f, 2.0f));
 
@@ -1216,8 +1225,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 				win->setCameraProjective(false);
 
 				{
-					auto gl_obj =
-						mrpt::make_aligned_shared<mrpt::opengl::CDisk>();
+					auto gl_obj = mrpt::opengl::CDisk::Create();
 					gl_obj->setDiskRadius(1.01f, 1.0);
 					gl_obj->setSlicesCount(30);
 					gl_obj->setColor_u8(
@@ -1225,8 +1233,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 					scene->insert(gl_obj);
 				}
 				{
-					auto gl_obj =
-						mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
+					auto gl_obj = mrpt::opengl::CSetOfLines::Create();
 					gl_obj->setName("tp_obstacles");
 					gl_obj->setLineWidth(1.0f);
 					gl_obj->setVerticesPointSize(4.0f);
@@ -1235,8 +1242,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 					scene->insert(gl_obj);
 				}
 				{
-					auto gl_obj =
-						mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
+					auto gl_obj = mrpt::opengl::CSetOfLines::Create();
 					gl_obj->setName("score_phase1");
 					gl_obj->setLineWidth(1.0f);
 					gl_obj->setVerticesPointSize(2.0f);
@@ -1245,8 +1251,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 					scene->insert(gl_obj);
 				}
 				{
-					auto gl_obj =
-						mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
+					auto gl_obj = mrpt::opengl::CSetOfLines::Create();
 					gl_obj->setName("score_phase2");
 					gl_obj->setLineWidth(1.0f);
 					gl_obj->setVerticesPointSize(2.0f);
@@ -1255,8 +1260,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 					scene->insert(gl_obj);
 				}
 				{
-					auto gl_obj =
-						mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
+					auto gl_obj = mrpt::opengl::CSetOfLines::Create();
 					gl_obj->setName("tp_selected_dir");
 					gl_obj->setLineWidth(3.0f);
 					gl_obj->setColor_u8(
@@ -1264,8 +1268,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 					scene->insert(gl_obj);
 				}
 				{
-					auto gl_obj =
-						mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
+					auto gl_obj = mrpt::opengl::CPointCloud::Create();
 					gl_obj->setName("tp_target");
 					gl_obj->setPointSize(5.0f);
 					gl_obj->setColor_u8(
@@ -1274,8 +1277,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 					scene->insert(gl_obj);
 				}
 				{
-					auto gl_obj =
-						mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
+					auto gl_obj = mrpt::opengl::CPointCloud::Create();
 					gl_obj->setName("tp_robot");
 					gl_obj->setPointSize(4.0f);
 					gl_obj->setColor_u8(
@@ -1285,8 +1287,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 				}
 				{
 					auto gl_obj =
-						mrpt::make_aligned_shared<mrpt::opengl::CMesh>(
-							true /*transparency*/);
+						mrpt::opengl::CMesh::Create(true /*transparency*/);
 					gl_obj->setName("tp_clearance");
 					gl_obj->setScale(1.0f, 1.0f, 5.0f);
 					scene->insert(gl_obj);
@@ -1311,7 +1312,7 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 				format("[%u]:%s", nPTG, log.infoPerPTG[nPTG].PTG_desc.c_str()),
 				is_selected_ptg ? TColorf(1.0f, 1.0f, 0.f)
 								: TColorf(1.0f, 1.0f, 1.0f),
-				"mono", 8, mrpt::opengl::NICE, 0 /*id*/, 1.5, 0.1,
+				glTxtFont, glTxtSize, glTxtFillStyle, 0 /*id*/, 1.5, 0.1,
 				true /*shadow*/);
 
 			// Chosen direction:
@@ -1385,9 +1386,8 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 							"TP_Target[0]=(%.02f,%.02f) k=%i ang=%.02f deg",
 							pI.TP_Targets[0].x, pI.TP_Targets[0].y, tp_target_k,
 							mrpt::RAD2DEG(ang)),
-						TColorf(1.0f, 1.0f, 1.0f), "mono", 8,
-						mrpt::opengl::NICE, 1 /*id*/, 1.5, 0.1,
-						false /*shadow*/);
+						TColorf(1.0f, 1.0f, 1.0f), glTxtFont, glTxtSize,
+						glTxtFillStyle, 1 /*id*/, 1.5, 0.1, false /*shadow*/);
 				}
 			}
 			if (cbList->IsChecked(m_cbIdx_ShowAllDebugFields))
@@ -1397,10 +1397,10 @@ void navlog_viewer_GUI_designDialog::OnslidLogCmdScroll(wxScrollEvent& event)
 				for (const auto& e : pI.evalFactors)
 				{
 					win->addTextMessage(
-						4, 5 + (lineY++) * 11,
+						4, 5 + (lineY++) * (glTxtSize + 3),
 						mrpt::format("%20s=%6.03f", e.first.c_str(), e.second),
-						mrpt::img::TColorf(1, 1, 1), "mono", 9,
-						mrpt::opengl::NICE, unique_id++, 1.5, 0.1, true);
+						mrpt::img::TColorf(1, 1, 1), glTxtFont, glTxtSize,
+						glTxtFillStyle, unique_id++, 1.5, 0.1, true);
 				}
 			}
 
@@ -1749,6 +1749,30 @@ void navlog_viewer_GUI_designDialog::OnmnuSaveScoreMatrixSelected(
 	WX_END_TRY
 }
 
+void navlog_viewer_GUI_designDialog::OnmnuSaveCurrentObstacles(
+	wxCommandEvent& event)
+{
+	WX_START_TRY
+
+	const int log_idx = this->slidLog->GetValue();
+	if (log_idx >= int(m_logdata.size())) return;
+	auto logptr = std::dynamic_pointer_cast<CLogFileRecord>(m_logdata[log_idx]);
+	const CLogFileRecord& log = *logptr;
+
+	wxFileDialog dialog(
+		this, _("Save current obstacle point cloud...") /*caption*/,
+		_(".") /* defaultDir */, _("obstacles.txt") /* defaultFilename */,
+		_("MATLAB/Octave plain text file (*.txt)|*.txt") /* wildcard */,
+		wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (dialog.ShowModal() != wxID_OK) return;
+
+	const string filName(dialog.GetPath().mb_str());
+
+	log.WS_Obstacles_original.save2D_to_text_file(filName);
+
+	WX_END_TRY
+}
+
 void navlog_viewer_GUI_designDialog::OntimMouseXY(wxTimerEvent& event)
 {
 	// Mouse position at Z=0
@@ -1822,9 +1846,9 @@ void navlog_viewer_GUI_designDialog::OnmnuMatlabExportPaths(
 		vals_timoff_sendVelCmd;  // time: tim_start_iteration
 
 	const int MAX_CMDVEL_COMPONENTS = 15;
-	using cmdvel_vector_t = Eigen::Matrix<double, 1, MAX_CMDVEL_COMPONENTS>;
-	mrpt::aligned_std_map<double, cmdvel_vector_t>
-		cmdvels;  // time: tim_send_cmd_vel
+	using cmdvel_vector_t = mrpt::math::CVectorDouble;
+	// map: time -> tim_send_cmd_vel
+	std::map<double, cmdvel_vector_t> cmdvels;
 
 	double tim_start_iteration = .0;
 
@@ -1905,9 +1929,10 @@ void navlog_viewer_GUI_designDialog::OnmnuMatlabExportPaths(
 			}
 
 			auto& p = cmdvels[tim_send_cmd_vel];
+			p.resize(MAX_CMDVEL_COMPONENTS);
 			p.setZero();
 			for (size_t k = 0; k < logptr->cmd_vel->getVelCmdLength(); k++)
-				p(k) = logptr->cmd_vel->getVelCmdElement(k);
+				p[k] = logptr->cmd_vel->getVelCmdElement(k);
 		}
 
 	}  // end for each timestep

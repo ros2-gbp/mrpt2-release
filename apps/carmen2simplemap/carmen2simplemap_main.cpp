@@ -23,18 +23,16 @@
 // ===========================================================================
 
 #include <mrpt/io/CFileGZOutputStream.h>
-#include <mrpt/math/lightweight_geom_data.h>
-#include <mrpt/system/datetime.h>
-#include <mrpt/system/filesystem.h>
-#include <mrpt/system/os.h>
-
 #include <mrpt/maps/CSimpleMap.h>
 #include <mrpt/obs/CObservationOdometry.h>
 #include <mrpt/obs/carmen_log_tools.h>
+#include <mrpt/otherlibs/tclap/CmdLine.h>
 #include <mrpt/poses/CPosePDFGaussian.h>
 #include <mrpt/serialization/CArchive.h>
-
-#include <mrpt/otherlibs/tclap/CmdLine.h>
+#include <mrpt/system/datetime.h>
+#include <mrpt/system/filesystem.h>
+#include <mrpt/system/os.h>
+#include <fstream>
 
 using namespace mrpt;
 using namespace mrpt::poses;
@@ -126,7 +124,7 @@ int main(int argc, char** argv)
 				//  a "corrected" odometry from some SLAM program, so save it as
 				//  ground truth:
 				if (importedObservations.size() > 1 &&
-					IS_CLASS(importedObservations[i], CObservationOdometry))
+					IS_CLASS(*importedObservations[i], CObservationOdometry))
 				{
 					CObservationOdometry::Ptr odo =
 						std::dynamic_pointer_cast<CObservationOdometry>(
@@ -140,13 +138,12 @@ int main(int argc, char** argv)
 			// Only if we have a valid pose, save it to the simple map:
 			if (has_gt_pose)
 			{
-				CSensoryFrame::Ptr SF =
-					mrpt::make_aligned_shared<CSensoryFrame>();
+				CSensoryFrame::Ptr SF = std::make_shared<CSensoryFrame>();
 
 				for (const auto& importedObservation : importedObservations)
 				{
 					if (!IS_CLASS(
-							importedObservation,
+							*importedObservation,
 							CObservationOdometry))  // Odometry was already used
 					// as positioning...
 					{
@@ -156,7 +153,7 @@ int main(int argc, char** argv)
 
 				// Insert (observations, pose) pair:
 				CPosePDFGaussian::Ptr pos =
-					mrpt::make_aligned_shared<CPosePDFGaussian>();
+					std::make_shared<CPosePDFGaussian>();
 				pos->mean = gt_pose;
 				theSimpleMap.insert(pos, SF);
 			}

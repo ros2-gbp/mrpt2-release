@@ -27,18 +27,15 @@ using namespace std;
 
 const int MINIMUM_PACKETS_TO_SET_TIMESTAMP_REFERENCE = 10;
 
-CHokuyoURG::CHokuyoURG()
-	: m_sensorPose(0, 0, 0),
-	  m_rx_buffer(40000),
-
-	  m_com_port(""),
-	  m_ip_dir("")
-
-{
-	m_sensorLabel = "Hokuyo";
-}
+CHokuyoURG::CHokuyoURG() : m_rx_buffer(40000) { m_sensorLabel = "Hokuyo"; }
 
 CHokuyoURG::~CHokuyoURG()
+{
+	closeStreamConnection();
+	m_win.reset();
+}
+
+void CHokuyoURG::closeStreamConnection()
 {
 	if (m_stream)
 	{
@@ -47,7 +44,6 @@ CHokuyoURG::~CHokuyoURG()
 		if (m_I_am_owner_serial_port) delete m_stream;
 		m_stream = nullptr;
 	}
-	m_win.reset();
 }
 
 void CHokuyoURG::sendCmd(const char* str)
@@ -72,7 +68,8 @@ void CHokuyoURG::doProcessSimple(
 	outThereIsObservation = false;
 	hardwareError = false;
 
-	// Bound?
+	// Bound? If not, connect to the device and set it up (again) in
+	// continuous read mode:
 	if (!ensureStreamIsOpen())
 	{
 		m_timeStartUI = 0;
@@ -93,6 +90,21 @@ void CHokuyoURG::doProcessSimple(
 	m_state = ssWorking;
 	if (!receiveResponse(rcv_status0, rcv_status1))
 	{
+		if (!internal_notifyNoScanReceived())
+		{
+			// It seems the sensor needs to be reseted (?), let this know
+			// to the caller:
+			m_state = ssError;
+			hardwareError = true;
+
+			// And on our side, close the connection to ensure initialization
+			// is called again to set-up the laser in the next call to
+			// ensureStreamIsOpen() above.
+			closeStreamConnection();
+
+			return;
+		}
+
 		// No new data
 		return;
 	}
@@ -193,6 +205,7 @@ void CHokuyoURG::doProcessSimple(
 	C2DRangeFinderAbstract::processPreview(outObservation);
 
 	outThereIsObservation = true;
+	internal_notifyGoodScanNow();
 }
 
 /*-------------------------------------------------------------
@@ -952,7 +965,7 @@ bool CHokuyoURG::ensureStreamIsOpen()
 	}
 	else
 	{
-		if (m_com_port.empty() && m_ip_dir.empty() && !m_port_dir)
+		if (m_com_port.empty() && (m_ip_dir.empty() || !m_port_dir))
 		{
 			THROW_EXCEPTION(
 				"No stream bound to the laser nor COM serial port or ip and "
@@ -961,7 +974,7 @@ bool CHokuyoURG::ensureStreamIsOpen()
 
 		if (!m_ip_dir.empty())
 		{
-			// Try to open the serial port:
+			// Connect to the TCP/IP port:
 			auto* theCOM = new CClientTCPSocket();
 
 			MRPT_LOG_INFO_STREAM(
@@ -981,8 +994,6 @@ bool CHokuyoURG::ensureStreamIsOpen()
 
 			// Bind:
 			bindIO(theCOM);
-
-			m_I_am_owner_serial_port = true;
 		}
 		else
 		{
@@ -1000,9 +1011,11 @@ bool CHokuyoURG::ensureStreamIsOpen()
 
 			// Bind:
 			bindIO(theCOM);
-
-			m_I_am_owner_serial_port = true;
 		}
+		m_I_am_owner_serial_port = true;
+
+		// (re)connected to the sensor. Configure the laser:
+		turnOn();
 
 		return true;
 	}

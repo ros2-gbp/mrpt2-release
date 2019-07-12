@@ -146,7 +146,7 @@ void CMetricMapBuilderICP::processObservation(const CObservation::Ptr& obs)
 	ASSERT_(obs);
 
 	// Is it an odometry observation??
-	if (IS_CLASS(obs, CObservationOdometry))
+	if (IS_CLASS(*obs, CObservationOdometry))
 	{
 		MRPT_LOG_DEBUG("processObservation(): obs is CObservationOdometry");
 		m_there_has_been_an_odometry = true;
@@ -278,7 +278,7 @@ void CMetricMapBuilderICP::processObservation(const CObservation::Ptr& obs)
 					->insertionOptions.useMapAltitude)
 			{
 				// Use grid altitude:
-				if (IS_CLASS(obs, CObservation2DRangeScan))
+				if (IS_CLASS(*obs, CObservation2DRangeScan))
 				{
 					CObservation2DRangeScan::Ptr obsLaser =
 						std::dynamic_pointer_cast<CObservation2DRangeScan>(obs);
@@ -295,7 +295,7 @@ void CMetricMapBuilderICP::processObservation(const CObservation::Ptr& obs)
 				can_do_icp = sensedPoints.insertObservationPtr(obs);
 			}
 
-			if (IS_DERIVED(matchWith, CPointsMap) &&
+			if (IS_DERIVED(*matchWith, CPointsMap) &&
 				static_cast<CPointsMap*>(matchWith)->empty())
 				can_do_icp = false;  // The reference map is empty!
 
@@ -442,7 +442,7 @@ void CMetricMapBuilderICP::processObservation(const CObservation::Ptr& obs)
 			CPose3DPDF::Ptr pose3D =
 				CPose3DPDF::Ptr(CPose3DPDF::createFrom2D(posePDF));
 
-			CSensoryFrame::Ptr sf = mrpt::make_aligned_shared<CSensoryFrame>();
+			CSensoryFrame::Ptr sf = std::make_shared<CSensoryFrame>();
 			sf->insert(obs);
 
 			SF_Poses_seq.insert(pose3D, sf);
@@ -481,7 +481,7 @@ void CMetricMapBuilderICP::processActionObservation(
 			m_auxAccumOdometry, movEstimation->poseChange->getMeanVal());
 
 		CObservationOdometry::Ptr obs =
-			mrpt::make_aligned_shared<CObservationOdometry>();
+			std::make_shared<CObservationOdometry>();
 		obs->timestamp = movEstimation->timestamp;
 		obs->odometry = m_auxAccumOdometry;
 		this->processObservation(obs);
@@ -515,8 +515,7 @@ CPose3DPDF::Ptr CMetricMapBuilderICP::getCurrentPoseEstimation() const
 	m_lastPoseEst.getLatestRobotPose(pdf2D.mean);
 	pdf2D.cov = m_lastPoseEst_cov;
 
-	CPose3DPDFGaussian::Ptr pdf3D =
-		mrpt::make_aligned_shared<CPose3DPDFGaussian>();
+	CPose3DPDFGaussian::Ptr pdf3D = std::make_shared<CPose3DPDFGaussian>();
 	pdf3D->copyFrom(pdf2D);
 	return pdf3D;
 }
