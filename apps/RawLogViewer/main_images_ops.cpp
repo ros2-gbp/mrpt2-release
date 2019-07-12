@@ -118,7 +118,7 @@ void xRawLogViewerFrame::OnGenerateSeqImgs(wxCommandEvent& event)
 				{
 					CObservation::Ptr o = rawlog.getAsObservation(countLoop);
 
-					if (IS_CLASS(o, CObservationStereoImages))
+					if (IS_CLASS(*o, CObservationStereoImages))
 					{
 						CObservationStereoImages::Ptr obsSt =
 							std::dynamic_pointer_cast<CObservationStereoImages>(
@@ -134,7 +134,7 @@ void xRawLogViewerFrame::OnGenerateSeqImgs(wxCommandEvent& event)
 							imgFileExtension.c_str()));
 						imgSaved++;
 					}
-					else if (IS_CLASS(o, CObservationImage))
+					else if (IS_CLASS(*o, CObservationImage))
 					{
 						CObservationImage::Ptr obsIm =
 							std::dynamic_pointer_cast<CObservationImage>(o);
@@ -232,7 +232,7 @@ void xRawLogViewerFrame::OnMenuMono2Stereo(wxCommandEvent& event)
 						std::dynamic_pointer_cast<CObservationImage>(obs_r);
 
 					CObservationStereoImages::Ptr new_obs =
-						mrpt::make_aligned_shared<CObservationStereoImages>();
+						std::make_shared<CObservationStereoImages>();
 
 					new_obs->timestamp =
 						mrpt::Clock::time_point(mrpt::Clock::duration(
@@ -373,7 +373,7 @@ void xRawLogViewerFrame::OnMenuRectifyImages(wxCommandEvent& event)
 				{
 					CObservation::Ptr o = rawlog.getAsObservation(countLoop);
 
-					if (IS_CLASS(o, CObservationImage))
+					if (IS_CLASS(*o, CObservationImage))
 					{
 						CObservationImage::Ptr obsIm =
 							std::dynamic_pointer_cast<CObservationImage>(o);
@@ -561,7 +561,7 @@ void xRawLogViewerFrame::OnMenuRenameImageFiles(wxCommandEvent& event)
 					for (unsigned int k = 0; k < SF->size(); k++)
 					{
 						if (IS_CLASS(
-								SF->getObservationByIndex(k),
+								*SF->getObservationByIndex(k),
 								CObservationImage))
 						{
 							auto obsIm = SF->getObservationByIndexAs<
@@ -570,7 +570,7 @@ void xRawLogViewerFrame::OnMenuRenameImageFiles(wxCommandEvent& event)
 							N++;
 						}  // end if CObservationImage
 						else if (IS_CLASS(
-									 SF->getObservationByIndex(k),
+									 *SF->getObservationByIndex(k),
 									 CObservationStereoImages))
 						{
 							auto obsIm = SF->getObservationByIndexAs<
@@ -586,14 +586,14 @@ void xRawLogViewerFrame::OnMenuRenameImageFiles(wxCommandEvent& event)
 				{
 					CObservation::Ptr o = rawlog.getAsObservation(countLoop);
 
-					if (IS_CLASS(o, CObservationImage))
+					if (IS_CLASS(*o, CObservationImage))
 					{
 						CObservationImage::Ptr obsIm =
 							std::dynamic_pointer_cast<CObservationImage>(o);
 						renameExternalImageFile(obsIm);
 						N++;
 					}  // end if CObservationImage
-					else if (IS_CLASS(o, CObservationStereoImages))
+					else if (IS_CLASS(*o, CObservationStereoImages))
 					{
 						CObservationStereoImages::Ptr obsIm =
 							std::dynamic_pointer_cast<CObservationStereoImages>(

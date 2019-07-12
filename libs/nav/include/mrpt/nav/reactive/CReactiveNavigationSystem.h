@@ -59,7 +59,6 @@ namespace mrpt::nav
 class CReactiveNavigationSystem : public CAbstractPTGBasedReactive
 {
    public:
-	MRPT_MAKE_ALIGNED_OPERATOR_NEW
    public:
 	/** See docs in ctor of base class */
 	CReactiveNavigationSystem(
@@ -84,12 +83,12 @@ class CReactiveNavigationSystem : public CAbstractPTGBasedReactive
 	CParameterizedTrajectoryGenerator* getPTG(size_t i) override
 	{
 		ASSERT_(i < PTGs.size());
-		return PTGs[i];
+		return PTGs[i].get();
 	}
 	const CParameterizedTrajectoryGenerator* getPTG(size_t i) const override
 	{
 		ASSERT_(i < PTGs.size());
-		return PTGs[i];
+		return PTGs[i].get();
 	}
 	bool checkCollisionWithLatestObstacles(
 		const mrpt::math::TPose2D& relative_robot_pose) const override;
@@ -119,7 +118,7 @@ class CReactiveNavigationSystem : public CAbstractPTGBasedReactive
 
    private:
 	/** The list of PTGs to use for navigation */
-	std::vector<CParameterizedTrajectoryGenerator*> PTGs;
+	std::vector<CParameterizedTrajectoryGenerator::Ptr> PTGs;
 
 	// Steps for the reactive navigation sytem.
 	// ----------------------------------------------------------------------------

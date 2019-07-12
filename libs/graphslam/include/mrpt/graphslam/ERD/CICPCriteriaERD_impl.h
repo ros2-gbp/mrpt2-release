@@ -64,14 +64,14 @@ bool CICPCriteriaERD<GRAPH_T>::updateState(
 
 	if (observation)
 	{  // observation-only rawlog format
-		if (IS_CLASS(observation, CObservation2DRangeScan))
+		if (IS_CLASS(*observation, CObservation2DRangeScan))
 		{
 			m_last_laser_scan2D =
 				std::dynamic_pointer_cast<mrpt::obs::CObservation2DRangeScan>(
 					observation);
 			m_is_using_3DScan = false;
 		}
-		if (IS_CLASS(observation, CObservation3DRangeScan))
+		if (IS_CLASS(*observation, CObservation3DRangeScan))
 		{
 			m_last_laser_scan3D =
 				std::dynamic_pointer_cast<mrpt::obs::CObservation3DRangeScan>(
@@ -414,7 +414,7 @@ void CICPCriteriaERD<GRAPH_T>::initializeVisuals()
 	{
 		COpenGLScene::Ptr scene = this->m_win->get3DSceneAndLock();
 
-		CDisk::Ptr obj = mrpt::make_aligned_shared<CDisk>();
+		CDisk::Ptr obj = std::make_shared<CDisk>();
 		pose_t initial_pose;
 		obj->setPose(initial_pose);
 		obj->setName("ICP_max_distance");
@@ -433,7 +433,7 @@ void CICPCriteriaERD<GRAPH_T>::initializeVisuals()
 		COpenGLScene::Ptr scene = this->m_win->get3DSceneAndLock();
 
 		CPlanarLaserScan::Ptr laser_scan_viz =
-			mrpt::make_aligned_shared<mrpt::opengl::CPlanarLaserScan>();
+			mrpt::opengl::CPlanarLaserScan::Create();
 		laser_scan_viz->enablePoints(true);
 		laser_scan_viz->enableLine(true);
 		laser_scan_viz->enableSurface(true);

@@ -22,7 +22,7 @@
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/poses/CPose3DPDF.h>
 
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 
 // #include <mrpt/img/TColor.h>
 
@@ -89,21 +89,18 @@ void CSetOfLines_appendLine(
 
 CSetOfLines::Ptr CSetOfLines_Create()
 {
-	return mrpt::make_aligned_shared<CSetOfLines>();
+	return std::make_shared<CSetOfLines>();
 }
 // end of CSetOfLines
 
 // CEllipsoid
-CEllipsoid::Ptr CEllipsoid_Create()
-{
-	return mrpt::make_aligned_shared<CEllipsoid>();
-}
+CEllipsoid::Ptr CEllipsoid_Create() { return std::make_shared<CEllipsoid>(); }
 void CEllipsoid_setFromPosePDF(CEllipsoid& self, CPose3DPDF& posePDF)
 {
 	CPose3D meanPose;
 	CMatrixDouble66 COV;
 	posePDF.getCovarianceAndMean(COV, meanPose);
-	CMatrixDouble33 COV3 = COV.block(0, 0, 3, 3);
+	CMatrixDouble33 COV3 = COV.extractMatrix<3, 3>(0, 0);
 	self.setLocation(meanPose.x(), meanPose.y(), meanPose.z() + 0.001);
 	self.setCovMatrix(COV3, COV3(2, 2) == 0 ? 2 : 3);
 }
@@ -114,8 +111,7 @@ CGridPlaneXY::Ptr CGridPlaneXY_Create(
 	float xMin = -10.0, float xMax = 10.0, float yMin = -10.0,
 	float yMax = 10.0, float z = 0.0, float frequency = 1.0)
 {
-	return mrpt::make_aligned_shared<CGridPlaneXY>(
-		xMin, xMax, yMin, yMax, z, frequency);
+	return std::make_shared<CGridPlaneXY>(xMin, xMax, yMin, yMax, z, frequency);
 }
 
 BOOST_PYTHON_FUNCTION_OVERLOADS(

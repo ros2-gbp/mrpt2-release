@@ -113,7 +113,7 @@ void xRawLogViewerFrame::OnMenuDrawGPSPath(wxCommandEvent& event)
 
 				CObservation::Ptr o =
 					sf->getObservationBySensorLabel(the_label);
-				if (o && IS_CLASS(o, CObservationGPS))
+				if (o && IS_CLASS(*o, CObservationGPS))
 				{
 					obs = std::dynamic_pointer_cast<CObservationGPS>(o);
 				}
@@ -125,7 +125,7 @@ void xRawLogViewerFrame::OnMenuDrawGPSPath(wxCommandEvent& event)
 				CObservation::Ptr o = rawlog.getAsObservation(i);
 
 				if (!os::_strcmpi(o->sensorLabel.c_str(), the_label.c_str()) &&
-					IS_CLASS(o, CObservationGPS))
+					IS_CLASS(*o, CObservationGPS))
 				{
 					obs = std::dynamic_pointer_cast<CObservationGPS>(o);
 				}
@@ -179,12 +179,12 @@ void xRawLogViewerFrame::OnMenuDrawGPSPath(wxCommandEvent& event)
 	}
 
 	// Window 3d:
-	winGPSPath = mrpt::make_aligned_shared<CDisplayWindow3D>(format(
+	winGPSPath = std::make_shared<CDisplayWindow3D>(format(
 		"GPS path, %i points (%s) %.03f meters length", int(M),
 		the_label.c_str(), overall_distance));
 
 	COpenGLScene scene;
-	CPointCloud::Ptr gl_path = mrpt::make_aligned_shared<CPointCloud>();
+	CPointCloud::Ptr gl_path = std::make_shared<CPointCloud>();
 	gl_path->setAllPoints(xs, ys, zs);
 	gl_path->setColor(0, 0, 1);
 
@@ -192,9 +192,9 @@ void xRawLogViewerFrame::OnMenuDrawGPSPath(wxCommandEvent& event)
 
 	scene.insert(gl_path);
 	scene.insert(CGridPlaneXY::Ptr(
-		mrpt::make_aligned_shared<CGridPlaneXY>(-300, 300, -300, 300, 0, 10)));
-	scene.insert(CAxis::Ptr(mrpt::make_aligned_shared<CAxis>(
-		-300, -300, -50, 300, 300, 50, 1.0, 3, true)));
+		std::make_shared<CGridPlaneXY>(-300, 300, -300, 300, 0, 10)));
+	scene.insert(CAxis::Ptr(
+		std::make_shared<CAxis>(-300, -300, -50, 300, 300, 50, 1.0, 3, true)));
 
 	COpenGLScene::Ptr the_scene = winGPSPath->get3DSceneAndLock();
 	*the_scene = scene;
@@ -202,12 +202,12 @@ void xRawLogViewerFrame::OnMenuDrawGPSPath(wxCommandEvent& event)
 	winGPSPath->repaint();
 
 	// 2D wins:
-	winGPSPath2D_xy = mrpt::make_aligned_shared<CDisplayWindowPlots>(
+	winGPSPath2D_xy = std::make_shared<CDisplayWindowPlots>(
 		format("GPS path - XY (%s)", the_label.c_str()));
 	winGPSPath2D_xy->plot(xs, ys, "b");
 	winGPSPath2D_xy->axis_fit(true);
 
-	winGPSPath2D_xz = mrpt::make_aligned_shared<CDisplayWindowPlots>(
+	winGPSPath2D_xz = std::make_shared<CDisplayWindowPlots>(
 		format("GPS path - XZ (%s)", the_label.c_str()));
 	winGPSPath2D_xz->plot(xs, zs, "b");
 	winGPSPath2D_xz->axis_fit(true);
@@ -342,7 +342,7 @@ void xRawLogViewerFrame::OnMenuRegenerateGPSTimestamps(wxCommandEvent& event)
 			{
 				CObservation::Ptr o = rawlog.getAsObservation(i);
 
-				if (IS_CLASS(o, CObservationGPS) &&
+				if (IS_CLASS(*o, CObservationGPS) &&
 					find_in_vector(o->sensorLabel, the_labels) != string::npos)
 				{
 					CObservationGPS::Ptr obs =
@@ -474,7 +474,7 @@ void xRawLogViewerFrame::OnMenuDistanceBtwGPSs(wxCommandEvent& event)
 			{
 				CObservation::Ptr o = rawlog.getAsObservation(i);
 
-				if (!ref_valid && IS_CLASS(o, CObservationGPS))
+				if (!ref_valid && IS_CLASS(*o, CObservationGPS))
 				{
 					CObservationGPS::Ptr ob =
 						std::dynamic_pointer_cast<CObservationGPS>(o);
@@ -488,7 +488,7 @@ void xRawLogViewerFrame::OnMenuDistanceBtwGPSs(wxCommandEvent& event)
 
 				if (o->sensorLabel == gps1)
 				{
-					ASSERT_(IS_CLASS(o, CObservationGPS));
+					ASSERT_(IS_CLASS(*o, CObservationGPS));
 					CObservationGPS::Ptr obs =
 						std::dynamic_pointer_cast<CObservationGPS>(o);
 					if (obs->has_GGA_datum &&
@@ -499,7 +499,7 @@ void xRawLogViewerFrame::OnMenuDistanceBtwGPSs(wxCommandEvent& event)
 
 				if (o->sensorLabel == gps2)
 				{
-					ASSERT_(IS_CLASS(o, CObservationGPS));
+					ASSERT_(IS_CLASS(*o, CObservationGPS));
 					CObservationGPS::Ptr obs =
 						std::dynamic_pointer_cast<CObservationGPS>(o);
 					if (obs->has_GGA_datum &&
@@ -617,7 +617,7 @@ void xRawLogViewerFrame::OnSummaryGPS(wxCommandEvent& event)
 			case CRawlog::etObservation:
 			{
 				CObservation::Ptr o = rawlog.getAsObservation(i);
-				if (IS_CLASS(o, CObservationGPS))
+				if (IS_CLASS(*o, CObservationGPS))
 				{
 					CObservationGPS::Ptr obs =
 						std::dynamic_pointer_cast<CObservationGPS>(o);
@@ -879,7 +879,7 @@ void xRawLogViewerFrame::OnGenGPSTxt(wxCommandEvent& event)
 				{
 					CObservation::Ptr o = rawlog.getAsObservation(i);
 
-					if (IS_CLASS(o, CObservationGPS))
+					if (IS_CLASS(*o, CObservationGPS))
 					{
 						CObservationGPS::Ptr obs =
 							std::dynamic_pointer_cast<CObservationGPS>(o);
@@ -1159,7 +1159,7 @@ void filter_delGPSNan(
 		for (auto it = SF->begin(); it != SF->end();)
 		{
 			bool del = false;
-			if (IS_CLASS(*it, CObservationGPS))
+			if (IS_CLASS(**it, CObservationGPS))
 			{
 				CObservationGPS::Ptr o =
 					std::dynamic_pointer_cast<CObservationGPS>(*it);

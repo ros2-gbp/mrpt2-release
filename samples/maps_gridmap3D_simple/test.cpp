@@ -31,20 +31,19 @@ void TestGridMap3D()
 	{
 		mrpt::obs::CObservation2DRangeScan scan1;
 		mrpt::obs::stock_observations::example2DRangeScan(scan1);
-		map.insertObservation(&scan1);
+		map.insertObservation(scan1);
 	}
 
 	mrpt::gui::CDisplayWindow3D win("GridMap3D demo", 640, 480);
 
-	auto gl_map = mrpt::make_aligned_shared<mrpt::opengl::COctoMapVoxels>();
+	auto gl_map = mrpt::opengl::COctoMapVoxels::Create();
 
 	{
 		mrpt::opengl::COpenGLScene::Ptr& scene = win.get3DSceneAndLock();
 
 		{
 			mrpt::opengl::CGridPlaneXY::Ptr gl_grid =
-				mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
-					-20, 20, -20, 20, 0, 1);
+				mrpt::opengl::CGridPlaneXY::Create(-20, 20, -20, 20, 0, 1);
 			gl_grid->setColor_u8(mrpt::img::TColor(0x80, 0x80, 0x80));
 			scene->insert(gl_grid);
 		}

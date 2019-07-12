@@ -95,7 +95,7 @@ int main(int argc, char** argv)
 
 			if (o)  // ASSERT_(o);
 			{
-				if (IS_CLASS(o, CObservationGasSensors))
+				if (IS_CLASS(*o, CObservationGasSensors))
 				{
 					CObservationGasSensors::Ptr obs =
 						std::dynamic_pointer_cast<CObservationGasSensors>(o);
@@ -182,9 +182,7 @@ int main(int argc, char** argv)
 								MOXmodel_estimation);
 							gd_est.eNosePoseOnTheRobot = MOXmodel_pose;
 
-							mrpt::obs::CObservationGasSensors::Ptr obs_GDM =
-								mrpt::make_aligned_shared<
-									CObservationGasSensors>();
+							auto obs_GDM = CObservationGasSensors::Create();
 							obs_GDM->sensorLabel = "GDM";
 							// modify timestamp to deal with the delay of the
 							// model
