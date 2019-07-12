@@ -54,7 +54,8 @@ void TestOpenGLVideo()
 	COpenGLViewport::Ptr gl_view_aux;
 	{
 		COpenGLScene::Ptr& theScene = win2.get3DSceneAndLock();
-		theScene->insert(mrpt::opengl::CGridPlaneXY::Create());
+		theScene->insert(
+			mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>());
 
 		// Create small auxiliary viewport
 		gl_view_aux = theScene->createViewport("aux");
@@ -80,7 +81,7 @@ void TestOpenGLVideo()
 		CObservation::Ptr obs = cam->getNextFrame();
 		if (obs)
 		{
-			if (IS_CLASS(*obs, CObservationImage))
+			if (IS_CLASS(obs, CObservationImage))
 			{
 				CObservationImage::Ptr o =
 					std::dynamic_pointer_cast<CObservationImage>(obs);

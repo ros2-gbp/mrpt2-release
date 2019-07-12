@@ -96,7 +96,8 @@ void CParticleFilterCapable::computeResampling(
 			//   Select with replacement
 			// ==============================================
 			vector<double> Q;
-			mrpt::math::cumsum_tmpl<vector<double>, vector<double>>(linW, Q);
+			mrpt::math::cumsum_tmpl<vector<double>, vector<double>, double>(
+				linW, Q);
 			Q[M - 1] = 1.1;
 
 			vector<double> T(M);
@@ -164,7 +165,7 @@ void CParticleFilterCapable::computeResampling(
 
 				// perform resampling:
 				vector<double> Q;
-				mrpt::math::cumsum_tmpl<vector<double>, vector<double>>(
+				mrpt::math::cumsum_tmpl<vector<double>, vector<double>, double>(
 					linW_mod, Q);
 				Q[M - 1] = 1.1;
 
@@ -199,7 +200,8 @@ void CParticleFilterCapable::computeResampling(
 			//   prStratified
 			// ==============================================
 			vector<double> Q;
-			mrpt::math::cumsum_tmpl<vector<double>, vector<double>>(linW, Q);
+			mrpt::math::cumsum_tmpl<vector<double>, vector<double>, double>(
+				linW, Q);
 			Q[M - 1] = 1.1;
 
 			// Stratified-uniform random vector:
@@ -235,7 +237,8 @@ void CParticleFilterCapable::computeResampling(
 			//   prSystematic
 			// ==============================================
 			vector<double> Q;
-			mrpt::math::cumsum_tmpl<vector<double>, vector<double>>(linW, Q);
+			mrpt::math::cumsum_tmpl<vector<double>, vector<double>, double>(
+				linW, Q);
 			Q[M - 1] = 1.1;
 
 			// Uniform random vector:

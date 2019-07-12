@@ -85,9 +85,10 @@ void COpenNI2_RGBD360::doProcess()
 
 	bool thereIs, hwError;
 
-	CObservationRGBD360::Ptr newObs = std::make_shared<CObservationRGBD360>();
+	CObservationRGBD360::Ptr newObs =
+		mrpt::make_aligned_shared<CObservationRGBD360>();
 	//	CObservation3DRangeScan::Ptr newObs =
-	// std::make_shared<CObservation3DRangeScan>();
+	// mrpt::make_aligned_shared<CObservation3DRangeScan>();
 
 	assert(getNumDevices() > 0);
 	//  unsigned sensor_id = COpenNI2Generic::vOpenDevices.front();
@@ -204,16 +205,16 @@ void COpenNI2_RGBD360::getNextObservation(
 					m_preview_decim_counter_range = 0;
 					if (!m_win_range[sensor_id])
 					{
-						m_win_range[sensor_id] =
-							mrpt::gui::CDisplayWindow::Create("Preview RANGE");
+						m_win_range[sensor_id] = mrpt::make_aligned_shared<
+							mrpt::gui::CDisplayWindow>("Preview RANGE");
 						m_win_range[sensor_id]->setPos(5, 5 + 250 * sensor_id);
 					}
 
 					// Normalize the image
 					mrpt::img::CImage img;
 					img.setFromMatrix(out_obs.rangeImages[sensor_id]);
-					CMatrixFloat r = out_obs.rangeImages[sensor_id];
-					r *= float(1.0 / this->m_maxRange);
+					CMatrixFloat r = out_obs.rangeImages[sensor_id] *
+									 float(1.0 / this->m_maxRange);
 					m_win_range[sensor_id]->showImage(img);
 				}
 			}
@@ -224,9 +225,8 @@ void COpenNI2_RGBD360::getNextObservation(
 					m_preview_decim_counter_rgb = 0;
 					if (!m_win_int[sensor_id])
 					{
-						m_win_int[sensor_id] =
-							mrpt::gui::CDisplayWindow::Create(
-								"Preview INTENSITY");
+						m_win_int[sensor_id] = mrpt::make_aligned_shared<
+							mrpt::gui::CDisplayWindow>("Preview INTENSITY");
 						m_win_int[sensor_id]->setPos(330, 5 + 250 * sensor_id);
 					}
 					m_win_int[sensor_id]->showImage(

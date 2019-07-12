@@ -10,7 +10,7 @@
 
 #include <mrpt/bayes/CParticleFilterCapable.h>
 #include <mrpt/bayes/CParticleFilterData.h>
-#include <mrpt/math/TPose2D.h>
+#include <mrpt/math/lightweight_geom_data.h>
 #include <mrpt/poses/CPosePDF.h>
 #include <mrpt/poses/CPoseRandomSampler.h>
 
@@ -59,23 +59,16 @@ class CPosePDFParticles
 	 * \param location The location to set all the m_particles.
 	 * \param particlesCount If this is set to 0 the number of m_particles
 	 * remains unchanged.
-	 *  \sa resetUniform, CMonteCarloLocalization2D::resetUniformFreeSpace,
-	 * resetAroundSetOfPoses
+	 *  \sa resetUniform, resetUniformFreeSpace, resetAroundSetOfPoses
 	 */
 	void resetDeterministic(
 		const mrpt::math::TPose2D& location, size_t particlesCount = 0);
 
 	/** Reset the PDF to an uniformly distributed one, inside of the defined
-	 * 2D area `[x_min,x_max]x[y_min,y_max]` (in meters) and for
-	 * orientations `[phi_min, phi_max]` (in radians).
-	 *
-	 * \param particlesCount New particle count, or leave count unchanged if set
-	 * to -1 (default).
-	 *
-	 * \note Orientations can be outside of the [-pi,pi] range if so desired,
-	 *       but it must hold `phi_max>=phi_min`.
-	 * \sa resetDeterministic, CMonteCarloLocalization2D::resetUniformFreeSpace,
-	 * resetAroundSetOfPoses
+	 * cube.
+	 * If particlesCount is set to -1 the number of m_particles remains
+	 * unchanged.
+	 *  \sa resetDeterministic, resetUniformFreeSpace, resetAroundSetOfPoses
 	 */
 	void resetUniform(
 		const double x_min, const double x_max, const double y_min,
@@ -96,16 +89,25 @@ class CPosePDFParticles
 	 * the three coordinates (meters, radians), so it can be understood as the
 	 * "initial uncertainty".
 	 *
-	 *  \sa resetDeterministic, CMonteCarloLocalization2D::resetUniformFreeSpace
+	 *  \sa resetDeterministic, resetUniformFreeSpace
 	 */
 	void resetAroundSetOfPoses(
 		const std::vector<mrpt::math::TPose2D>& list_poses,
 		const size_t num_particles_per_pose, const double spread_x,
 		const double spread_y, const double spread_phi_rad);
 
+	/** Returns an estimate of the pose, (the mean, or mathematical expectation
+	 * of the PDF).
+	 * \sa getCovariance
+	 */
 	void getMean(CPose2D& mean_pose) const override;
 
-	std::tuple<cov_mat_t, type_value> getCovarianceAndMean() const override;
+	/** Returns an estimate of the pose covariance matrix (3x3 cov matrix) and
+	 * the mean, both at once.
+	 * \sa getMean
+	 */
+	void getCovarianceAndMean(
+		mrpt::math::CMatrixDouble33& cov, CPose2D& mean_point) const override;
 
 	/** Returns the pose of the i'th particle.
 	 */

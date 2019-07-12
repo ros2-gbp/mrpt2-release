@@ -11,16 +11,15 @@
 
 #include <mrpt/maps/CBeacon.h>
 #include <mrpt/maps/CBeaconMap.h>
-#include <mrpt/math/geometry.h>
-#include <mrpt/math/ops_matrices.h>
 #include <mrpt/obs/CObservation.h>
+#include <mrpt/serialization/CArchive.h>
+
+#include <mrpt/math/geometry.h>
 #include <mrpt/opengl/CEllipsoid.h>
 #include <mrpt/opengl/CPointCloud.h>
 #include <mrpt/opengl/CSetOfObjects.h>
 #include <mrpt/opengl/CText.h>
-#include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/os.h>
-#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::maps;
@@ -80,17 +79,23 @@ void CBeacon::getMean(CPoint3D& p) const
 	MRPT_END
 }
 
-std::tuple<CMatrixDouble33, CPoint3D> CBeacon::getCovarianceAndMean() const
+/*---------------------------------------------------------------
+					getCovarianceAndMean
+  ---------------------------------------------------------------*/
+void CBeacon::getCovarianceAndMean(CMatrixDouble33& COV, CPoint3D& p) const
 {
 	MRPT_START
 	switch (m_typePDF)
 	{
 		case pdfMonteCarlo:
-			return m_locationMC.getCovarianceAndMean();
+			m_locationMC.getCovarianceAndMean(COV, p);
+			break;
 		case pdfGauss:
-			return m_locationGauss.getCovarianceAndMean();
+			m_locationGauss.getCovarianceAndMean(COV, p);
+			break;
 		case pdfSOG:
-			return m_locationSOG.getCovarianceAndMean();
+			m_locationSOG.getCovarianceAndMean(COV, p);
+			break;
 		default:
 			THROW_EXCEPTION("ERROR: Invalid 'm_typePDF' value");
 	};
@@ -226,7 +231,7 @@ void CBeacon::getAs3DObject(mrpt::opengl::CSetOfObjects::Ptr& outObj) const
 		case pdfMonteCarlo:
 		{
 			opengl::CPointCloud::Ptr obj =
-				std::make_shared<opengl::CPointCloud>();
+				mrpt::make_aligned_shared<opengl::CPointCloud>();
 			obj->setColor(1, 0, 0);
 
 			obj->setPointSize(2.5);
@@ -246,7 +251,7 @@ void CBeacon::getAs3DObject(mrpt::opengl::CSetOfObjects::Ptr& outObj) const
 		case pdfGauss:
 		{
 			opengl::CEllipsoid::Ptr obj =
-				std::make_shared<opengl::CEllipsoid>();
+				mrpt::make_aligned_shared<opengl::CEllipsoid>();
 
 			obj->setPose(m_locationGauss.mean);
 			obj->setLineWidth(3);
@@ -271,7 +276,7 @@ void CBeacon::getAs3DObject(mrpt::opengl::CSetOfObjects::Ptr& outObj) const
 			THROW_EXCEPTION("ERROR: Invalid 'm_typePDF' value");
 	};
 
-	opengl::CText::Ptr obj2 = std::make_shared<opengl::CText>();
+	opengl::CText::Ptr obj2 = mrpt::make_aligned_shared<opengl::CText>();
 	obj2->setString(format("#%d", static_cast<int>(m_ID)));
 
 	CPoint3D meanP;
@@ -555,19 +560,21 @@ void CBeacon::generateRingSOG(
 
 				// Compute the covariance:
 				dir = dir - sensorPnt;
-				// 3 perpendicular & normalized vectors.
-				CMatrixDouble33 H = math::generateAxisBaseFromDirection(
-					dir.x(), dir.y(), dir.z());
+				CMatrixDouble33 H =
+					CMatrixDouble33(math::generateAxisBaseFromDirection(
+						dir.x(), dir.y(),
+						dir.z()));  // 3 perpendicular & normalized vectors.
 
-				// out = H * S * H';
-				outPDF.get(modeIdx).val.cov = mrpt::math::multiply_HCHt(H, S);
-
-				if (std::abs(minEl - maxEl) < 1e-6)
+				H.multiply_HCHt(
+					S,
+					outPDF.get(modeIdx).val.cov);  // out = H * S * ~H;
+				if (minEl == maxEl)
 				{  // We are in 2D:
 					// 3rd column/row = 0
 					CMatrixDouble33& C33 = outPDF.get(modeIdx).val.cov;
-					C33(0, 2) = C33(2, 0) = C33(1, 2) = C33(2, 1) = C33(2, 2) =
-						0;
+					C33.get_unsafe(0, 2) = C33.get_unsafe(2, 0) =
+						C33.get_unsafe(1, 2) = C33.get_unsafe(2, 1) =
+							C33.get_unsafe(2, 2) = 0;
 				}
 
 				// Add covariance for uncertainty composition?

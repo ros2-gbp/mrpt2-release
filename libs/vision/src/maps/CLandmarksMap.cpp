@@ -10,10 +10,10 @@
 #include "vision-precomp.h"  // Precompiled headers
 
 #include <mrpt/io/CFileOutputStream.h>
+#include <mrpt/math/geometry.h>
+
 #include <mrpt/maps/CLandmark.h>
 #include <mrpt/maps/CLandmarksMap.h>
-#include <mrpt/math/geometry.h>
-#include <mrpt/math/ops_matrices.h>
 #include <mrpt/obs/CObservation2DRangeScan.h>
 #include <mrpt/obs/CObservationBeaconRanges.h>
 #include <mrpt/obs/CObservationGPS.h>
@@ -21,13 +21,13 @@
 #include <mrpt/obs/CObservationRobotPose.h>
 #include <mrpt/obs/CObservationStereoImages.h>
 #include <mrpt/obs/CObservationVisualLandmarks.h>
-#include <mrpt/opengl/CEllipsoid.h>
-#include <mrpt/opengl/CGridPlaneXY.h>
-#include <mrpt/opengl/COpenGLScene.h>
 #include <mrpt/poses/CPointPDFGaussian.h>
 #include <mrpt/random.h>
 #include <mrpt/system/os.h>
-#include <Eigen/Dense>
+
+#include <mrpt/opengl/CEllipsoid.h>
+#include <mrpt/opengl/CGridPlaneXY.h>
+#include <mrpt/opengl/COpenGLScene.h>
 
 using namespace mrpt;
 using namespace mrpt::math;
@@ -110,9 +110,9 @@ mrpt::maps::CMetricMap* CLandmarksMap::internal_CreateFromMapDefinition(
 		CLandmark lm;
 
 		lm.createOneFeature();
-		lm.features[0].type = featBeacon;
+		lm.features[0]->type = featBeacon;
 
-		lm.features[0].keypoint.ID = initialBeacon.second;
+		lm.features[0]->ID = initialBeacon.second;
 		lm.ID = initialBeacon.second;
 
 		lm.pose_mean = initialBeacon.first;
@@ -141,11 +141,33 @@ std::map<
 	CLandmarksMap::_mEDD;
 mrpt::maps::CLandmark::TLandmarkID CLandmarksMap::_mapMaxID;
 bool CLandmarksMap::_maxIDUpdated = false;
+/*---------------------------------------------------------------
+						Constructor
+  ---------------------------------------------------------------*/
+CLandmarksMap::CLandmarksMap()
+	: landmarks(),
+	  insertionOptions(),
+	  likelihoodOptions(),
+	  insertionResults(),
+	  fuseOptions()
+{
+	landmarks.clear();
+	//_mEDD.clear();
+	//_mapMaxID = 0;
+}
 
+/*---------------------------------------------------------------
+						Destructor
+  ---------------------------------------------------------------*/
+CLandmarksMap::~CLandmarksMap() { landmarks.clear(); }
+/*---------------------------------------------------------------
+						clear
+  ---------------------------------------------------------------*/
 void CLandmarksMap::internal_clear() { landmarks.clear(); }
-
+/*---------------------------------------------------------------
+						getLandmarksCount
+  ---------------------------------------------------------------*/
 size_t CLandmarksMap::size() const { return landmarks.size(); }
-
 uint8_t CLandmarksMap::serializeGetVersion() const { return 0; }
 void CLandmarksMap::serializeTo(mrpt::serialization::CArchive& out) const
 {
@@ -195,38 +217,38 @@ void CLandmarksMap::serializeFrom(
 					computeObservationLikelihood
   ---------------------------------------------------------------*/
 double CLandmarksMap::internal_computeObservationLikelihood(
-	const CObservation& obs, const CPose3D& robotPose3D)
+	const CObservation* obs, const CPose3D& robotPose3D)
 {
 	MRPT_START
 
-	if (CLASS_ID(CObservation2DRangeScan) == obs.GetRuntimeClass() &&
+	if (CLASS_ID(CObservation2DRangeScan) == obs->GetRuntimeClass() &&
 		insertionOptions.insert_Landmarks_from_range_scans)
 	{
 		/********************************************************************
 						OBSERVATION TYPE: CObservation2DRangeScan
 			********************************************************************/
-		const auto& o = static_cast<const CObservation2DRangeScan&>(obs);
+		const auto* o = static_cast<const CObservation2DRangeScan*>(obs);
 		CLandmarksMap auxMap;
-		CPose2D sensorPose2D(robotPose3D + o.sensorPose);
+		CPose2D sensorPose2D(robotPose3D + o->sensorPose);
 
 		auxMap.loadOccupancyFeaturesFrom2DRangeScan(
-			o, &robotPose3D, likelihoodOptions.rangeScan2D_decimation);
+			*o, &robotPose3D, likelihoodOptions.rangeScan2D_decimation);
 
 		// And compute its likelihood:
 		return computeLikelihood_RSLC_2007(&auxMap, sensorPose2D);
 	}  // end of likelihood of 2D range scan:
-	else if (CLASS_ID(CObservationStereoImages) == obs.GetRuntimeClass())
+	else if (CLASS_ID(CObservationStereoImages) == obs->GetRuntimeClass())
 	{
 		/********************************************************************
 						OBSERVATION TYPE: CObservationStereoImages
 				Lik. between "this" and "auxMap";
 			********************************************************************/
-		const auto& o = static_cast<const CObservationStereoImages&>(obs);
+		const auto* o = static_cast<const CObservationStereoImages*>(obs);
 
 		CLandmarksMap auxMap;
 		auxMap.insertionOptions = insertionOptions;
 		auxMap.loadSiftFeaturesFromStereoImageObservation(
-			o, CLandmarksMap::_mapMaxID, likelihoodOptions.SIFT_feat_options);
+			*o, CLandmarksMap::_mapMaxID, likelihoodOptions.SIFT_feat_options);
 		auxMap.changeCoordinatesReference(robotPose3D);
 
 		// ACCESS TO STATIC VARIABLE
@@ -242,7 +264,7 @@ double CLandmarksMap::internal_computeObservationLikelihood(
 		return computeLikelihood_SIFT_LandmarkMap(&auxMap);
 
 	}  // end of likelihood of Stereo Images scan:
-	else if (CLASS_ID(CObservationBeaconRanges) == obs.GetRuntimeClass())
+	else if (CLASS_ID(CObservationBeaconRanges) == obs->GetRuntimeClass())
 	{
 		/********************************************************************
 
@@ -251,7 +273,7 @@ double CLandmarksMap::internal_computeObservationLikelihood(
 				Lik. between "this" and "auxMap";
 
 			********************************************************************/
-		const auto& o = static_cast<const CObservationBeaconRanges&>(obs);
+		const auto* o = static_cast<const CObservationBeaconRanges*>(obs);
 
 		std::deque<CObservationBeaconRanges::TMeasurement>::const_iterator it;
 		TSequenceLandmarks::iterator lm_it;
@@ -259,7 +281,7 @@ double CLandmarksMap::internal_computeObservationLikelihood(
 		CPoint3D point3D, beacon3D;
 		double ret = 0;  // 300;
 
-		for (it = o.sensedData.begin(); it != o.sensedData.end(); it++)
+		for (it = o->sensedData.begin(); it != o->sensedData.end(); it++)
 		{
 			// Look for the beacon in this map:
 			unsigned int sensedID = it->beaconID;
@@ -284,7 +306,7 @@ double CLandmarksMap::internal_computeObservationLikelihood(
 
 					float sensorStd =
 						likelihoodOptions.beaconRangesUseObservationStd
-							? o.stdError
+							? o->stdError
 							: likelihoodOptions.beaconRangesStd;
 					ret +=
 						(-0.5f *
@@ -296,9 +318,9 @@ double CLandmarksMap::internal_computeObservationLikelihood(
 			// If not found, uniform distribution:
 			if (!found)
 			{
-				if (o.maxSensorDistance != o.minSensorDistance)
-					ret +=
-						log(1.0 / (o.maxSensorDistance - o.minSensorDistance));
+				if (o->maxSensorDistance != o->minSensorDistance)
+					ret += log(
+						1.0 / (o->maxSensorDistance - o->minSensorDistance));
 			}
 
 		}  // for each sensed beacon "it"
@@ -307,7 +329,7 @@ double CLandmarksMap::internal_computeObservationLikelihood(
 		return ret;
 
 	}  // end of likelihood of CObservationBeaconRanges
-	else if (CLASS_ID(CObservationRobotPose) == obs.GetRuntimeClass())
+	else if (CLASS_ID(CObservationRobotPose) == obs->GetRuntimeClass())
 	{
 		/********************************************************************
 
@@ -316,26 +338,26 @@ double CLandmarksMap::internal_computeObservationLikelihood(
 				Lik. between "this" and "robotPose";
 
 		********************************************************************/
-		const auto& o = static_cast<const CObservationRobotPose&>(obs);
+		const auto* o = static_cast<const CObservationRobotPose*>(obs);
 
 		// Compute the 3D position of the sensor:
-		CPose3D sensorPose3D = robotPose3D + o.sensorPose;
+		CPose3D sensorPose3D = robotPose3D + o->sensorPose;
 
 		// Compute the likelihood according to mahalanobis distance between
 		// poses:
 		CMatrixD dij(1, 6), Cij(6, 6), Cij_1;
-		dij(0, 0) = o.pose.mean.x() - sensorPose3D.x();
-		dij(0, 1) = o.pose.mean.y() - sensorPose3D.y();
-		dij(0, 2) = o.pose.mean.z() - sensorPose3D.z();
-		dij(0, 3) = wrapToPi(o.pose.mean.yaw() - sensorPose3D.yaw());
-		dij(0, 4) = wrapToPi(o.pose.mean.pitch() - sensorPose3D.pitch());
-		dij(0, 5) = wrapToPi(o.pose.mean.roll() - sensorPose3D.roll());
+		dij(0, 0) = o->pose.mean.x() - sensorPose3D.x();
+		dij(0, 1) = o->pose.mean.y() - sensorPose3D.y();
+		dij(0, 2) = o->pose.mean.z() - sensorPose3D.z();
+		dij(0, 3) = wrapToPi(o->pose.mean.yaw() - sensorPose3D.yaw());
+		dij(0, 4) = wrapToPi(o->pose.mean.pitch() - sensorPose3D.pitch());
+		dij(0, 5) = wrapToPi(o->pose.mean.roll() - sensorPose3D.roll());
 
 		// Equivalent covariance from "i" to "j":
-		Cij = CMatrixDouble(o.pose.cov);
-		Cij_1 = Cij.inverse_LLt();
+		Cij = CMatrixDouble(o->pose.cov);
+		Cij_1 = Cij.inv();
 
-		double distMahaFlik2 = mrpt::math::multiply_HCHt_scalar(dij, Cij_1);
+		double distMahaFlik2 = dij.multiply_HCHt_scalar(Cij_1);
 		double ret =
 			-0.5 * (distMahaFlik2 / square(likelihoodOptions.extRobotPoseStd));
 
@@ -343,33 +365,33 @@ double CLandmarksMap::internal_computeObservationLikelihood(
 		return ret;
 
 	}  // end of likelihood of CObservation
-	else if (CLASS_ID(CObservationGPS) == obs.GetRuntimeClass())
+	else if (CLASS_ID(CObservationGPS) == obs->GetRuntimeClass())
 	{
 		/********************************************************************
 
 						OBSERVATION TYPE: CObservationGPS
 
 		********************************************************************/
-		const auto& o = static_cast<const CObservationGPS&>(obs);
+		const auto* o = static_cast<const CObservationGPS*>(obs);
 		// Compute the 3D position of the sensor:
 		CPoint3D point3D = CPoint3D(robotPose3D);
 		CPoint3D GPSpose;
 		double x, y;
 		double earth_radius = 6378137;
 
-		if ((o.has_GGA_datum) &&
+		if ((o->has_GGA_datum) &&
 			(likelihoodOptions.GPSOrigin.min_sat <=
-			 o.getMsgByClass<gnss::Message_NMEA_GGA>().fields.satellitesUsed))
+			 o->getMsgByClass<gnss::Message_NMEA_GGA>().fields.satellitesUsed))
 		{
 			// Compose GPS robot position
 
 			x = DEG2RAD(
-					(o.getMsgByClass<gnss::Message_NMEA_GGA>()
+					(o->getMsgByClass<gnss::Message_NMEA_GGA>()
 						 .fields.longitude_degrees -
 					 likelihoodOptions.GPSOrigin.longitude)) *
 				earth_radius * 1.03;
 			y = DEG2RAD(
-					(o.getMsgByClass<gnss::Message_NMEA_GGA>()
+					(o->getMsgByClass<gnss::Message_NMEA_GGA>()
 						 .fields.latitude_degrees -
 					 likelihoodOptions.GPSOrigin.latitude)) *
 				earth_radius * 1.15;
@@ -382,19 +404,19 @@ double CLandmarksMap::internal_computeObservationLikelihood(
 				 y * cos(likelihoodOptions.GPSOrigin.ang) +
 				 likelihoodOptions.GPSOrigin.y_shift));
 			GPSpose.z(
-				(o.getMsgByClass<gnss::Message_NMEA_GGA>()
+				(o->getMsgByClass<gnss::Message_NMEA_GGA>()
 					 .fields.altitude_meters -
 				 likelihoodOptions.GPSOrigin.altitude));
 			// std::cout<<"GPSpose calculo: "<<GPSpose.x<<","<<GPSpose.y<<"\n";
 
 			//-------------------------------//
 			// sigmaGPS =
-			// f(o.getMsgByClass<gnss::Message_NMEA_GGA>().fields.satellitesUsed)
+			// f(o->getMsgByClass<gnss::Message_NMEA_GGA>().fields.satellitesUsed)
 			// //funcion del numero de satelites
 			//-------------------------------//
 
 			// std::cout<<"datos de longitud y latitud:
-			// "<<o.getMsgByClass<gnss::Message_NMEA_GGA>().fields.longitude_degrees<<","<<o.getMsgByClass<gnss::Message_NMEA_GGA>().fields.latitude_degrees<<","<<"\n";
+			// "<<o->getMsgByClass<gnss::Message_NMEA_GGA>().fields.longitude_degrees<<","<<o->getMsgByClass<gnss::Message_NMEA_GGA>().fields.latitude_degrees<<","<<"\n";
 			// std::cout<<"x,y sin rotar: "<<x<<","<<y<<","<<"\n";
 			// std::cout<<"angulo: "<<likelihoodOptions.GPSOrigin.ang<<"\n";
 			// std::cout<<"desp x,y:
@@ -436,7 +458,7 @@ double CLandmarksMap::internal_computeObservationLikelihood(
 						insertObservation
   ---------------------------------------------------------------*/
 bool CLandmarksMap::internal_insertObservation(
-	const CObservation& obs, const CPose3D* robotPose)
+	const CObservation* obs, const CPose3D* robotPose)
 {
 	MRPT_START
 
@@ -453,7 +475,7 @@ bool CLandmarksMap::internal_insertObservation(
 		// Default values are (0,0,0)
 	}
 
-	if (CLASS_ID(CObservationImage) == obs.GetRuntimeClass() &&
+	if (CLASS_ID(CObservationImage) == obs->GetRuntimeClass() &&
 		insertionOptions.insert_SIFTs_from_monocular_images)
 	{
 		/********************************************************************
@@ -461,12 +483,12 @@ bool CLandmarksMap::internal_insertObservation(
 						OBSERVATION TYPE: CObservationImage
 
 			********************************************************************/
-		const auto& o = static_cast<const CObservationImage&>(obs);
+		const auto* o = static_cast<const CObservationImage*>(obs);
 		CLandmarksMap tempMap;
 
 		// 1) Load the features in a temporary 3D landmarks map:
 		tempMap.loadSiftFeaturesFromImageObservation(
-			o, insertionOptions.SIFT_feat_options);
+			*o, insertionOptions.SIFT_feat_options);
 
 		// 2) This temp. map must be moved to its real position on the global
 		// reference coordinates:
@@ -482,7 +504,7 @@ bool CLandmarksMap::internal_insertObservation(
 		return true;
 	}
 	//	else
-	//	if ( CLASS_ID(CObservation2DRangeScan)==obs.GetRuntimeClass() &&
+	//	if ( CLASS_ID(CObservation2DRangeScan)==obs->GetRuntimeClass() &&
 	//		  insertionOptions.insert_Landmarks_from_range_scans)
 	//	{
 	/********************************************************************
@@ -502,19 +524,19 @@ bool CLandmarksMap::internal_insertObservation(
 			return true;
 		}       				*/
 	else if (
-		CLASS_ID(CObservationStereoImages) == obs.GetRuntimeClass() &&
+		CLASS_ID(CObservationStereoImages) == obs->GetRuntimeClass() &&
 		insertionOptions.insert_SIFTs_from_stereo_images)
 	{
 		/********************************************************************
 						OBSERVATION TYPE: CObservationStereoImages
 			********************************************************************/
-		const auto& o = static_cast<const CObservationStereoImages&>(obs);
+		const auto* o = static_cast<const CObservationStereoImages*>(obs);
 
 		// Change coordinates ref:
 		CLandmarksMap auxMap;
 		auxMap.insertionOptions = insertionOptions;
 		auxMap.loadSiftFeaturesFromStereoImageObservation(
-			o, CLandmarksMap::_mapMaxID, insertionOptions.SIFT_feat_options);
+			*o, CLandmarksMap::_mapMaxID, insertionOptions.SIFT_feat_options);
 		auxMap.changeCoordinatesReference(robotPose3D);
 
 		fuseWith(auxMap);
@@ -523,19 +545,19 @@ bool CLandmarksMap::internal_insertObservation(
 		// --------------------------------------------------------
 		return true;
 	}
-	else if (CLASS_ID(CObservationVisualLandmarks) == obs.GetRuntimeClass())
+	else if (CLASS_ID(CObservationVisualLandmarks) == obs->GetRuntimeClass())
 	{
 		/********************************************************************
 
 						OBSERVATION TYPE:  CObservationVisualLandmarks
 
 			********************************************************************/
-		const auto& o = static_cast<const CObservationVisualLandmarks&>(obs);
+		const auto* o = static_cast<const CObservationVisualLandmarks*>(obs);
 
 		// Change coordinates ref:
 		CLandmarksMap auxMap;
-		CPose3D acumTransform(robotPose3D + o.refCameraPose);
-		auxMap.changeCoordinatesReference(acumTransform, &o.landmarks);
+		CPose3D acumTransform(robotPose3D + o->refCameraPose);
+		auxMap.changeCoordinatesReference(acumTransform, &o->landmarks);
 
 		// Fuse with current:
 		fuseWith(auxMap, true);
@@ -634,7 +656,10 @@ void CLandmarksMap::loadSiftFeaturesFromImageObservation(
 		// Find the 3D position from the pixels
 		//  coordinates and the camera intrinsic matrix:
 		mrpt::math::TPoint3D dir = vision::pixelTo3D(
-			sift->keypoint.pt, obs.cameraParams.intrinsicParams);
+			TPixelCoordf((*sift)->x, (*sift)->y),
+			obs.cameraParams.intrinsicParams);  // dir = vision::pixelTo3D(
+		// sift->x,sift->y,
+		// obs.intrinsicParams );
 
 		// Compute the mean and covariance of the landmark gaussian 3D position,
 		//  from the unitary direction vector and a given distance:
@@ -651,7 +676,7 @@ void CLandmarksMap::loadSiftFeaturesFromImageObservation(
 		D(2, 2) = square(width);
 
 		// Finally, compute the covariance!
-		landmark3DPositionPDF.cov = mrpt::math::multiply_HCHt(P, D);
+		landmark3DPositionPDF.cov = CMatrixDouble33(P * D * P.transpose());
 
 		// Save into the landmarks vector:
 		// --------------------------------------------
@@ -773,15 +798,15 @@ void CLandmarksMap::changeCoordinatesReference(const CPose3D& newOrg)
 	newOrg.getHomogeneousMatrix(HM);
 
 	// Build the rotation only transformation:
-	double R11 = HM(0, 0);
-	double R12 = HM(0, 1);
-	double R13 = HM(0, 2);
-	double R21 = HM(1, 0);
-	double R22 = HM(1, 1);
-	double R23 = HM(1, 2);
-	double R31 = HM(2, 0);
-	double R32 = HM(2, 1);
-	double R33 = HM(2, 2);
+	double R11 = HM.get_unsafe(0, 0);
+	double R12 = HM.get_unsafe(0, 1);
+	double R13 = HM.get_unsafe(0, 2);
+	double R21 = HM.get_unsafe(1, 0);
+	double R22 = HM.get_unsafe(1, 1);
+	double R23 = HM.get_unsafe(1, 2);
+	double R31 = HM.get_unsafe(2, 0);
+	double R32 = HM.get_unsafe(2, 1);
+	double R33 = HM.get_unsafe(2, 2);
 
 	double c11, c22, c33, c12, c13, c23;
 
@@ -856,15 +881,15 @@ void CLandmarksMap::changeCoordinatesReference(
 	newOrg.getHomogeneousMatrix(HM);
 
 	// Build the rotation only transformation:
-	double R11 = HM(0, 0);
-	double R12 = HM(0, 1);
-	double R13 = HM(0, 2);
-	double R21 = HM(1, 0);
-	double R22 = HM(1, 1);
-	double R23 = HM(1, 2);
-	double R31 = HM(2, 0);
-	double R32 = HM(2, 1);
-	double R33 = HM(2, 2);
+	double R11 = HM.get_unsafe(0, 0);
+	double R12 = HM.get_unsafe(0, 1);
+	double R13 = HM.get_unsafe(0, 2);
+	double R21 = HM.get_unsafe(1, 0);
+	double R22 = HM.get_unsafe(1, 1);
+	double R23 = HM.get_unsafe(1, 2);
+	double R31 = HM.get_unsafe(2, 0);
+	double R32 = HM.get_unsafe(2, 1);
+	double R33 = HM.get_unsafe(2, 2);
 
 	double c11, c22, c33, c12, c13, c23;
 
@@ -1122,15 +1147,29 @@ void CLandmarksMap::computeMatchingWith3DLandmarks(
 					maxLik = -1;
 					maxIdx = -1;
 
+					/*
+					// Get the list of close landmarks:
+					// ---------------------------------------------
+					int	cx0 = gridLandmarks->x2idx( otherIt->pose_mean.x,
+					otherIt->pose_mean.y );
+					int	cx0 = gridLandmarks->x2idx( otherIt->pose_mean.x,
+					otherIt->pose_mean.y );
+
+					closeLandmarksList.clear();
+					closeLandmarksList.reserve(300);
+					...
+					*/
+
 					for (j = 0, thisIt = landmarks.begin();
 						 thisIt != landmarks.end(); thisIt++, j++)
 					{
 						if (thisIt->getType() == featSIFT &&
 							thisIt->features.size() ==
 								otherIt->features.size() &&
-							!thisIt->features.empty() &&
-							thisIt->features[0].descriptors.SIFT->size() ==
-								otherIt->features[0].descriptors.SIFT->size())
+							!thisIt->features.empty() && thisIt->features[0] &&
+							otherIt->features[0] &&
+							thisIt->features[0]->descriptors.SIFT.size() ==
+								otherIt->features[0]->descriptors.SIFT.size())
 						{
 							// Compute "coincidence probability":
 							// --------------------------------------
@@ -1156,13 +1195,16 @@ void CLandmarksMap::computeMatchingWith3DLandmarks(
 							// Equivalent covariance from "i" to "j":
 							Cij =
 								CMatrixDouble(pointPDF_k.cov + pointPDF_j.cov);
-							Cij_1 = Cij.inverse_LLt();
+							Cij_1 = Cij.inv();
 
-							distMahaFlik2 =
-								mrpt::math::multiply_HCHt_scalar(dij, Cij_1);
+							distMahaFlik2 = dij.multiply_HCHt_scalar(
+								Cij_1);  //( dij * Cij_1 * (~dij) )(0,0);
 
-							lik_dist = exp(K_dist * distMahaFlik2);
-							// Likelihood regarding the spatial distance
+							lik_dist =
+								exp(K_dist * distMahaFlik2);  // Likelihood
+							// regarding the
+							// spatial
+							// distance
 
 							if (lik_dist > 1e-2)
 							{
@@ -1182,20 +1224,29 @@ void CLandmarksMap::computeMatchingWith3DLandmarks(
 								if (CLandmarksMap::_mEDD[mPair] == 0)
 								{
 									n = otherIt->features[0]
-											.descriptors.SIFT->size();
+											->descriptors.SIFT.size();
 									desc = 0;
 									for (i = 0; i < n; i++)
 										desc += square(
-											(*otherIt->features[0]
-												  .descriptors.SIFT)[i] -
-											(*thisIt->features[0]
-												  .descriptors.SIFT)[i]);
+											otherIt->features[0]
+												->descriptors.SIFT[i] -
+											thisIt->features[0]
+												->descriptors.SIFT[i]);
 
 									CLandmarksMap::_mEDD[mPair] = desc;
+									// std::cout << "[fuseWith] - Nueva entrada!
+									// - (LIK): " << exp( K_desc * desc ) << "
+									// -> " << "(" << mPair.first << "," <<
+									// mPair.second << ")" << std::endl;
+
 								}  // end if
 								else
 								{
 									desc = CLandmarksMap::_mEDD[mPair];
+									// std::cout << "[fuseWith] - Ya esta
+									// calculado!: " << "(" << mPair.first <<
+									// "," << mPair.second << ")"  << ": " <<
+									// desc << std::endl;
 								}
 
 								lik_desc = exp(K_desc * desc);  // Likelihood
@@ -1234,6 +1285,9 @@ void CLandmarksMap::computeMatchingWith3DLandmarks(
 					// Is it a correspondence?
 					if (maxLik > insertionOptions.SiftLikelihoodThreshold)
 					{
+						// TODO: Solve in a better way the multiple
+						// correspondences case!!!
+						// ****************************************************************
 						// If a previous correspondence for this LM was found,
 						// discard this one!
 						if (!thisLandmarkAssigned[maxIdx])
@@ -1286,7 +1340,7 @@ void CLandmarksMap::computeMatchingWith3DLandmarks(
 			ASSERT_(!landmarks.begin()->features.empty());
 			unsigned int dLen = anotherMap->landmarks.begin()
 									->features[0]
-									.descriptors.SIFT->size();
+									->descriptors.SIFT.size();
 			for (k = 0, otherIt = anotherMap->landmarks.begin();
 				 otherIt != anotherMap->landmarks.end(); otherIt++, k++)
 			{
@@ -1299,8 +1353,8 @@ void CLandmarksMap::computeMatchingWith3DLandmarks(
 					double EDD = 0.0;
 					for (i = 0; i < dLen; i++)
 						EDD += square(
-							(*otherIt->features[0].descriptors.SIFT)[i] -
-							(*thisIt->features[0].descriptors.SIFT)[i]);
+							otherIt->features[0]->descriptors.SIFT[i] -
+							thisIt->features[0]->descriptors.SIFT[i]);
 
 					EDD = sqrt(EDD);
 
@@ -1369,7 +1423,7 @@ bool CLandmarksMap::saveToTextFile(std::string file)
 
 	// os::fprintf(f,"%% Map of landmarks - file dumped by
 	// mrpt::maps::CLandmarksMap\n");
-	// os::fprintf(f,"%%  Columns are: X Y Z TYPE(TKeyPointMethod) TIMES_SEEN
+	// os::fprintf(f,"%%  Columns are: X Y Z TYPE(TFeatureType) TIMES_SEEN
 	// TIME_OF_LAST_OBSERVATION [SIFT DESCRIPTOR] ID\n");
 	// os::fprintf(f,"%%
 	// -----------------------------------------------------------------------------------------------------\n");
@@ -1387,8 +1441,8 @@ bool CLandmarksMap::saveToTextFile(std::string file)
 
 		if (it->getType() == featSIFT)
 		{
-			ASSERT_(!it->features.empty());
-			for (unsigned char i : *it->features[0].descriptors.SIFT)
+			ASSERT_(!it->features.empty() && it->features[0]);
+			for (unsigned char i : it->features[0]->descriptors.SIFT)
 				os::fprintf(f, " %u ", i);
 		}
 		os::fprintf(f, " %i ", (int)it->ID);
@@ -1466,7 +1520,7 @@ bool CLandmarksMap::saveToMATLABScript2D(
 	std::vector<float> X, Y, COS, SIN;
 	std::vector<float>::iterator x, y, Cos, Sin;
 	double ang;
-	CMatrixDouble22 cov, eigVal, eigVec, M;
+	CMatrixD cov(2, 2), eigVal, eigVec, M;
 
 	X.resize(ELLIPSE_POINTS);
 	Y.resize(ELLIPSE_POINTS);
@@ -1504,12 +1558,9 @@ bool CLandmarksMap::saveToMATLABScript2D(
 		cov(1, 1) = landmark.pose_cov_22;
 		cov(0, 1) = cov(1, 0) = landmark.pose_cov_12;
 
-		std::vector<double> eigvals;
-		cov.eig_symmetric(eigVec, eigvals);
-		eigVal.setZero();
-		eigVal.setDiagonal(eigvals);
+		cov.eigenVectors(eigVec, eigVal);
 		eigVal = eigVal.array().sqrt().matrix();
-		M = eigVal.asEigen() * eigVec.transpose();
+		M = eigVal * eigVec.transpose();
 
 		// Compute the points of the ellipsoid:
 		// ----------------------------------------------
@@ -1600,15 +1651,15 @@ void CLandmarksMap::loadOccupancyFeaturesFrom2DRangeScan(
 			newLandmark.seenTimesCount = 1;
 
 			newLandmark.createOneFeature();
-			newLandmark.features[0].type = featNotDefined;
+			newLandmark.features[0]->type = featNotDefined;
 
 			d = obs.scan[i];
 
 			// Compute the landmark in 2D:
 			// -----------------------------------------------
 			// Descriptor:
-			newLandmark.features[0].orientation = Th;
-			newLandmark.features[0].keypoint.octave = d;
+			newLandmark.features[0]->orientation = Th;
+			newLandmark.features[0]->scale = d;
 
 			// Mean:
 			newLandmark.pose_mean.x = (cos(Th) * d);
@@ -1756,13 +1807,13 @@ double CLandmarksMap::computeLikelihood_RSLC_2007(
 			//os::fprintf(f,"\n INDIV LIK=%e\n lik=%e\n
 		closestObstacleInLine=%e\n measured
 		range=%e\n",indivLik,lik,closestObstacleInLine,
-		itOther.descriptors.SIFT[1]);
+		itOther->descriptors.SIFT[1]);
 			//os::fprintf(f,"
 		closestObstacleDirection=%e\n",closestObstacleDirection);
 			//os::fclose(f);
 
 			printf("\n lik=%e\n closestObstacleInLine=%e\n measured
-		range=%e\n",lik,closestObstacleInLine, itOther.descriptors.SIFT[1]);
+		range=%e\n",lik,closestObstacleInLine, itOther->descriptors.SIFT[1]);
 			if (itClosest)
 					printf(" closest=(%.03f,%.03f)\n", itClosest->pose_mean.x,
 		itClosest->pose_mean.y);
@@ -2007,10 +2058,10 @@ double CLandmarksMap::computeLikelihood_SIFT_LandmarkMap(
 							// dij(0,2)*dij(0,2) ) << std::endl;
 							// Equivalent covariance from "i" to "j":
 							Cij = CMatrixDouble(lm1_pose.cov + lm2_pose.cov);
-							Cij_1 = Cij.inverse_LLt();
+							Cij_1 = Cij.inv();
 
-							distMahaFlik2 =
-								mrpt::math::multiply_HCHt_scalar(dij, Cij_1);
+							distMahaFlik2 = dij.multiply_HCHt_scalar(
+								Cij_1);  //( dij * Cij_1 * (~dij) )(0,0);
 
 							likByDist = exp(K_dist * distMahaFlik2);
 
@@ -2037,17 +2088,19 @@ double CLandmarksMap::computeLikelihood_SIFT_LandmarkMap(
 										!lm1->features.empty() &&
 										!lm2->features.empty());
 									ASSERT_(
+										lm1->features[0] && lm2->features[0]);
+									ASSERT_(
 										lm1->features[0]
-											.descriptors.SIFT->size() ==
+											->descriptors.SIFT.size() ==
 										lm2->features[0]
-											.descriptors.SIFT->size());
+											->descriptors.SIFT.size());
 
 									for (it1 = lm1->features[0]
-												   .descriptors.SIFT->begin(),
+												   ->descriptors.SIFT.begin(),
 										it2 = lm2->features[0]
-												  .descriptors.SIFT->begin();
+												  ->descriptors.SIFT.begin();
 										 it1 != lm1->features[0]
-													.descriptors.SIFT->end();
+													->descriptors.SIFT.end();
 										 it1++, it2++)
 										distDesc += square(*it1 - *it2);
 
@@ -2109,9 +2162,10 @@ double CLandmarksMap::computeLikelihood_SIFT_LandmarkMap(
 
 				// Equivalent covariance from "i" to "j":
 				Cij = CMatrixDouble(lm1_pose.cov + lm2_pose.cov);
-				Cij_1 = Cij.inverse_LLt();
+				Cij_1 = Cij.inv();
 
-				distMahaFlik2 = mrpt::math::multiply_HCHt_scalar(dij, Cij_1);
+				distMahaFlik2 = dij.multiply_HCHt_scalar(
+					Cij_1);  // ( dij * Cij_1 * (~dij) )(0,0);
 
 				dist = min(
 					(double)likelihoodOptions.SIFTnullCorrespondenceDistance,
@@ -2451,11 +2505,12 @@ void CLandmarksMap::saveMetricMapRepresentationToFile(
 	// 3D Scene:
 	opengl::COpenGLScene scene;
 	mrpt::opengl::CSetOfObjects::Ptr obj3D =
-		mrpt::opengl::CSetOfObjects::Create();
+		mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
 	getAs3DObject(obj3D);
 
 	opengl::CGridPlaneXY::Ptr objGround =
-		std::make_shared<opengl::CGridPlaneXY>(-100, 100, -100, 100, 0, 1);
+		mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
+			-100, 100, -100, 100, 0, 1);
 
 	scene.insert(obj3D);
 	scene.insert(objGround);
@@ -2480,7 +2535,8 @@ void CLandmarksMap::getAs3DObject(
 	CPointPDFGaussian pointGauss;
 	for (const auto& landmark : landmarks)
 	{
-		opengl::CEllipsoid::Ptr ellip = std::make_shared<opengl::CEllipsoid>();
+		opengl::CEllipsoid::Ptr ellip =
+			mrpt::make_aligned_shared<opengl::CEllipsoid>();
 
 		landmark.getPose(pointGauss);
 
@@ -2582,9 +2638,9 @@ float CLandmarksMap::compute3DMatchingRatio(
 	// The transformation:
 	CMatrixDouble44 pose3DMatrix;
 	otherMapPose.getHomogeneousMatrix(pose3DMatrix);
-	float Tx = pose3DMatrix(0, 3);
-	float Ty = pose3DMatrix(1, 3);
-	float Tz = pose3DMatrix(2, 3);
+	float Tx = pose3DMatrix.get_unsafe(0, 3);
+	float Ty = pose3DMatrix.get_unsafe(1, 3);
+	float Tz = pose3DMatrix.get_unsafe(2, 3);
 
 	// ---------------------------------------------------------------------------------------------------------------
 	// Is there any "contact" between the spheres that contain all the points
@@ -2600,11 +2656,11 @@ float CLandmarksMap::compute3DMatchingRatio(
 	// Prepare:
 	poses3DOther.resize(nOther);
 	for (size_t i = 0; i < nOther; i++)
-		poses3DOther[i] = std::make_shared<CPointPDFGaussian>();
+		poses3DOther[i] = mrpt::make_aligned_shared<CPointPDFGaussian>();
 
 	poses3DThis.resize(nThis);
 	for (size_t i = 0; i < nThis; i++)
-		poses3DThis[i] = std::make_shared<CPointPDFGaussian>();
+		poses3DThis[i] = mrpt::make_aligned_shared<CPointPDFGaussian>();
 
 	// Save 3D poses of the other map with transformed coordinates:
 	for (itOther = otherMap->landmarks.begin(),
@@ -2641,27 +2697,27 @@ float CLandmarksMap::compute3DMatchingRatio(
 			d(0, 1) = D.y;
 			d(0, 2) = D.z;
 
-			float distMaha =
-				sqrt(mrpt::math::multiply_HCHt_scalar(d, COV.inverse_LLt()));
+			float distMaha = sqrt(d.multiply_HCHt_scalar(
+				COV.inv()));  //(d*COV.inv()*(~d))(0,0) );
 
 			if (distMaha < params.maxMahaDistForCorr)
 			{
 				// Now test the SIFT descriptors:
 				if (!itThis->features.empty() && !itOther->features.empty() &&
-					itThis->features[0].descriptors.SIFT->size() ==
-						itOther->features[0].descriptors.SIFT->size())
+					itThis->features[0]->descriptors.SIFT.size() ==
+						itOther->features[0]->descriptors.SIFT.size())
 				{
 					unsigned long descrDist = 0;
 					std::vector<unsigned char>::const_iterator it1, it2;
-					for (it1 = itThis->features[0].descriptors.SIFT->begin(),
-						it2 = itOther->features[0].descriptors.SIFT->begin();
-						 it1 != itThis->features[0].descriptors.SIFT->end();
+					for (it1 = itThis->features[0]->descriptors.SIFT.begin(),
+						it2 = itOther->features[0]->descriptors.SIFT.begin();
+						 it1 != itThis->features[0]->descriptors.SIFT.end();
 						 it1++, it2++)
 						descrDist += square(*it1 - *it2);
 
 					float descrDist_f =
 						sqrt(static_cast<float>(descrDist)) /
-						itThis->features[0].descriptors.SIFT->size();
+						itThis->features[0]->descriptors.SIFT.size();
 
 					if (descrDist_f < 1.5f)
 					{
@@ -2684,8 +2740,18 @@ float CLandmarksMap::compute3DMatchingRatio(
  ---------------------------------------------------------------*/
 void CLandmarksMap::auxParticleFilterCleanUp()
 {
-	_mEDD.clear();
-	_maxIDUpdated = false;
+	// std::cout << "mEDD:" << std::endl;
+	// std::cout << "-----------------------" << std::endl;
+	// std::map<std::pair<mrpt::maps::CLandmark::TLandmarkID,
+	// mrpt::maps::CLandmark::TLandmarkID>, unsigned long>::iterator itmEDD;
+	// for(itmEDD = CLandmarksMap::_mEDD.begin(); itmEDD !=
+	// CLandmarksMap::_mEDD.end(); itmEDD++)
+	//	std::cout << "(" << itmEDD->first.first << "," << itmEDD->first.second
+	//<< ")"  << ": " << itmEDD->second << std::endl;
+
+	CLandmarksMap::_mEDD.clear();
+	CLandmarksMap::_maxIDUpdated = false;
+	// TODO: Paco...
 }
 
 /*---------------------------------------------------------------

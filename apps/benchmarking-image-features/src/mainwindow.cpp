@@ -116,8 +116,10 @@ void MainWindow::on_button_generate_clicked()
 	// ReadInputFormat();
 	CFeatureList featsImage2_2;
 
-	size_t min_dist_idx = 0, max_dist_idx = 0;
+	// float temp_dist1 = 0, temp_dist2 = 0;
 
+	double min_dist = 0, max_dist = 0;
+	size_t min_dist_idx = 0, max_dist_idx = 0;
 	numDesc1 = featsImage1.size();
 
 	/// the following for loop iterates over all descriptors in the first image
@@ -125,8 +127,6 @@ void MainWindow::on_button_generate_clicked()
 	/// in the first to all descriptors in the second image
 	for (unsigned int i1 = 0; i1 < numDesc1; i1++)
 	{
-		const auto& ft1 = featsImage1[i1];
-
 		// do the following only if stereo images
 		if (currentInputIndex == 1 || currentInputIndex == 4 ||
 			(currentInputIndex == 2 && rawlog_type == 1))
@@ -135,16 +135,18 @@ void MainWindow::on_button_generate_clicked()
 			if (descriptor_selected != -1)
 			{
 				for (unsigned int i2 = 0; i2 < featsImage2.size(); i2++)
-					distances[i2] = ft1.descriptorDistanceTo(featsImage2[i2]);
+					distances[i2] =
+						featsImage1[i1]->descriptorDistanceTo(*featsImage2[i2]);
 			}
 			else
 			{
 				for (unsigned int i2 = 0; i2 < featsImage2.size(); i2++)
-					distances[i2] = ft1.patchCorrelationTo(featsImage2[i2]);
+					distances[i2] =
+						featsImage1[i1]->patchCorrelationTo(*featsImage2[i2]);
 			}
 
-			const double min_dist = distances.minCoeff(min_dist_idx);
-			const double max_dist = distances.maxCoeff(max_dist_idx);
+			distances.minimum_maximum(
+				min_dist, max_dist, &min_dist_idx, &max_dist_idx);
 
 			const double dist_std = mrpt::math::stddev(distances);
 
@@ -186,7 +188,7 @@ void MainWindow::on_button_generate_clicked()
 			for (int i = 0; i < len; ++i)
 			{
 				xData.at<double>(i) = i;
-				yData.at<double>(i) = distances(i, 0);
+				yData.at<double>(i) = distances.row(i).x();
 			}
 #if MRPT_OPENCV_VERSION_NUM >= 0x330
 			plot = plot::Plot2d::create(xData, yData);
@@ -220,8 +222,6 @@ void MainWindow::on_button_generate_clicked()
 #endif  // HAVE_OPENCV_PLOT
 		}
 
-		const auto& best_ft2 = featsImage2[min_dist_idx];
-
 		/// Display the current descriptor in its window and the best descriptor
 		/// from the other image:
 		switch (descriptor_selected)
@@ -235,56 +235,64 @@ void MainWindow::on_button_generate_clicked()
 				CImage auxImg1, auxImg2;
 				if (descriptor_selected == -1)  // descAny
 				{
-					auxImg1 = *ft1.patch;
+					auxImg1 = featsImage1[i1]->patch;
 					if (currentInputIndex == 1 || currentInputIndex == 4 ||
 						(currentInputIndex == 2 && rawlog_type == 1))
 					{
-						auxImg2 = *best_ft2.patch;
+						auxImg2 = featsImage2[min_dist_idx]->patch;
 					}
 				}
 				else if (descriptor_selected == 3)  // descPolarImages
 				{
-					auxImg1.setFromMatrix(*ft1.descriptors.PolarImg);
-					if (currentInputIndex == 1 || currentInputIndex == 4 ||
-						(currentInputIndex == 2 && rawlog_type == 1))
-					{
-						auxImg2.setFromMatrix(*best_ft2.descriptors.PolarImg);
-					}
-				}
-				else if (descriptor_selected == 4)  // descLogPolarImages
-				{
-					auxImg1.setFromMatrix(*ft1.descriptors.LogPolarImg);
+					auxImg1.setFromMatrix(
+						featsImage1[i1]->descriptors.PolarImg);
 					if (currentInputIndex == 1 || currentInputIndex == 4 ||
 						(currentInputIndex == 2 && rawlog_type == 1))
 					{
 						auxImg2.setFromMatrix(
-							*best_ft2.descriptors.LogPolarImg);
+							featsImage2[min_dist_idx]->descriptors.PolarImg);
+					}
+				}
+				else if (descriptor_selected == 4)  // descLogPolarImages
+				{
+					auxImg1.setFromMatrix(
+						featsImage1[i1]->descriptors.LogPolarImg);
+					if (currentInputIndex == 1 || currentInputIndex == 4 ||
+						(currentInputIndex == 2 && rawlog_type == 1))
+					{
+						auxImg2.setFromMatrix(
+							featsImage2[min_dist_idx]->descriptors.LogPolarImg);
 					}
 				}
 				else if (descriptor_selected == 2)  // descSpinImages
 				{
-					const size_t nR1 = ft1.descriptors.SpinImg_range_rows;
-					const size_t nC1 = ft1.descriptors.SpinImg->size() /
-									   ft1.descriptors.SpinImg_range_rows;
+					const size_t nR1 =
+						featsImage1[i1]->descriptors.SpinImg_range_rows;
+					const size_t nC1 =
+						featsImage1[i1]->descriptors.SpinImg.size() /
+						featsImage1[i1]->descriptors.SpinImg_range_rows;
 					CMatrixFloat M1(nR1, nC1);
 					for (size_t r = 0; r < nR1; r++)
 						for (size_t c = 0; c < nC1; c++)
-							M1(r, c) = (*ft1.descriptors.SpinImg)[c + r * nC1];
+							M1(r, c) = featsImage1[i1]
+										   ->descriptors.SpinImg[c + r * nC1];
 
 					auxImg1.setFromMatrix(M1);
 					if (currentInputIndex == 1 || currentInputIndex == 4 ||
 						(currentInputIndex == 2 && rawlog_type == 1))
 					{
-						const size_t nR =
-							best_ft2.descriptors.SpinImg_range_rows;
-						const size_t nC =
-							best_ft2.descriptors.SpinImg->size() /
-							best_ft2.descriptors.SpinImg_range_rows;
+						const size_t nR = featsImage2[min_dist_idx]
+											  ->descriptors.SpinImg_range_rows;
+						const size_t nC = featsImage2[min_dist_idx]
+											  ->descriptors.SpinImg.size() /
+										  featsImage2[min_dist_idx]
+											  ->descriptors.SpinImg_range_rows;
 						CMatrixFloat M2(nR, nC);
 						for (size_t r = 0; r < nR; r++)
 							for (size_t c = 0; c < nC; c++)
 								M2(r, c) =
-									(*best_ft2.descriptors.SpinImg)[c + r * nC];
+									featsImage2[min_dist_idx]
+										->descriptors.SpinImg[c + r * nC];
 						auxImg2.setFromMatrix(M2);
 					}
 				}
@@ -344,15 +352,15 @@ void MainWindow::on_button_generate_clicked()
 				vector<float> v1_surf, v2_surf;
 
 				if (descriptor_selected == 0)
-					v1 = *ft1.descriptors.SIFT;
+					v1 = featsImage1[i1]->descriptors.SIFT;
 				else if (descriptor_selected == 1)
-					v1_surf = *ft1.descriptors.SURF;
+					v1_surf = featsImage1[i1]->descriptors.SURF;
 				else if (descriptor_selected == 5)
-					v1 = *ft1.descriptors.ORB;
+					v1 = featsImage1[i1]->descriptors.ORB;
 				else if (descriptor_selected == 6)
-					v1 = *ft1.descriptors.BLD;
+					v1 = featsImage1[i1]->descriptors.BLD;
 				else if (descriptor_selected == 7)
-					v1 = *ft1.descriptors.LATCH;
+					v1 = featsImage1[i1]->descriptors.LATCH;
 
 #ifdef HAVE_OPENCV_PLOT
 				Mat xData, yData, display;
@@ -415,15 +423,15 @@ void MainWindow::on_button_generate_clicked()
 					(currentInputIndex == 2 && rawlog_type == 1))
 				{
 					if (descriptor_selected == 0)
-						v2 = *best_ft2.descriptors.SIFT;
+						v2 = featsImage2[min_dist_idx]->descriptors.SIFT;
 					else if (descriptor_selected == 1)
-						v2_surf = *best_ft2.descriptors.SURF;
+						v2_surf = featsImage2[min_dist_idx]->descriptors.SURF;
 					else if (descriptor_selected == 5)
-						v2 = *best_ft2.descriptors.ORB;
+						v2 = featsImage2[min_dist_idx]->descriptors.ORB;
 					else if (descriptor_selected == 6)
-						v2 = *best_ft2.descriptors.BLD;
+						v2 = featsImage2[min_dist_idx]->descriptors.BLD;
 					else if (descriptor_selected == 7)
-						v2 = *best_ft2.descriptors.LATCH;
+						v2 = featsImage2[min_dist_idx]->descriptors.LATCH;
 
 					Mat xData, yData, display;
 					Ptr<plot::Plot2d> plot;
@@ -1020,7 +1028,7 @@ void MainWindow::readRawlogFiles(string rawlog)
 				{
 					CObservation::Ptr o = dataset.getAsObservation(i);
 
-					if (IS_CLASS(*o, CObservationStereoImages))
+					if (IS_CLASS(o, CObservationStereoImages))
 					{
 						CObservationStereoImages::Ptr obsSt =
 							std::dynamic_pointer_cast<CObservationStereoImages>(
@@ -1041,7 +1049,7 @@ void MainWindow::readRawlogFiles(string rawlog)
 						// Mat cvImg1 =
 						// cv::cvarrToMat(image_c.getAs<IplImage>());
 					}
-					else if (IS_CLASS(*o, CObservationImage))
+					else if (IS_CLASS(o, CObservationImage))
 					{
 						CObservationImage::Ptr obsIm =
 							std::dynamic_pointer_cast<CObservationImage>(o);
@@ -1695,21 +1703,40 @@ void MainWindow::on_descriptor_button_clicked()
 	}
 	// storing size of descriptors for visualizer
 	if (descriptor_selected == 0)
-		numDesc1 = featsImage1.getByID(0)->descriptors.SIFT->size();
+		numDesc1 = featsImage1.getByID(0)
+					   .get()
+					   ->descriptors.SIFT.size();  //!< SIFT descriptors
 	else if (descriptor_selected == 1)
-		numDesc1 = featsImage1.getByID(0)->descriptors.SURF->size();
+		numDesc1 = featsImage1.getByID(0)
+					   .get()
+					   ->descriptors.SURF.size();  //!< SURF descriptors
 	else if (descriptor_selected == 2)
-		numDesc1 = featsImage1.getByID(0)->descriptors.SpinImg->size();
+		numDesc1 = featsImage1.getByID(0)
+					   .get()
+					   ->descriptors.SpinImg
+					   .size();  //!< Intensity-domain spin image descriptor
 	else if (descriptor_selected == 3)
-		numDesc1 = featsImage1.getByID(0)->descriptors.PolarImg->size();
+		numDesc1 =
+			featsImage1.getByID(0)
+				.get()
+				->descriptors.PolarImg.size();  //!< Polar image descriptor
 	else if (descriptor_selected == 4)
-		numDesc1 = featsImage1.getByID(0)->descriptors.LogPolarImg->size();
+		numDesc1 = featsImage1.getByID(0)
+					   .get()
+					   ->descriptors.LogPolarImg
+					   .size();  //!< Log-Polar image descriptor
 	else if (descriptor_selected == 5)
-		numDesc1 = featsImage1.getByID(0)->descriptors.ORB->size();
+		numDesc1 = featsImage1.getByID(0)
+					   .get()
+					   ->descriptors.ORB.size();  //!< ORB image descriptor
 	else if (descriptor_selected == 6)
-		numDesc1 = featsImage1.getByID(0)->descriptors.BLD->size();
+		numDesc1 = featsImage1.getByID(0)
+					   .get()
+					   ->descriptors.BLD.size();  //!< BLD image descriptor
 	else if (descriptor_selected == 7)
-		numDesc1 = featsImage1.getByID(0)->descriptors.LATCH->size();
+		numDesc1 = featsImage1.getByID(0)
+					   .get()
+					   ->descriptors.LATCH.size();  //!< LATCH image descriptor
 	stringstream descript_info;
 	descript_info << "<br/><br/><b> Descriptor Info: </b> "
 				  << "<br/>Descriptor Selected: "
@@ -3552,10 +3579,10 @@ void MainWindow::drawLineLSD(Mat img, int image_left_right)
 		{
 			for (unsigned int i = 0; i < featsImage1.size(); i++)
 			{
-				float temp_x1 = featsImage1.getByID(i)->x2[0];
-				float temp_x2 = featsImage1.getByID(i)->x2[1];
-				float temp_y1 = featsImage1.getByID(i)->y2[0];
-				float temp_y2 = featsImage1.getByID(i)->y2[1];
+				float temp_x1 = featsImage1.getByID(i).get()->x2[0];
+				float temp_x2 = featsImage1.getByID(i).get()->x2[1];
+				float temp_y1 = featsImage1.getByID(i).get()->y2[0];
+				float temp_y2 = featsImage1.getByID(i).get()->y2[1];
 				/* get a random color */
 				int R = (i * 5 % (255 + 1));
 				int G = (i * 10 % (255 + 1));
@@ -3569,10 +3596,10 @@ void MainWindow::drawLineLSD(Mat img, int image_left_right)
 		{
 			for (unsigned int i = 0; i < featsImage2.size(); i++)
 			{
-				float temp_x1 = featsImage2.getByID(i)->x2[0];
-				float temp_x2 = featsImage2.getByID(i)->x2[1];
-				float temp_y1 = featsImage2.getByID(i)->y2[0];
-				float temp_y2 = featsImage2.getByID(i)->y2[1];
+				float temp_x1 = featsImage2.getByID(i).get()->x2[0];
+				float temp_x2 = featsImage2.getByID(i).get()->x2[1];
+				float temp_y1 = featsImage2.getByID(i).get()->y2[0];
+				float temp_y2 = featsImage2.getByID(i).get()->y2[1];
 				/* get a random color */
 				int R = (i * 5 % (255 + 1));
 				int G = (i * 10 % (255 + 1));

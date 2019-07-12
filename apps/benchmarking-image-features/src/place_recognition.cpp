@@ -54,8 +54,7 @@ PlaceRecognition::PlaceRecognition(
  *								Compute Labels function *
  ************************************************************************************************/
 void PlaceRecognition::computeLabels(
-	vector<string> file_paths, int counts[NUM_CLASSES],
-	std::vector<int>& labels)
+	vector<string> file_paths, int counts[NUM_CLASSES], int* labels)
 {
 	// initialize all labels to zero.
 	for (int i = 0; i < NUM_CLASSES; i++) counts[i] = 0;
@@ -97,15 +96,14 @@ void PlaceRecognition::computeLabels(
  ************************************************************************************************/
 int PlaceRecognition::predictLabel2(
 	CFeatureList* feats_testingAll, vector<uint8_t>* training_words,
-	std::vector<int>& training_word_labels, int total_vocab_size,
-	int current_image)
+	int* training_word_labels, int total_vocab_size, int current_image)
 {
 	CFeatureList feats_testing = feats_testingAll[current_image];
 	int feats_size = feats_testing.size();
 
 	/// PUT A CONDITION IF feats_size =0 OUTPUT A RANDOM CLASS INSTEAD OF GOING
 	/// THROUGH BLANK STUFF, actually kinda doing that only currently
-	std::vector<int> labels(feats_size);
+	int labels[feats_size];
 	for (int i = 0; i < feats_size; i++) labels[i] = 0;
 
 	/// following for loop iterates over all key-points in the given
@@ -118,11 +116,11 @@ int PlaceRecognition::predictLabel2(
 		vector<uint8_t> temp_feat;
 
 		if (descriptor_selected == 5)
-			temp_feat = feats_testing.getByID(i)->descriptors.ORB.value();
+			temp_feat = feats_testing.getByID(i).get()->descriptors.ORB;
 		else if (descriptor_selected == 6)
-			temp_feat = feats_testing.getByID(i)->descriptors.BLD.value();
+			temp_feat = feats_testing.getByID(i).get()->descriptors.BLD;
 		else if (descriptor_selected == 7)
-			temp_feat = feats_testing.getByID(i)->descriptors.LATCH.value();
+			temp_feat = feats_testing.getByID(i).get()->descriptors.LATCH;
 
 		long descriptor_size = temp_feat.size();
 		/// following for loop iterates over the entire vocabulary in the
@@ -157,7 +155,7 @@ int PlaceRecognition::predictLabel2(
 	}  // end of outter loop iterates over each key-point
 
 	for (int i = 0; i < feats_size; i++) cout << labels[i] << " ";
-	int predicted_label = findMax(labels);
+	int predicted_label = findMax(labels, feats_size);
 	return predicted_label;
 }
 
@@ -166,15 +164,14 @@ int PlaceRecognition::predictLabel2(
  ************************************************************************************************/
 int PlaceRecognition::predictLabel(
 	CFeatureList* feats_testingAll, vector<float>* training_words,
-	std::vector<int>& training_word_labels, int total_vocab_size,
-	int current_image)
+	int* training_word_labels, int total_vocab_size, int current_image)
 {
 	CFeatureList feats_testing = feats_testingAll[current_image];
 	int feats_size = feats_testing.size();
 
 	/// PUT A CONDITION IF feats_size =0 OUTPUT A RANDOM CLASS INSTEAD OF GOING
 	/// THROUGH BLANK STUFF, actually kinda doing that only currently
-	std::vector<int> labels(feats_size);
+	int labels[feats_size];
 	for (int i = 0; i < feats_size; i++) labels[i] = 0;
 
 	for (int i = 0; i < feats_size;
@@ -183,9 +180,9 @@ int PlaceRecognition::predictLabel(
 		double min = std::numeric_limits<double>::max();  // 99999;
 		vector<float> temp_feat;
 		if (descriptor_selected == 1)
-			temp_feat = feats_testing.getByID(i)->descriptors.SURF.value();
+			temp_feat = feats_testing.getByID(i).get()->descriptors.SURF;
 		else if (descriptor_selected == 2)
-			temp_feat = feats_testing.getByID(i)->descriptors.SpinImg.value();
+			temp_feat = feats_testing.getByID(i).get()->descriptors.SpinImg;
 
 		long descriptor_size = temp_feat.size();
 
@@ -219,16 +216,15 @@ int PlaceRecognition::predictLabel(
 
 	for (int i = 0; i < feats_size; i++) cout << labels[i] << " ";
 
-	int predicted_label = findMax(labels);
+	int predicted_label = findMax(labels, feats_size);
 	return predicted_label;
 }
 
 /************************************************************************************************
  *								Find Max function *
  ************************************************************************************************/
-int PlaceRecognition::findMax(const std::vector<int>& labels)
+int PlaceRecognition::findMax(int* labels, int feats_size)
 {
-	const auto feats_size = labels.size();
 	int temp_labels[NUM_CLASSES];
 	for (int i = 0; i < NUM_CLASSES; i++) temp_labels[i] = 0;
 
@@ -260,8 +256,8 @@ string PlaceRecognition::startPlaceRecognition(CFeatureExtraction fext)
 
 	/// stores the labels for the i'th image instance for training and testing
 	/// images
-	std::vector<int> training_labels(len_training);
-	std::vector<int> testing_labels(len_testing);
+	int training_labels[len_training];
+	int testing_labels[len_testing];
 
 	/// The training model is built here all features are extracted in this
 	/// part, takes 30 seconds for 900+900 images
@@ -303,7 +299,7 @@ string PlaceRecognition::startPlaceRecognition(CFeatureExtraction fext)
 		training_words2 = new vector<float>[len_train_words];
 		training_words1 = new vector<uint8_t>[len_train_words];
 	}
-	std::vector<int> training_word_labels(len_train_words);
+	int training_word_labels[len_train_words];
 
 	CTicTac training_time;
 	training_time.Tic();
@@ -322,9 +318,9 @@ string PlaceRecognition::startPlaceRecognition(CFeatureExtraction fext)
 				{
 					vector<uint8_t> temp_feat;
 					temp_feat =
-						feats_training[i].getByID(j)->descriptors.SIFT.value();
+						feats_training[i].getByID(j).get()->descriptors.SIFT;
 					training_words1[kount] =
-						feats_training[i].getByID(j)->descriptors.SIFT.value();
+						feats_training[i].getByID(j).get()->descriptors.SIFT;
 					training_word_labels[kount] = training_labels[i];
 					for (unsigned int k = 0; k < temp_feat.size(); k++)
 						training_file << (int)temp_feat.at(k) << " ";
@@ -333,9 +329,9 @@ string PlaceRecognition::startPlaceRecognition(CFeatureExtraction fext)
 				{
 					vector<float> temp_feat;
 					temp_feat =
-						feats_training[i].getByID(j)->descriptors.SURF.value();
+						feats_training[i].getByID(j).get()->descriptors.SURF;
 					training_words2[kount] =
-						feats_training[i].getByID(j)->descriptors.SURF.value();
+						feats_training[i].getByID(j).get()->descriptors.SURF;
 					training_word_labels[kount] = training_labels[i];
 
 					for (unsigned int k = 0; k < temp_feat.size(); k++)
@@ -346,12 +342,10 @@ string PlaceRecognition::startPlaceRecognition(CFeatureExtraction fext)
 				else if (descriptor_selected == 2)
 				{
 					vector<float> temp_feat;
-					temp_feat = feats_training[i]
-									.getByID(j)
-									->descriptors.SpinImg.value();
-					training_words2[kount] = feats_training[i]
-												 .getByID(j)
-												 ->descriptors.SpinImg.value();
+					temp_feat =
+						feats_training[i].getByID(j).get()->descriptors.SpinImg;
+					training_words2[kount] =
+						feats_training[i].getByID(j).get()->descriptors.SpinImg;
 					training_word_labels[kount] = training_labels[i];
 
 					for (unsigned int k = 0; k < temp_feat.size(); k++)
@@ -369,9 +363,9 @@ string PlaceRecognition::startPlaceRecognition(CFeatureExtraction fext)
 				{
 					vector<uint8_t> temp_feat;
 					temp_feat =
-						feats_training[i].getByID(j)->descriptors.ORB.value();
+						feats_training[i].getByID(j).get()->descriptors.ORB;
 					training_words1[kount] =
-						feats_training[i].getByID(j)->descriptors.ORB.value();
+						feats_training[i].getByID(j).get()->descriptors.ORB;
 					training_word_labels[kount] = training_labels[i];
 
 					for (unsigned int k = 0; k < temp_feat.size(); k++)
@@ -385,9 +379,9 @@ string PlaceRecognition::startPlaceRecognition(CFeatureExtraction fext)
 				{
 					vector<uint8_t> temp_feat;
 					temp_feat =
-						feats_training[i].getByID(j)->descriptors.BLD.value();
+						feats_training[i].getByID(j).get()->descriptors.BLD;
 					training_words1[kount] =
-						feats_training[i].getByID(j)->descriptors.BLD.value();
+						feats_training[i].getByID(j).get()->descriptors.BLD;
 					training_word_labels[kount] = training_labels[i];
 					for (unsigned int k = 0; k < temp_feat.size(); k++)
 						training_file << (int)temp_feat.at(k) << " ";
@@ -396,9 +390,9 @@ string PlaceRecognition::startPlaceRecognition(CFeatureExtraction fext)
 				{
 					vector<uint8_t> temp_feat;
 					temp_feat =
-						feats_training[i].getByID(j)->descriptors.LATCH.value();
+						feats_training[i].getByID(j).get()->descriptors.LATCH;
 					training_words1[kount] =
-						feats_training[i].getByID(j)->descriptors.LATCH.value();
+						feats_training[i].getByID(j).get()->descriptors.LATCH;
 					training_word_labels[kount] = training_labels[i];
 					for (unsigned int k = 0; k < temp_feat.size(); k++)
 						training_file << (int)temp_feat.at(k) << " ";
@@ -414,7 +408,11 @@ string PlaceRecognition::startPlaceRecognition(CFeatureExtraction fext)
 		this->training_words_org = training_words2;
 		this->training_words_org2 = training_words1;
 		this->training_word_labels_org = training_word_labels;
-		training_word_labels_org = training_word_labels;
+		training_word_labels_org = new int[kount];
+		for (int i = 0; i < kount; i++)
+		{
+			training_word_labels_org[i] = training_word_labels[i];
+		}
 
 		this->total_vocab_size_org = len_train_words;
 		this->training_file_written_flag = true;
@@ -424,7 +422,7 @@ string PlaceRecognition::startPlaceRecognition(CFeatureExtraction fext)
 	testing_time.Tic();
 
 	/// now extracting features for Place Recognition for testing dataset
-	std::vector<int> predicted_classes(len_testing);
+	int predicted_classes[len_testing];
 
 	CTicTac time_prediction;
 	time_prediction.Tic();

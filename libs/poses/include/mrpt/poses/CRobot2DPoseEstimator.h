@@ -9,8 +9,7 @@
 #pragma once
 
 #include <mrpt/core/Clock.h>
-#include <mrpt/math/TPose2D.h>
-#include <mrpt/math/TTwist2D.h>
+#include <mrpt/math/lightweight_geom_data.h>
 #include <mrpt/poses/poses_frwds.h>
 #include <mutex>
 #include <optional>

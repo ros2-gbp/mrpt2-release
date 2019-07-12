@@ -122,13 +122,22 @@ void CFeatureTracker_KL::trackFeatures_impl_templ(
 }  // end trackFeatures
 
 void CFeatureTracker_KL::trackFeatures_impl(
-	const CImage& old_img, const CImage& new_img, TKeyPointList& featureList)
+	const CImage& old_img, const CImage& new_img, CFeatureList& featureList)
 {
-	trackFeatures_impl_templ<TKeyPointList>(old_img, new_img, featureList);
+	trackFeatures_impl_templ<CFeatureList>(old_img, new_img, featureList);
 }
 
 void CFeatureTracker_KL::trackFeatures_impl(
-	const CImage& old_img, const CImage& new_img, TKeyPointfList& featureList)
+	const CImage& old_img, const CImage& new_img,
+	TSimpleFeatureList& featureList)
 {
-	trackFeatures_impl_templ<TKeyPointfList>(old_img, new_img, featureList);
+	trackFeatures_impl_templ<TSimpleFeatureList>(old_img, new_img, featureList);
+}
+
+void CFeatureTracker_KL::trackFeatures_impl(
+	const CImage& old_img, const CImage& new_img,
+	TSimpleFeaturefList& featureList)
+{
+	trackFeatures_impl_templ<TSimpleFeaturefList>(
+		old_img, new_img, featureList);
 }

@@ -38,10 +38,9 @@ class GraphSlamLevMarqTest
 		if constexpr (my_graph_t::edge_t::is_PDF())
 		{
 			const auto N = my_graph_t::edge_t::state_length;
-			using InfMat = mrpt::math::CMatrixFixed<double, N, N>;
+			using InfMat = mrpt::math::CMatrixFixedNumeric<double, N, N>;
 			auto mat = getRandomGenerator()
-						   .drawDefinitePositiveMatrix<
-							   InfMat, mrpt::math::CVectorFixed<double, N>>(
+						   .drawDefinitePositiveMatrix<InfMat, Eigen::VectorXd>(
 							   N, 2.0 /*std*/, 1.0 /*diagonal offset*/);
 			graph.insertEdge(
 				from, to, typename my_graph_t::edge_t(RelativePose, mat));
@@ -123,7 +122,8 @@ class GraphSlamLevMarqTest
 				if constexpr (my_graph_t::edge_t::is_PDF())
 				{
 					const auto N = my_graph_t::edge_t::state_length;
-					using InfMat = mrpt::math::CMatrixFixed<double, N, N>;
+					using InfMat =
+						mrpt::math::CMatrixFixedNumeric<double, N, N>;
 					InfMat mat;
 					mat.setIdentity();
 					edge.second += typename my_graph_t::edge_t(noise, mat);
@@ -142,7 +142,8 @@ class GraphSlamLevMarqTest
 				if constexpr (my_graph_t::edge_t::is_PDF())
 				{
 					const auto N = my_graph_t::edge_t::state_length;
-					using InfMat = mrpt::math::CMatrixFixed<double, N, N>;
+					using InfMat =
+						mrpt::math::CMatrixFixedNumeric<double, N, N>;
 					InfMat mat;
 					mat.setIdentity();
 					edge.second += typename my_graph_t::edge_t(noise, mat);

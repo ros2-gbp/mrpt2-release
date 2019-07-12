@@ -40,19 +40,20 @@ void TestDisplay3D()
 	// ------------------------------------------------------
 	{
 		opengl::CGridPlaneXY::Ptr obj =
-			opengl::CGridPlaneXY::Create(-20, 20, -20, 20, 0, 1);
+			mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
+				-20, 20, -20, 20, 0, 1);
 		obj->setColor(0.4, 0.4, 0.4);
 		scene->insert(obj);
 	}
 	{
-		opengl::CAxis::Ptr obj = opengl::CAxis::Create();
+		opengl::CAxis::Ptr obj = mrpt::make_aligned_shared<opengl::CAxis>();
 		obj->setFrequency(5);
 		obj->enableTickMarks();
 		obj->setAxisLimits(-10, -10, -10, 10, 10, 10);
 		scene->insert(obj);
 	}
 	{
-		opengl::CSphere::Ptr obj = opengl::CSphere::Create();
+		opengl::CSphere::Ptr obj = mrpt::make_aligned_shared<opengl::CSphere>();
 		obj->setColor(0, 0, 1);
 		obj->setRadius(0.3f);
 		obj->setLocation(0, 0, 1);
@@ -60,7 +61,7 @@ void TestDisplay3D()
 		scene->insert(obj);
 	}
 	{
-		opengl::CSphere::Ptr obj = opengl::CSphere::Create();
+		opengl::CSphere::Ptr obj = mrpt::make_aligned_shared<opengl::CSphere>();
 		obj->setColor(1, 0, 0);
 		obj->setRadius(0.3f);
 		obj->setLocation(-1, -1, 1);
@@ -76,7 +77,7 @@ void TestDisplay3D()
 		alpha.loadFromFile(myDataDir + string("mask.png"), 0);  // transparency
 
 		opengl::CSetOfTexturedTriangles::Ptr obj =
-			opengl::CSetOfTexturedTriangles::Create();
+			mrpt::make_aligned_shared<opengl::CSetOfTexturedTriangles>();
 		opengl::CSetOfTexturedTriangles::TTriangle tri;
 
 		tri = opengl::CSetOfTexturedTriangles::TTriangle(

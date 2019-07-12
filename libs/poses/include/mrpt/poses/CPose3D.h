@@ -8,10 +8,8 @@
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixFixed.h>
+#include <mrpt/math/CMatrixFixedNumeric.h>
 #include <mrpt/math/CQuaternion.h>
-#include <mrpt/math/TPoint2D.h>
-#include <mrpt/math/TPoint3D.h>
 #include <mrpt/poses/CPose.h>
 #include <mrpt/system/string_utils.h>
 
@@ -81,8 +79,7 @@ class CPose3DQuat;
  * \ingroup poses_grp
  * \sa CPoseOrPoint,CPoint3D, mrpt::math::CQuaternion
  */
-class CPose3D : public CPose<CPose3D, 6>,
-				public mrpt::serialization::CSerializable
+class CPose3D : public CPose<CPose3D>, public mrpt::serialization::CSerializable
 {
 	DEFINE_SERIALIZABLE(CPose3D)
 	DEFINE_SCHEMA_SERIALIZABLE()
@@ -93,7 +90,7 @@ class CPose3D : public CPose<CPose3D, 6>,
    public:
 	/** The translation vector [x,y,z] access directly or with x(), y(), z()
 	 * setter/getter methods. */
-	mrpt::math::CVectorFixedDouble<3> m_coords;
+	mrpt::math::CArrayDouble<3> m_coords;
 
    protected:
 	/** The 3x3 rotation matrix, access with getRotationMatrix(),
@@ -162,7 +159,7 @@ class CPose3D : public CPose<CPose3D, 6>,
 	//! \overload
 	inline CPose3D(
 		const mrpt::math::CMatrixDouble33& rot,
-		const mrpt::math::CVectorFixedDouble<3>& xyz)
+		const mrpt::math::CArrayDouble<3>& xyz)
 		: m_coords(xyz), m_ROT(rot), m_ypr_uptodate(false)
 	{
 	}
@@ -203,7 +200,7 @@ class CPose3D : public CPose<CPose3D, 6>,
 	 * the 3D translation of the pose
 	 *  \sa setFrom12Vector, getAs12Vector
 	 */
-	inline explicit CPose3D(const mrpt::math::CVectorFixedDouble<12>& vec12)
+	inline explicit CPose3D(const mrpt::math::CArrayDouble<12>& vec12)
 		: m_ROT(mrpt::math::UNINITIALIZED_MATRIX), m_ypr_uptodate(false)
 	{
 		setFrom12Vector(vec12);
@@ -218,7 +215,13 @@ class CPose3D : public CPose<CPose3D, 6>,
 	 * point(translation) or pose (translation+orientation).
 	 * \sa getInverseHomogeneousMatrix, getRotationMatrix
 	 */
-	void getHomogeneousMatrix(mrpt::math::CMatrixDouble44& out_HM) const;
+	inline void getHomogeneousMatrix(mrpt::math::CMatrixDouble44& out_HM) const
+	{
+		out_HM.insertMatrix(0, 0, m_ROT);
+		for (int i = 0; i < 3; i++) out_HM(i, 3) = m_coords[i];
+		out_HM(3, 0) = out_HM(3, 1) = out_HM(3, 2) = 0.;
+		out_HM(3, 3) = 1.;
+	}
 
 	/** Get the 3x3 rotation matrix \sa getHomogeneousMatrix  */
 	inline void getRotationMatrix(mrpt::math::CMatrixDouble33& ROT) const
@@ -278,10 +281,12 @@ class CPose3D : public CPose<CPose3D, 6>,
 	 */
 	void composePoint(
 		double lx, double ly, double lz, double& gx, double& gy, double& gz,
-		mrpt::math::CMatrixFixed<double, 3, 3>* out_jacobian_df_dpoint =
+		mrpt::math::CMatrixFixedNumeric<double, 3, 3>* out_jacobian_df_dpoint =
 			nullptr,
-		mrpt::math::CMatrixFixed<double, 3, 6>* out_jacobian_df_dpose = nullptr,
-		mrpt::math::CMatrixFixed<double, 3, 6>* out_jacobian_df_dse3 = nullptr,
+		mrpt::math::CMatrixFixedNumeric<double, 3, 6>* out_jacobian_df_dpose =
+			nullptr,
+		mrpt::math::CMatrixFixedNumeric<double, 3, 6>* out_jacobian_df_dse3 =
+			nullptr,
 		bool use_small_rot_approx = false) const;
 
 	/** An alternative, slightly more efficient way of doing \f$ G = P \oplus L
@@ -297,15 +302,6 @@ class CPose3D : public CPose<CPose3D, 6>,
 			local_point.x, local_point.y, local_point.z, global_point.x,
 			global_point.y, global_point.z);
 	}
-	/** \overload Returns global point: "this \oplus l" */
-	inline mrpt::math::TPoint3D composePoint(
-		const mrpt::math::TPoint3D& l) const
-	{
-		mrpt::math::TPoint3D g;
-		composePoint(l, g);
-		return g;
-	}
-
 	/** This version of the method assumes that the resulting point has no Z
 	 * component (use with caution!) */
 	inline void composePoint(
@@ -330,14 +326,6 @@ class CPose3D : public CPose<CPose3D, 6>,
 		gz = static_cast<float>(ggz);
 	}
 
-	/** Rotates a vector (i.e. like composePoint(), but ignoring translation) */
-	mrpt::math::TVector3D rotateVector(
-		const mrpt::math::TVector3D& local) const;
-
-	/** Inverse of rotateVector(), i.e. using the inverse rotation matrix */
-	mrpt::math::TVector3D inverseRotateVector(
-		const mrpt::math::TVector3D& global) const;
-
 	/**  Computes the 3D point L such as \f$ L = G \ominus this \f$.
 	 *  If pointers are provided, the corresponding Jacobians are returned.
 	 *  "out_jacobian_df_dse3" stands for the Jacobian with respect to the 6D
@@ -350,10 +338,11 @@ class CPose3D : public CPose<CPose3D, 6>,
 	void inverseComposePoint(
 		const double gx, const double gy, const double gz, double& lx,
 		double& ly, double& lz,
-		mrpt::math::CMatrixFixed<double, 3, 3>* out_jacobian_df_dpoint =
+		mrpt::math::CMatrixFixedNumeric<double, 3, 3>* out_jacobian_df_dpoint =
 			nullptr,
-		mrpt::math::CMatrixFixed<double, 3, 6>* out_jacobian_df_dpose = nullptr,
-		mrpt::math::CMatrixFixed<double, 3, 6>* out_jacobian_df_dse3 =
+		mrpt::math::CMatrixFixedNumeric<double, 3, 6>* out_jacobian_df_dpose =
+			nullptr,
+		mrpt::math::CMatrixFixedNumeric<double, 3, 6>* out_jacobian_df_dse3 =
 			nullptr) const;
 
 	/** \overload */
@@ -361,14 +350,6 @@ class CPose3D : public CPose<CPose3D, 6>,
 		const mrpt::math::TPoint3D& g, mrpt::math::TPoint3D& l) const
 	{
 		inverseComposePoint(g.x, g.y, g.z, l.x, l.y, l.z);
-	}
-	/** \overload Returns local point: `g` as seen from `this` pose */
-	inline mrpt::math::TPoint3D inverseComposePoint(
-		const mrpt::math::TPoint3D& g) const
-	{
-		mrpt::math::TPoint3D l;
-		inverseComposePoint(g, l);
-		return l;
 	}
 
 	/** overload for 2D points \exception If the z component of the result is
@@ -494,15 +475,15 @@ class CPose3D : public CPose<CPose3D, 6>,
 	template <class ARRAYORVECTOR>
 	inline void setFrom12Vector(const ARRAYORVECTOR& vec12)
 	{
-		m_ROT(0, 0) = vec12[0];
-		m_ROT(0, 1) = vec12[3];
-		m_ROT(0, 2) = vec12[6];
-		m_ROT(1, 0) = vec12[1];
-		m_ROT(1, 1) = vec12[4];
-		m_ROT(1, 2) = vec12[7];
-		m_ROT(2, 0) = vec12[2];
-		m_ROT(2, 1) = vec12[5];
-		m_ROT(2, 2) = vec12[8];
+		m_ROT.set_unsafe(0, 0, vec12[0]);
+		m_ROT.set_unsafe(0, 1, vec12[3]);
+		m_ROT.set_unsafe(0, 2, vec12[6]);
+		m_ROT.set_unsafe(1, 0, vec12[1]);
+		m_ROT.set_unsafe(1, 1, vec12[4]);
+		m_ROT.set_unsafe(1, 2, vec12[7]);
+		m_ROT.set_unsafe(2, 0, vec12[2]);
+		m_ROT.set_unsafe(2, 1, vec12[5]);
+		m_ROT.set_unsafe(2, 2, vec12[8]);
 		m_ypr_uptodate = false;
 		m_coords[0] = vec12[9];
 		m_coords[1] = vec12[10];
@@ -518,15 +499,15 @@ class CPose3D : public CPose<CPose3D, 6>,
 	template <class ARRAYORVECTOR>
 	inline void getAs12Vector(ARRAYORVECTOR& vec12) const
 	{
-		vec12[0] = m_ROT(0, 0);
-		vec12[3] = m_ROT(0, 1);
-		vec12[6] = m_ROT(0, 2);
-		vec12[1] = m_ROT(1, 0);
-		vec12[4] = m_ROT(1, 1);
-		vec12[7] = m_ROT(1, 2);
-		vec12[2] = m_ROT(2, 0);
-		vec12[5] = m_ROT(2, 1);
-		vec12[8] = m_ROT(2, 2);
+		vec12[0] = m_ROT.get_unsafe(0, 0);
+		vec12[3] = m_ROT.get_unsafe(0, 1);
+		vec12[6] = m_ROT.get_unsafe(0, 2);
+		vec12[1] = m_ROT.get_unsafe(1, 0);
+		vec12[4] = m_ROT.get_unsafe(1, 1);
+		vec12[7] = m_ROT.get_unsafe(1, 2);
+		vec12[2] = m_ROT.get_unsafe(2, 0);
+		vec12[5] = m_ROT.get_unsafe(2, 1);
+		vec12[8] = m_ROT.get_unsafe(2, 2);
 		vec12[9] = m_coords[0];
 		vec12[10] = m_coords[1];
 		vec12[11] = m_coords[2];
@@ -557,8 +538,10 @@ class CPose3D : public CPose<CPose3D, 6>,
 		return m_roll;
 	}
 
-	/** Returns a 6x1 vector with [x y z yaw pitch roll]' */
-	void asVector(vector_t& v) const;
+	/** Returns a 1x6 vector with [x y z yaw pitch roll] */
+	void getAsVector(mrpt::math::CVectorDouble& v) const;
+	/// \overload
+	void getAsVector(mrpt::math::CArrayDouble<6>& v) const;
 
 	/** Returns the quaternion associated to the rotation of this object (NOTE:
 	 * XYZ translation is ignored)
@@ -577,7 +560,8 @@ class CPose3D : public CPose<CPose3D, 6>,
 	 */
 	void getAsQuaternion(
 		mrpt::math::CQuaternionDouble& q,
-		mrpt::math::CMatrixFixed<double, 4, 3>* out_dq_dr = nullptr) const;
+		mrpt::math::CMatrixFixedNumeric<double, 4, 3>* out_dq_dr =
+			nullptr) const;
 
 	inline const double& operator[](unsigned int i) const
 	{
@@ -630,11 +614,24 @@ class CPose3D : public CPose<CPose3D, 6>,
 	 * \sa asString
 	 * \exception std::exception On invalid format
 	 */
-	void fromString(const std::string& s);
-
+	void fromString(const std::string& s)
+	{
+		using mrpt::DEG2RAD;
+		mrpt::math::CMatrixDouble m;
+		if (!m.fromMatlabStringFormat(s))
+			THROW_EXCEPTION("Malformed expression in ::fromString");
+		ASSERTMSG_(m.rows() == 1 && m.cols() == 6, "Expected vector length=6");
+		this->setFromValues(
+			m.get_unsafe(0, 0), m.get_unsafe(0, 1), m.get_unsafe(0, 2),
+			DEG2RAD(m.get_unsafe(0, 3)), DEG2RAD(m.get_unsafe(0, 4)),
+			DEG2RAD(m.get_unsafe(0, 5)));
+	}
 	/** Same as fromString, but without requiring the square brackets in the
 	 * string */
-	void fromStringRaw(const std::string& s);
+	void fromStringRaw(const std::string& s)
+	{
+		this->fromString("[" + s + "]");
+	}
 
 	/** Return true if the 6D pose represents a Z axis almost exactly vertical
 	 * (upwards or downwards), with a given tolerance (if set to 0 exact

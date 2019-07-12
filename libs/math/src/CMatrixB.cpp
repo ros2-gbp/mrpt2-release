@@ -21,14 +21,14 @@ IMPLEMENTS_SERIALIZABLE(CMatrixB, CSerializable, mrpt::math)
 uint8_t CMatrixB::serializeGetVersion() const { return 0; }
 void CMatrixB::serializeTo(mrpt::serialization::CArchive& out) const
 {
-	out.WriteAs<uint32_t>(sizeof(bool));
+	out << (uint32_t)sizeof(m_Val[0][0]);
 
 	// First, write the number of rows and columns:
-	out.WriteAs<uint32_t>(rows());
-	out.WriteAs<uint32_t>(cols());
+	out << (uint32_t)m_Rows << (uint32_t)m_Cols;
 
-	if (rows() > 0 && cols() > 0)
-		out.WriteBuffer(&(*this)(0, 0), sizeof(bool) * cols() * rows());
+	if (m_Rows > 0 && m_Cols > 0)
+		for (unsigned int i = 0; i < m_Rows; i++)
+			out.WriteBuffer(m_Val[i], sizeof(m_Val[0][0]) * m_Cols);
 }
 
 void CMatrixB::serializeFrom(mrpt::serialization::CArchive& in, uint8_t version)
@@ -39,7 +39,7 @@ void CMatrixB::serializeFrom(mrpt::serialization::CArchive& in, uint8_t version)
 		{
 			uint32_t size_bool;
 			in >> size_bool;
-			if (size_bool != sizeof(bool))
+			if (size_bool != sizeof(m_Val[0][0]))
 				THROW_EXCEPTION(
 					"Error: size of 'bool' is different in serialized data!");
 
@@ -51,10 +51,26 @@ void CMatrixB::serializeFrom(mrpt::serialization::CArchive& in, uint8_t version)
 			setSize(nRows, nCols);
 
 			if (nRows > 0 && nCols > 0)
-				in.ReadBuffer(&(*this)(0, 0), sizeof(bool) * cols() * rows());
+				for (unsigned int i = 0; i < nRows; i++)
+					in.ReadBuffer(m_Val[i], sizeof(m_Val[0][0]) * m_Cols);
 		}
 		break;
 		default:
 			MRPT_THROW_UNKNOWN_SERIALIZATION_VERSION(version);
 	};
+}
+
+// Implementation of CMatrixBool
+CMatrixBool::CMatrixBool(size_t row, size_t col)
+	: CMatrixTemplate<bool>(row, col)
+{
+}
+CMatrixBool::CMatrixBool(const CMatrixTemplate<bool>& m)
+	: CMatrixTemplate<bool>(m)
+{
+}
+CMatrixBool& CMatrixBool::operator=(const CMatrixTemplate<bool>& m)
+{
+	CMatrixTemplate<bool>::operator=(m);
+	return *this;
 }

@@ -26,8 +26,6 @@
 
 #include <mrpt/gui/WxUtils.h>
 #include <mrpt/gui/wx28-fixes.h>
-#include <mrpt/math/TLine3D.h>
-#include <mrpt/math/TObject3D.h>
 #include <mrpt/system/string_utils.h>
 #include "../wx-common/mrpt_logo.xpm"
 #include "imgs/main_icon.xpm"
@@ -62,7 +60,7 @@ wxBitmap MyArtProvider::CreateBitmap(
 #include <mrpt/system/CTicTac.h>
 #include <mrpt/system/os.h>
 
-mrpt::nav::CParameterizedTrajectoryGenerator::Ptr ptg;
+mrpt::nav::CParameterizedTrajectoryGenerator* ptg = nullptr;
 
 //(*IdInit(ptgConfiguratorframe)
 const long ptgConfiguratorframe::ID_STATICTEXT1 = wxNewId();
@@ -874,6 +872,11 @@ ptgConfiguratorframe::~ptgConfiguratorframe()
 	delete m_myRedirector;
 	//(*Destroy(ptgConfiguratorframe)
 	//*)
+	if (ptg)
+	{
+		delete ptg;
+		ptg = nullptr;
+	}
 }
 
 void ptgConfiguratorframe::prepareRobotPathPlot(
@@ -939,7 +942,10 @@ void ptgConfiguratorframe::OncbPTGClassSelect(wxCommandEvent& event)
 	const std::string sSelPTG =
 		std::string(cbPTGClass->GetString(sel).mb_str());
 
-	ptg.reset();
+	if (ptg)
+	{
+		delete ptg;
+	}
 
 	// Factory:
 	const mrpt::rtti::TRuntimeClassId* classId =
@@ -950,7 +956,7 @@ void ptgConfiguratorframe::OncbPTGClassSelect(wxCommandEvent& event)
 			"[CreatePTG] No PTG named `%s` is registered!", sSelPTG.c_str());
 	}
 
-	ptg = mrpt::ptr_cast<mrpt::nav::CParameterizedTrajectoryGenerator>::from(
+	ptg = dynamic_cast<mrpt::nav::CParameterizedTrajectoryGenerator*>(
 		classId->createObject());
 	if (!ptg)
 	{

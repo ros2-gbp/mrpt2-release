@@ -1,4 +1,13 @@
+# Eigen library plugins:
+# ===================================================
+set(EIGEN_MATRIXBASE_PLUGIN "<mrpt/math/eigen_plugins.h>" CACHE STRING "Eigen plugin header")
+set(EIGEN_MATRIXBASE_PLUGIN_POST_IMPL "<mrpt/math/eigen_plugins_impl.h>" CACHE STRING "Eigen plugin implementation header")
+
+mark_as_advanced(EIGEN_MATRIXBASE_PLUGIN)
+mark_as_advanced(EIGEN_MATRIXBASE_PLUGIN_POST_IMPL)
+
 # By default: Use system version
+find_package(Eigen3 QUIET NO_MODULE)
 
 set(EIGEN_USE_EMBEDDED_VERSION OFF CACHE BOOL "Download Eigen3 and use it instead of system version")
 if (EIGEN_USE_EMBEDDED_VERSION)
@@ -41,26 +50,22 @@ if (EIGEN_USE_EMBEDDED_VERSION)
 	)
 	add_library(Eigen3::Eigen ALIAS Eigen)
 
-else()
-	find_package(Eigen3 QUIET NO_MODULE)
+elseif(Eigen3_FOUND)
+	# Use system version
+	set(MRPT_EIGEN_INCLUDE_DIR "${EIGEN3_INCLUDE_DIR}") # only to find out version
 
-	if(Eigen3_FOUND)
-		# Use system version
-		set(MRPT_EIGEN_INCLUDE_DIR "${EIGEN3_INCLUDE_DIR}") # only to find out version
-
-		# For Ubuntu 16.04, the Eigen version does not support imported target,
-		# so create it ourselves:
-		if (NOT TARGET Eigen3::Eigen)
-			add_library(Eigen3::Eigen INTERFACE IMPORTED GLOBAL)
-			set_target_properties(Eigen3::Eigen PROPERTIES
-				INTERFACE_INCLUDE_DIRECTORIES
-					$<BUILD_INTERFACE:${EIGEN3_INCLUDE_DIR}>
-	#				$<INSTALL_INTERFACE:include/Eigen>
-	 		)
-		endif()
-	else()
-		message(FATAL_ERROR "eigen3 is required to build MRPT! Either install it and set EIGEN3_DIR or enable the variable EIGEN_USE_EMBEDDED_VERSION to automatically download it now.")
+	# For Ubuntu 16.04, the Eigen version does not support imported target,
+	# so create it ourselves:
+	if (NOT TARGET Eigen3::Eigen)
+		add_library(Eigen3::Eigen INTERFACE IMPORTED GLOBAL)
+		set_target_properties(Eigen3::Eigen PROPERTIES
+			INTERFACE_INCLUDE_DIRECTORIES
+				$<BUILD_INTERFACE:${EIGEN3_INCLUDE_DIR}>
+#				$<INSTALL_INTERFACE:include/Eigen>
+ 		)
 	endif()
+else()
+	message(FATAL_ERROR "eigen3 is required to build MRPT! Either install it and set EIGEN3_DIR or enable the variable EIGEN_USE_EMBEDDED_VERSION to automatically download it now.")
 endif()
 
 # Create variables just for the final summary of the configuration (see bottom of this file):
@@ -95,10 +100,6 @@ if (EXISTS ${EIGEN_VER_H})
 
 	if($ENV{VERBOSE})
 		message(STATUS "Eigen version detected: ${MRPT_EIGEN_VERSION}")
-	endif()
-
-	if(${MRPT_EIGEN_VERSION} VERSION_LESS "3.3")
-		message(ERROR "Eigen ${MRPT_EIGEN_VERSION} detected, required >=3.3. Select EIGEN_USE_EMBEDDED_VERSION=ON.")
 	endif()
 endif ()
 

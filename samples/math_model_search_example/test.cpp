@@ -132,12 +132,15 @@ void TestRANSAC()
 	// Show GUI
 	// --------------------------
 	mrpt::gui::CDisplayWindow3D win("Set of points", 500, 500);
-	opengl::COpenGLScene::Ptr scene = opengl::COpenGLScene::Create();
+	opengl::COpenGLScene::Ptr scene =
+		mrpt::make_aligned_shared<opengl::COpenGLScene>();
 
-	scene->insert(opengl::CGridPlaneXY::Create(-20, 20, -20, 20, 0, 1));
+	scene->insert(mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
+		-20, 20, -20, 20, 0, 1));
 	scene->insert(opengl::stock_objects::CornerXYZ());
 
-	opengl::CPointCloud::Ptr points = opengl::CPointCloud::Create();
+	opengl::CPointCloud::Ptr points =
+		mrpt::make_aligned_shared<opengl::CPointCloud>();
 	points->setColor(0, 0, 1);
 	points->setPointSize(3);
 	points->enableColorFromZ();
@@ -159,7 +162,7 @@ void TestRANSAC()
 	scene->insert(points);
 
 	opengl::CTexturedPlane::Ptr glPlane =
-		opengl::CTexturedPlane::Create(-4, 4, -4, 4);
+		mrpt::make_aligned_shared<opengl::CTexturedPlane>(-4, 4, -4, 4);
 
 	TPose3D glPlanePose;
 	best_model.getAsPose3D(glPlanePose);

@@ -9,8 +9,6 @@
 #pragma once
 
 #include <mrpt/core/round.h>  // round()
-#include <mrpt/math/CVectorFixed.h>
-#include <Eigen/Dense>  // block<>()
 
 namespace mrpt::obs::detail
 {
@@ -19,7 +17,7 @@ namespace mrpt::obs::detail
 template <class POINTMAP>
 void do_project_3d_pointcloud(
 	const int H, const int W, const float* kys, const float* kzs,
-	const mrpt::math::CMatrixF& rangeImage,
+	const mrpt::math::CMatrix& rangeImage,
 	mrpt::opengl::PointCloudAdapter<POINTMAP>& pca,
 	std::vector<uint16_t>& idxs_x, std::vector<uint16_t>& idxs_y,
 	const mrpt::obs::TRangeImageFilterParams& fp, bool MAKE_ORGANIZED,
@@ -27,7 +25,7 @@ void do_project_3d_pointcloud(
 template <class POINTMAP>
 void do_project_3d_pointcloud_SSE2(
 	const int H, const int W, const float* kys, const float* kzs,
-	const mrpt::math::CMatrixF& rangeImage,
+	const mrpt::math::CMatrix& rangeImage,
 	mrpt::opengl::PointCloudAdapter<POINTMAP>& pca,
 	std::vector<uint16_t>& idxs_x, std::vector<uint16_t>& idxs_y,
 	const mrpt::obs::TRangeImageFilterParams& fp, bool MAKE_ORGANIZED);
@@ -223,23 +221,24 @@ void project3DPointsFromDepthImageInto(
 			//  store as a 4x4 homogeneous matrix to exploit SSE
 			//  optimizations
 			//  below:
-			mrpt::math::CMatrixFixed<float, 4, 4> T_inv;
+			mrpt::math::CMatrixFixedNumeric<float, 4, 4> T_inv;
 			if (!isDirectCorresp)
 			{
-				mrpt::math::CMatrixFixed<double, 3, 3> R_inv;
-				mrpt::math::CMatrixFixed<double, 3, 1> t_inv;
+				mrpt::math::CMatrixFixedNumeric<double, 3, 3> R_inv;
+				mrpt::math::CMatrixFixedNumeric<double, 3, 1> t_inv;
 				mrpt::math::homogeneousMatrixInverse(
 					src_obs.relativePoseIntensityWRTDepth.getRotationMatrix(),
 					src_obs.relativePoseIntensityWRTDepth.m_coords, R_inv,
 					t_inv);
 
 				T_inv(3, 3) = 1;
-				T_inv.insertMatrix(0, 0, R_inv.cast_float());
-				T_inv.insertMatrix(0, 3, t_inv.cast_float());
+				T_inv.block<3, 3>(0, 0) = R_inv.cast<float>();
+				T_inv.block<3, 1>(0, 3) = t_inv.cast<float>();
 			}
 
-			CVectorFixedFloat<4> pt_wrt_color, pt_wrt_depth;
+			Eigen::Matrix<float, 4, 1> pt_wrt_color, pt_wrt_depth;
 			pt_wrt_depth[3] = 1;
+
 			mrpt::img::TColor pCol;
 
 			// For each local point:
@@ -321,11 +320,11 @@ void project3DPointsFromDepthImageInto(
 			transf_to_apply.composeFrom(
 				*pp.robotPoseInTheWorld, mrpt::poses::CPose3D(transf_to_apply));
 
-		const auto HM =
+		const Eigen::Matrix<float, 4, 4> HM =
 			transf_to_apply
 				.getHomogeneousMatrixVal<mrpt::math::CMatrixDouble44>()
-				.cast_float();
-		mrpt::math::CVectorFixedFloat<4> pt, pt_transf;
+				.cast<float>();
+		Eigen::Matrix<float, 4, 1> pt, pt_transf;
 		pt[3] = 1;
 
 		const size_t nPts = pca.size();
@@ -342,7 +341,7 @@ void project3DPointsFromDepthImageInto(
 template <class POINTMAP>
 inline void do_project_3d_pointcloud(
 	const int H, const int W, const float* kys, const float* kzs,
-	const mrpt::math::CMatrixF& rangeImage,
+	const mrpt::math::CMatrix& rangeImage,
 	mrpt::opengl::PointCloudAdapter<POINTMAP>& pca,
 	std::vector<uint16_t>& idxs_x, std::vector<uint16_t>& idxs_y,
 	const mrpt::obs::TRangeImageFilterParams& fp, bool MAKE_ORGANIZED,
@@ -412,7 +411,7 @@ inline void do_project_3d_pointcloud(
 template <class POINTMAP>
 inline void do_project_3d_pointcloud_SSE2(
 	const int H, const int W, const float* kys, const float* kzs,
-	const mrpt::math::CMatrixF& rangeImage,
+	const mrpt::math::CMatrix& rangeImage,
 	mrpt::opengl::PointCloudAdapter<POINTMAP>& pca,
 	std::vector<uint16_t>& idxs_x, std::vector<uint16_t>& idxs_y,
 	const mrpt::obs::TRangeImageFilterParams& fp, bool MAKE_ORGANIZED)
@@ -422,7 +421,7 @@ inline void do_project_3d_pointcloud_SSE2(
 	// Use optimized version:
 	const int W_4 = W >> 2;  // /=4 , since we process 4 values at a time.
 	size_t idx = 0;
-	alignas(MRPT_MAX_STATIC_ALIGN_BYTES) float xs[4], ys[4], zs[4];
+	alignas(MRPT_MAX_ALIGN_BYTES) float xs[4], ys[4], zs[4];
 	const __m128 D_zeros = _mm_set_ps(.0f, .0f, .0f, .0f);
 	const __m128 xormask =
 		(fp.rangeCheckBetween) ? _mm_cmpneq_ps(D_zeros, D_zeros)
@@ -432,11 +431,12 @@ inline void do_project_3d_pointcloud_SSE2(
 				D_zeros);  // want points OUTSIDE of min and max to be valid
 	for (int r = 0; r < H; r++)
 	{
-		const float* D_ptr = &rangeImage(r, 0);  // Matrices are 16-aligned
+		const float* D_ptr =
+			&rangeImage.coeffRef(r, 0);  // Matrices are 16-aligned
 		const float* Dgt_ptr =
-			!fp.rangeMask_min ? nullptr : &(*fp.rangeMask_min)(r, 0);
+			!fp.rangeMask_min ? nullptr : &fp.rangeMask_min->coeffRef(r, 0);
 		const float* Dlt_ptr =
-			!fp.rangeMask_max ? nullptr : &(*fp.rangeMask_max)(r, 0);
+			!fp.rangeMask_max ? nullptr : &fp.rangeMask_max->coeffRef(r, 0);
 
 		for (int c = 0; c < W_4; c++)
 		{

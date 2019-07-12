@@ -72,10 +72,10 @@ TEST(SerializeTestMaps, WriteReadToMem)
 			CMemoryStream buf;
 			auto arch = mrpt::serialization::archiveFrom(buf);
 			{
-				auto o = mrpt::ptr_cast<CSerializable>::from(
-					lstClasse->createObject());
+				auto* o =
+					static_cast<CSerializable*>(lstClasse->createObject());
 				arch << *o;
-				o.reset();
+				delete o;
 			}
 
 			CSerializable::Ptr recons;

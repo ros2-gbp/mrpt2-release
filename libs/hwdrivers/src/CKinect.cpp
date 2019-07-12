@@ -141,8 +141,9 @@ void CKinect::doProcess()
 	bool thereIs, hwError;
 
 	CObservation3DRangeScan::Ptr newObs =
-		std::make_shared<CObservation3DRangeScan>();
-	CObservationIMU::Ptr newObs_imu = std::make_shared<CObservationIMU>();
+		mrpt::make_aligned_shared<CObservation3DRangeScan>();
+	CObservationIMU::Ptr newObs_imu =
+		mrpt::make_aligned_shared<CObservationIMU>();
 
 	getNextObservation(*newObs, *newObs_imu, thereIs, hwError);
 
@@ -563,7 +564,7 @@ void CKinect::getNextObservation(
 		// buffer is not beeing filled right now:
 		m_latest_obs.rangeImage.setSize(
 			m_cameraParamsDepth.nrows, m_cameraParamsDepth.ncols);
-		m_latest_obs.rangeImage.fill(0);  // "0" means: error in range
+		m_latest_obs.rangeImage.setConstant(0);  // "0" means: error in range
 		m_latest_obs_cs.unlock();
 		there_is_obs = true;
 	}
@@ -611,15 +612,16 @@ void CKinect::getNextObservation(
 				if (!m_win_range)
 				{
 					m_win_range =
-						mrpt::gui::CDisplayWindow::Create("Preview RANGE");
+						mrpt::make_aligned_shared<mrpt::gui::CDisplayWindow>(
+							"Preview RANGE");
 					m_win_range->setPos(5, 5);
 				}
 
 				// Normalize the image
 				mrpt::img::CImage img;
 				img.setFromMatrix(_out_obs.rangeImage);
-				CMatrixFloat r = _out_obs.rangeImage;
-				r *= float(1.0 / this->m_maxRange);
+				CMatrixFloat r =
+					_out_obs.rangeImage * float(1.0 / this->m_maxRange);
 				m_win_range->showImage(img);
 			}
 		}
@@ -631,7 +633,8 @@ void CKinect::getNextObservation(
 				if (!m_win_int)
 				{
 					m_win_int =
-						mrpt::gui::CDisplayWindow::Create("Preview INTENSITY");
+						mrpt::make_aligned_shared<mrpt::gui::CDisplayWindow>(
+							"Preview INTENSITY");
 					m_win_int->setPos(300, 5);
 				}
 				m_win_int->showImage(_out_obs.intensityImage);

@@ -546,8 +546,8 @@ void CWirelessPower::doProcess()
 	auto outObservation = mrpt::obs::CObservationWirelessPower::Create();
 	getObservation(*outObservation);
 
-	appendObservation(
-		mrpt::obs::CObservationWirelessPower::Create(*outObservation));
+	appendObservation(std::make_shared<mrpt::obs::CObservationWirelessPower>(
+		*outObservation));
 }
 
 void CWirelessPower::loadConfig_sensorSpecific(

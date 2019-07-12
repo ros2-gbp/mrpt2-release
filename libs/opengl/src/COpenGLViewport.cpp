@@ -9,7 +9,6 @@
 
 #include "opengl-precomp.h"  // Precompiled header
 
-#include <mrpt/math/TLine3D.h>
 #include <mrpt/opengl/COpenGLScene.h>
 #include <mrpt/opengl/COpenGLViewport.h>
 #include <mrpt/opengl/CSetOfObjects.h>
@@ -640,13 +639,13 @@ CRenderizable::Ptr COpenGLViewport::getByName(const string& str)
 void COpenGLViewport::initializeAllTextures()
 {
 #if MRPT_HAS_OPENGL_GLUT
-	for (auto& obj : m_objects)
+	for (auto it = m_objects.begin(); it != m_objects.end(); ++it)
 	{
-		if (IS_DERIVED(*obj, CTexturedObject))
-			std::dynamic_pointer_cast<CTexturedObject>(obj)
+		if (IS_DERIVED(*it, CTexturedObject))
+			std::dynamic_pointer_cast<CTexturedObject>(*it)
 				->loadTextureInOpenGL();
-		else if (IS_CLASS(*obj, CSetOfObjects))
-			std::dynamic_pointer_cast<CSetOfObjects>(obj)
+		else if (IS_CLASS(*it, CSetOfObjects))
+			std::dynamic_pointer_cast<CSetOfObjects>(*it)
 				->initializeAllTextures();
 	}
 #endif
@@ -816,25 +815,25 @@ void COpenGLViewport::get3DRayForPixelCoord(
 	if (out_cameraPose)
 	{
 		mrpt::math::CMatrixDouble44 M(UNINITIALIZED_MATRIX);
-		M(0, 0) = cam_x_3d.x;
-		M(1, 0) = cam_x_3d.y;
-		M(2, 0) = cam_x_3d.z;
-		M(3, 0) = 0;
+		M.get_unsafe(0, 0) = cam_x_3d.x;
+		M.get_unsafe(1, 0) = cam_x_3d.y;
+		M.get_unsafe(2, 0) = cam_x_3d.z;
+		M.get_unsafe(3, 0) = 0;
 
-		M(0, 1) = cam_up_3d.x;
-		M(1, 1) = cam_up_3d.y;
-		M(2, 1) = cam_up_3d.z;
-		M(3, 1) = 0;
+		M.get_unsafe(0, 1) = cam_up_3d.x;
+		M.get_unsafe(1, 1) = cam_up_3d.y;
+		M.get_unsafe(2, 1) = cam_up_3d.z;
+		M.get_unsafe(3, 1) = 0;
 
-		M(0, 2) = pointing_dir.x;
-		M(1, 2) = pointing_dir.y;
-		M(2, 2) = pointing_dir.z;
-		M(3, 2) = 0;
+		M.get_unsafe(0, 2) = pointing_dir.x;
+		M.get_unsafe(1, 2) = pointing_dir.y;
+		M.get_unsafe(2, 2) = pointing_dir.z;
+		M.get_unsafe(3, 2) = 0;
 
-		M(0, 3) = m_lastProjMat.eye.x;
-		M(1, 3) = m_lastProjMat.eye.y;
-		M(2, 3) = m_lastProjMat.eye.z;
-		M(3, 3) = 1;
+		M.get_unsafe(0, 3) = m_lastProjMat.eye.x;
+		M.get_unsafe(1, 3) = m_lastProjMat.eye.y;
+		M.get_unsafe(2, 3) = m_lastProjMat.eye.z;
+		M.get_unsafe(3, 3) = 1;
 
 		*out_cameraPose = CPose3D(M);
 	}

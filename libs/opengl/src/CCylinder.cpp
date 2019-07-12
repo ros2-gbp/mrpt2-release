@@ -9,7 +9,6 @@
 
 #include "opengl-precomp.h"  // Precompiled header
 
-#include <mrpt/math/TLine3D.h>
 #include <mrpt/math/geometry.h>
 #include <mrpt/opengl/CCylinder.h>
 #include <mrpt/serialization/CArchive.h>

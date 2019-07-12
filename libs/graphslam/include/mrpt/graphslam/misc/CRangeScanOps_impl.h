@@ -26,8 +26,8 @@ void CRangeScanOps<GRAPH_T>::getICPEdge(
 	mrpt::slam::CICP::TReturnInfo info;
 
 	// have them initialized prior - and then just clear them
-	m1.insertObservation(from);
-	m2.insertObservation(to);
+	m1.insertObservation(&from);
+	m2.insertObservation(&to);
 
 	// If given, use initial_pose_in as a first guess for the ICP
 	mrpt::poses::CPose2D initial_pose;
@@ -68,8 +68,8 @@ void CRangeScanOps<GRAPH_T>::getICPEdge(
 	float running_time;
 	mrpt::slam::CICP::TReturnInfo info;
 
-	m1.insertObservation(from);
-	m2.insertObservation(to);
+	m1.insertObservation(&from);
+	m2.insertObservation(&to);
 
 	// this->decimatePointsMap(&m1, [> keep every = */ 40, /* low_lim = <]
 	// 5000);
@@ -149,7 +149,8 @@ bool CRangeScanOps<GRAPH_T>::convert3DTo2DRangeScan(
 	// if it doesn't exist, create it
 	if (!*scan2D_out)
 	{
-		*scan2D_out = mrpt::obs::CObservation2DRangeScan::Create();
+		*scan2D_out =
+			mrpt::make_aligned_shared<mrpt::obs::CObservation2DRangeScan>();
 	}
 
 	if (scan3D_in->hasRangeImage)

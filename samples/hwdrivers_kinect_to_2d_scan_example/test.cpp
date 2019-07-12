@@ -87,9 +87,10 @@ void thread_grabbing(TThreadParam& p)
 		while (!hard_error && !p.quit)
 		{
 			// Grab new observation from the camera:
-			auto obs = CObservation3DRangeScan::Create();  // Smart pointers to
-														   // observations
-			CObservationIMU::Ptr obs_imu = CObservationIMU::Create();
+			CObservation3DRangeScan::Ptr obs = mrpt::make_aligned_shared<
+				CObservation3DRangeScan>();  // Smart pointers to observations
+			CObservationIMU::Ptr obs_imu =
+				mrpt::make_aligned_shared<CObservationIMU>();
 
 			kinect.getNextObservation(*obs, *obs_imu, there_is_obs, hard_error);
 
@@ -166,19 +167,20 @@ void Test_Kinect()
 
 	// The 3D point cloud OpenGL object:
 	mrpt::opengl::CPointCloudColoured::Ptr gl_points =
-		mrpt::opengl::CPointCloudColoured::Create();
+		mrpt::make_aligned_shared<mrpt::opengl::CPointCloudColoured>();
 	gl_points->setPointSize(2.5);
 
 	// The 2D "laser scan" OpenGL object:
 	mrpt::opengl::CPlanarLaserScan::Ptr gl_2d_scan =
-		mrpt::opengl::CPlanarLaserScan::Create();
+		mrpt::make_aligned_shared<mrpt::opengl::CPlanarLaserScan>();
 	gl_2d_scan->enablePoints(true);
 	gl_2d_scan->enableLine(true);
 	gl_2d_scan->enableSurface(true);
 	gl_2d_scan->setSurfaceColor(0, 0, 1, 0.3);  // RGBA
 
-	mrpt::opengl::CFrustum::Ptr gl_frustum = mrpt::opengl::CFrustum::Create(
-		0.2f, 5.0f, 90.0f, 5.0f, 2.0f, true, true);
+	mrpt::opengl::CFrustum::Ptr gl_frustum =
+		mrpt::make_aligned_shared<mrpt::opengl::CFrustum>(
+			0.2f, 5.0f, 90.0f, 5.0f, 2.0f, true, true);
 
 	const double aspect_ratio =
 		480.0 / 640.0;  // kinect.rows() / double( kinect.cols() );
@@ -195,7 +197,7 @@ void Test_Kinect()
 
 		{
 			mrpt::opengl::CGridPlaneXY::Ptr gl_grid =
-				mrpt::opengl::CGridPlaneXY::Create();
+				mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>();
 			gl_grid->setColor(0.6, 0.6, 0.6);
 			scene->insert(gl_grid);
 		}
@@ -256,8 +258,8 @@ void Test_Kinect()
 				// Normalize the image
 				static CMatrixFloat range2D;  // Static to save time allocating
 				// the matrix in every iteration
-				range2D = last_obs->rangeImage;
-				range2D *= (1.0 / last_obs->maxRange);
+				range2D = last_obs->rangeImage *
+						  (1.0 / 5.0);  // kinect.getMaxRange());
 
 				img.setFromMatrix(range2D);
 
@@ -272,7 +274,7 @@ void Test_Kinect()
 			{
 				// Convert to scan:
 				CObservation2DRangeScan::Ptr obs_2d =
-					CObservation2DRangeScan::Create();
+					mrpt::make_aligned_shared<CObservation2DRangeScan>();
 				const float vert_FOV = DEG2RAD(gl_frustum->getVertFOV());
 
 				mrpt::obs::T3DPointsTo2DScanParams sp;

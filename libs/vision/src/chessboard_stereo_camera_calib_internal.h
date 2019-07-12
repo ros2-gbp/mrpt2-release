@@ -12,7 +12,6 @@
 #include <mrpt/math/geometry.h>
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/vision/chessboard_camera_calib.h>
-#include <Eigen/Dense>
 
 namespace mrpt::vision
 {
@@ -25,12 +24,12 @@ struct lm_stat_t
 
 	// State being optimized:
 	//  N*left_cam_pose + right2left_pose + left_cam_params + right_cam_params
-	std::vector<mrpt::poses::CPose3D>
+	mrpt::aligned_std_vector<mrpt::poses::CPose3D>
 		left_cam_poses;  // Poses of the origin of coordinates of the pattern
 	// wrt the left camera
 	mrpt::poses::CPose3D right2left_pose;
-	/** [fx fy cx cy k1 k2 k3 t1 t2] */
-	mrpt::math::CVectorFixedDouble<9> left_cam_params, right_cam_params;
+	mrpt::math::CArrayDouble<9> left_cam_params,
+		right_cam_params;  // [fx fy cx cy k1 k2 k3 t1 t2]
 
 	// Ctor
 	lm_stat_t(
@@ -67,7 +66,8 @@ struct TResidJacobElement
 	Eigen::Matrix<double, 4, 30> J;
 };
 
-using TResidualJacobianList = std::vector<std::vector<TResidJacobElement>>;
+using TResidualJacobianList =
+	std::vector<mrpt::aligned_std_vector<TResidJacobElement>>;
 
 // Auxiliary functions for the Lev-Marq algorithm:
 double recompute_errors_and_Jacobians(
@@ -75,8 +75,8 @@ double recompute_errors_and_Jacobians(
 	bool use_robust_kernel, double kernel_param);
 void build_linear_system(
 	const TResidualJacobianList& res_jac, const std::vector<size_t>& var_indxs,
-	mrpt::math::CVectorDynamic<double>& minus_g, mrpt::math::CMatrixDouble& H);
+	Eigen::VectorXd& minus_g, Eigen::MatrixXd& H);
 void add_lm_increment(
-	const mrpt::math::CVectorDynamic<double>& eps,
-	const std::vector<size_t>& var_indxs, lm_stat_t& new_lm_stat);
+	const Eigen::VectorXd& eps, const std::vector<size_t>& var_indxs,
+	lm_stat_t& new_lm_stat);
 }  // namespace mrpt::vision

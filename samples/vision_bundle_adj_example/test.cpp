@@ -451,14 +451,15 @@ int main(int argc, char** argv)
 		COpenGLScene::Ptr& scene = win.get3DSceneAndLock();
 
 		{  // Ground plane:
-			auto obj = CGridPlaneXY::Create(-200, 200, -200, 200, 0, 5);
+			CGridPlaneXY::Ptr obj = mrpt::make_aligned_shared<CGridPlaneXY>(
+				-200, 200, -200, 200, 0, 5);
 			obj->setColor(0.7, 0.7, 0.7);
 			scene->insert(obj);
 		}
 
 		if (!landmark_points_real.empty())
 		{  // Feature points: ground truth
-			auto obj = CPointCloud::Create();
+			CPointCloud::Ptr obj = mrpt::make_aligned_shared<CPointCloud>();
 			obj->setPointSize(2);
 			obj->setColor(0, 0, 0);
 			obj->loadFromPointsList(landmark_points_real);
@@ -467,7 +468,7 @@ int main(int argc, char** argv)
 		}
 		if (!landmark_points_noisy.empty())
 		{  // Feature points: noisy
-			auto obj = CPointCloud::Create();
+			CPointCloud::Ptr obj = mrpt::make_aligned_shared<CPointCloud>();
 			obj->setPointSize(4);
 			obj->setColor(0.7, 0.2, 0.2, 0);
 			obj->loadFromPointsList(landmark_points_noisy);
@@ -476,7 +477,7 @@ int main(int argc, char** argv)
 		}
 
 		{  // Feature points: estimated
-			auto obj = CPointCloud::Create();
+			CPointCloud::Ptr obj = mrpt::make_aligned_shared<CPointCloud>();
 			obj->setPointSize(3);
 			obj->setColor(0, 0, 1, 1.0);
 			obj->loadFromPointsList(landmark_points);
@@ -521,7 +522,8 @@ int main(int argc, char** argv)
 mrpt::opengl::CSetOfObjects::Ptr framePosesVecVisualize(
 	const TFramePosesVec& poses, const double len, const double lineWidth)
 {
-	auto obj = mrpt::opengl::CSetOfObjects::Create();
+	mrpt::opengl::CSetOfObjects::Ptr obj =
+		mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
 
 	for (size_t i = 0; i < poses.size(); i++)
 	{

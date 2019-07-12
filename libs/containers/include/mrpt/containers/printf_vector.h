@@ -9,6 +9,7 @@
 #pragma once
 
 #include <mrpt/core/format.h>
+#include <mrpt/math/eigen_frwds.h>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -20,14 +21,28 @@ namespace mrpt::containers
 
 /** Generates a string for a vector in the format [A,B,C,...] to std::cout, and
  * the fmt string for <b>each</b> vector element. */
-template <typename VEC>
-std::string sprintf_vector(const char* fmt, const VEC& V)
+template <typename T>
+std::string sprintf_vector(const char* fmt, const std::vector<T>& V)
 {
 	std::string ret = "[";
 	const size_t N = V.size();
 	for (size_t i = 0; i < N; i++)
 	{
 		ret += format(fmt, V[i]);
+		if (i != (N - 1)) ret += ",";
+	}
+	ret += "]";
+	return ret;
+}
+/// @overload
+template <typename Derived>
+std::string sprintf_vector(const char* fmt, const Eigen::MatrixBase<Derived>& V)
+{
+	std::string ret = "[";
+	const size_t N = V.size();
+	for (size_t i = 0; i < N; i++)
+	{
+		ret += mrpt::format(fmt, V[i]);
 		if (i != (N - 1)) ret += ",";
 	}
 	ret += "]";

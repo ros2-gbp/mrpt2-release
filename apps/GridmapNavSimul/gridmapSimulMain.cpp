@@ -108,9 +108,9 @@ wxBitmap MyArtProvider::CreateBitmap(
 #include <mrpt/obs/CRawlog.h>
 #include <mrpt/system/CTicTac.h>
 
+#include <mrpt/core/aligned_std_vector.h>
 #include <mrpt/opengl/stock_objects.h>
 #include <mrpt/serialization/CArchive.h>
-#include <vector>
 
 #include <mrpt/gui/WxUtils.h>
 
@@ -132,7 +132,7 @@ mrpt::kinematics::CVehicleSimul_DiffDriven the_robot;
 COccupancyGridMap2D the_grid;
 CJoystick joystick;
 
-std::vector<mrpt::poses::CPose2D> robot_path_GT, robot_path_ODO;
+mrpt::aligned_std_vector<mrpt::poses::CPose2D> robot_path_GT, robot_path_ODO;
 CPose2D lastOdo, pose_start;
 bool we_are_closing = false;
 long decimation = 1;
@@ -737,20 +737,21 @@ gridmapSimulFrame::gridmapSimulFrame(wxWindow* parent, wxWindowID id)
 	// Populate scene:
 	auto openGLSceneRef = m_canvas->getOpenGLSceneRef();
 	openGLSceneRef->insert(
-		mrpt::opengl::CGridPlaneXY::Create(-100, 100, -100, 100, 0, 5));
+		mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
+			-100, 100, -100, 100, 0, 5));
 
 	update_grid_map_3d();
 	openGLSceneRef->insert(gl_grid);
 
 	// paths:
-	gl_path_GT = mrpt::opengl::CPointCloud::Create();
+	gl_path_GT = mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
 	gl_path_GT->setColor(0, 0, 0, 0.7);
 	gl_path_GT->setLocation(0, 0, 0.01);
 	gl_path_GT->setPointSize(3);
 
 	openGLSceneRef->insert(gl_path_GT);
 
-	gl_path_ODO = mrpt::opengl::CPointCloud::Create();
+	gl_path_ODO = mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
 	gl_path_ODO->setColor(0, 1, 0, 0.7);
 	gl_path_ODO->setLocation(0, 0, 0.01);
 	gl_path_ODO->setPointSize(2);
@@ -761,7 +762,7 @@ gridmapSimulFrame::gridmapSimulFrame(wxWindow* parent, wxWindowID id)
 	gl_robot = mrpt::opengl::stock_objects::RobotPioneer();
 	openGLSceneRef->insert(gl_robot);
 
-	gl_scan = mrpt::opengl::CPlanarLaserScan::Create();
+	gl_scan = mrpt::make_aligned_shared<mrpt::opengl::CPlanarLaserScan>();
 	gl_robot->insert(gl_scan);
 
 	// Redirect all keystrokes in this box to the gl canvas:
@@ -784,7 +785,7 @@ gridmapSimulFrame::~gridmapSimulFrame()
 
 void gridmapSimulFrame::update_grid_map_3d()
 {
-	if (!gl_grid) gl_grid = std::make_shared<CSetOfObjects>();
+	if (!gl_grid) gl_grid = mrpt::make_aligned_shared<CSetOfObjects>();
 	gl_grid->clear();
 	the_grid.getAs3DObject(gl_grid);
 }

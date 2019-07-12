@@ -384,7 +384,7 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 		DEBUG_STEP);
 	if (DEBUG_STEP == 3)
 	{
-		CMatrixF A(3, 3);
+		CMatrix A(3, 3);
 		DEBUG_STEP = DEBUG_STEP + 0;
 	}
 	if (false)
@@ -488,7 +488,8 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 			// Create new area in the H-MAP:
 			std::lock_guard<std::mutex> lock(m_map_cs);
 
-			CHMHMapNode::Ptr newArea = std::make_shared<CHMHMapNode>(&m_map);
+			CHMHMapNode::Ptr newArea =
+				mrpt::make_aligned_shared<CHMHMapNode>(&m_map);
 
 			// For now, the area exists in this hypothesis only:
 			newArea->m_hypotheses.insert(LMH->m_ID);
@@ -820,7 +821,7 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 							//  Delta_b_c = Delta_b_a (+) Delta_a_c
 							CPose3DPDFGaussian Delta_b_c(Delta_b_a + Delta_a_c);
 							Delta_b_c.cov
-								.setZero();  // *********** DEBUG !!!!!!!!!!!
+								.zeros();  // *********** DEBUG !!!!!!!!!!!
 							Delta_b_c.cov(0, 0) = Delta_b_c.cov(1, 1) =
 								square(0.04);
 							Delta_b_c.cov(3, 3) = square(DEG2RAD(1));
@@ -847,7 +848,7 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 							if (!newArc)
 							{
 								// Create a new one:
-								newArc = std::make_shared<CHMHMapArc>(
+								newArc = mrpt::make_aligned_shared<CHMHMapArc>(
 									nodeB,  // Source
 									node_c,  // Target
 									LMH->m_ID,  // Hypos
@@ -1103,8 +1104,8 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 											false);
 
 								newDelta = Anew_old + *oldDelta;
-								newDelta.cov.setZero();  // *********** DEBUG
-														 // !!!!!!!!!!!
+								newDelta.cov
+									.zeros();  // *********** DEBUG !!!!!!!!!!!
 								newDelta.cov(0, 0) = newDelta.cov(1, 1) =
 									square(0.04);
 								newDelta.cov(3, 3) = square(DEG2RAD(1));
@@ -1153,8 +1154,8 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 
 								newDelta = *oldDelta + Aold_new;
 
-								newDelta.cov.setZero();  // *********** DEBUG
-														 // !!!!!!!!!!!
+								newDelta.cov
+									.zeros();  // *********** DEBUG !!!!!!!!!!!
 								newDelta.cov(0, 0) = newDelta.cov(1, 1) =
 									square(0.04);
 								newDelta.cov(3, 3) = square(DEG2RAD(1));
@@ -1365,7 +1366,7 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 			CPose3DPDFGaussian relPoseGauss;
 			relPoseGauss.copyFrom(relPoseParts);
 
-			relPoseGauss.cov.setZero();  // *********** DEBUG !!!!!!!!!!!
+			relPoseGauss.cov.zeros();  // *********** DEBUG !!!!!!!!!!!
 			relPoseGauss.cov(0, 0) = relPoseGauss.cov(1, 1) = square(0.04);
 			relPoseGauss.cov(3, 3) = square(DEG2RAD(1));
 
@@ -1387,7 +1388,7 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 			// If not found, create it now:
 			if (!newArc)
 			{
-				newArc = std::make_shared<CHMHMapArc>(
+				newArc = mrpt::make_aligned_shared<CHMHMapArc>(
 					area_a_ID,  // Source
 					area_b_ID,  // Target
 					theArcHypos,  // Hypos
@@ -1770,14 +1771,14 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 		COpenGLScene sceneLSLAM;
 		// Generate the metric maps 3D view...
 		opengl::CSetOfObjects::Ptr maps3D =
-			std::make_shared<opengl::CSetOfObjects>();
+			mrpt::make_aligned_shared<opengl::CSetOfObjects>();
 		maps3D->setName("metric-maps");
 		LMH->getMostLikelyParticle()->d->metricMaps.getAs3DObject(maps3D);
 		sceneLSLAM.insert(maps3D);
 
 		// ...and the robot poses, areas, etc:
 		opengl::CSetOfObjects::Ptr LSLAM_3D =
-			std::make_shared<opengl::CSetOfObjects>();
+			mrpt::make_aligned_shared<opengl::CSetOfObjects>();
 		LSLAM_3D->setName("LSLAM_3D");
 		LMH->getAs3DScene(LSLAM_3D);
 		sceneLSLAM.insert(LSLAM_3D);

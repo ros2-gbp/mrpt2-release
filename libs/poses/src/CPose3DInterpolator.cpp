@@ -11,7 +11,6 @@
 
 #include <mrpt/poses/CPose3DInterpolator.h>
 #include <mrpt/serialization/stl_serialization.h>
-#include <Eigen/Dense>
 #include "CPoseInterpolatorBase.hpp"  // templ impl
 
 using namespace mrpt::poses;
@@ -59,8 +58,8 @@ void CPoseInterpolatorBase<3>::impl_interpolation(
 	const mrpt::Clock::time_point& t, pose_t& out_interp) const
 {
 	using mrpt::math::TPose3D;
-	mrpt::math::CVectorFixedDouble<4> X, Y, Z, yaw, pitch, roll;
-	mrpt::math::CVectorFixedDouble<4> ts;
+	mrpt::math::CArrayDouble<4> X, Y, Z, yaw, pitch, roll;
+	mrpt::math::CArrayDouble<4> ts;
 	using doubleDuration = std::chrono::duration<double>;
 	doubleDuration durationT = t.time_since_epoch();
 	double td = durationT.count();

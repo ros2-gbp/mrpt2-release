@@ -7,20 +7,20 @@
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
-#include <gtest/gtest.h>
 #include <mrpt/maps/CSimplePointsMap.h>
-#include <mrpt/obs/stock_observations.h>
 #include <mrpt/opengl/CAngularObservationMesh.h>
+#include <mrpt/poses/CPose3DPDF.h>
+#include <mrpt/poses/CPosePDF.h>
+#include <mrpt/slam/CICP.h>
+
+#include <gtest/gtest.h>
+#include <mrpt/obs/stock_observations.h>
 #include <mrpt/opengl/CDisk.h>
 #include <mrpt/opengl/CGridPlaneXY.h>
 #include <mrpt/opengl/COpenGLScene.h>
 #include <mrpt/opengl/CSetOfObjects.h>
 #include <mrpt/opengl/CSphere.h>
 #include <mrpt/opengl/stock_objects.h>
-#include <mrpt/poses/CPose3DPDF.h>
-#include <mrpt/poses/CPosePDF.h>
-#include <mrpt/slam/CICP.h>
-#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::slam;
@@ -51,8 +51,8 @@ class ICPTests : public ::testing::Test
 		stock_observations::example2DRangeScan(scan2, 1);
 
 		// Build the points maps from the scans:
-		m1.insertObservation(scan1);
-		m2.insertObservation(scan2);
+		m1.insertObservation(&scan1);
+		m2.insertObservation(&scan2);
 
 		// -----------------------------------------------------
 		ICP.options.ICP_algorithm = icp_method;
@@ -88,19 +88,19 @@ class ICPTests : public ::testing::Test
 
 	static void generateObjects(CSetOfObjects::Ptr& world)
 	{
-		CSphere::Ptr sph = std::make_shared<CSphere>(0.5);
+		CSphere::Ptr sph = mrpt::make_aligned_shared<CSphere>(0.5);
 		sph->setLocation(0, 0, 0);
 		sph->setColor(1, 0, 0);
 		world->insert(sph);
 
-		CDisk::Ptr pln = std::make_shared<opengl::CDisk>();
+		CDisk::Ptr pln = mrpt::make_aligned_shared<opengl::CDisk>();
 		pln->setDiskRadius(2);
 		pln->setPose(CPose3D(0, 0, 0, 0, DEG2RAD(5), DEG2RAD(5)));
 		pln->setColor(0.8, 0, 0);
 		world->insert(pln);
 
 		{
-			CDisk::Ptr pln2 = std::make_shared<opengl::CDisk>();
+			CDisk::Ptr pln2 = mrpt::make_aligned_shared<opengl::CDisk>();
 			pln2->setDiskRadius(2);
 			pln2->setPose(
 				CPose3D(0, 0, 0, DEG2RAD(30), DEG2RAD(-20), DEG2RAD(-2)));
@@ -131,26 +131,26 @@ TEST_F(ICPTests, RayTracingICP3D)
 	CPose3D SCAN2_POSE_ERROR(0.15, -0.07, 0.10, -0.03, 0.1, 0.1);
 
 	// Create the reference objects:
-	COpenGLScene::Ptr scene1 = std::make_shared<COpenGLScene>();
-	COpenGLScene::Ptr scene2 = std::make_shared<COpenGLScene>();
-	COpenGLScene::Ptr scene3 = std::make_shared<COpenGLScene>();
+	COpenGLScene::Ptr scene1 = mrpt::make_aligned_shared<COpenGLScene>();
+	COpenGLScene::Ptr scene2 = mrpt::make_aligned_shared<COpenGLScene>();
+	COpenGLScene::Ptr scene3 = mrpt::make_aligned_shared<COpenGLScene>();
 
 	opengl::CGridPlaneXY::Ptr plane1 =
-		std::make_shared<CGridPlaneXY>(-20, 20, -20, 20, 0, 1);
+		mrpt::make_aligned_shared<CGridPlaneXY>(-20, 20, -20, 20, 0, 1);
 	plane1->setColor(0.3, 0.3, 0.3);
 	scene1->insert(plane1);
 	scene2->insert(plane1);
 	scene3->insert(plane1);
 
-	CSetOfObjects::Ptr world = std::make_shared<CSetOfObjects>();
+	CSetOfObjects::Ptr world = mrpt::make_aligned_shared<CSetOfObjects>();
 	generateObjects(world);
 	scene1->insert(world);
 
 	// Perform the 3D scans:
 	CAngularObservationMesh::Ptr aom1 =
-		std::make_shared<CAngularObservationMesh>();
+		mrpt::make_aligned_shared<CAngularObservationMesh>();
 	CAngularObservationMesh::Ptr aom2 =
-		std::make_shared<CAngularObservationMesh>();
+		mrpt::make_aligned_shared<CAngularObservationMesh>();
 
 	CAngularObservationMesh::trace2DSetOfRays(
 		scene1, viewpoint1, aom1,
@@ -192,8 +192,8 @@ TEST_F(ICPTests, RayTracingICP3D)
 	M2_noisy = M2;
 	M2_noisy.changeCoordinatesReference(SCAN2_POSE_ERROR);
 
-	CSetOfObjects::Ptr PTNS1 = std::make_shared<CSetOfObjects>();
-	CSetOfObjects::Ptr PTNS2 = std::make_shared<CSetOfObjects>();
+	CSetOfObjects::Ptr PTNS1 = mrpt::make_aligned_shared<CSetOfObjects>();
+	CSetOfObjects::Ptr PTNS2 = mrpt::make_aligned_shared<CSetOfObjects>();
 
 	M1.renderOptions.color = mrpt::img::TColorf(1, 0, 0);
 	M1.getAs3DObject(PTNS1);
@@ -225,7 +225,7 @@ TEST_F(ICPTests, RayTracingICP3D)
 	// Checks:
 	EXPECT_NEAR(
 		0,
-		(mean.asVectorVal() - SCAN2_POSE_ERROR.asVectorVal())
+		(mean.getAsVectorVal() - SCAN2_POSE_ERROR.getAsVectorVal())
 			.array()
 			.abs()
 			.mean(),

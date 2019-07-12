@@ -11,7 +11,7 @@
 #include <mrpt/config/CLoadableOptions.h>
 #include <mrpt/maps/CBeacon.h>
 #include <mrpt/maps/CMetricMap.h>
-#include <mrpt/math/CMatrixF.h>
+#include <mrpt/math/CMatrix.h>
 #include <mrpt/obs/obs_frwds.h>
 #include <mrpt/serialization/CSerializable.h>
 
@@ -56,10 +56,10 @@ class CBeaconMap : public mrpt::maps::CMetricMap
 	// See docs in base class
 	void internal_clear() override;
 	bool internal_insertObservation(
-		const mrpt::obs::CObservation& obs,
+		const mrpt::obs::CObservation* obs,
 		const mrpt::poses::CPose3D* robotPose = nullptr) override;
 	double internal_computeObservationLikelihood(
-		const mrpt::obs::CObservation& obs,
+		const mrpt::obs::CObservation* obs,
 		const mrpt::poses::CPose3D& takenFrom) override;
 
    public:

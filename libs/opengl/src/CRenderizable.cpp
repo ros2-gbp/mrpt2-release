@@ -9,7 +9,6 @@
 
 #include "opengl-precomp.h"  // Precompiled header
 
-#include <mrpt/math/TPose3D.h>
 #include <mrpt/math/utils.h>
 #include <mrpt/opengl/CRenderizable.h>  // Include these before windows.h!!
 #include <mrpt/opengl/gl_utils.h>

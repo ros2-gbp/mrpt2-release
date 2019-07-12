@@ -113,7 +113,8 @@ void TestDisplay3D()
 	// ------------------------------------------------------
 	{
 		opengl::CGridPlaneXY::Ptr obj =
-			opengl::CGridPlaneXY::Create(-20, 20, -20, 20, 0, 1);
+			mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
+				-20, 20, -20, 20, 0, 1);
 		obj->setColor(0.8, 0.8, 0.8);
 		theScene->insert(obj);
 	}
@@ -122,7 +123,7 @@ void TestDisplay3D()
 
 	if (true)
 	{
-		opengl::CAxis::Ptr obj = opengl::CAxis::Create();
+		opengl::CAxis::Ptr obj = mrpt::make_aligned_shared<opengl::CAxis>();
 		obj->setFrequency(5);
 		obj->enableTickMarks();
 		obj->setAxisLimits(-10, -10, -10, 10, 10, 10);
@@ -130,7 +131,7 @@ void TestDisplay3D()
 	}
 
 	{
-		opengl::CSphere::Ptr obj = opengl::CSphere::Create();
+		opengl::CSphere::Ptr obj = mrpt::make_aligned_shared<opengl::CSphere>();
 		obj->setColor(0, 0, 1);
 		obj->setRadius(0.3f);
 		obj->setLocation(0, 0, 1);

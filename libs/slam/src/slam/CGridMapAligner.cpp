@@ -10,11 +10,6 @@
 #include "slam-precomp.h"  // Precompiled headers
 
 #include <mrpt/img/CEnhancedMetaFile.h>
-#include <mrpt/maps/CLandmarksMap.h>
-#include <mrpt/maps/CMultiMetricMap.h>
-#include <mrpt/maps/COccupancyGridMap2D.h>
-#include <mrpt/maps/CSimplePointsMap.h>
-#include <mrpt/math/TPose2D.h>
 #include <mrpt/math/distributions.h>
 #include <mrpt/math/geometry.h>
 #include <mrpt/math/ops_containers.h>
@@ -23,10 +18,14 @@
 #include <mrpt/poses/CPosePDFGaussian.h>
 #include <mrpt/random.h>
 #include <mrpt/slam/CGridMapAligner.h>
-#include <mrpt/slam/CICP.h>
 #include <mrpt/system/filesystem.h>
+
+#include <mrpt/maps/CLandmarksMap.h>
+#include <mrpt/maps/CMultiMetricMap.h>
+#include <mrpt/maps/COccupancyGridMap2D.h>
+#include <mrpt/maps/CSimplePointsMap.h>
+#include <mrpt/slam/CICP.h>
 #include <mrpt/tfest/se2.h>
-#include <Eigen/Dense>
 
 using namespace mrpt::math;
 using namespace mrpt::slam;
@@ -106,7 +105,7 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 	const COccupancyGridMap2D* m1 = nullptr;
 	const COccupancyGridMap2D* m2 = nullptr;
 
-	if (IS_CLASS(*mm1, CMultiMetricMap) && IS_CLASS(*mm2, CMultiMetricMap))
+	if (IS_CLASS(mm1, CMultiMetricMap) && IS_CLASS(mm2, CMultiMetricMap))
 	{
 		multimap1 = static_cast<const CMultiMetricMap*>(mm1);
 		multimap2 = static_cast<const CMultiMetricMap*>(mm2);
@@ -118,8 +117,8 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 		m2 = multimap2->mapByClass<COccupancyGridMap2D>().get();
 	}
 	else if (
-		IS_CLASS(*mm1, COccupancyGridMap2D) &&
-		IS_CLASS(*mm2, COccupancyGridMap2D))
+		IS_CLASS(mm1, COccupancyGridMap2D) &&
+		IS_CLASS(mm2, COccupancyGridMap2D))
 	{
 		m1 = static_cast<const COccupancyGridMap2D*>(mm1);
 		m2 = static_cast<const COccupancyGridMap2D*>(mm2);
@@ -148,7 +147,7 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 
 	// The PDF to estimate:
 	// ------------------------------------------------------
-	CPosePDFSOG::Ptr pdf_SOG = std::make_shared<CPosePDFSOG>();
+	CPosePDFSOG::Ptr pdf_SOG = mrpt::make_aligned_shared<CPosePDFSOG>();
 
 	// Extract features from grid-maps:
 	// ------------------------------------------------------
@@ -219,8 +218,8 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 			{
 				float minDist;
 				minDist =
-					lm1->landmarks.get(idx1)->features[0].descriptorDistanceTo(
-						lm2->landmarks.get(idx2)->features[0]);
+					lm1->landmarks.get(idx1)->features[0]->descriptorDistanceTo(
+						*lm2->landmarks.get(idx2)->features[0]);
 
 				corrs_indiv.emplace_back(idx2, minDist);
 				corrs_indiv_only.push_back(minDist);
@@ -267,9 +266,9 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 				CMatrixFloat descriptor1;
 				lm1->landmarks.get(it.first)
 					->features[0]
-					.getFirstDescriptorAsMatrix(descriptor1);
+					->getFirstDescriptorAsMatrix(descriptor1);
 
-				im1.setFromMatrix(descriptor1, true /*normalized*/);
+				im1 = CImage(descriptor1, true);
 
 				const size_t FEAT_W = im1.getWidth();
 				const size_t FEAT_H = im1.getHeight();
@@ -294,8 +293,8 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 					CMatrixFloat descriptor2;
 					lm2->landmarks.get(*it_j)
 						->features[0]
-						.getFirstDescriptorAsMatrix(descriptor2);
-					im2.setFromMatrix(descriptor2, true);
+						->getFirstDescriptorAsMatrix(descriptor2);
+					im2 = CImage(descriptor2, true);
 					img_compose.drawImage(
 						10 + FEAT_W, 5 + j * (FEAT_H + 5), im2);
 				}
@@ -356,7 +355,7 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 
 			// The list of SOG modes & their corresponding sub-sets of
 			// matchings:
-			using TMapMatchingsToPoseMode = std::map<
+			using TMapMatchingsToPoseMode = mrpt::aligned_std_map<
 				mrpt::tfest::TMatchingPairList, CPosePDFSOG::TGaussianMode>;
 			TMapMatchingsToPoseMode sog_modes;
 
@@ -467,7 +466,7 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 				// Generic 2x2 covariance matrix for all features in their local
 				// coords:
 				CMatrixDouble22 COV_pnt;
-				COV_pnt(0, 0) = COV_pnt(1, 1) =
+				COV_pnt.get_unsafe(0, 0) = COV_pnt.get_unsafe(1, 1) =
 					square(options.ransac_SOG_sigma_m);
 
 				// The absolute number of trials.
@@ -591,12 +590,12 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 						const double ssin = sin(temptPose.mean.phi());
 
 						CMatrixDouble22 Hc;  // Jacobian wrt point_j
-						Hc(1, 1) = ccos;
-						Hc(0, 0) = ccos;
-						Hc(1, 0) = ssin;
-						Hc(0, 1) = -ssin;
+						Hc.get_unsafe(1, 1) = ccos;
+						Hc.get_unsafe(0, 0) = ccos;
+						Hc.get_unsafe(1, 0) = ssin;
+						Hc.get_unsafe(0, 1) = -ssin;
 
-						CMatrixFixed<double, 2, 3>
+						CMatrixFixedNumeric<double, 2, 3>
 							Hq;  // Jacobian wrt transformation q
 						Hq(0, 0) = 1;
 						Hq(1, 1) = 1;
@@ -635,8 +634,9 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 							pdf_M2_j.mean = mrpt::poses::CPoint2D(
 								temptPose.mean +
 								p2_j_local);  // In (temptative) global coords:
-							pdf_M2_j.cov(0, 0) = pdf_M2_j.cov(1, 1) =
-								square(options.ransac_SOG_sigma_m);
+							pdf_M2_j.cov.get_unsafe(0, 0) =
+								pdf_M2_j.cov.get_unsafe(1, 1) =
+									square(options.ransac_SOG_sigma_m);
 
 #ifdef SHOW_CORRS
 							win.plotEllipse(
@@ -659,16 +659,15 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 								if (used_landmarks1[u]) continue;
 
 								// Jacobian wrt transformation q
-								Hq(0, 2) =
+								Hq.get_unsafe(0, 2) =
 									-p2_j_local.x * ssin - p2_j_local.y * ccos;
-								Hq(1, 2) =
+								Hq.get_unsafe(1, 2) =
 									p2_j_local.x * ccos - p2_j_local.y * ssin;
 
 								// COV_j = Hq \Sigma_q Hq^t + Hc Cj Hc^t
-								pdf_M1_i.cov =
-									mrpt::math::multiply_HCHt(Hc, COV_pnt);
-								pdf_M1_i.cov += mrpt::math::multiply_HCHt(
-									Hq, temptPose.cov);
+								Hc.multiply_HCHt(COV_pnt, pdf_M1_i.cov);
+								Hq.multiply_HCHt(
+									temptPose.cov, pdf_M1_i.cov, true);
 
 								float px, py;
 								lm1_pnts.getPoint(u, px, py);
@@ -1012,7 +1011,7 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_correlation(
 
 	// The PDF to estimate:
 	// ------------------------------------------------------
-	CPosePDFGaussian::Ptr PDF = std::make_shared<CPosePDFGaussian>();
+	CPosePDFGaussian::Ptr PDF = mrpt::make_aligned_shared<CPosePDFGaussian>();
 
 	// Determine the extension to compute the correlation into:
 	// ----------------------------------------------------------
@@ -1036,7 +1035,7 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_correlation(
 		m1->getResolution());
 	size_t map2_lx = map2_mod.getSizeX();
 	size_t map2_ly = map2_mod.getSizeY();
-	CMatrixF outCrossCorr, bestCrossCorr;
+	CMatrix outCrossCorr, bestCrossCorr;
 	float map2width_2 = 0.5f * (map2_mod.getXMax() - map2_mod.getXMin());
 
 #ifdef CORRELATION_SHOW_DEBUG
@@ -1105,8 +1104,8 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_correlation(
 		delete tictac;
 	}
 
-	CImage aux;
-	aux.setFromMatrix(bestCrossCorr, false /* do normalization [0,1]*/);
+	bestCrossCorr.normalize(0, 1);
+	CImage aux(bestCrossCorr, true);
 	aux.saveToFile("_debug_best_corr.png");
 
 #ifdef CORRELATION_SHOW_DEBUG
@@ -1115,8 +1114,8 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_correlation(
 #endif
 
 	// Transform the best corr matrix peak into coordinates:
-	std::size_t uMax, vMax;
-	currentMaxCorr = bestCrossCorr.maxCoeff(uMax, vMax);
+	CMatrix::Index uMax, vMax;
+	currentMaxCorr = bestCrossCorr.maxCoeff(&uMax, &vMax);
 
 	PDF->mean.x(m1->idx2x(uMax));
 	PDF->mean.y(m1->idx2y(vMax));

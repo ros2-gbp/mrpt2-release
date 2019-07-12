@@ -20,10 +20,9 @@ namespace mrpt::math
  *   If it is not required, set to "int" or any other basic type.
  *
  *  This is a generic template which works with:
- *    VECTORLIKE: vector_float, CVectorDouble, CVectorFixed<>, double [N],
+ *    VECTORLIKE: vector_float, CVectorDouble, CArrayNumeric<>, double [N],
  * ...
- *    MATRIXLIKE: CMatrixDynamic, CMatrixFixed
- *  \ingroup mrpt_math_grp
+ *    MATRIXLIKE: CMatrixTemplateNumeric, CMatrixFixedNumeric
  */
 template <
 	class VECTORLIKE, class VECTORLIKE2, class VECTORLIKE3, class MATRIXLIKE,
@@ -70,7 +69,7 @@ void estimateJacobian(
 		}
 
 		for (size_t i = 0; i < m; i++)
-			out_Jacobian(i, j) = Ax_2_inv * (f_plus[i] - f_minus[i]);
+			out_Jacobian.get_unsafe(i, j) = Ax_2_inv * (f_plus[i] - f_minus[i]);
 
 	}  // end for j
 

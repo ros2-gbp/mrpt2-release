@@ -9,7 +9,6 @@
 #pragma once
 
 #include <mrpt/img/TPixelCoord.h>
-#include <mrpt/math/CMatrixFixed.h>
 #include <mrpt/opengl/CRenderizable.h>
 #include <mrpt/opengl/opengl_fonts.h>
 
@@ -33,11 +32,11 @@ struct TRenderInfo
 	/** Rendering viewport geometry (in pixels) */
 	int vp_x, vp_y, vp_width, vp_height;
 	/** The 4x4 projection matrix */
-	mrpt::math::CMatrixFixed<float, 4, 4> proj_matrix;
+	Eigen::Matrix<float, 4, 4, Eigen::ColMajor> proj_matrix;
 	/** The 4x4 model transformation matrix */
-	mrpt::math::CMatrixFixed<float, 4, 4> model_matrix;
+	Eigen::Matrix<float, 4, 4, Eigen::ColMajor> model_matrix;
 	/** PROJ * MODEL */
-	mrpt::math::CMatrixFixed<float, 4, 4> full_matrix;
+	Eigen::Matrix<float, 4, 4, Eigen::ColMajor> full_matrix;
 	/** The 3D location of the camera */
 	mrpt::math::TPoint3Df camera_position;
 
@@ -49,7 +48,15 @@ struct TRenderInfo
 	 */
 	void projectPoint(
 		float x, float y, float z, float& proj_x, float& proj_y,
-		float& proj_z_depth) const;
+		float& proj_z_depth) const
+	{
+		const Eigen::Matrix<float, 4, 1, Eigen::ColMajor> proj =
+			full_matrix *
+			Eigen::Matrix<float, 4, 1, Eigen::ColMajor>(x, y, z, 1);
+		proj_x = proj[3] ? proj[0] / proj[3] : 0;
+		proj_y = proj[3] ? proj[1] / proj[3] : 0;
+		proj_z_depth = proj[2];
+	}
 
 	/** Exactly like projectPoint but the (x,y) projected coordinates are given
 	 * in pixels instead of normalized coordinates. */

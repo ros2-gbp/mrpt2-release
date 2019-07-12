@@ -9,8 +9,7 @@
 
 #pragma once
 
-#include <mrpt/math/TLine3D.h>
-#include <mrpt/math/TObject3D.h>
+#include <mrpt/math/lightweight_geom_data.h>
 #include <mrpt/obs/CObservation.h>
 
 namespace mrpt::maps
@@ -75,7 +74,7 @@ class CHeightGridMap2D_Base
 
 	/** Internal method called by internal_insertObservation() */
 	bool dem_internal_insertObservation(
-		const mrpt::obs::CObservation& obs,
+		const mrpt::obs::CObservation* obs,
 		const mrpt::poses::CPose3D* robotPose = nullptr);
 };
 }  // namespace mrpt::maps
