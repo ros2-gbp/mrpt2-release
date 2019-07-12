@@ -17,17 +17,9 @@
 #include <wx/string.h>
 //*)
 
-#include <wx/app.h>
-#include <wx/busyinfo.h>
-#include <wx/log.h>
-#include <wx/msgdlg.h>
-#include <wx/progdlg.h>
-
-#include <mrpt/gui/CMyRedirector.h>
-#include "xRawLogViewerMain.h"
-
-// General global variables:
 #include <mrpt/config/CConfigFileMemory.h>
+#include <mrpt/gui/CMyRedirector.h>
+#include <mrpt/gui/WxUtils.h>
 #include <mrpt/maps/COccupancyGridMap2D.h>
 #include <mrpt/maps/CSimplePointsMap.h>
 #include <mrpt/obs/CObservationVelodyneScan.h>
@@ -36,8 +28,12 @@
 #include <mrpt/opengl/stock_objects.h>
 #include <mrpt/poses/CPosePDFSOG.h>
 #include <mrpt/slam/CICP.h>
-
-#include <mrpt/gui/WxUtils.h>
+#include <wx/app.h>
+#include <wx/busyinfo.h>
+#include <wx/log.h>
+#include <wx/msgdlg.h>
+#include <wx/progdlg.h>
+#include "xRawLogViewerMain.h"
 
 using namespace mrpt;
 using namespace mrpt::slam;
@@ -552,21 +548,21 @@ class CMyButtonsDisabler
 static void insert_obs_into_map(
 	const CSerializable::Ptr& obj, mrpt::maps::CMetricMap* theMap)
 {
-	if (IS_CLASS(obj, CSensoryFrame))
+	if (IS_CLASS(*obj, CSensoryFrame))
 	{
 		auto SF = std::dynamic_pointer_cast<CSensoryFrame>(obj);
 		SF->insertObservationsInto(theMap);
 	}
-	else if (IS_DERIVED(obj, CObservation))
+	else if (IS_DERIVED(*obj, CObservation))
 	{
 		CObservationVelodyneScan::Ptr obs_velodyne;
-		if (IS_CLASS(obj, CObservationVelodyneScan))
+		if (IS_CLASS(*obj, CObservationVelodyneScan))
 		{
 			obs_velodyne = mrpt::ptr_cast<CObservationVelodyneScan>::from(obj);
 			obs_velodyne->generatePointCloud();
 		}
 		auto obs_ref = std::dynamic_pointer_cast<CObservation>(obj);
-		theMap->insertObservation(obs_ref.get());
+		theMap->insertObservation(*obs_ref);
 
 		// free mem:
 		if (obs_velodyne) obs_velodyne->point_cloud.clear_deep();
@@ -731,9 +727,7 @@ void CScanMatching::OnbtnICPClick(wxCommandEvent&)
 			poseEst->getCovarianceAndMean(estCov, estMean);
 
 			m_gl_map_new->setPose(CPose3D(estMean));
-			const mrpt::math::CMatrixFixedNumeric<double, 2, 2> C =
-				estCov.block<2, 2>(0, 0);
-			gl_ellipse->setCovMatrix(C);
+			gl_ellipse->setCovMatrix(estCov.extractMatrix<2, 2>(0, 0));
 
 			m_plot3D->Refresh();
 

@@ -782,7 +782,7 @@ void filter_swapColors(
 	{
 		for (auto obs : *SF)
 		{
-			if (IS_CLASS(obs, CObservationImage))
+			if (IS_CLASS(*obs, CObservationImage))
 			{
 				auto* o = (CObservationImage*)obs.get();
 				if (o->image.isColor())
@@ -791,7 +791,7 @@ void filter_swapColors(
 					changesCount++;
 				}
 			}
-			else if (IS_CLASS(obs, CObservationStereoImages))
+			else if (IS_CLASS(*obs, CObservationStereoImages))
 			{
 				auto* o = (CObservationStereoImages*)obs.get();
 				if (o->imageLeft.isColor())
@@ -1003,7 +1003,7 @@ void CFormEdit::executeOperationOnRawlog(
 	string errorMsg;
 	wxString auxStr;
 
-	CSensoryFrame::Ptr dummy_sf = mrpt::make_aligned_shared<CSensoryFrame>();
+	CSensoryFrame::Ptr dummy_sf = std::make_shared<CSensoryFrame>();
 
 	// Apply changes:
 	int changes = 0;
@@ -1225,7 +1225,7 @@ void leave_horizontalScans(
 		{
 			CObservation::Ptr obs = *it;
 
-			if (IS_CLASS(obs, CObservation2DRangeScan))
+			if (IS_CLASS(*obs, CObservation2DRangeScan))
 			{
 				auto* o = static_cast<CObservation2DRangeScan*>(obs.get());
 
