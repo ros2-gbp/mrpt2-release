@@ -41,9 +41,12 @@ class CPoint2DPDFGaussian : public CPoint2DPDF
 	void getMean(CPoint2D& p) const override { p = this->mean; }
 	/** Returns an estimate of the point covariance matrix (2x2 cov matrix) and
 	 * the mean, both at once. \sa getMean */
-	std::tuple<cov_mat_t, type_value> getCovarianceAndMean() const override
+	void getCovarianceAndMean(
+		mrpt::math::CMatrixDouble22& out_cov,
+		CPoint2D& mean_point) const override
 	{
-		return {this->cov, this->mean};
+		out_cov = this->cov;
+		mean_point = this->mean;
 	}
 
 	/** Copy operator, translating if necesary (for example, between particles

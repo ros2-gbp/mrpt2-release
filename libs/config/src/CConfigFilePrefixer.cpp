@@ -50,17 +50,12 @@ CConfigFileBase* CConfigFilePrefixer::getBoundConfigFileBase() const
 	return m_bound_object;
 }
 
-void CConfigFilePrefixer::ensureIsBound() const
+void CConfigFilePrefixer::getAllSections(
+	std::vector<std::string>& sections) const
 {
 	ASSERTMSG_(
 		m_bound_object,
 		"You must first bind CConfigFilePrefixer to an existing object!");
-}
-
-void CConfigFilePrefixer::getAllSections(
-	std::vector<std::string>& sections) const
-{
-	ensureIsBound();
 	m_bound_object->getAllSections(sections);
 	for (auto& section : sections) section = m_prefix_sections + section;
 }
@@ -68,20 +63,19 @@ void CConfigFilePrefixer::getAllSections(
 void CConfigFilePrefixer::getAllKeys(
 	const std::string& section, std::vector<std::string>& keys) const
 {
-	ensureIsBound();
+	ASSERTMSG_(
+		m_bound_object,
+		"You must first bind CConfigFilePrefixer to an existing object!");
 	m_bound_object->getAllKeys(section, keys);
 	for (auto& key : keys) key = m_prefix_keys + key;
-}
-void CConfigFilePrefixer::clear()
-{
-	ensureIsBound();
-	m_bound_object->clear();
 }
 
 void CConfigFilePrefixer::writeString(
 	const std::string& section, const std::string& name, const std::string& str)
 {
-	ensureIsBound();
+	ASSERTMSG_(
+		m_bound_object,
+		"You must first bind CConfigFilePrefixer to an existing object!");
 	m_bound_object->writeString(
 		m_prefix_sections + section, m_prefix_keys + name, str);
 }
@@ -90,7 +84,9 @@ std::string CConfigFilePrefixer::readString(
 	const std::string& section, const std::string& name,
 	const std::string& defaultStr, bool failIfNotFound) const
 {
-	ensureIsBound();
+	ASSERTMSG_(
+		m_bound_object,
+		"You must first bind CConfigFilePrefixer to an existing object!");
 	return m_bound_object->readString(
 		m_prefix_sections + section, m_prefix_keys + name, defaultStr,
 		failIfNotFound);

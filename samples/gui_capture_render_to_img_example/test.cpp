@@ -8,7 +8,6 @@
    +------------------------------------------------------------------------+ */
 
 #include <mrpt/gui/CDisplayWindow3D.h>
-#include <mrpt/math/TPose3D.h>
 #include <mrpt/opengl/CAxis.h>
 #include <mrpt/opengl/CBox.h>
 #include <mrpt/opengl/CGridPlaneXY.h>
@@ -46,13 +45,14 @@ void TestDisplay3D()
 	// ------------------------------------------------------
 	{
 		opengl::CGridPlaneXY::Ptr obj =
-			opengl::CGridPlaneXY::Create(-20, 20, -20, 20, 0, 1);
+			mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
+				-20, 20, -20, 20, 0, 1);
 		obj->setColor(0.4, 0.4, 0.4);
 		theScene->insert(obj);
 	}
 
 	{
-		opengl::CAxis::Ptr obj = opengl::CAxis::Create();
+		opengl::CAxis::Ptr obj = mrpt::make_aligned_shared<opengl::CAxis>();
 		obj->setFrequency(5);
 		obj->enableTickMarks();
 		obj->setAxisLimits(-10, -10, -10, 10, 10, 10);
@@ -60,7 +60,7 @@ void TestDisplay3D()
 	}
 
 	{
-		opengl::CBox::Ptr obj = opengl::CBox::Create();
+		opengl::CBox::Ptr obj = mrpt::make_aligned_shared<opengl::CBox>();
 		obj->setWireframe(false);
 		obj->setColor(1, 0, 0);
 		obj->setLineWidth(3.0);
@@ -69,7 +69,7 @@ void TestDisplay3D()
 	}
 
 	{
-		opengl::CSphere::Ptr obj = opengl::CSphere::Create();
+		opengl::CSphere::Ptr obj = mrpt::make_aligned_shared<opengl::CSphere>();
 		obj->setColor(0, 0, 1);
 		obj->setRadius(0.3);
 		obj->setLocation(0, 0, 1);
@@ -77,7 +77,7 @@ void TestDisplay3D()
 		theScene->insert(obj);
 	}
 	{
-		opengl::CSphere::Ptr obj = opengl::CSphere::Create();
+		opengl::CSphere::Ptr obj = mrpt::make_aligned_shared<opengl::CSphere>();
 		obj->setColor(1, 0, 0);
 		obj->setRadius(0.3);
 		obj->setLocation(-1, -1, 1);
@@ -86,7 +86,7 @@ void TestDisplay3D()
 	}
 
 	{
-		opengl::CSphere::Ptr obj = opengl::CSphere::Create();
+		opengl::CSphere::Ptr obj = mrpt::make_aligned_shared<opengl::CSphere>();
 		obj->setColor(0, 1, 0);
 		obj->setRadius(0.5);
 		obj->setLocation(0, 0, 0);

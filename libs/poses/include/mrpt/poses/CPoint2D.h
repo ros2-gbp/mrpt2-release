@@ -8,7 +8,7 @@
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CVectorFixed.h>
+#include <mrpt/math/CArrayNumeric.h>
 #include <mrpt/poses/CPoint.h>
 
 namespace mrpt::poses
@@ -29,14 +29,14 @@ class CPose2D;
  * \sa CPoseOrPoint,CPose, CPoint
  * \ingroup poses_grp
  */
-class CPoint2D : public CPoint<CPoint2D, 2>,
+class CPoint2D : public CPoint<CPoint2D>,
 				 public mrpt::serialization::CSerializable
 {
 	DEFINE_SERIALIZABLE(CPoint2D)
 	DEFINE_SCHEMA_SERIALIZABLE()
    public:
 	/** [x,y] */
-	mrpt::math::CVectorFixedDouble<2> m_coords;
+	mrpt::math::CArrayDouble<2> m_coords;
 
    public:
 	/** Constructor for initializing point coordinates. */
@@ -47,23 +47,29 @@ class CPoint2D : public CPoint<CPoint2D, 2>,
 	}
 
 	/** Constructor from x/y coordinates given from other pose. */
-	template <class OTHERCLASS, std::size_t DIM2>
-	inline explicit CPoint2D(const CPoseOrPoint<OTHERCLASS, DIM2>& b)
+	template <class OTHERCLASS>
+	inline explicit CPoint2D(const CPoseOrPoint<OTHERCLASS>& b)
 	{
 		m_coords[0] = b.x();
 		m_coords[1] = b.y();
 	}
 
 	/** Implicit constructor from lightweight type. */
-	explicit CPoint2D(const mrpt::math::TPoint2D& o);
+	inline explicit CPoint2D(const mrpt::math::TPoint2D& o)
+	{
+		m_coords[0] = o.x;
+		m_coords[1] = o.y;
+	}
 
 	/** Explicit constructor from lightweight type (loses the z coord). */
-	explicit CPoint2D(const mrpt::math::TPoint3D& o);
+	inline explicit CPoint2D(const mrpt::math::TPoint3D& o)
+	{
+		m_coords[0] = o.x;
+		m_coords[1] = o.y;
+		m_coords[2] = 0;
+	}
 
 	mrpt::math::TPoint2D asTPoint() const;
-
-	/** Return the pose or point as a 2x1 vector [x, y]' */
-	void asVector(vector_t& v) const { v = m_coords; }
 
 	/** The operator D="this"-b is the pose inverse compounding operator,
 	 *   the resulting points "D" fulfils: "this" = b + D, so that: b == a +
@@ -110,8 +116,5 @@ class CPoint2D : public CPoint<CPoint2D, 2>,
 	void setToNaN() override;
 
 };  // End of class def.
-
-/** Dumps a point as a string (x,y) */
-std::ostream& operator<<(std::ostream& o, const CPoint2D& p);
 
 }  // namespace mrpt::poses

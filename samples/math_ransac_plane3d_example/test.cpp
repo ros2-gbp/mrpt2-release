@@ -80,8 +80,9 @@ void ransac3Dplane_distance(
 	out_inlierIndices.reserve(100);
 	for (size_t i = 0; i < N; i++)
 	{
-		const double d = plane.distance(
-			TPoint3D(allData(0, i), allData(1, i), allData(2, i)));
+		const double d = plane.distance(TPoint3D(
+			allData.get_unsafe(0, i), allData.get_unsafe(1, i),
+			allData.get_unsafe(2, i)));
 		if (d < distanceThreshold) out_inlierIndices.push_back(i);
 	}
 }
@@ -161,12 +162,15 @@ void TestRANSAC()
 	// Show GUI
 	// --------------------------
 	mrpt::gui::CDisplayWindow3D win("Set of points", 500, 500);
-	opengl::COpenGLScene::Ptr scene = opengl::COpenGLScene::Create();
+	opengl::COpenGLScene::Ptr scene =
+		mrpt::make_aligned_shared<opengl::COpenGLScene>();
 
-	scene->insert(opengl::CGridPlaneXY::Create(-20, 20, -20, 20, 0, 1));
+	scene->insert(mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
+		-20, 20, -20, 20, 0, 1));
 	scene->insert(opengl::stock_objects::CornerXYZ());
 
-	opengl::CPointCloud::Ptr points = opengl::CPointCloud::Create();
+	opengl::CPointCloud::Ptr points =
+		mrpt::make_aligned_shared<opengl::CPointCloud>();
 	points->setColor(0, 0, 1);
 	points->setPointSize(3);
 	points->enableColorFromZ();
@@ -183,7 +187,7 @@ void TestRANSAC()
 	scene->insert(points);
 
 	opengl::CTexturedPlane::Ptr glPlane =
-		opengl::CTexturedPlane::Create(-4, 4, -4, 4);
+		mrpt::make_aligned_shared<opengl::CTexturedPlane>(-4, 4, -4, 4);
 
 	TPose3D glPlanePose;
 	plane.getAsPose3D(glPlanePose);

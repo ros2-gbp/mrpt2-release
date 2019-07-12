@@ -12,7 +12,7 @@
 #include <mrpt/config/CLoadableOptions.h>
 #include <mrpt/img/CImage.h>
 #include <mrpt/img/TStereoCamera.h>
-#include <mrpt/math/CMatrixDynamic.h>
+#include <mrpt/math/CMatrixTemplate.h>
 #include <mrpt/obs/obs_frwds.h>
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/tfest/TMatchingPair.h>
@@ -145,6 +145,32 @@ mrpt::math::CMatrixDouble33 defaultIntrinsicParamsMatrix(
 	unsigned int camIndex = 0, unsigned int resolutionX = 320,
 	unsigned int resolutionY = 240);
 
+/** Explore the feature list and removes features which are in the same
+ * coordinates
+ * \param list [IN] The list of features.
+ */
+void deleteRepeatedFeats(CFeatureList& list);
+
+/** Search for correspondences which are not in the same row and deletes them
+ * \param leftList     [IN/OUT]    The left list of matched features.
+ * \param rightList    [IN/OUT]    The right list of matched features.
+ * \param threshold    [IN]        The tolerance value for the row checking:
+ * valid matched are within this threshold.
+ */
+void rowChecking(
+	CFeatureList& leftList, CFeatureList& rightList, float threshold = 1.0);
+
+/** Computes the dispersion of the features in the image
+ * \param list [IN]    Input list of features
+ * \param std	[OUT]   2 element vector containing the standard deviations in
+ * the 'x' and 'y' coordinates.
+ * \param mean	[OUT]   2 element vector containing the mean in the 'x' and
+ * 'y' coordinates.
+ */
+void getDispersion(
+	const CFeatureList& list, mrpt::math::CVectorFloat& std,
+	mrpt::math::CVectorFloat& mean);
+
 /** Computes the mean squared distance between a set of 3D correspondences
  * ...
  */
@@ -251,7 +277,7 @@ void projectMatchedFeatures(
  * stereo pair.
  */
 void projectMatchedFeature(
-	const CFeature& leftFeat, const CFeature& rightFeat,
+	const CFeature::Ptr& leftFeat, const CFeature::Ptr& rightFeat,
 	mrpt::math::TPoint3D& p3D,
 	const TStereoSystemParams& params = TStereoSystemParams());
 

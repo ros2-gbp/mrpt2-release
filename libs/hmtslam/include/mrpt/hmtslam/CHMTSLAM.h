@@ -11,6 +11,7 @@
 #include <mrpt/containers/CThreadSafeQueue.h>
 #include <mrpt/system/COutputLogger.h>
 
+#include <mrpt/core/aligned_std_map.h>
 #include <mrpt/hmtslam/CHierarchicalMHMap.h>
 #include <mrpt/hmtslam/CLocalMetricHypothesis.h>
 #include <mrpt/hmtslam/CTopLCDetector_FabMap.h>
@@ -22,7 +23,6 @@
 #include <mrpt/serialization/CMessage.h>
 #include <mrpt/slam/CICP.h>
 #include <mrpt/slam/TKLDParams.h>
-#include <map>
 
 #include <queue>
 #include <thread>
@@ -152,7 +152,7 @@ class CHMTSLAM : public mrpt::system::COutputLogger,
 		 */
 		std::map<CHMHMapNode::TNodeID, TBI_info> loopClosureData;
 
-		//
+		// MRPT_MAKE_ALIGNED_OPERATOR_NEW
 	};
 
 	/** LSLAM thread input queue, messages of type CHMTSLAM::TMessageLSLAMfromAA
@@ -414,7 +414,7 @@ class CHMTSLAM : public mrpt::system::COutputLogger,
 	/** The hiearchical, multi-hypothesis graph-based map. */
 	CHierarchicalMHMap m_map;
 	/** The list of LMHs at each instant. */
-	std::map<THypothesisID, CLocalMetricHypothesis> m_LMHs;
+	mrpt::aligned_std_map<THypothesisID, CLocalMetricHypothesis> m_LMHs;
 	/** @} */
 
 	/** Called from LSLAM thread when log files must be created.

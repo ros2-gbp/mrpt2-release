@@ -9,6 +9,7 @@
 #pragma once
 
 #include <mrpt/bayes/CRejectionSamplingCapable.h>
+#include <mrpt/math/lightweight_geom_data.h>
 #include <mrpt/obs/obs_frwds.h>
 #include <mrpt/poses/CPoint2D.h>
 #include <mrpt/poses/CPoint3D.h>

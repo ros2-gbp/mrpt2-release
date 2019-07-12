@@ -14,10 +14,10 @@
 #include <mrpt/poses/CPose3DPDFGaussian.h>
 #include <mrpt/poses/CPose3DQuatPDFGaussian.h>
 #include <mrpt/random.h>
-#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::poses;
+
 using namespace mrpt::math;
 using namespace std;
 
@@ -36,7 +36,7 @@ class Pose3DPDFGaussTests : public ::testing::Test
 		mrpt::random::getRandomGenerator().drawGaussian1DMatrix(
 			r, 0, std_scale);
 		CMatrixDouble66 cov;
-		cov.matProductOf_AAt(r);  // random semi-definite positive matrix:
+		cov.multiply_AAt(r);  // random semi-definite positive matrix:
 		for (int i = 0; i < 6; i++) cov(i, i) += 1e-7;
 		CPose3DPDFGaussian p6pdf(CPose3D(x, y, z, yaw, pitch, roll), cov);
 		return p6pdf;
@@ -55,9 +55,12 @@ class Pose3DPDFGaussTests : public ::testing::Test
 		// cout << "p6pdf_recov: " << p6pdf_recov  << endl;
 
 		const double val_mean_error =
-			(p6pdf_recov.mean.asVectorVal() - p6pdf.mean.asVectorVal())
-				.sum_abs();
-		const double cov_mean_error = (p6pdf_recov.cov - p6pdf.cov).sum_abs();
+			(p6pdf_recov.mean.getAsVectorVal() - p6pdf.mean.getAsVectorVal())
+				.array()
+				.abs()
+				.mean();
+		const double cov_mean_error =
+			(p6pdf_recov.cov - p6pdf.cov).array().abs().mean();
 		// cout << "cov err: " << cov_mean_error << " " << "val_mean_error: " <<
 		// val_mean_error << endl;
 		EXPECT_TRUE(val_mean_error < 1e-8);
@@ -65,8 +68,7 @@ class Pose3DPDFGaussTests : public ::testing::Test
 	}
 
 	static void func_compose(
-		const CVectorFixedDouble<12>& x, const double& dummy,
-		CVectorFixedDouble<6>& Y)
+		const CArrayDouble<12>& x, const double& dummy, CArrayDouble<6>& Y)
 	{
 		MRPT_UNUSED_PARAM(dummy);
 		const CPose3D p1(x[0], x[1], x[2], x[3], x[4], x[5]);
@@ -77,8 +79,7 @@ class Pose3DPDFGaussTests : public ::testing::Test
 	}
 
 	static void func_inv_compose(
-		const CVectorFixedDouble<2 * 6>& x, const double& dummy,
-		CVectorFixedDouble<6>& Y)
+		const CArrayDouble<2 * 6>& x, const double& dummy, CArrayDouble<6>& Y)
 	{
 		MRPT_UNUSED_PARAM(dummy);
 		const CPose3D p1(x[0], x[1], x[2], x[3], x[4], x[5]);
@@ -103,30 +104,32 @@ class Pose3DPDFGaussTests : public ::testing::Test
 		CPose3DPDFGaussian p6_comp = p6pdf1 + p6pdf2;
 
 		// Numeric approximation:
-		CVectorFixedDouble<6> y_mean;
-		CMatrixFixed<double, 6, 6> y_cov;
+		CArrayDouble<6> y_mean;
+		CMatrixFixedNumeric<double, 6, 6> y_cov;
 		{
-			CVectorFixedDouble<12> x_mean;
+			CArrayDouble<12> x_mean;
 			for (int i = 0; i < 6; i++) x_mean[i] = p6pdf1.mean[i];
 			for (int i = 0; i < 6; i++) x_mean[6 + i] = p6pdf2.mean[i];
 
-			CMatrixFixed<double, 12, 12> x_cov;
+			CMatrixFixedNumeric<double, 12, 12> x_cov;
 			x_cov.insertMatrix(0, 0, p6pdf1.cov);
 			x_cov.insertMatrix(6, 6, p6pdf2.cov);
 
 			double DUMMY = 0;
-			CVectorFixedDouble<12> x_incrs;
-			x_incrs.fill(1e-6);
+			CArrayDouble<12> x_incrs;
+			x_incrs.assign(1e-6);
 			transform_gaussian_linear(
 				x_mean, x_cov, func_compose, DUMMY, y_mean, y_cov, x_incrs);
 		}
 		// Compare mean:
-		EXPECT_NEAR(0, (y_mean - p6_comp.mean.asVectorVal()).sum_abs(), 1e-2)
+		EXPECT_NEAR(
+			0, (y_mean - p6_comp.mean.getAsVectorVal()).array().abs().sum(),
+			1e-2)
 			<< "p1 mean: " << p6pdf1.mean << endl
 			<< "p2 mean: " << p6pdf2.mean << endl;
 
 		// Compare cov:
-		EXPECT_NEAR(0, (y_cov - p6_comp.cov).sum_abs(), 1e-2)
+		EXPECT_NEAR(0, (y_cov - p6_comp.cov).array().abs().sum(), 1e-2)
 			<< "p1 mean: " << p6pdf1.mean << endl
 			<< "p2 mean: " << p6pdf2.mean << endl;
 
@@ -135,12 +138,14 @@ class Pose3DPDFGaussTests : public ::testing::Test
 		p6_comp += p6pdf2;
 
 		// Compare mean:
-		EXPECT_NEAR(0, (y_mean - p6_comp.mean.asVectorVal()).sum_abs(), 1e-2)
+		EXPECT_NEAR(
+			0, (y_mean - p6_comp.mean.getAsVectorVal()).array().abs().sum(),
+			1e-2)
 			<< "p1 mean: " << p6pdf1.mean << endl
 			<< "p2 mean: " << p6pdf2.mean << endl;
 
 		// Compare cov:
-		EXPECT_NEAR(0, (y_cov - p6_comp.cov).sum_abs(), 1e-2)
+		EXPECT_NEAR(0, (y_cov - p6_comp.cov).array().abs().sum(), 1e-2)
 			<< "p1 mean: " << p6pdf1.mean << endl
 			<< "p2 mean: " << p6pdf2.mean << endl;
 	}
@@ -165,27 +170,27 @@ class Pose3DPDFGaussTests : public ::testing::Test
 		CMatrixDouble66 num_df_dx(UNINITIALIZED_MATRIX),
 			num_df_du(UNINITIALIZED_MATRIX);
 		{
-			CVectorFixedDouble<2 * 6> x_mean;
+			CArrayDouble<2 * 6> x_mean;
 			for (int i = 0; i < 6; i++) x_mean[i] = q1[i];
 			for (int i = 0; i < 6; i++) x_mean[6 + i] = q2[i];
 
 			double DUMMY = 0;
-			CVectorFixedDouble<2 * 6> x_incrs;
-			x_incrs.fill(1e-7);
+			CArrayDouble<2 * 6> x_incrs;
+			x_incrs.assign(1e-7);
 			CMatrixDouble numJacobs;
 			mrpt::math::estimateJacobian(
 				x_mean,
 				std::function<void(
-					const CVectorFixedDouble<12>& x, const double& dummy,
-					CVectorFixedDouble<6>& Y)>(&func_compose),
+					const CArrayDouble<12>& x, const double& dummy,
+					CArrayDouble<6>& Y)>(&func_compose),
 				x_incrs, DUMMY, numJacobs);
 
-			num_df_dx = numJacobs.block<6, 6>(0, 0);
-			num_df_du = numJacobs.block<6, 6>(0, 6);
+			numJacobs.extractMatrix(0, 0, num_df_dx);
+			numJacobs.extractMatrix(0, 6, num_df_du);
 		}
 
 		// Compare:
-		EXPECT_NEAR(0, (df_dx - num_df_dx).sum_abs(), 3e-3)
+		EXPECT_NEAR(0, (df_dx - num_df_dx).array().abs().sum(), 3e-3)
 			<< "q1: " << q1 << endl
 			<< "q2: " << q2 << endl
 			<< "Numeric approximation of df_dx: " << endl
@@ -195,7 +200,7 @@ class Pose3DPDFGaussTests : public ::testing::Test
 			<< "Error: " << endl
 			<< df_dx - num_df_dx << endl;
 
-		EXPECT_NEAR(0, (df_du - num_df_du).sum_abs(), 3e-3)
+		EXPECT_NEAR(0, (df_du - num_df_du).array().abs().sum(), 3e-3)
 			<< "q1: " << q1 << endl
 			<< "q2: " << q2 << endl
 			<< "Numeric approximation of df_du: " << endl
@@ -221,30 +226,32 @@ class Pose3DPDFGaussTests : public ::testing::Test
 		CPose3DPDFGaussian p6_comp = p6pdf1 - p6pdf2;
 
 		// Numeric approximation:
-		CVectorFixedDouble<6> y_mean;
-		CMatrixFixed<double, 6, 6> y_cov;
+		CArrayDouble<6> y_mean;
+		CMatrixFixedNumeric<double, 6, 6> y_cov;
 		{
-			CVectorFixedDouble<2 * 6> x_mean;
+			CArrayDouble<2 * 6> x_mean;
 			for (int i = 0; i < 6; i++) x_mean[i] = p6pdf1.mean[i];
 			for (int i = 0; i < 6; i++) x_mean[6 + i] = p6pdf2.mean[i];
 
-			CMatrixFixed<double, 12, 12> x_cov;
+			CMatrixFixedNumeric<double, 12, 12> x_cov;
 			x_cov.insertMatrix(0, 0, p6pdf1.cov);
 			x_cov.insertMatrix(6, 6, p6pdf2.cov);
 
 			double DUMMY = 0;
-			CVectorFixedDouble<2 * 6> x_incrs;
-			x_incrs.fill(1e-6);
+			CArrayDouble<2 * 6> x_incrs;
+			x_incrs.assign(1e-6);
 			transform_gaussian_linear(
 				x_mean, x_cov, func_inv_compose, DUMMY, y_mean, y_cov, x_incrs);
 		}
 		// Compare mean:
-		EXPECT_NEAR(0, (y_mean - p6_comp.mean.asVectorVal()).sum_abs(), 1e-2)
+		EXPECT_NEAR(
+			0, (y_mean - p6_comp.mean.getAsVectorVal()).array().abs().sum(),
+			1e-2)
 			<< "p1 mean: " << p6pdf1.mean << endl
 			<< "p2 mean: " << p6pdf2.mean << endl;
 
 		// Compare cov:
-		EXPECT_NEAR(0, (y_cov - p6_comp.cov).sum_abs(), 1e-2)
+		EXPECT_NEAR(0, (y_cov - p6_comp.cov).array().abs().sum(), 1e-2)
 			<< "p1 mean: " << p6pdf1.mean << endl
 			<< "p2 mean: " << p6pdf2.mean << endl;
 
@@ -253,12 +260,14 @@ class Pose3DPDFGaussTests : public ::testing::Test
 		p6_comp -= p6pdf2;
 
 		// Compare mean:
-		EXPECT_NEAR(0, (y_mean - p6_comp.mean.asVectorVal()).sum_abs(), 1e-2)
+		EXPECT_NEAR(
+			0, (y_mean - p6_comp.mean.getAsVectorVal()).array().abs().sum(),
+			1e-2)
 			<< "p1 mean: " << p6pdf1.mean << endl
 			<< "p2 mean: " << p6pdf2.mean << endl;
 
 		// Compare cov:
-		EXPECT_NEAR(0, (y_cov - p6_comp.cov).sum_abs(), 1e-2)
+		EXPECT_NEAR(0, (y_cov - p6_comp.cov).array().abs().sum(), 1e-2)
 			<< "p1 mean: " << p6pdf1.mean << endl
 			<< "p2 mean: " << p6pdf2.mean << endl;
 	}
@@ -282,7 +291,7 @@ class Pose3DPDFGaussTests : public ::testing::Test
 		// Compare mean:
 		EXPECT_NEAR(
 			0,
-			(p6_inv.mean.asVectorVal() - p6_comp.mean.asVectorVal())
+			(p6_inv.mean.getAsVectorVal() - p6_comp.mean.getAsVectorVal())
 				.array()
 				.abs()
 				.sum(),
@@ -290,7 +299,7 @@ class Pose3DPDFGaussTests : public ::testing::Test
 			<< "p mean: " << p6pdf2.mean << endl;
 
 		// Compare cov:
-		EXPECT_NEAR(0, (p6_inv.cov - p6_comp.cov).sum_abs(), 1e-2)
+		EXPECT_NEAR(0, (p6_inv.cov - p6_comp.cov).array().abs().sum(), 1e-2)
 			<< "p mean: " << p6pdf2.mean << endl;
 
 		// Compare to the "inverse()" method:
@@ -300,7 +309,7 @@ class Pose3DPDFGaussTests : public ::testing::Test
 		// Compare mean:
 		EXPECT_NEAR(
 			0,
-			(p6_inv2.mean.asVectorVal() - p6_comp.mean.asVectorVal())
+			(p6_inv2.mean.getAsVectorVal() - p6_comp.mean.getAsVectorVal())
 				.array()
 				.abs()
 				.sum(),
@@ -310,7 +319,7 @@ class Pose3DPDFGaussTests : public ::testing::Test
 			<< "p6_comp mean: " << p6_comp.mean << endl;
 
 		// Compare cov:
-		EXPECT_NEAR(0, (p6_inv2.cov - p6_comp.cov).sum_abs(), 1e-2)
+		EXPECT_NEAR(0, (p6_inv2.cov - p6_comp.cov).array().abs().sum(), 1e-2)
 			<< "p mean: " << p6pdf2.mean << endl
 			<< "p6_inv2 mean: " << p6_inv2.mean << endl
 			<< "p6_comp mean: " << p6_comp.mean << endl;
@@ -356,7 +365,8 @@ class Pose3DPDFGaussTests : public ::testing::Test
 			<< "new_base: " << new_base << endl;
 		EXPECT_NEAR(
 			0,
-			(p6_new_base_pdf.mean.asVectorVal() - p6pdf1.mean.asVectorVal())
+			(p6_new_base_pdf.mean.getAsVectorVal() -
+			 p6pdf1.mean.getAsVectorVal())
 				.array()
 				.abs()
 				.mean(),

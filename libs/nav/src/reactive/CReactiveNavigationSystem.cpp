@@ -36,6 +36,10 @@ CReactiveNavigationSystem::CReactiveNavigationSystem(
 CReactiveNavigationSystem::~CReactiveNavigationSystem()
 {
 	this->preDestructor();
+
+	// Free PTGs:
+	for (auto& PTG : PTGs) delete PTG;
+	PTGs.clear();
 }
 
 /*---------------------------------------------------------------
@@ -111,8 +115,8 @@ void CReactiveNavigationSystem::loadConfigFile(
 	// Load PTGs from file:
 	// ---------------------------------------------
 	// Free previous PTGs:
-	PTGs.clear();
-	PTGs.resize(PTG_COUNT);
+	for (auto& PTG : PTGs) delete PTG;
+	PTGs.assign(PTG_COUNT, nullptr);
 
 	for (unsigned int n = 0; n < PTG_COUNT; n++)
 	{
@@ -151,13 +155,13 @@ void CReactiveNavigationSystem::STEP1_InitPTGs()
 			// Polygonal robot shape?
 			{
 				auto* ptg = dynamic_cast<mrpt::nav::CPTG_RobotShape_Polygonal*>(
-					PTGs[i].get());
+					PTGs[i]);
 				if (ptg) ptg->setRobotShape(m_robotShape);
 			}
 			// Circular robot shape?
 			{
-				auto* ptg = dynamic_cast<mrpt::nav::CPTG_RobotShape_Circular*>(
-					PTGs[i].get());
+				auto* ptg =
+					dynamic_cast<mrpt::nav::CPTG_RobotShape_Circular*>(PTGs[i]);
 				if (ptg) ptg->setRobotShapeRadius(m_robotShapeCircularRadius);
 			}
 

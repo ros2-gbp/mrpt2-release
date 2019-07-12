@@ -105,9 +105,8 @@ void thread_grabbing(TThreadParam& p)
 		while (!hard_error && !p.quit)
 		{
 			// Grab new observation from the camera:
-			CObservation3DRangeScan::Ptr obs =
-				std::make_shared<CObservation3DRangeScan>();  // Smart pointer
-															  // to observation
+			CObservation3DRangeScan::Ptr obs = mrpt::make_aligned_shared<
+				CObservation3DRangeScan>();  // Smart pointer to observation
 			kinect.getNextObservation(*obs, there_is_obs, hard_error);
 
 			if (!hard_error && there_is_obs)
@@ -182,7 +181,7 @@ void Test_Kinect()
 	if (thrPar.quit) return;
 
 	// Feature tracking variables:
-	mrpt::vision::TKeyPointList trackedFeats;
+	CFeatureList trackedFeats;
 	unsigned int step_num = 0;
 
 	bool SHOW_FEAT_IDS = true;
@@ -235,16 +234,16 @@ void Test_Kinect()
 	win3D.setCameraPointingToPoint(2.5, 0, 0);
 
 	mrpt::opengl::CPointCloudColoured::Ptr gl_points =
-		mrpt::opengl::CPointCloudColoured::Create();
+		mrpt::make_aligned_shared<mrpt::opengl::CPointCloudColoured>();
 	gl_points->setPointSize(2.5);
 
 	mrpt::opengl::CSetOfObjects::Ptr gl_curFeats =
-		mrpt::opengl::CSetOfObjects::Create();
+		mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
 	mrpt::opengl::CSetOfObjects::Ptr gl_keyframes =
-		mrpt::opengl::CSetOfObjects::Create();
+		mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
 
 	mrpt::opengl::CPointCloudColoured::Ptr gl_points_map =
-		mrpt::opengl::CPointCloudColoured::Create();
+		mrpt::make_aligned_shared<mrpt::opengl::CPointCloudColoured>();
 	gl_points_map->setPointSize(2.0);
 
 	const double aspect_ratio =
@@ -262,7 +261,7 @@ void Test_Kinect()
 		scene->insert(gl_points);
 		scene->insert(gl_curFeats);
 		scene->insert(gl_keyframes);
-		scene->insert(mrpt::opengl::CGridPlaneXY::Create());
+		scene->insert(mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>());
 
 		scene->insert(gl_cur_cam_corner);
 
@@ -315,17 +314,17 @@ void Test_Kinect()
 				tracker->trackFeatures(previous_image, theImg, trackedFeats);
 
 				// Remove those now out of the image plane:
-				for (auto itFeat = trackedFeats.begin();
-					 itFeat != trackedFeats.end();)
+				auto itFeat = trackedFeats.begin();
+				while (itFeat != trackedFeats.end())
 				{
-					const TFeatureTrackStatus status = itFeat->track_status;
+					const TFeatureTrackStatus status = (*itFeat)->track_status;
 					bool eras =
 						(status_TRACKED != status && status_IDLE != status);
 					if (!eras)
 					{
 						// Also, check if it's too close to the image border:
-						const float x = itFeat->pt.x;
-						const float y = itFeat->pt.y;
+						const float x = (*itFeat)->x;
+						const float y = (*itFeat)->y;
 						static const float MIN_DIST_MARGIN_TO_STOP_TRACKING =
 							10;
 						if (x < MIN_DIST_MARGIN_TO_STOP_TRACKING ||
@@ -351,8 +350,8 @@ void Test_Kinect()
 			for (auto& trackedFeat : trackedFeats)
 			{
 				// Pixel coordinates in the intensity image:
-				const int int_x = trackedFeat.pt.x;
-				const int int_y = trackedFeat.pt.y;
+				const int int_x = trackedFeat->x;
+				const int int_y = trackedFeat->y;
 
 				// Convert to pixel coords in the range image:
 				//  APPROXIMATION: Assume coordinates are equal (that's not
@@ -370,7 +369,7 @@ void Test_Kinect()
 							last_obs->rangeImage.rows()) ==
 						last_obs->points3D_x.size());
 					const size_t nPt = last_obs->rangeImage.cols() * y + x;
-					curVisibleFeats[trackedFeat.ID] = TPoint3D(
+					curVisibleFeats[trackedFeat->ID] = TPoint3D(
 						last_obs->points3D_x[nPt], last_obs->points3D_y[nPt],
 						last_obs->points3D_z[nPt]);
 				}
@@ -466,7 +465,7 @@ void Test_Kinect()
 							// Update global map: append another map at a given
 							// position:
 							globalPtsMap.insertObservation(
-								*last_obs, &new_keyframe_global);
+								last_obs.get(), &new_keyframe_global);
 							win3D.get3DSceneAndLock();
 							gl_points_map->loadFromPointsMap(&globalPtsMap);
 							win3D.unlockAccess3DScene();
@@ -491,7 +490,7 @@ void Test_Kinect()
 
 				// Update global map:
 				globalPtsMap.clear();
-				globalPtsMap.insertObservation(*last_obs);
+				globalPtsMap.insertObservation(last_obs.get());
 
 				win3D.get3DSceneAndLock();
 				gl_points_map->loadFromPointsMap(&globalPtsMap);
@@ -540,8 +539,9 @@ void Test_Kinect()
 					 it != curVisibleFeats.end(); ++it)
 				{
 					static double D = 0.02;
-					mrpt::opengl::CBox::Ptr box = mrpt::opengl::CBox::Create(
-						TPoint3D(-D, -D, -D), TPoint3D(D, D, D));
+					mrpt::opengl::CBox::Ptr box =
+						mrpt::make_aligned_shared<mrpt::opengl::CBox>(
+							TPoint3D(-D, -D, -D), TPoint3D(D, D, D));
 					box->setWireframe(true);
 					box->setName(format("%d", int(it->first)));
 					box->enableShowName(true);

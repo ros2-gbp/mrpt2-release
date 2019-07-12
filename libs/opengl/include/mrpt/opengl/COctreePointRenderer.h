@@ -9,11 +9,11 @@
 #ifndef opengl_COctreePointRenderer_H
 #define opengl_COctreePointRenderer_H
 
+#include <mrpt/core/aligned_std_deque.h>
 #include <mrpt/opengl/CBox.h>
 #include <mrpt/opengl/CRenderizable.h>
 #include <mrpt/opengl/CSetOfObjects.h>
 #include <mrpt/opengl/gl_utils.h>
-#include <deque>
 
 namespace mrpt
 {
@@ -256,6 +256,7 @@ class COctreePointRenderer
 		}
 
 	   public:
+		MRPT_MAKE_ALIGNED_OPERATOR_NEW
 	};
 
 	struct TRenderQueueElement
@@ -276,7 +277,7 @@ class COctreePointRenderer
 
 	bool m_octree_has_to_rebuild_all{true};
 	/** First one [0] is always the root node */
-	std::deque<TNode> m_octree_nodes;
+	mrpt::aligned_std_deque<TNode> m_octree_nodes;
 
 	// Counters of visible octrees for each render:
 	volatile mutable size_t m_visible_octree_nodes{0},
@@ -736,7 +737,8 @@ class COctreePointRenderer
 		{
 			const TNode& node = m_octree_nodes[i];
 			if (!node.is_leaf) continue;
-			mrpt::opengl::CBox::Ptr gl_box = mrpt::opengl::CBox::Create();
+			mrpt::opengl::CBox::Ptr gl_box =
+				mrpt::make_aligned_shared<mrpt::opengl::CBox>();
 			gl_box->setBoxCorners(
 				mrpt::math::TPoint3D(node.bb_min),
 				mrpt::math::TPoint3D(node.bb_max));

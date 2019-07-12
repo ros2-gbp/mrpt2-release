@@ -231,7 +231,7 @@ void MapBuilding_ICP(
 #if MRPT_HAS_WXWIDGETS
 	if (SHOW_PROGRESS_3D_REAL_TIME)
 	{
-		win3D = std::make_shared<CDisplayWindow3D>(
+		win3D = mrpt::make_aligned_shared<CDisplayWindow3D>(
 			"ICP-SLAM @ MRPT C++ Library", 600, 500);
 		win3D->setCameraZoom(20);
 		win3D->setCameraAzimuthDeg(-45);
@@ -273,7 +273,7 @@ void MapBuilding_ICP(
 			{
 				static CPose2D lastOdo;
 				static bool firstOdo = true;
-				if (IS_CLASS(*observation, CObservationOdometry))
+				if (IS_CLASS(observation, CObservationOdometry))
 				{
 					CObservationOdometry::Ptr o =
 						std::dynamic_pointer_cast<CObservationOdometry>(
@@ -297,7 +297,7 @@ void MapBuilding_ICP(
 				// Rawlog in "Observation-only" format:
 				if (isObsBasedRawlog)
 				{
-					if (IS_CLASS(*observation, CObservation2DRangeScan))
+					if (IS_CLASS(observation, CObservation2DRangeScan))
 					{
 						lst_current_laser_scans.push_back(
 							std::dynamic_pointer_cast<CObservation2DRangeScan>(
@@ -358,7 +358,8 @@ void MapBuilding_ICP(
 				CPose3D robotPose;
 				mapBuilder.getCurrentPoseEstimation()->getMean(robotPose);
 
-				COpenGLScene::Ptr scene = std::make_shared<COpenGLScene>();
+				COpenGLScene::Ptr scene =
+					mrpt::make_aligned_shared<COpenGLScene>();
 
 				COpenGLViewport::Ptr view = scene->getViewport("main");
 				ASSERT_(view);
@@ -380,7 +381,7 @@ void MapBuilding_ICP(
 
 				// The ground:
 				mrpt::opengl::CGridPlaneXY::Ptr groundPlane =
-					mrpt::opengl::CGridPlaneXY::Create(
+					mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
 						-200, 200, -200, 200, 0, 5);
 				groundPlane->setColor(0.4, 0.4, 0.4);
 				view->insert(groundPlane);
@@ -437,7 +438,8 @@ void MapBuilding_ICP(
 						// Create opengl object and load scan data from the scan
 						// observation:
 						opengl::CPlanarLaserScan::Ptr obj =
-							std::make_shared<opengl::CPlanarLaserScan>();
+							mrpt::make_aligned_shared<
+								opengl::CPlanarLaserScan>();
 						obj->setScan(*lst_current_laser_scan);
 						obj->setPose(curRobotPose);
 						obj->setSurfaceColor(1.0f, 0.0f, 0.0f, 0.5f);

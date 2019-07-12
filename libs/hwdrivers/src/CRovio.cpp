@@ -13,7 +13,6 @@
 #include <mrpt/hwdrivers/CFFMPEG_InputStream.h>
 #include <mrpt/hwdrivers/CRovio.h>
 #include <mrpt/io/CMemoryStream.h>
-#include <mrpt/math/TPose2D.h>
 #include <mrpt/obs/CObservationImage.h>
 
 #include <thread>
@@ -234,7 +233,8 @@ void CRovio::thread_video()  // This function takes a frame and waits until
 
 		while (!m_videothread_must_exit)
 		{
-			CObservationImage::Ptr obs = std::make_shared<CObservationImage>();
+			CObservationImage::Ptr obs =
+				mrpt::make_aligned_shared<CObservationImage>();
 
 			if (in_video.retrieveFrame(obs->image))
 			{

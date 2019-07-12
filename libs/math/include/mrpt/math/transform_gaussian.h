@@ -8,15 +8,15 @@
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixDynamic.h>
-#include <mrpt/math/CMatrixFixed.h>
+#include <mrpt/core/aligned_std_vector.h>
+#include <mrpt/math/CMatrixFixedNumeric.h>
+#include <mrpt/math/CMatrixTemplateNumeric.h>
 #include <mrpt/math/data_utils.h>
 #include <mrpt/math/math_frwds.h>
 #include <mrpt/math/num_jacobian.h>
 #include <mrpt/math/ops_matrices.h>
 #include <mrpt/random.h>
 #include <functional>
-#include <vector>
 
 namespace mrpt::math
 {
@@ -74,7 +74,7 @@ void transform_gaussian_unscented(
 	// Propagate the samples X_i -> Y_i:
 	// We don't need to store the X sigma points: just use one vector to compute
 	// all the Y sigma points:
-	std::vector<VECTORLIKE3> Y(1 + 2 * Nx);  // 2Nx+1 sigma points
+	mrpt::aligned_std_vector<VECTORLIKE3> Y(1 + 2 * Nx);  // 2Nx+1 sigma points
 	VECTORLIKE1 X = x_mean;
 	functor(X, fixed_param, Y[0]);
 	VECTORLIKE1 delta;  // i'th row of L:
@@ -82,7 +82,7 @@ void transform_gaussian_unscented(
 	size_t row = 1;
 	for (size_t i = 0; i < Nx; i++)
 	{
-		for (size_t k = 0; k < Nx; k++) delta[k] = L(i, k);
+		L.extractRowAsCol(i, delta);
 		X = x_mean;
 		X -= delta;
 		functor(X, fixed_param, Y[row++]);
@@ -117,13 +117,13 @@ void transform_gaussian_montecarlo(
 		const VECTORLIKE1& x, const USERPARAM& fixed_param, VECTORLIKE3& y),
 	const USERPARAM& fixed_param, VECTORLIKE2& y_mean, MATLIKE2& y_cov,
 	const size_t num_samples = 1000,
-	std::vector<VECTORLIKE3>* out_samples_y = nullptr)
+	mrpt::aligned_std_vector<VECTORLIKE3>* out_samples_y = nullptr)
 {
 	MRPT_START
-	std::vector<VECTORLIKE1> samples_x;
+	mrpt::aligned_std_vector<VECTORLIKE1> samples_x;
 	mrpt::random::getRandomGenerator().drawGaussianMultivariateMany(
 		samples_x, num_samples, x_cov, &x_mean);
-	std::vector<VECTORLIKE3> samples_y(num_samples);
+	mrpt::aligned_std_vector<VECTORLIKE3> samples_y(num_samples);
 	for (size_t i = 0; i < num_samples; i++)
 		functor(samples_x[i], fixed_param, samples_y[i]);
 	mrpt::math::covariancesAndMean(samples_y, y_cov, y_mean);
@@ -144,7 +144,6 @@ void transform_gaussian_montecarlo(
  * increments "x_increments".
  * \sa The example in MRPT/samples/unscented_transform_test
  * \sa transform_gaussian_unscented, transform_gaussian_montecarlo
- * \note This function requires `#include <Eigen/Dense>`
  */
 template <
 	class VECTORLIKE1, class MATLIKE1, class USERPARAM, class VECTORLIKE2,
@@ -160,7 +159,7 @@ void transform_gaussian_linear(
 	// Mean: simple propagation:
 	functor(x_mean, fixed_param, y_mean);
 	// Cov: COV = H C Ht
-	CMatrixFixed<
+	Eigen::Matrix<
 		double, VECTORLIKE3::RowsAtCompileTime, VECTORLIKE1::RowsAtCompileTime>
 		H;
 	mrpt::math::estimateJacobian(
@@ -169,7 +168,7 @@ void transform_gaussian_linear(
 			const VECTORLIKE1& x, const USERPARAM& fixed_param,
 			VECTORLIKE3& y)>(functor),
 		x_increments, fixed_param, H);
-	mrpt::math::multiply_HCHt(H, x_cov, y_cov);
+	H.multiply_HCHt(x_cov, y_cov);
 	MRPT_END
 }
 

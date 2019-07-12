@@ -11,7 +11,6 @@
 
 #include <mrpt/poses/CPose2DInterpolator.h>
 #include <mrpt/serialization/stl_serialization.h>
-#include <Eigen/Dense>
 #include "CPoseInterpolatorBase.hpp"  // templ impl
 
 using namespace mrpt::poses;
@@ -51,7 +50,7 @@ void CPoseInterpolatorBase<2>::impl_interpolation(
 	using doubleDuration = std::chrono::duration<double>;
 	doubleDuration durationT(t.time_since_epoch());
 	double td = durationT.count();
-	mrpt::math::CVectorFixedDouble<4> ts;
+	mrpt::math::CArrayDouble<4> ts;
 	ts[0] =
 		std::chrono::duration_cast<doubleDuration>(p1.first.time_since_epoch())
 			.count();
@@ -65,7 +64,7 @@ void CPoseInterpolatorBase<2>::impl_interpolation(
 		std::chrono::duration_cast<doubleDuration>(p4.first.time_since_epoch())
 			.count();
 
-	mrpt::math::CVectorFixedDouble<4> X, Y, yaw;
+	mrpt::math::CArrayDouble<4> X, Y, yaw;
 	X[0] = p1.second.x;
 	Y[0] = p1.second.y;
 	yaw[0] = p1.second.phi;

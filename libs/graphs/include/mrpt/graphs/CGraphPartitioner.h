@@ -8,8 +8,9 @@
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixDynamic.h>
-#include <vector>
+#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/ops_matrices.h>
+#include <mrpt/system/COutputLogger.h>
 
 namespace mrpt
 {
@@ -18,36 +19,39 @@ namespace mrpt
  */
 namespace graphs
 {
-/** Finds the min-normalized-cut of a weighted undirected graph.
- * Two methods are provided:
- *  - SpectralBisection(): Bisection.
- *  - RecursiveSpectralPartition(): Iterative N-parts partition.
- *
- *  This is an implementation of the Shi-Malik method proposed in:
- *  - J. Shi and J. Malik, "Normalized Cuts and Image Segmentation",
- *    IEEE Transactions on Pattern Analysis and Machine Intelligence,
- *    vol.22, no.8, pp. 888-905, Aug. 2000.
+/** Algorithms for finding the min-normalized-cut of a weighted undirected
+ * graph.
+ *    Two methods are provided, one for bisection and the other for
+ *      iterative N-parts partition.
+ *  It is an implementation of the Shi-Malik method proposed in:<br><br>
+ *  <code>J. Shi and J. Malik, "Normalized Cuts and Image Segmentation,"IEEE
+ * Transactions on Pattern Analysis and Machine Intelligence, vol.22, no.8, pp.
+ * 888-905, Aug. 2000.</code><br>
  *
  * \tparam GRAPH_MATRIX The type of square matrices used to represent the
- * connectivity in a graph. Supported types are: mrpt::math::CMatrixDouble,
- * mrpt::math::CMatrixD, mrpt::math::CMatrixFloat, mrpt::math::CMatrixF
+ * connectivity in a graph (e.g. mrpt::math::CMatrix)
+ * \tparam num_t The type of matrix elements, thresholds, etc. (typ: float or
+ * double). Defaults to the type of matrix elements.
  *
- * \tparam num_t The type of matrix elements, thresholds, etc. (double or
- * float). Defaults to the type of matrix elements.
+ * \note Prior to MRPT 1.0.0 this class wasn't a template and provided static
+ * variables for debugging, which were removed since that version.
  */
 template <class GRAPH_MATRIX, typename num_t = typename GRAPH_MATRIX::Scalar>
-class CGraphPartitioner
+class CGraphPartitioner : public mrpt::system::COutputLogger
 {
    public:
 	/** Performs the spectral recursive partition into K-parts for a given
 	 * graph.
-	 * The default threshold for the N-cut is 1, which correspond to a cut
-	 * equal of the geometric mean of self-associations of each pair of groups.
+	 *   The default threshold for the N-cut is 1, which correspond to a cut
+	 * equal
+	 *   of the geometric mean of self-associations of each pair of groups.
 	 *
-	 * \param in_A  [IN] The weights matrix for the graph. It must be a square
+	 * \param in_A			 [IN] The weights matrix for the graph. It must be a
+	 * square
 	 * matrix, where element W<sub>ij</sub> is the "likelihood" between nodes
 	 * "i" and "j", and typically W<sub>ii</sub> = 1.
-	 * \param out_parts [OUT] An array of partitions, where each partition is
+	 * \param out_parts		 [OUT] An array of partitions, where each partition
+	 * is
 	 * represented as a vector of indexs for nodes.
 	 * \param threshold_Ncut [IN] If it is desired to use other than the default
 	 * threshold, it can be passed here.
@@ -63,7 +67,7 @@ class CGraphPartitioner
 	 * \param minSizeClusters [IN] Default=1, Minimum size of partitions to be
 	 * accepted.
 	 *
-	 * \sa SpectralBisection
+	 * \sa mrpt::math::CMatrix, SpectralBisection
 	 *
 	 * \exception Throws a std::logic_error if an invalid matrix is passed.
 	 */
@@ -93,7 +97,7 @@ class CGraphPartitioner
 	 * 0.5*(W<sub>ij</sub>+W<sub>ji</sub>). Set to false if matrix is known to
 	 * be simetric.
 	 *
-	 * \sa mrpt::math::CMatrixF, RecursiveSpectralPartition
+	 * \sa mrpt::math::CMatrix, RecursiveSpectralPartition
 	 *
 	 * \exception Throws a std::logic_error if an invalid matrix is passed.
 	 */
@@ -122,7 +126,7 @@ class CGraphPartitioner
 	 * 0.5*(W<sub>ij</sub>+W<sub>ji</sub>). Set to false if matrix is known to
 	 * be simetric.
 	 *
-	 * \sa mrpt::math::CMatrixF, RecursiveSpectralPartition
+	 * \sa mrpt::math::CMatrix, RecursiveSpectralPartition
 	 *
 	 * \exception Throws a std::logic_error if an invalid matrix is passed.
 	 */
@@ -142,3 +146,7 @@ class CGraphPartitioner
 
 }  // namespace graphs
 }  // namespace mrpt
+
+// Template implementation:
+#define CGRAPHPARTITIONER_H
+#include "CGraphPartitioner_impl.h"

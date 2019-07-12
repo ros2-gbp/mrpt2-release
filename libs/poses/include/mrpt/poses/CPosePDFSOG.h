@@ -8,11 +8,11 @@
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixFixed.h>
+#include <mrpt/core/aligned_std_vector.h>
+#include <mrpt/math/CMatrixFixedNumeric.h>
 #include <mrpt/math/math_frwds.h>
 #include <mrpt/poses/CPosePDF.h>
 #include <ostream>
-#include <vector>
 
 namespace mrpt::poses
 {
@@ -49,7 +49,7 @@ class CPosePDFSOG : public CPosePDF
 		double log_w{0};
 
 	   public:
-		;
+		MRPT_MAKE_ALIGNED_OPERATOR_NEW;
 
 		friend std::ostream& operator<<(
 			std::ostream& o, const TGaussianMode& mode)
@@ -62,7 +62,7 @@ class CPosePDFSOG : public CPosePDF
 		}
 	};
 
-	using CListGaussianModes = std::vector<TGaussianMode>;
+	using CListGaussianModes = mrpt::aligned_std_vector<TGaussianMode>;
 	using const_iterator = CListGaussianModes::const_iterator;
 	using iterator = CListGaussianModes::iterator;
 
@@ -71,7 +71,7 @@ class CPosePDFSOG : public CPosePDF
    protected:
 	/** Ensures the symmetry of the covariance matrix (eventually certain
 	 * operations in the math-coprocessor lead to non-symmetric matrixes!) */
-	void enforceCovSymmetry();
+	void assureSymmetry();
 
 	/** The list of SOG modes */
 	CListGaussianModes m_modes;
@@ -135,10 +135,13 @@ class CPosePDFSOG : public CPosePDF
 	 */
 	void mergeModes(double max_KLd = 0.5, bool verbose = false);
 
+	/** Returns an estimate of the pose, (the mean, or mathematical expectation
+	 * of the PDF) \sa getCovariance */
 	void getMean(CPose2D& mean_pose) const override;
-
-	std::tuple<cov_mat_t, type_value> getCovarianceAndMean() const override;
-
+	/** Returns an estimate of the pose covariance matrix (3x3 cov matrix) and
+	 * the mean, both at once. \sa getMean */
+	void getCovarianceAndMean(
+		mrpt::math::CMatrixDouble33& cov, CPose2D& mean_point) const override;
 	/** For the most likely Gaussian mode in the SOG, returns the pose
 	 * covariance matrix (3x3 cov matrix) and the mean. \sa getMean */
 	void getMostLikelyCovarianceAndMean(
@@ -204,7 +207,7 @@ class CPosePDFSOG : public CPosePDF
 	void evaluatePDFInArea(
 		const double& x_min, const double& x_max, const double& y_min,
 		const double& y_max, const double& resolutionXY, const double& phi,
-		mrpt::math::CMatrixDouble& outMatrix, bool sumOverAllPhis = false);
+		mrpt::math::CMatrixD& outMatrix, bool sumOverAllPhis = false);
 
 	/** Bayesian fusion of two pose distributions, then save the result in this
 	 * object (WARNING: Currently p1 must be a mrpt::poses::CPosePDFSOG object

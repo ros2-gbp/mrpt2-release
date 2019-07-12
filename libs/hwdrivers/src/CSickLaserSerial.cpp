@@ -96,14 +96,7 @@ void CSickLaserSerial::doProcessSimple(
 	m_state = ssWorking;
 
 	// Wait for a scan:
-	if (!waitContinuousSampleFrame(ranges, LMS_stat, is_mm_mode))
-	{
-		if (!internal_notifyNoScanReceived())
-		{
-			hardwareError = true;
-		}
-		return;
-	}
+	if (!waitContinuousSampleFrame(ranges, LMS_stat, is_mm_mode)) return;
 
 	// Yes, we have a new scan:
 
@@ -139,7 +132,6 @@ void CSickLaserSerial::doProcessSimple(
 	C2DRangeFinderAbstract::processPreview(outObservation);
 
 	outThereIsObservation = true;
-	internal_notifyGoodScanNow();
 }
 
 /*-------------------------------------------------------------

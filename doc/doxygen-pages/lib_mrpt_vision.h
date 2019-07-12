@@ -10,22 +10,11 @@
 
 /** \defgroup mrpt_vision_grp [mrpt-vision]
 
-Computer vision algorithms
-
 <small> <a href="index.html#libs">Back to list of all libraries</a> | <a
 href="modules.html" >See all modules</a> </small> <br>
 
-[TOC]
-
-# Library `mrpt-vision`
-<small> [New in MRPT 2.0.0] </small>
-
-This library is part of MRPT but has no dependencies, so it can be installed
-in Debian-based systems with:
-
-		sudo apt install libmrpt-vision-dev
-
-See: \ref mrpt_from_cmake
+<h2>Library <code>mrpt-vision</code></h2>
+<hr>
 
 This library includes some extensions to OpenCV functionality, plus some
 original classes:
@@ -33,7 +22,9 @@ original classes:
 - The namespace mrpt::vision::pinhole contains several projection and Jacobian
 auxiliary functions for projective cameras.
 
-- Sparse Bundle Adjustment algorithms. See \ref mrpt_vision_lgpl_grp
+- Sparse Bundle Adjustment algorithms. Implemented versions are:
+	- mrpt::vision::bundle_adj_full : Levenberg-Marquart full optimization of
+camera frames (6D) + feature points (3D).
 
 - A versatile feature tracker. See mrpt::vision::CGenericFeatureTracker and the
 implementation mrpt::vision::CFeatureTracker_KL

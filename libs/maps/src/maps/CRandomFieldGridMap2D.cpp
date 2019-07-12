@@ -15,7 +15,7 @@
 #include <mrpt/maps/COccupancyGridMap2D.h>
 #include <mrpt/maps/CRandomFieldGridMap2D.h>
 #include <mrpt/maps/CSimpleMap.h>
-#include <mrpt/math/CMatrixF.h>
+#include <mrpt/math/CMatrix.h>
 #include <mrpt/math/utils.h>
 #include <mrpt/opengl/CSetOfObjects.h>
 #include <mrpt/opengl/CSetOfTriangles.h>
@@ -189,11 +189,11 @@ void CRandomFieldGridMap2D::internal_clear()
 			// Populate it with the initial cov. values:
 			// ------------------------------------------
 			signed Acx, Acy;
-			const double* ptr_first_row = &m_stackedCov(0, 0);
+			const double* ptr_first_row = m_stackedCov.get_unsafe_row(0);
 
 			for (size_t i = 0; i < N; i++)
 			{
-				double* ptr = &m_stackedCov(i, 0);
+				double* ptr = m_stackedCov.get_unsafe_row(i);
 
 				if (i == 0)
 				{
@@ -420,15 +420,14 @@ void CRandomFieldGridMap2D::internal_clear()
 							cxi = cx + 1;
 							cyi = cy;
 						}
-						else if (neighbor == 1)
+
+						if (neighbor == 1)
 						{
 							if (cy >= (m_size_y - 1)) continue;
 							i = j + m_size_x;
 							cxi = cx;
 							cyi = cy + 1;
 						}
-						else
-							throw std::runtime_error("Shouldn't reach here!");
 
 						// Get cell_i indx-limits in Occuppancy gridmap
 						cxoi_min = floor(cxi * res_coef);
@@ -1150,7 +1149,7 @@ void CRandomFieldGridMap2D::resize(
 					// compressed covariance:
 					cell.kf_std = m_insertOptions_common->KF_initialCellStd;
 
-					double* new_row = &m_stackedCov(i, 0);
+					double* new_row = m_stackedCov.get_unsafe_row(i);
 					memcpy(new_row, &template_row[0], sizeof(double) * K);
 				}
 				else
@@ -1160,8 +1159,9 @@ void CRandomFieldGridMap2D::resize(
 					ASSERT_(int(old_idx_of_i) < m_stackedCov.rows());
 					if (old_idx_of_i != int(i))  // Copy row only if it's moved
 					{
-						const double* ptr_old = &m_stackedCov(old_idx_of_i, 0);
-						double* ptr_new = &m_stackedCov(i, 0);
+						const double* ptr_old =
+							m_stackedCov.get_unsafe_row(old_idx_of_i);
+						double* ptr_new = m_stackedCov.get_unsafe_row(i);
 						memcpy(ptr_new, ptr_old, sizeof(double) * K);
 					}
 				}
@@ -1223,7 +1223,7 @@ void CRandomFieldGridMap2D::insertObservation_KF(
 	// Update mean values:
 	// ---------------------------------------------------------
 	for (i = 0, it = m_map.begin(); it != m_map.end(); ++it, ++i)
-		// it->kf_mean =  it->kf_mean + yk * sk_1 * m_cov(i,cellIdx);
+		// it->kf_mean =  it->kf_mean + yk * sk_1 * m_cov.get_unsafe(i,cellIdx);
 		it->kf_mean += yk * sk_1 * m_cov(i, cellIdx);
 
 	MRPT_LOG_DEBUG_FMT("Done in %.03fms\n", tictac.Tac() * 1000);
@@ -1240,7 +1240,7 @@ void CRandomFieldGridMap2D::insertObservation_KF(
 	double* oldCov_ptr = oldCov;
 	for (i = 0; i < N; i++)
 	{
-		memcpy(oldCov_ptr, &m_cov(i, 0), sizeof(double) * N);
+		memcpy(oldCov_ptr, m_cov.get_unsafe_row(i), sizeof(double) * N);
 		oldCov_ptr += N;
 	}
 
@@ -1264,8 +1264,8 @@ void CRandomFieldGridMap2D::insertObservation_KF(
 				oldCov_row_i[j] - sk_1_oldCov_i_c * oldCov_row_c[j];
 
 			// Make symmetric:
-			m_cov(i, j) = new_cov_ij;
-			m_cov(j, i) = new_cov_ij;
+			m_cov.set_unsafe(i, j, new_cov_ij);
+			m_cov.set_unsafe(j, i, new_cov_ij);
 
 			// Update the "std" in the cell as well:
 			if (i == j)
@@ -1307,7 +1307,7 @@ void CRandomFieldGridMap2D::saveMetricMapRepresentationToFile(
 #endif
 
 	// Save dimensions of the grid (for any mapping algorithm):
-	CMatrixF DIMs(1, 4);
+	CMatrix DIMs(1, 4);
 	DIMs(0, 0) = m_x_min;
 	DIMs(0, 1) = m_x_max;
 	DIMs(0, 2) = m_y_min;
@@ -1323,9 +1323,9 @@ void CRandomFieldGridMap2D::saveMetricMapRepresentationToFile(
 		case mrKernelDM:
 		case mrKernelDMV:
 		{
-			CMatrixF all_means(m_size_y, m_size_x);
-			CMatrixF all_vars(m_size_y, m_size_x);
-			CMatrixF all_confs(m_size_y, m_size_x);
+			CMatrix all_means(m_size_y, m_size_x);
+			CMatrix all_vars(m_size_y, m_size_x);
+			CMatrix all_confs(m_size_y, m_size_x);
 
 			for (size_t y = 0; y < m_size_y; y++)
 				for (size_t x = 0; x < m_size_x; x++)
@@ -1356,8 +1356,8 @@ void CRandomFieldGridMap2D::saveMetricMapRepresentationToFile(
 			recoverMeanAndCov();
 
 			// Save the mean and std matrix:
-			CMatrixF MEAN(m_size_y, m_size_x);
-			CMatrixF STDs(m_size_y, m_size_x);
+			CMatrix MEAN(m_size_y, m_size_x);
+			CMatrix STDs(m_size_y, m_size_x);
 
 			for (size_t i = 0; i < m_size_y; i++)
 				for (size_t j = 0; j < m_size_x; j++)
@@ -1386,8 +1386,8 @@ void CRandomFieldGridMap2D::saveMetricMapRepresentationToFile(
 			}
 
 			// And also as bitmap:
-			CImage img_cov;
-			img_cov.setFromMatrix(STDs, false /*it's not normalized*/);
+			STDs.normalize();
+			CImage img_cov(STDs, true);
 			img_cov.saveToFile(
 				filNamePrefix + std::string("_cells_std.png"),
 				true /* vertical flip */);
@@ -1400,8 +1400,8 @@ void CRandomFieldGridMap2D::saveMetricMapRepresentationToFile(
 		case mrGMRF_SD:
 		{
 			// Save the mean and std matrix:
-			CMatrixF MEAN(m_size_y, m_size_x);
-			CMatrixF STDs(m_size_y, m_size_x);
+			CMatrix MEAN(m_size_y, m_size_x);
+			CMatrix STDs(m_size_y, m_size_x);
 			CMatrixD XYZ(m_size_y * m_size_x, 4);
 
 			size_t idx = 0;
@@ -1589,7 +1589,7 @@ void CRandomFieldGridMap2D::getAs3DObject(
 
 	// Returns only the mean map
 	mrpt::opengl::CSetOfObjects::Ptr other_obj =
-		mrpt::opengl::CSetOfObjects::Create();
+		mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
 	getAs3DObject(outObj, other_obj);
 }
 
@@ -1627,10 +1627,10 @@ void CRandomFieldGridMap2D::getAs3DObject(
 			// for Kalman models:
 			// ----------------------------------
 			opengl::CSetOfTriangles::Ptr obj_m =
-				std::make_shared<opengl::CSetOfTriangles>();
+				mrpt::make_aligned_shared<opengl::CSetOfTriangles>();
 			obj_m->enableTransparency(true);
 			opengl::CSetOfTriangles::Ptr obj_v =
-				std::make_shared<opengl::CSetOfTriangles>();
+				mrpt::make_aligned_shared<opengl::CSetOfTriangles>();
 			obj_v->enableTransparency(true);
 
 			//  Compute mean max/min values:
@@ -1797,10 +1797,10 @@ void CRandomFieldGridMap2D::getAs3DObject(
 			// Draw for Kernel model:
 			// ----------------------------------
 			opengl::CSetOfTriangles::Ptr obj_m =
-				std::make_shared<opengl::CSetOfTriangles>();
+				mrpt::make_aligned_shared<opengl::CSetOfTriangles>();
 			obj_m->enableTransparency(true);
 			opengl::CSetOfTriangles::Ptr obj_v =
-				std::make_shared<opengl::CSetOfTriangles>();
+				mrpt::make_aligned_shared<opengl::CSetOfTriangles>();
 			obj_v->enableTransparency(true);
 
 			//  Compute mean max/min values:
@@ -2537,7 +2537,7 @@ void CRandomFieldGridMap2D::insertObservation_GMRF(
   ---------------------------------------------------------------*/
 void CRandomFieldGridMap2D::updateMapEstimation_GMRF()
 {
-	mrpt::math::CVectorDouble x_incr, x_var;
+	Eigen::VectorXd x_incr, x_var;
 	m_gmrf.updateEstimation(
 		x_incr, m_insertOptions_common->GMRF_skip_variance ? nullptr : &x_var);
 
@@ -2631,7 +2631,7 @@ bool CRandomFieldGridMap2D::exist_relation_between2cells(
 		cxo_max - cxo_min + 1, cyo_max - cyo_min + 1);
 	// cout << "Matrix creted with dimension:" << matExp.rows() << " x "
 	// << matExp.cols() << endl;
-	// CMatrixF matExp(cxo_max-cxo_min+1, cyo_max-cyo_min+1);
+	// CMatrix matExp(cxo_max-cxo_min+1, cyo_max-cyo_min+1);
 	matExp.fill(0);
 
 	// Add seed

@@ -9,12 +9,13 @@
 
 #include "obs-precomp.h"  // Precompiled headers
 
-#include <mrpt/math/TPose2D.h>
 #include <mrpt/obs/CObservation2DRangeScan.h>
 #include <mrpt/obs/CObservationOdometry.h>
-#include <mrpt/obs/carmen_log_tools.h>
 #include <mrpt/system/TParameters.h>
+
 #include <mrpt/system/string_utils.h>
+
+#include <mrpt/obs/carmen_log_tools.h>
 
 using namespace mrpt;
 using namespace mrpt::obs;
@@ -51,7 +52,7 @@ bool mrpt::obs::carmen_log_parse_line(
 		S.str(line);
 
 		CObservation2DRangeScan::Ptr obsLaser_ptr =
-			std::make_shared<CObservation2DRangeScan>();
+			mrpt::make_aligned_shared<CObservation2DRangeScan>();
 		CObservation2DRangeScan* obsLaser =
 			obsLaser_ptr.get();  // Faster access
 
@@ -135,7 +136,7 @@ bool mrpt::obs::carmen_log_parse_line(
 		// Create odometry observation:
 		{
 			CObservationOdometry::Ptr obsOdo_ptr =
-				std::make_shared<CObservationOdometry>();
+				mrpt::make_aligned_shared<CObservationOdometry>();
 
 			obsOdo_ptr->timestamp = obs_time;
 			obsOdo_ptr->odometry = CPose2D(globalRobotPose);
@@ -158,7 +159,7 @@ bool mrpt::obs::carmen_log_parse_line(
 		S.str(line);
 
 		CObservation2DRangeScan::Ptr obsLaser_ptr =
-			std::make_shared<CObservation2DRangeScan>();
+			mrpt::make_aligned_shared<CObservation2DRangeScan>();
 		CObservation2DRangeScan* obsLaser =
 			obsLaser_ptr.get();  // Faster access
 
@@ -246,7 +247,7 @@ bool mrpt::obs::carmen_log_parse_line(
 		// Create odometry observation:
 		{
 			CObservationOdometry::Ptr obsOdo_ptr =
-				std::make_shared<CObservationOdometry>();
+				mrpt::make_aligned_shared<CObservationOdometry>();
 
 			obsOdo_ptr->timestamp = obs_time;
 			obsOdo_ptr->odometry = CPose2D(globalRobotPose);

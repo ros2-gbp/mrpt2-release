@@ -9,8 +9,7 @@
 #pragma once
 
 #include <mrpt/kinematics/CVehicleVelCmd.h>
-#include <mrpt/math/TPose2D.h>
-#include <mrpt/math/TTwist2D.h>
+#include <mrpt/math/lightweight_geom_data.h>
 #include <mrpt/poses/CPose2D.h>
 #include <mrpt/system/datetime.h>
 

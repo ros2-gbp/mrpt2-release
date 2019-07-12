@@ -28,8 +28,8 @@ namespace mrpt::math
 /** Convert vectors, arrays and matrices into Matlab vectors/matrices.
  * Supported input classes:
  *  - Eigen::Matrix<T,N,1>
- *  - mrpt::math::CVectorFixed<T,N>
- *  - mrpt::math::CMatrixF{*}
+ *  - mrpt::math::CArrayNumeric<T,N>
+ *  - mrpt::math::CMatrix{*}
  */
 template <typename Derived>
 mxArray* convertToMatlab(const Eigen::EigenBase<Derived>& mat)

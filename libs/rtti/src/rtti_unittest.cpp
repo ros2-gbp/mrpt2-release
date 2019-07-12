@@ -22,26 +22,13 @@ class MyDerived1 : public mrpt::rtti::CObject
 	MyDerived1(int v) : m_value(v) {}
 	DEFINE_MRPT_OBJECT(MyDerived1)
 };
-
-class MyDerived2 : public mrpt::rtti::CObject
-{
-   public:
-	MyDerived2() = default;
-	DEFINE_MRPT_OBJECT(MyDerived2)
-};
-
 }  // namespace MyNS
 
-// Register "MyDerived1"
 IMPLEMENTS_MRPT_OBJECT(MyDerived1, mrpt::rtti::CObject, MyNS)
-
-// Register "MyNS::MyDerived2"
-IMPLEMENTS_MRPT_OBJECT_NS_PREFIX(MyDerived2, mrpt::rtti::CObject, MyNS)
 
 void do_register()
 {
 	mrpt::rtti::registerClass(CLASS_ID_NAMESPACE(MyDerived1, MyNS));
-	mrpt::rtti::registerClass(CLASS_ID_NAMESPACE(MyDerived2, MyNS));
 }
 
 TEST(rtti, CObject_CLASSID)
@@ -60,25 +47,19 @@ TEST(rtti, MyDerived1_CLASSID)
 	const auto cid_cobj = CLASS_ID(mrpt::rtti::CObject);
 	EXPECT_TRUE(cid_myd1->getBaseClass() == cid_cobj);
 
-	// RTTI IS_DERIVED(*)
+	// RTTI IS_DERIVED()
 	{
 		auto p = mrpt::rtti::CObject::Ptr(new MyNS::MyDerived1);
-		EXPECT_TRUE(IS_DERIVED(*p, MyNS::MyDerived1));
-		EXPECT_TRUE(IS_DERIVED(*p, mrpt::rtti::CObject));
+		EXPECT_TRUE(IS_DERIVED(p, MyNS::MyDerived1));
+		EXPECT_TRUE(IS_DERIVED(p, mrpt::rtti::CObject));
 	}
 }
 
 TEST(rtti, Factory)
 {
 	do_register();
-	{
-		mrpt::rtti::CObject::Ptr p = mrpt::rtti::classFactory("MyDerived1");
-		EXPECT_TRUE(p);
-	}
-	{
-		auto p = mrpt::rtti::classFactory("MyNS::MyDerived2");
-		EXPECT_TRUE(p);
-	}
+	mrpt::rtti::CObject::Ptr p = mrpt::rtti::classFactoryPtr("MyDerived1");
+	EXPECT_TRUE(p);
 }
 
 TEST(rtti, CreateSmartPointerTypes)

@@ -77,16 +77,16 @@ void TestCamera3DFaceDetection(CCameraSensor::Ptr cam)
 	mrpt::opengl::COpenGLScene::Ptr scene2;
 
 	mrpt::opengl::CPointCloudColoured::Ptr gl_points =
-		mrpt::opengl::CPointCloudColoured::Create();
+		mrpt::make_aligned_shared<mrpt::opengl::CPointCloudColoured>();
 	gl_points->setPointSize(4.5);
 
 	mrpt::opengl::CPointCloudColoured::Ptr gl_points2 =
-		mrpt::opengl::CPointCloudColoured::Create();
+		mrpt::make_aligned_shared<mrpt::opengl::CPointCloudColoured>();
 	gl_points2->setPointSize(4.5);
 
 	// Create the Opengl object for the point cloud:
 	scene->insert(gl_points);
-	scene->insert(mrpt::opengl::CGridPlaneXY::Create());
+	scene->insert(mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>());
 	scene->insert(mrpt::opengl::stock_objects::CornerXYZ());
 
 	win3D.unlockAccess3DScene();
@@ -104,7 +104,7 @@ void TestCamera3DFaceDetection(CCameraSensor::Ptr cam)
 		scene2 = win3D2.get3DSceneAndLock();
 
 		scene2->insert(gl_points2);
-		scene2->insert(mrpt::opengl::CGridPlaneXY::Create());
+		scene2->insert(mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>());
 
 		win3D2.unlockAccess3DScene();
 	}
@@ -143,7 +143,7 @@ void TestCamera3DFaceDetection(CCameraSensor::Ptr cam)
 		{
 			for (unsigned int i = 0; i < detected.size(); i++)
 			{
-				ASSERT_(IS_CLASS(*detected[i], CDetectable3D));
+				ASSERT_(IS_CLASS(detected[i], CDetectable3D));
 				CDetectable3D::Ptr obj =
 					std::dynamic_pointer_cast<CDetectable3D>(detected[i]);
 
@@ -178,7 +178,8 @@ void TestCamera3DFaceDetection(CCameraSensor::Ptr cam)
 									 k++, i++)
 								{
 									unsigned char c =
-										*(face.confidenceImage(k, j, 0));
+										*(face.confidenceImage.get_unsafe(
+											k, j, 0));
 									if (c > faceDetector.m_options
 												.confidenceThreshold)
 									{
@@ -232,7 +233,7 @@ void TestCamera3DFaceDetection(CCameraSensor::Ptr cam)
 		std::this_thread::sleep_for(2ms);
 	}
 
-	cout << "Fps mean: " << fps.sum() / fps.size() << endl;
+	cout << "Fps mean: " << fps.sumAll() / fps.size() << endl;
 
 	faceDetector.experimental_showMeasurements();
 
@@ -255,7 +256,7 @@ void TestCameraFaceDetection()
 	mrpt::obs::CObservation::Ptr obs = cam->getNextFrame();
 	ASSERT_(obs);
 
-	if (IS_CLASS(*obs, CObservation3DRangeScan))
+	if (IS_CLASS(obs, CObservation3DRangeScan))
 	{
 		TestCamera3DFaceDetection(cam);
 		return;
@@ -283,7 +284,7 @@ void TestCameraFaceDetection()
 		}
 		ASSERT_(obs);
 
-		if (IS_CLASS(*obs, CObservationImage))
+		if (IS_CLASS(obs, CObservationImage))
 		{
 			vector_detectable_object detected;
 			faceDetector.detectObjects(obs, detected);
@@ -292,7 +293,7 @@ void TestCameraFaceDetection()
 				std::dynamic_pointer_cast<CObservationImage>(obs);
 			for (unsigned int i = 0; i < detected.size(); i++)
 			{
-				ASSERT_(IS_CLASS(*detected[i], CDetectable2D));
+				ASSERT_(IS_CLASS(detected[i], CDetectable2D));
 				CDetectable2D::Ptr obj =
 					std::dynamic_pointer_cast<CDetectable2D>(detected[i]);
 				o->image.rectangle(
@@ -302,7 +303,7 @@ void TestCameraFaceDetection()
 
 			win.showImage(o->image);
 		}
-		else if (IS_CLASS(*obs, CObservationStereoImages))
+		else if (IS_CLASS(obs, CObservationStereoImages))
 		{
 			vector_detectable_object detected;
 			faceDetector.detectObjects(obs, detected);
@@ -312,7 +313,7 @@ void TestCameraFaceDetection()
 
 			for (unsigned int i = 0; i < detected.size(); i++)
 			{
-				ASSERT_(IS_CLASS(*detected[i], CDetectable2D));
+				ASSERT_(IS_CLASS(detected[i], CDetectable2D));
 				CDetectable2D::Ptr obj =
 					std::dynamic_pointer_cast<CDetectable2D>(detected[i]);
 				o->imageRight.rectangle(
@@ -365,7 +366,7 @@ void TestImagesFaceDetection(int argc, char* argv[])
 
 		for (unsigned int i = 0; i < detected.size(); i++)
 		{
-			ASSERT_(IS_CLASS(*detected[i], CDetectable2D));
+			ASSERT_(IS_CLASS(detected[i], CDetectable2D));
 			CDetectable2D::Ptr obj =
 				std::dynamic_pointer_cast<CDetectable2D>(detected[i]);
 			img.rectangle(

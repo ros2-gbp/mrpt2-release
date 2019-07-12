@@ -8,9 +8,7 @@
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CVectorDynamic.h>
-#include <mrpt/math/TLine2D.h>
-#include <mrpt/math/TPlane.h>
+#include <mrpt/math/geometry.h>
 #include <mrpt/math/ransac.h>
 
 namespace mrpt::math
@@ -36,8 +34,9 @@ using std::vector;
  */
 template <typename NUMTYPE>
 void ransac_detect_3D_planes(
-	const CVectorDynamic<NUMTYPE>& x, const CVectorDynamic<NUMTYPE>& y,
-	const CVectorDynamic<NUMTYPE>& z,
+	const Eigen::Matrix<NUMTYPE, Eigen::Dynamic, 1>& x,
+	const Eigen::Matrix<NUMTYPE, Eigen::Dynamic, 1>& y,
+	const Eigen::Matrix<NUMTYPE, Eigen::Dynamic, 1>& z,
 	std::vector<std::pair<size_t, TPlane>>& out_detected_planes,
 	const double threshold, const size_t min_inliers_for_valid_plane = 10);
 
@@ -53,7 +52,8 @@ void ransac_detect_3D_planes(
  */
 template <typename NUMTYPE>
 void ransac_detect_2D_lines(
-	const CVectorDynamic<NUMTYPE>& x, const CVectorDynamic<NUMTYPE>& y,
+	const Eigen::Matrix<NUMTYPE, Eigen::Dynamic, 1>& x,
+	const Eigen::Matrix<NUMTYPE, Eigen::Dynamic, 1>& y,
 	std::vector<std::pair<size_t, TLine2D>>& out_detected_lines,
 	const double threshold, const size_t min_inliers_for_valid_line = 5);
 

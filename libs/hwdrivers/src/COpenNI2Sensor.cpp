@@ -155,7 +155,7 @@ void COpenNI2Sensor::doProcess()
 	bool thereIs, hwError;
 
 	CObservation3DRangeScan::Ptr newObs =
-		std::make_shared<CObservation3DRangeScan>();
+		mrpt::make_aligned_shared<CObservation3DRangeScan>();
 
 	assert(getNumDevices() > 0);
 	getNextObservation(*newObs, thereIs, hwError);
@@ -318,15 +318,16 @@ void COpenNI2Sensor::getNextObservation(
 				if (!m_win_range)
 				{
 					m_win_range =
-						mrpt::gui::CDisplayWindow::Create("Preview RANGE");
+						mrpt::make_aligned_shared<mrpt::gui::CDisplayWindow>(
+							"Preview RANGE");
 					m_win_range->setPos(5, 5);
 				}
 
 				// Normalize the image
 				mrpt::img::CImage img;
 				img.setFromMatrix(out_obs.rangeImage);
-				CMatrixFloat r = out_obs.rangeImage;
-				r *= float(1.0 / this->m_maxRange);
+				CMatrixFloat r =
+					out_obs.rangeImage * float(1.0 / this->m_maxRange);
 				m_win_range->showImage(img);
 			}
 		}
@@ -338,7 +339,8 @@ void COpenNI2Sensor::getNextObservation(
 				if (!m_win_int)
 				{
 					m_win_int =
-						mrpt::gui::CDisplayWindow::Create("Preview INTENSITY");
+						mrpt::make_aligned_shared<mrpt::gui::CDisplayWindow>(
+							"Preview INTENSITY");
 					m_win_int->setPos(300, 5);
 				}
 				m_win_int->showImage(out_obs.intensityImage);

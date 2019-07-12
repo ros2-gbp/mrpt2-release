@@ -247,9 +247,9 @@ void run_test_pf_localization(CPose2D& meanPose, CMatrixDouble33& cov)
 						);
 					}
 
-					const auto [C, M] = pdf.getCovarianceAndMean();
-					cov = C;
-					meanPose = M;
+					pdf.getCovarianceAndMean(cov, meanPose);
+					// cout << meanPose << " cov trace: "  << cov.trace() <<
+					// endl;
 
 				}  // end if rawlog_offset
 
