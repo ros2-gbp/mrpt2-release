@@ -29,6 +29,7 @@
 #include <mrpt/system/filesystem.h>
 #include <mrpt/system/os.h>
 #include <mrpt/system/string_utils.h>
+#include <fstream>
 
 using namespace mrpt;
 using namespace mrpt::slam;
@@ -178,14 +179,14 @@ struct kfslam_traits<CRangeBearingKFSLAM>
 			for (size_t i = 0; i < 6; i++)
 				fullCov(i, i) = max(fullCov(i, i), 1e-6);
 
-			CMatrix H(fullCov.inv());
+			CMatrixF H(fullCov.inverse_LLt());
 			H.saveToTextFile(OUT_DIR + string("/information_matrix_final.txt"));
 
 			// Replace by absolute values:
 			H = H.array().abs().matrix();
-			CMatrix H2(H);
-			H2.normalize(0, 1);
-			CImage imgF(H2, true);
+			CMatrixF H2(H);
+			CImage imgF;
+			imgF.setFromMatrix(H2, false /*it's not normalized*/);
 			imgF.saveToFile(OUT_DIR + string("/information_matrix_final.png"));
 
 			// ----------------------------------------
@@ -193,7 +194,7 @@ struct kfslam_traits<CRangeBearingKFSLAM>
 			//  E = SUM() / SUM(ALL ELEMENTS IN MATRIX)
 			// ----------------------------------------
 			vector<std::vector<uint32_t>> landmarksMembership, partsInObsSpace;
-			CMatrix ERRS(50, 3);
+			CMatrixF ERRS(50, 3);
 
 			for (int i = 0; i < ERRS.rows(); i++)
 			{
@@ -372,8 +373,8 @@ void Run_KF_SLAM(CConfigFile& cfgFile, const std::string& rawlogFileName)
 
 	if (SHOW_3D_LIVE)
 	{
-		win3d = mrpt::make_aligned_shared<mrpt::gui::CDisplayWindow3D>(
-			"KF-SLAM live view", 800, 500);
+		win3d =
+			mrpt::gui::CDisplayWindow3D::Create("KF-SLAM live view", 800, 500);
 
 		win3d->addTextMessage(
 			0.01, 0.96, "Red: Estimated path", TColorf(0.8f, 0.8f, 0.8f), 100,
@@ -456,7 +457,7 @@ void Run_KF_SLAM(CConfigFile& cfgFile, const std::string& rawlogFileName)
 			// Save mean pose:
 			if (!(step % SAVE_LOG_FREQUENCY))
 			{
-				const CVectorDouble p = robotPose.mean.getAsVectorVal();
+				const auto p = robotPose.mean.asVectorVal();
 				p.saveToTextFile(
 					OUT_DIR +
 					format("/robot_pose_%05u.txt", (unsigned int)step));
@@ -623,11 +624,10 @@ void Run_KF_SLAM(CConfigFile& cfgFile, const std::string& rawlogFileName)
 			// Save 3D view of the filter state:
 			if (win3d || (SAVE_3D_SCENES && !(step % SAVE_LOG_FREQUENCY)))
 			{
-				COpenGLScene::Ptr scene3D =
-					mrpt::make_aligned_shared<COpenGLScene>();
+				COpenGLScene::Ptr scene3D = std::make_shared<COpenGLScene>();
 				{
 					opengl::CGridPlaneXY::Ptr grid =
-						mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
+						std::make_shared<opengl::CGridPlaneXY>(
 							-1000, 1000, -1000, 1000, 0, 5);
 					grid->setColor(0.4, 0.4, 0.4);
 					scene3D->insert(grid);
@@ -636,7 +636,7 @@ void Run_KF_SLAM(CConfigFile& cfgFile, const std::string& rawlogFileName)
 				// Robot path:
 				{
 					opengl::CSetOfLines::Ptr linesPath =
-						mrpt::make_aligned_shared<opengl::CSetOfLines>();
+						std::make_shared<opengl::CSetOfLines>();
 					linesPath->setColor(1, 0, 0);
 
 					TPose3D init_pose;
@@ -683,7 +683,7 @@ void Run_KF_SLAM(CConfigFile& cfgFile, const std::string& rawlogFileName)
 				if (GT_PATH.cols() == 6 || GT_PATH.cols() == 3)
 				{
 					opengl::CSetOfLines::Ptr GT_path =
-						mrpt::make_aligned_shared<opengl::CSetOfLines>();
+						std::make_shared<opengl::CSetOfLines>();
 					GT_path->setColor(0, 0, 0);
 					size_t N =
 						std::min((int)GT_PATH.rows(), (int)meanPath.size());
@@ -726,7 +726,7 @@ void Run_KF_SLAM(CConfigFile& cfgFile, const std::string& rawlogFileName)
 						mapping.getLastDataAssociation();
 
 					mrpt::opengl::CSetOfLines::Ptr lins =
-						mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
+						mrpt::opengl::CSetOfLines::Create();
 					lins->setLineWidth(1.2f);
 					lins->setColor(1, 1, 1);
 					for (auto it = da.results.associations.begin();
@@ -753,7 +753,7 @@ void Run_KF_SLAM(CConfigFile& cfgFile, const std::string& rawlogFileName)
 				// The current state of KF-SLAM:
 				{
 					opengl::CSetOfObjects::Ptr objs =
-						mrpt::make_aligned_shared<opengl::CSetOfObjects>();
+						std::make_shared<opengl::CSetOfObjects>();
 					mapping.getAs3DObject(objs);
 					scene3D->insert(objs);
 				}

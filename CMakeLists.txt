@@ -327,9 +327,6 @@ set( MRPT_HAS_ASIAN_FONTS ON CACHE BOOL "Enable Asian fonts in utils::CMRPTCanva
 
 include(cmakemodules/script_declare_defines.cmake REQUIRED)  # Transform the variables MRPT_XXX="ON/OFF" to CMAKE_MRPT_XXX="1/0"
 
-include(cmakemodules/script_create_config_h.cmake REQUIRED)   # Build config.h
-include(cmakemodules/script_create_version_h.cmake REQUIRED)  # Build version.h
-
 # ---------------------------------------------------------------------------
 # The C++ include & link directories:
 # ---------------------------------------------------------------------------
@@ -498,23 +495,17 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
 		set(MRPT_EXES_CXX_FLAGS "${MRPT_EXES_CXX_FLAGS} -fwhole-program --combine")
 	endif()
 
-	# "-mtune=native" generates code optimized for the detected current processor.
-	if (WIN32 OR "${CMAKE_MRPT_ARCH}" MATCHES ".*86" OR "${CMAKE_MRPT_ARCH}" MATCHES "amd64")
-		set(opt_native_def ON)
-	endif ()
-
-	set( MRPT_OPTIMIZE_NATIVE ${opt_native_def} CACHE BOOL "GCC/clang optimizations for current processor (-mtune=native). Requires GCC 4.2+")
-
-	if(CMAKE_BUILD_TYPE STREQUAL "Debug")  # Not in debug!
-		set(MRPT_OPTIMIZE_NATIVE OFF)
-	endif()
+	# "-march=native" generates code optimized for the detected current processor.
+	set(MRPT_OPTIMIZE_NATIVE ON CACHE BOOL "GCC/clang optimizations for current processor (-march=native). Requires GCC 4.2+")
 
 	if(CMAKE_MRPT_USE_DEB_POSTFIXS OR CMAKE_MRPT_IS_RPM_PACKAGE)
-		# If we're building a Debian package, just DO NOT use -mtune=native
-	else()
-		if(MRPT_OPTIMIZE_NATIVE AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-			add_compile_options(-O3 -mtune=native)
-		endif()
+		# If we're building a Debian package, just DO NOT use -march=native
+	elseif(MRPT_OPTIMIZE_NATIVE)
+		add_compile_options(-march=native)
+	endif()
+
+	if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+		add_compile_options(-O3)
 	endif()
 
 	# SSE2?
@@ -611,6 +602,34 @@ if (NOT MSVC)
 	set_directory_properties(PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE) # Disable unity targets
 endif()
 
+# Detect Eigen Alignment to make MRPT compatible.
+# EIGEN_MAX_ALIGN_BYTES & EIGEN_MAX_STATIC_ALIGN_BYTES with selected compiler flags
+# ------------------------------------------------
+# DISABLED! Just go for the safer side: align=32 bytes
+#	get_directory_property(mrpt_root_dir_COMPILE_OPTIONS COMPILE_OPTIONS)
+#try_run(RUN_EIGEN_RETVAL BUILD_EIGEN_SUCCESS
+#	${CMAKE_BINARY_DIR}
+#	SOURCES "${CMAKE_SOURCE_DIR}/parse-files/eigen_detect_alignment.cpp"
+#	COMPILE_DEFINITIONS ""
+#	CMAKE_FLAGS
+#	-DINCLUDE_DIRECTORIES:STRING=${MRPT_EIGEN_INCLUDE_DIR}
+#	-DCMAKE_CXX_FLAGS:STRING="${CMAKE_CXX_FLAGS} ${mrpt_root_dir_COMPILE_OPTIONS}"
+#	OUTPUT_VARIABLE EIGEN_TEST_OUT)
+#if (BUILD_EIGEN_SUCCESS AND (RUN_EIGEN_RETVAL EQUAL 0))
+#	string(REGEX MATCH "EIGEN_MAX_ALIGN_BYTES[ ]+[0-9]+" EIGEN_MAX_ALIGN_BYTES "${EIGEN_TEST_OUT}")
+#	string(REGEX MATCH "[0-9]+" EIGEN_MAX_ALIGN_BYTES "${EIGEN_MAX_ALIGN_BYTES}")
+#	string(REGEX MATCH "EIGEN_MAX_STATIC_ALIGN_BYTES[ ]+[0-9]+" EIGEN_MAX_STATIC_ALIGN_BYTES "${EIGEN_TEST_OUT}")
+#	string(REGEX MATCH "[0-9]+" EIGEN_MAX_STATIC_ALIGN_BYTES "${EIGEN_MAX_STATIC_ALIGN_BYTES}")
+#else()
+#message(STATUS "Test Eigen build failed, falling back to default alignment (BUILD_EIGEN_SUCCESS=${BUILD_EIGEN_SUCCESS} RUN_EIGEN_RETVAL=${RUN_EIGEN_RETVAL} BUILD_EIGEN_OUT=${EIGEN_TEST_OUT})")
+	set(EIGEN_MAX_ALIGN_BYTES 32)
+	set(EIGEN_MAX_STATIC_ALIGN_BYTES 32)
+#endif()
+
+include(cmakemodules/script_create_config_h.cmake REQUIRED)   # Build config.h
+include(cmakemodules/script_create_version_h.cmake REQUIRED)  # Build version.h
+
+
 add_custom_target(all_mrpt_libs ALL) # all_mrpt_libs: target to build all mrpt-* modules
 
 # ----------------------------------------------------------------------------
@@ -680,7 +699,6 @@ write_basic_package_version_file(
 	VERSION ${CMAKE_MRPT_FULL_VERSION}
 	COMPATIBILITY SameMajorVersion
 )
-
 
 # Build list of files to install, packages, etc.
 include(cmakemodules/script_install_commands.cmake REQUIRED)

@@ -11,7 +11,6 @@
 
 #include <mrpt/maps/CMetricMap.h>
 #include <mrpt/maps/CSimpleMap.h>
-#include <mrpt/math/lightweight_geom_data.h>
 #include <mrpt/obs/CSensoryFrame.h>
 #include <mrpt/poses/CPoint3D.h>
 #include <mrpt/poses/CPose3D.h>
@@ -69,13 +68,13 @@ double CMetricMap::computeObservationsLikelihood(
 {
 	double lik = 0;
 	for (const auto& it : sf)
-		lik += computeObservationLikelihood(it.get(), takenFrom);
+		lik += computeObservationLikelihood(*it, takenFrom);
 
 	return lik;
 }
 
 double CMetricMap::computeObservationLikelihood(
-	const CObservation* obs, const CPose2D& takenFrom)
+	const CObservation& obs, const CPose2D& takenFrom)
 {
 	return computeObservationLikelihood(obs, CPose3D(takenFrom));
 }
@@ -87,12 +86,12 @@ bool CMetricMap::canComputeObservationsLikelihood(const CSensoryFrame& sf) const
 {
 	bool can = false;
 	for (auto it = sf.begin(); !can && it != sf.end(); ++it)
-		can = can || canComputeObservationLikelihood(it->get());
+		can = can || canComputeObservationLikelihood(**it);
 	return can;
 }
 
 bool CMetricMap::insertObservation(
-	const CObservation* obs, const CPose3D* robotPose)
+	const CObservation& obs, const CPose3D* robotPose)
 {
 	if (!genericMapParams.enableObservationInsertion) return false;
 
@@ -100,7 +99,7 @@ bool CMetricMap::insertObservation(
 	if (done)
 	{
 		OnPostSuccesfulInsertObs(obs);
-		publishEvent(mrptEventMetricMapInsert(this, obs, robotPose));
+		publishEvent(mrptEventMetricMapInsert(this, &obs, robotPose));
 	}
 	return done;
 }
@@ -113,14 +112,8 @@ bool CMetricMap::insertObservationPtr(
 	{
 		THROW_EXCEPTION("Trying to pass a null pointer.");
 	}
-	return insertObservation(obs.get(), robotPose);
+	return insertObservation(*obs, robotPose);
 	MRPT_END
-}
-
-bool CMetricMap::canComputeObservationLikelihood(
-	const CObservation::Ptr& obs) const
-{
-	return canComputeObservationLikelihood(obs.get());
 }
 
 void CMetricMap::determineMatching2D(
@@ -177,7 +170,7 @@ float CMetricMap::squareDistanceToClosestCorrespondence(
 }
 
 bool CMetricMap::canComputeObservationLikelihood(
-	const mrpt::obs::CObservation* obs) const
+	const mrpt::obs::CObservation& obs) const
 {
 	if (genericMapParams.enableObservationLikelihood)
 		return internal_canComputeObservationLikelihood(obs);
@@ -186,7 +179,7 @@ bool CMetricMap::canComputeObservationLikelihood(
 }
 
 double CMetricMap::computeObservationLikelihood(
-	const mrpt::obs::CObservation* obs, const mrpt::poses::CPose3D& takenFrom)
+	const mrpt::obs::CObservation& obs, const mrpt::poses::CPose3D& takenFrom)
 {
 	if (genericMapParams.enableObservationLikelihood)
 		return internal_computeObservationLikelihood(obs, takenFrom);

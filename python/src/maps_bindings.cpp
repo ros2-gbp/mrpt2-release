@@ -37,7 +37,7 @@ bool CMetricMap_insertObservation(
 	CMetricMap& self, const CObservation& obs,
 	const CPose3D& robotPose = CPose3D())
 {
-	return self.insertObservation(&obs, &robotPose);
+	return self.insertObservation(obs, &robotPose);
 }
 
 bool CMetricMap_insertObservationPtr(
@@ -49,7 +49,7 @@ bool CMetricMap_insertObservationPtr(
 
 CSetOfObjects::Ptr CMetricMap_getAs3DObject(CMetricMap& self)
 {
-	CSetOfObjects::Ptr outObj = mrpt::make_aligned_shared<CSetOfObjects>();
+	CSetOfObjects::Ptr outObj = std::make_shared<CSetOfObjects>();
 	self.getAs3DObject(outObj);
 	return outObj;
 }
@@ -69,7 +69,7 @@ COccupancyGridMap2D* COccupancyGridMap2D_copy(COccupancyGridMap2D& self)
 bool COccupancyGridMap2D_insertObservation(
 	COccupancyGridMap2D& self, CObservation& obs, CPose3D& pose)
 {
-	return self.insertObservation(&obs, &pose);
+	return self.insertObservation(obs, &pose);
 }
 
 object COccupancyGridMap2D_to_ROS_OccupancyGrid_msg1(
@@ -184,7 +184,7 @@ BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(
 mrpt::opengl::CSetOfObjects::Ptr CPointsMap_getAs3DObject(CPointsMap& self)
 {
 	mrpt::opengl::CSetOfObjects::Ptr outObj =
-		mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+		mrpt::opengl::CSetOfObjects::Create();
 	self.getAs3DObject(outObj);
 	return outObj;
 }
@@ -287,7 +287,7 @@ mrpt::opengl::CSetOfObjects::Ptr CMultiMetricMap_getAs3DObject(
 	CMultiMetricMap& self)
 {
 	mrpt::opengl::CSetOfObjects::Ptr outObj =
-		mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+		mrpt::opengl::CSetOfObjects::Create();
 	self.getAs3DObject(outObj);
 	return outObj;
 }

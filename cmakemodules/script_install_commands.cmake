@@ -48,11 +48,11 @@ if(WIN32)
 	endif()
 
 	# My own debug DLLs:
-	file(GLOB_RECURSE EXTRA_DLLS "${MRPT_BINARY_DIR}/bin/Debug/*.dll")
+	file(GLOB_RECURSE EXTRA_DLLS "${MRPT_BINARY_DIR}/bin/Debug/*.dll" "${MRPT_BINARY_DIR}/bin/Release/*.dll")
 	foreach(F ${EXTRA_DLLS})
 		install(FILES "${F}" DESTINATION bin)
 	endforeach()
-	file(GLOB_RECURSE EXTRA_LIBS "${MRPT_BINARY_DIR}/lib/Debug/*.lib")
+	file(GLOB_RECURSE EXTRA_LIBS "${MRPT_BINARY_DIR}/lib/Debug/*.lib" "${MRPT_BINARY_DIR}/lib/Release/*.lib" )
 	foreach(F ${EXTRA_LIBS})
 		install(FILES "${F}" DESTINATION lib)
 	endforeach()
@@ -95,6 +95,7 @@ if (NOT IS_DEBIAN_DBG_PKG)
 		FILES
 			"${MRPT_CONFIG_FILE_INCLUDE_DIR}/mrpt/config.h"
 			"${MRPT_CONFIG_FILE_INCLUDE_DIR}/mrpt/version.h"
+			"${MRPT_CONFIG_FILE_INCLUDE_DIR}/mrpt/mrpt_paths_config.h"
 		DESTINATION
 			"${libmrpt_common_dev_INSTALL_PREFIX}include/mrpt/"
 		)
