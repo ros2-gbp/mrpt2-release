@@ -9,6 +9,7 @@
 
 #include "tfest-precomp.h"  // Precompiled headers
 
+#include <mrpt/math/TPose2D.h>
 #include <mrpt/poses/CPosePDFGaussian.h>
 #include <mrpt/random.h>
 #include <mrpt/tfest/se2.h>
@@ -112,7 +113,7 @@ bool tfest::se2_l2(
 		sum_ab_xyz = _mm_add_ps(sum_ab_xyz, _mm_mul_ps(a_xyxy, b_xyyx));
 	}
 
-	alignas(MRPT_MAX_ALIGN_BYTES) float sums_a[4], sums_b[4];
+	alignas(MRPT_MAX_STATIC_ALIGN_BYTES) float sums_a[4], sums_b[4];
 	_mm_store_ps(sums_a, sum_a_xyz);
 	_mm_store_ps(sums_b, sum_b_xyz);
 
@@ -131,7 +132,7 @@ bool tfest::se2_l2(
 	// means_a[1]: mean_y_a
 	// means_b[0]: mean_x_b
 	// means_b[1]: mean_y_b
-	alignas(MRPT_MAX_ALIGN_BYTES) float means_a[4], means_b[4];
+	alignas(MRPT_MAX_STATIC_ALIGN_BYTES) float means_a[4], means_b[4];
 	_mm_store_ps(means_a, sum_a_xyz);
 	_mm_store_ps(means_b, sum_b_xyz);
 
@@ -142,7 +143,7 @@ bool tfest::se2_l2(
 
 	//      Sxx   Syy     Sxy    Syx
 	//    xa*xb  ya*yb   xa*yb  xb*ya
-	alignas(MRPT_MAX_ALIGN_BYTES) float cross_sums[4];
+	alignas(MRPT_MAX_STATIC_ALIGN_BYTES) float cross_sums[4];
 	_mm_store_ps(cross_sums, sum_ab_xyz);
 
 	const float& Sxx = cross_sums[0];
@@ -238,20 +239,19 @@ bool tfest::se2_l2(
 		// -------------------------------------------------------
 		const double D = square(Ax) + square(Ay);
 
-		C->get_unsafe(0, 0) =
+		(*C)(0, 0) =
 			2.0 * N_inv + BETA * square((mean_x_b * Ay + mean_y_b * Ax) / D);
-		C->get_unsafe(1, 1) =
+		(*C)(1, 1) =
 			2.0 * N_inv + BETA * square((mean_x_b * Ax - mean_y_b * Ay) / D);
-		C->get_unsafe(2, 2) = BETA / D;
+		(*C)(2, 2) = BETA / D;
 
-		C->get_unsafe(0, 1) = C->get_unsafe(1, 0) =
-			-BETA * (mean_x_b * Ay + mean_y_b * Ax) *
-			(mean_x_b * Ax - mean_y_b * Ay) / square(D);
+		(*C)(0, 1) = (*C)(1, 0) = -BETA * (mean_x_b * Ay + mean_y_b * Ax) *
+								  (mean_x_b * Ax - mean_y_b * Ay) / square(D);
 
-		C->get_unsafe(0, 2) = C->get_unsafe(2, 0) =
+		(*C)(0, 2) = (*C)(2, 0) =
 			BETA * (mean_x_b * Ay + mean_y_b * Ax) / pow(D, 1.5);
 
-		C->get_unsafe(1, 2) = C->get_unsafe(2, 1) =
+		(*C)(1, 2) = (*C)(2, 1) =
 			BETA * (mean_y_b * Ay - mean_x_b * Ax) / pow(D, 1.5);
 	}
 

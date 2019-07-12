@@ -211,7 +211,7 @@ void CMetricMapBuilderRBPF::processActionObservation(
 			<< odoIncrementSinceLastLocalization.mean);
 		// Reset distance counters:
 		odoIncrementSinceLastLocalization.mean.setFromValues(0, 0, 0, 0, 0, 0);
-		odoIncrementSinceLastLocalization.cov.zeros();
+		odoIncrementSinceLastLocalization.cov.setZero();
 
 		CParticleFilter pf;
 		pf.m_options = m_PF_options;
@@ -227,9 +227,7 @@ void CMetricMapBuilderRBPF::processActionObservation(
 			mapPDF.getEstimatedPosePDF(poseEstimation);
 			poseEstimation.getMean(meanPose);
 
-			CPose3D estPos;
-			CMatrixDouble66 cov;
-			poseEstimation.getCovarianceAndMean(cov, estPos);
+			const auto [cov, estPos] = poseEstimation.getCovarianceAndMean();
 
 			MRPT_LOG_INFO_STREAM(
 				"New pose=" << estPos << std::endl
@@ -312,8 +310,7 @@ void CMetricMapBuilderRBPF::initialize(
   ---------------------------------------------------------------*/
 CPose3DPDF::Ptr CMetricMapBuilderRBPF::getCurrentPoseEstimation() const
 {
-	CPose3DPDFParticles::Ptr posePDF =
-		mrpt::make_aligned_shared<CPose3DPDFParticles>();
+	CPose3DPDFParticles::Ptr posePDF = std::make_shared<CPose3DPDFParticles>();
 	mapPDF.getEstimatedPosePDF(*posePDF);
 
 	// Adds additional increment from accumulated odometry since last

@@ -33,7 +33,6 @@
 #include "xRawLogViewerApp.h"
 
 #include <mrpt/containers/stl_containers_utils.h>
-#include <mrpt/core/aligned_std_map.h>
 #include <mrpt/gui/WxUtils.h>
 #include <mrpt/gui/about_box.h>
 #include <mrpt/io/CFileGZInputStream.h>
@@ -54,6 +53,7 @@
 #include <mrpt/system/filesystem.h>
 #include <mrpt/system/memory.h>
 #include <mrpt/vision/CVideoFileWriter.h>
+#include <map>
 
 #include <mrpt/obs/CObservation2DRangeScan.h>
 #include <mrpt/obs/CObservation3DRangeScan.h>
@@ -2216,7 +2216,7 @@ void xRawLogViewerFrame::loadRawlogFile(const string& str, int first, int last)
 					CPose2D::Ptr poseChange =
 						std::dynamic_pointer_cast<CPose2D>(newObj);
 					CActionCollection::Ptr temp =
-						mrpt::make_aligned_shared<CActionCollection>();
+						std::make_shared<CActionCollection>();
 					CActionRobotMovement2D action;
 					CActionRobotMovement2D::TMotionModelOptions options;
 					action.computeFromOdometry(*poseChange, options);
@@ -2354,7 +2354,7 @@ void xRawLogViewerFrame::rebuildTreeView()
 		}
 
 		// Process element:
-		s;
+		s.clear();
 		switch (rawlog.getType(i))
 		{
 			case CRawlog::etActionCollection:
@@ -3052,7 +3052,7 @@ void xRawLogViewerFrame::OnGenOdoLaser(wxCommandEvent& event)
 			{
 				CObservation::Ptr o = rawlog.getAsObservation(i);
 
-				if (IS_CLASS(o, CObservation2DRangeScan))
+				if (IS_CLASS(*o, CObservation2DRangeScan))
 				{
 					CObservation2DRangeScan::Ptr obs =
 						std::dynamic_pointer_cast<CObservation2DRangeScan>(o);
@@ -3112,7 +3112,7 @@ void xRawLogViewerFrame::OnGenOdoLaser(wxCommandEvent& event)
 					obs->sensorPose.getYawPitchRoll(y, p, r);
 					::fprintf(files->second.second, "%f\t%f\t%f\n", y, p, r);
 				}
-				else if (IS_CLASS(o, CObservationOdometry))
+				else if (IS_CLASS(*o, CObservationOdometry))
 				{
 					CObservationOdometry::Ptr odo =
 						std::dynamic_pointer_cast<CObservationOdometry>(o);
@@ -3435,12 +3435,12 @@ void wxStaticBitmapPopup::OnPopupSaveImage(wxCommandEvent& event)
 				"class: "
 			 << curSelectedObservation->GetRuntimeClass()->className << endl;
 
-		if (IS_CLASS(curSelectedObservation, CObservationImage))
+		if (IS_CLASS(*curSelectedObservation, CObservationImage))
 		{
 			auto* obs = (CObservationImage*)curSelectedObservation.get();
 			imgToSave = &obs->image;
 		}
-		else if (IS_CLASS(curSelectedObservation, CObservationStereoImages))
+		else if (IS_CLASS(*curSelectedObservation, CObservationStereoImages))
 		{
 			auto* obs = (CObservationStereoImages*)curSelectedObservation.get();
 
@@ -3457,7 +3457,7 @@ void wxStaticBitmapPopup::OnPopupSaveImage(wxCommandEvent& event)
 					break;
 			}
 		}
-		else if (IS_CLASS(curSelectedObservation, CObservation3DRangeScan))
+		else if (IS_CLASS(*curSelectedObservation, CObservation3DRangeScan))
 		{
 			auto* obs = (CObservation3DRangeScan*)curSelectedObservation.get();
 			obs->load();
@@ -3468,9 +3468,9 @@ void wxStaticBitmapPopup::OnPopupSaveImage(wxCommandEvent& event)
 					{
 						static CImage auxImg;
 						// Convert to range [0,255]
-						mrpt::math::CMatrix normalized_range = obs->rangeImage;
-						const float max_rang =
-							std::max(obs->maxRange, normalized_range.maximum());
+						mrpt::math::CMatrixF normalized_range = obs->rangeImage;
+						const float max_rang = std::max(
+							obs->maxRange, normalized_range.maxCoeff());
 						if (max_rang > 0) normalized_range *= 255. / max_rang;
 						auxImg.setFromMatrix(
 							normalized_range,
@@ -3523,12 +3523,12 @@ void wxStaticBitmapPopup::OnPopupLoadImage(wxCommandEvent& event)
 
 		CImage* imgToLoad = nullptr;
 
-		if (IS_CLASS(curSelectedObservation, CObservationImage))
+		if (IS_CLASS(*curSelectedObservation, CObservationImage))
 		{
 			auto* obs = (CObservationImage*)curSelectedObservation.get();
 			imgToLoad = &obs->image;
 		}
-		else if (IS_CLASS(curSelectedObservation, CObservationStereoImages))
+		else if (IS_CLASS(*curSelectedObservation, CObservationStereoImages))
 		{
 			auto* obs = (CObservationStereoImages*)curSelectedObservation.get();
 
@@ -3918,7 +3918,7 @@ void xRawLogViewerFrame::OnFilterSpureousGas(wxCommandEvent& event)
 				{
 					CObservation::Ptr o = rawlog.getAsObservation(countLoop);
 
-					if (IS_CLASS(o, CObservationGasSensors))
+					if (IS_CLASS(*o, CObservationGasSensors))
 					{
 						CObservationGasSensors::Ptr obs =
 							std::dynamic_pointer_cast<CObservationGasSensors>(
@@ -4747,7 +4747,7 @@ void xRawLogViewerFrame::OnMenuItem47Selected(wxCommandEvent& event)
 
 			CPose2D estMean(odo_x, odo_y, odo_phi);
 			CMatrixDouble33 estCov;
-			estCov.unit(3, 1e-6);
+			estCov.setDiagonal(3, 1e-6);
 
 			CActionRobotMovement2D newAct;
 			newAct.estimationMethod = CActionRobotMovement2D::emScan2DMatching;
@@ -4971,7 +4971,7 @@ void xRawLogViewerFrame::OnRangeFinder1DGenTextFile(wxCommandEvent& event)
 			{
 				CObservation::Ptr o = rawlog.getAsObservation(i);
 
-				if (IS_CLASS(o, CObservationRange))
+				if (IS_CLASS(*o, CObservationRange))
 				{
 					CObservationRange::Ptr obs =
 						std::dynamic_pointer_cast<CObservationRange>(o);
@@ -5055,7 +5055,7 @@ void xRawLogViewerFrame::OnMenuModifyICPActionsUncertainty(
 							CPosePDFGaussian::Ptr aux =
 								std::dynamic_pointer_cast<CPosePDFGaussian>(
 									actMov->poseChange.get_ptr());
-							aux->cov.zeros();
+							aux->cov.setZero();
 							aux->cov(0, 0) = aux->cov(1, 1) = std_xy2;
 							aux->cov(2, 2) = std_phi2;
 
@@ -5234,8 +5234,7 @@ void xRawLogViewerFrame::OnMenuChangePosesBatch(wxCommandEvent& event)
 		CConfigFileMemory cfg(string(dialog.edText->GetValue().mb_str()));
 
 		// make a list  "sensor_label -> sensor_pose" by parsing the ini-file:
-		using TSensor2PoseMap =
-			mrpt::aligned_std_map<std::string, mrpt::poses::CPose3D>;
+		using TSensor2PoseMap = std::map<std::string, mrpt::poses::CPose3D>;
 		TSensor2PoseMap desiredSensorPoses;
 		std::map<std::string, mrpt::obs::CObservationImage> desiredCamParams;
 
@@ -5274,7 +5273,7 @@ void xRawLogViewerFrame::OnMenuChangePosesBatch(wxCommandEvent& event)
 
 			CMatrixDouble33& I =
 				desiredCamParams[label].cameraParams.intrinsicParams;
-			I.zeros(3, 3);
+			I.setZero(3, 3);
 			I(2, 2) = 1;
 			I(0, 0) = calib[0];
 			I(1, 1) = calib[1];
@@ -5349,7 +5348,7 @@ void xRawLogViewerFrame::OnMenuChangePosesBatch(wxCommandEvent& event)
 					auto c = desiredCamParams.find(obs->sensorLabel);
 					if (c != desiredCamParams.end())
 					{
-						if (!IS_CLASS(obs, CObservationImage))
+						if (!IS_CLASS(*obs, CObservationImage))
 							THROW_EXCEPTION_FMT(
 								"Camera parameters found for non-image "
 								"observation class: %s",
@@ -5522,7 +5521,7 @@ void xRawLogViewerFrame::OnMenuChangeMaxRangeLaser(wxCommandEvent& event)
 				{
 					CObservation::Ptr obs = SF->getObservationByIndex(j);
 					if (obs->sensorLabel == lab &&
-						IS_CLASS(obs, CObservation2DRangeScan))
+						IS_CLASS(*obs, CObservation2DRangeScan))
 					{
 						CObservation2DRangeScan::Ptr o =
 							std::dynamic_pointer_cast<CObservation2DRangeScan>(
@@ -5539,7 +5538,7 @@ void xRawLogViewerFrame::OnMenuChangeMaxRangeLaser(wxCommandEvent& event)
 				// This is a SF:
 				CObservation::Ptr obs = rawlog.getAsObservation(countLoop);
 				if (obs->sensorLabel == lab &&
-					IS_CLASS(obs, CObservation2DRangeScan))
+					IS_CLASS(*obs, CObservation2DRangeScan))
 				{
 					CObservation2DRangeScan::Ptr o =
 						std::dynamic_pointer_cast<CObservation2DRangeScan>(obs);
@@ -5678,7 +5677,7 @@ void xRawLogViewerFrame::OnMenuBatchLaserExclusionZones(wxCommandEvent& event)
 
 				if (it.getType() == CRawlog::etObservation)
 				{
-					if (IS_CLASS(*it, CObservation2DRangeScan))
+					if (IS_CLASS(**it, CObservation2DRangeScan))
 					{
 						obs =
 							std::dynamic_pointer_cast<CObservation2DRangeScan>(
@@ -5852,7 +5851,7 @@ void xRawLogViewerFrame::OnLaserFilterAngles(wxCommandEvent& event)
 
 				if (it.getType() == CRawlog::etObservation)
 				{
-					if (IS_CLASS(*it, CObservation2DRangeScan))
+					if (IS_CLASS(**it, CObservation2DRangeScan))
 					{
 						obs =
 							std::dynamic_pointer_cast<CObservation2DRangeScan>(
@@ -5962,7 +5961,7 @@ void xRawLogViewerFrame::OnMenuRangeBearFilterIDs(wxCommandEvent& event)
 				for (size_t j = 0; j < SF->size(); j++)
 				{
 					CObservation::Ptr obs = SF->getObservationByIndex(j);
-					if (IS_CLASS(obs, CObservationBearingRange))
+					if (IS_CLASS(*obs, CObservationBearingRange))
 					{
 						CObservationBearingRange::Ptr o =
 							std::dynamic_pointer_cast<CObservationBearingRange>(
@@ -5984,7 +5983,7 @@ void xRawLogViewerFrame::OnMenuRangeBearFilterIDs(wxCommandEvent& event)
 			{
 				// This is a SF:
 				CObservation::Ptr obs = rawlog.getAsObservation(countLoop);
-				if (IS_CLASS(obs, CObservationBearingRange))
+				if (IS_CLASS(*obs, CObservationBearingRange))
 				{
 					CObservationBearingRange::Ptr o =
 						std::dynamic_pointer_cast<CObservationBearingRange>(
@@ -6210,14 +6209,14 @@ void xRawLogViewerFrame::OnmnuCreateAVISelected(wxCommandEvent& event)
 			else if (rawlog.getType(countLoop) == CRawlog::etObservation)
 			{
 				CObservation::Ptr o = rawlog.getAsObservation(countLoop);
-				if (IS_CLASS(o, CObservationImage))
+				if (IS_CLASS(*o, CObservationImage))
 				{
 					CObservationImage::Ptr obsImg =
 						std::dynamic_pointer_cast<CObservationImage>(o);
 					imgsForVideo.insert(
 						TImageToSaveData(&obsImg->image, "IMAGE"));
 				}
-				else if (IS_CLASS(o, CObservationStereoImages))
+				else if (IS_CLASS(*o, CObservationStereoImages))
 				{
 					CObservationStereoImages::Ptr obsStereoImg =
 						std::dynamic_pointer_cast<CObservationStereoImages>(o);
@@ -6230,7 +6229,7 @@ void xRawLogViewerFrame::OnmnuCreateAVISelected(wxCommandEvent& event)
 						imgsForVideo.insert(TImageToSaveData(
 							&obsStereoImg->imageDisparity, "DISP"));
 				}
-				else if (IS_CLASS(o, CObservation3DRangeScan))
+				else if (IS_CLASS(*o, CObservation3DRangeScan))
 				{
 					CObservation3DRangeScan::Ptr obs3D =
 						std::dynamic_pointer_cast<CObservation3DRangeScan>(o);
@@ -6433,7 +6432,7 @@ void xRawLogViewerFrame::OnMenuItem3DObsRecoverParams(wxCommandEvent& event)
 			if (rawlog.getType(countLoop) == CRawlog::etObservation)
 			{
 				CObservation::Ptr obs = rawlog.getAsObservation(countLoop);
-				if (IS_CLASS(obs, CObservation3DRangeScan))
+				if (IS_CLASS(*obs, CObservation3DRangeScan))
 				{
 					CObservation3DRangeScan::Ptr o =
 						std::dynamic_pointer_cast<CObservation3DRangeScan>(obs);

@@ -8,7 +8,7 @@
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixFixedNumeric.h>
+#include <mrpt/math/CMatrixFixed.h>
 #include "gnss_messages_common.h"
 
 namespace mrpt::obs::gnss
@@ -82,7 +82,6 @@ struct Message_TOPCON_PZS : public gnss_message
 	void internal_readFromStream(mrpt::serialization::CArchive& in) override;
 
    public:
-	MRPT_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 /** TopCon mmGPS devices: SATS, a generic structure for statistics about tracked

@@ -12,7 +12,7 @@
 #include <mrpt/containers/CDynamicGrid.h>
 #include <mrpt/maps/CLandmark.h>
 #include <mrpt/maps/CMetricMap.h>
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/obs/CObservation2DRangeScan.h>
 #include <mrpt/obs/CObservationBearingRange.h>
 #include <mrpt/obs/CObservationGPS.h>
@@ -78,7 +78,7 @@ class CLandmarksMap : public mrpt::maps::CMetricMap
    private:
 	void internal_clear() override;
 	bool internal_insertObservation(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D* robotPose = nullptr) override;
 
    public:
@@ -120,7 +120,7 @@ class CLandmarksMap : public mrpt::maps::CMetricMap
 	 * \sa Used in particle filter algorithms, see: CMultiMetricMapPDF::update
 	 */
 	double internal_computeObservationLikelihood(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D& takenFrom) override;
 
 	/** The color of landmark ellipsoids in CLandmarksMap::getAs3DObject */
@@ -138,7 +138,6 @@ class CLandmarksMap : public mrpt::maps::CMetricMap
 		internal::TSequenceLandmarks m_landmarks;
 
 		/** A grid-map with the set of landmarks falling into each cell.
-		 *  \todo Use the KD-tree instead?
 		 */
 		mrpt::containers::CDynamicGrid<std::vector<int32_t>> m_grid;
 
@@ -199,13 +198,8 @@ class CLandmarksMap : public mrpt::maps::CMetricMap
 
 	} landmarks;
 
-	/** Constructor
-	 */
-	CLandmarksMap();
-
-	/** Virtual destructor.
-	 */
-	~CLandmarksMap() override;
+	CLandmarksMap() = default;
+	~CLandmarksMap() override = default;
 
 	/**** FAMD ***/
 	/** Map of the Euclidean Distance between the descriptors of two SIFT-based
