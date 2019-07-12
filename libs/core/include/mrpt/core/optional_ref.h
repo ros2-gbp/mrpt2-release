@@ -8,8 +8,8 @@
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <functional>  // reference_wrapper
-#include <optional>  // optional
+#include <optional>
+#include <utility>
 
 namespace mrpt
 {

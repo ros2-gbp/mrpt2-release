@@ -299,7 +299,7 @@ CDlgPoseEst::CDlgPoseEst(
 	pose_mat << -25, 25, 100, -0.1, 0.25, 0.5;
 	//*)
 
-	scene = mrpt::opengl::COpenGLScene::Create();
+	scene = mrpt::make_aligned_shared<mrpt::opengl::COpenGLScene>();
 	cor = mrpt::opengl::stock_objects::CornerXYZ();
 	cor1 = mrpt::opengl::stock_objects::CornerXYZ();
 
@@ -310,7 +310,7 @@ CDlgPoseEst::CDlgPoseEst(
 	const double check_squares_length_Y_meters =
 		0.005 * atof(string(edLengthY->GetValue().mb_str()).c_str());
 
-	grid = std::make_shared<opengl::CGridPlaneXY>(
+	grid = mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
 		0, check_size_y * check_squares_length_Y_meters, 0,
 		check_size_x * check_squares_length_X_meters, 0,
 		check_squares_length_Y_meters);
@@ -434,17 +434,17 @@ void CDlgPoseEst::OntimCaptureTrigger(wxTimerEvent& event)
 		CObservation::Ptr obs = m_video->getNextFrame();
 		ASSERT_(obs);
 		ASSERT_(
-			IS_CLASS(*obs, CObservationImage) ||
-			IS_CLASS(*obs, CObservation3DRangeScan));
+			IS_CLASS(obs, CObservationImage) ||
+			IS_CLASS(obs, CObservation3DRangeScan));
 
 		// Convert to an image:
-		if (IS_CLASS(*obs, CObservation3DRangeScan))
+		if (IS_CLASS(obs, CObservation3DRangeScan))
 		{
 			CObservation3DRangeScan::Ptr obs3D =
 				std::dynamic_pointer_cast<CObservation3DRangeScan>(obs);
 
 			CObservationImage::Ptr obsImg =
-				std::make_shared<CObservationImage>();
+				mrpt::make_aligned_shared<CObservationImage>();
 			obsImg->timestamp = obs3D->timestamp;
 			ASSERT_(obs3D->hasIntensityImage);
 			obsImg->image = obs3D->intensityImage;

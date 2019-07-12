@@ -8,6 +8,7 @@
    +------------------------------------------------------------------------+ */
 #pragma once
 
+#include <mrpt/core/aligned_std_vector.h>
 #include <map>
 #include <vector>
 
@@ -51,7 +52,8 @@ namespace mrpt::containers
  */
 template <
 	typename KEY, typename VALUE,
-	typename VECTOR_T = typename std::vector<std::pair<KEY, VALUE>>>
+	typename VECTOR_T =
+		typename mrpt::aligned_std_vector<std::pair<KEY, VALUE>>>
 class map_as_vector
 {
    public:

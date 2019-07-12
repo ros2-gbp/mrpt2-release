@@ -31,7 +31,7 @@
 #include <mrpt/io/CFileStream.h>
 #include <mrpt/maps/CLandmarksMap.h>
 #include <mrpt/maps/CSimplePointsMap.h>
-#include <mrpt/math/CMatrixF.h>
+#include <mrpt/math/CMatrix.h>
 #include <mrpt/math/data_utils.h>
 #include <mrpt/obs/CObservationBeaconRanges.h>
 #include <mrpt/obs/CObservationGPS.h>
@@ -103,7 +103,7 @@ void TestParticlesLocalization()
 	std::string GT_FILE =
 		iniFile->read_string("ro-localization", "groundTruthFile", "");
 
-	CMatrixF aux(1, 1);
+	CMatrix aux(1, 1);
 
 	float Pc_range_ini = 0.05f;
 	float Pc_range_end = 0.05f;
@@ -123,7 +123,7 @@ void TestParticlesLocalization()
 	ASSERT_FILE_EXISTS_(RAWLOG_FILE);
 
 	// Load GT:
-	CMatrixF groundTruth;
+	CMatrix groundTruth;
 	if (!GT_FILE.empty()) groundTruth.loadFromTextFile(GT_FILE);
 
 	// Real ranges estimated from GT:
@@ -268,7 +268,7 @@ void TestParticlesLocalization()
 
 // 3D World
 #ifdef STORE_3D
-			COpenGLScene::Ptr scene = std::make_shared<COpenGLScene>();
+			COpenGLScene::Ptr scene = mrpt::make_aligned_shared<COpenGLScene>();
 
 #ifdef SHOW_REAL_TIME_3D
 			CDisplayWindow3D window("ro-localization - Part of MRPT");
@@ -291,7 +291,8 @@ void TestParticlesLocalization()
 			// World Axis
 			{
 				opengl::CAxis::Ptr obj =
-					std::make_shared<opengl::CAxis>(-20, -10, -1, 20, 10, 4, 1);
+					mrpt::make_aligned_shared<opengl::CAxis>(
+						-20, -10, -1, 20, 10, 4, 1);
 				obj->enableTickMarks();
 				obj->setColor(0, 0, 0);
 #ifdef SHOW_REAL_TIME_3D
@@ -312,7 +313,7 @@ void TestParticlesLocalization()
 #ifdef SHOW_REAL_TIME_3D
 				{
 					opengl::CSetOfObjects::Ptr obj =
-						std::make_shared<opengl::CSetOfObjects>();
+						mrpt::make_aligned_shared<opengl::CSetOfObjects>();
 					grid2d.getAs3DObject(obj);
 					obj->setLocation(
 						initialPoseExperiment.x(), initialPoseExperiment.y(),
@@ -321,7 +322,7 @@ void TestParticlesLocalization()
 				}
 #endif
 				opengl::CSetOfObjects::Ptr obj =
-					std::make_shared<opengl::CSetOfObjects>();
+					mrpt::make_aligned_shared<opengl::CSetOfObjects>();
 				grid2d.getAs3DObject(obj);
 				scene->insert(obj);
 			}
@@ -329,7 +330,7 @@ void TestParticlesLocalization()
 			// Floor
 			{
 				opengl::CGridPlaneXY::Ptr obj =
-					std::make_shared<opengl::CGridPlaneXY>(
+					mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
 						-20, 20, -10, 10, 0, 0.5);
 				obj->setColor(0.4, 0.4, 0.4);
 #ifdef SHOW_REAL_TIME_3D
@@ -531,7 +532,9 @@ void TestParticlesLocalization()
 				// Generate 3D scene:
 				// ------------------------------
 				{
-					const auto [C, meanPose] = pdf.getCovarianceAndMean();
+					CPose2D meanPose;
+					CMatrixDouble33 C;
+					pdf.getCovarianceAndMean(C, meanPose);
 
 #ifdef SHOW_REAL_TIME_3D
 					sceneTR = window.get3DSceneAndLock();
@@ -548,7 +551,7 @@ void TestParticlesLocalization()
 						parts = std::dynamic_pointer_cast<CPointCloud>(obj);
 #else
 					opengl::CPointCloud::Ptr parts =
-						std::make_shared<opengl::CPointCloud>();
+						mrpt::make_aligned_shared<opengl::CPointCloud>();
 					opengl::CRenderizable::Ptr obj;
 #endif
 
@@ -576,12 +579,12 @@ void TestParticlesLocalization()
 					obj = sceneTR->getByName("cov");
 					opengl::CEllipsoid::Ptr ellip;
 					if (!obj)
-						ellip = std::make_shared<opengl::CEllipsoid>();
+						ellip = mrpt::make_aligned_shared<opengl::CEllipsoid>();
 					else
 						ellip = std::dynamic_pointer_cast<CEllipsoid>(obj);
 #else
 					opengl::CEllipsoid::Ptr ellip =
-						std::make_shared<opengl::CEllipsoid>();
+						mrpt::make_aligned_shared<opengl::CEllipsoid>();
 #endif
 
 					ellip->setColor(1, 0, 0, 0.6);
@@ -645,13 +648,15 @@ void TestParticlesLocalization()
 								opengl::CDisk::Ptr sphere;
 
 								if (!obj)
-									sphere = std::make_shared<opengl::CDisk>();
+									sphere = mrpt::make_aligned_shared<
+										opengl::CDisk>();
 								else
 									sphere =
 										std::dynamic_pointer_cast<CDisk>(obj);
 #else
 								opengl::CSphere::Ptr sphere =
-									std::make_shared<opengl::CSphere>();
+									mrpt::make_aligned_shared<
+										opengl::CSphere>();
 								opengl::CRenderizable::Ptr obj;
 #endif
 
@@ -694,7 +699,8 @@ void TestParticlesLocalization()
 						opengl::CSphere::Ptr sphere;
 
 						if (!obj)
-							sphere = std::make_shared<opengl::CSphere>();
+							sphere =
+								mrpt::make_aligned_shared<opengl::CSphere>();
 						else
 							sphere =
 								std::dynamic_pointer_cast<opengl::CSphere>(obj);
@@ -728,14 +734,15 @@ void TestParticlesLocalization()
 						opengl::CSphere::Ptr sphere;
 
 						if (!obj)
-							sphere = std::make_shared<opengl::CSphere>();
+							sphere =
+								mrpt::make_aligned_shared<opengl::CSphere>();
 						else
 							sphere =
 								std::dynamic_pointer_cast<opengl::CSphere>(obj);
 
 #else
 						opengl::CSphere::Ptr sphere =
-							std::make_shared<opengl::CSphere>();
+							mrpt::make_aligned_shared<opengl::CSphere>();
 #endif
 						sphere->setColor(0, 0, 1);
 						sphere->setRadius(0.05f);
@@ -762,13 +769,14 @@ void TestParticlesLocalization()
 						opengl::CSphere::Ptr sphere;
 
 						if (!obj)
-							sphere = std::make_shared<opengl::CSphere>();
+							sphere =
+								mrpt::make_aligned_shared<opengl::CSphere>();
 						else
 							sphere =
 								std::dynamic_pointer_cast<opengl::CSphere>(obj);
 #else
 						opengl::CSphere::Ptr sphere =
-							std::make_shared<opengl::CSphere>();
+							mrpt::make_aligned_shared<opengl::CSphere>();
 #endif
 						sphere->setColor(0, 0, 0);
 						sphere->setRadius(0.10f);
@@ -801,7 +809,8 @@ void TestParticlesLocalization()
 							double x, y;
 
 							if (!obj)
-								sphere = std::make_shared<opengl::CEllipsoid>();
+								sphere = mrpt::make_aligned_shared<
+									opengl::CEllipsoid>();
 							else
 								sphere = std::dynamic_pointer_cast<
 									opengl::CEllipsoid>(obj);
@@ -839,7 +848,7 @@ void TestParticlesLocalization()
 										 .y_shift),
 									0);
 							}
-							CMatrixF r(2, 2);
+							CMatrix r(2, 2);
 							r(1, 1) = 9;
 							r(0, 0) = 9;
 							sphere->setCovMatrix(r);
@@ -862,7 +871,8 @@ void TestParticlesLocalization()
 							double x, y;
 
 							if (!obj)
-								sphere = std::make_shared<opengl::CSphere>();
+								sphere = mrpt::make_aligned_shared<
+									opengl::CSphere>();
 							else
 								sphere =
 									std::dynamic_pointer_cast<opengl::CSphere>(

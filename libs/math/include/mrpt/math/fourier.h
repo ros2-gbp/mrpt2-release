@@ -8,8 +8,7 @@
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixDynamic.h>
-#include <mrpt/math/CVectorDynamic.h>
+#include <mrpt/math/CMatrixTemplateNumeric.h>
 
 namespace mrpt::math
 {

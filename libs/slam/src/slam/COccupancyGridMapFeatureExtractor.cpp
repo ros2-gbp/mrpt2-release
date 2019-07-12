@@ -45,18 +45,18 @@ void COccupancyGridMapFeatureExtractor::uncached_extractFeatures(
 		fExt.computeDescriptors(img, lstFeatures, descriptors);
 
 	// Copy all the features to a map of landmarks:
-	for (auto& ft : lstFeatures)
+	for (auto& lstFeature : lstFeatures)
 	{
 		CLandmark lm;
-		lm.ID = ft.keypoint.ID;
+		lm.ID = lstFeature->ID;
 		lm.features.resize(1);
 
-		lm.features[0] = ft;  // Insert the full feature there:
+		lm.features[0] = lstFeature;  // Insert the full feature there:
 
 		lm.pose_mean.x =
-			grid.getXMin() + (ft.keypoint.pt.x + 0.5f) * grid.getResolution();
+			grid.getXMin() + (lstFeature->x + 0.5f) * grid.getResolution();
 		lm.pose_mean.y =
-			grid.getYMin() + (ft.keypoint.pt.y + 0.5f) * grid.getResolution();
+			grid.getYMin() + (lstFeature->y + 0.5f) * grid.getResolution();
 		lm.pose_mean.z = 0;
 
 		lm.pose_cov_11 = lm.pose_cov_22 = lm.pose_cov_33 =
@@ -93,7 +93,7 @@ void COccupancyGridMapFeatureExtractor::extractFeatures(
 	if (it == m_cache.end())
 	{
 		// We have to recompute the features:
-		CLandmarksMap::Ptr theMap = std::make_shared<CLandmarksMap>();
+		CLandmarksMap::Ptr theMap = mrpt::make_aligned_shared<CLandmarksMap>();
 
 		uncached_extractFeatures(
 			grid, *theMap, number_of_features, descriptors, feat_options);

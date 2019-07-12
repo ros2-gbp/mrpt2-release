@@ -9,7 +9,6 @@
 
 #include "hmtslam-precomp.h"  // Precomp header
 
-#include <mrpt/core/aligned_allocator.h>
 #include <mrpt/graphslam/levmarq.h>
 #include <mrpt/hmtslam/CRobotPosesGraph.h>
 #include <mrpt/math/ops_containers.h>
@@ -402,7 +401,7 @@ void CHierarchicalMapMHPartition::saveAreasDiagramWithEllipsedForMATLAB(
 		{
 			const CHMHMapNode			*node = getNodeByID( it->first );
 			CPosePDFGaussian	posePDF = it->second;
-			CMatrixF				C( posePDF.cov );
+			CMatrix				C( posePDF.cov );
 			CPose2D				pose( posePDF.mean );
 
 			if (C.det()==0)
@@ -874,7 +873,7 @@ void CHierarchicalMapMHPartition::computeCoordinatesTransformationBetweenNodes(
 	CHMHMapNode::TNodeID lastNode, nextNode;
 	size_t pathLength;
 
-	using TPose3DList = std::vector<CPose3D>;
+	using TPose3DList = mrpt::aligned_std_vector<CPose3D>;
 	std::vector<TPose3DList> listSamples;
 	std::vector<TPose3DList>::iterator lstIt;
 	TPose3DList dummyList;
@@ -1114,19 +1113,26 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 	outScene.clear();
 	{
 		mrpt::opengl::CGridPlaneXY::Ptr obj =
-			mrpt::opengl::CGridPlaneXY::Create(-500, 500, -500, 500, 0, 5);
+			mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
+				-500, 500, -500, 500, 0, 5);
 		obj->setColor(0.3, 0.3, 0.3);
 		outScene.insert(obj);
 	}
 
-	using TMapID2PosePDF = std::map<CHMHMapNode::TNodeID, CPose3DPDFGaussian>;
-	// The ref. pose of each area
-	TMapID2PosePDF nodesPoses;
+	using TMapID2PosePDF = std::map<
+		CHMHMapNode::TNodeID, CPose3DPDFGaussian,
+		std::less<CHMHMapNode::TNodeID>,
+		Eigen::aligned_allocator<
+			std::pair<const CHMHMapNode::TNodeID, CPose3DPDFGaussian>>>;
+	TMapID2PosePDF nodesPoses;  // The ref. pose of each area
 	TMapID2PosePDF::iterator it;
 
-	using TMapID2Pose2D = std::map<CHMHMapNode::TNodeID, CPose2D>;
-	// The mean pose of the observations in the area
-	TMapID2Pose2D nodesMeanPoses;
+	using TMapID2Pose2D = std::map<
+		CHMHMapNode::TNodeID, CPose2D, std::less<CHMHMapNode::TNodeID>,
+		Eigen::aligned_allocator<
+			std::pair<const CHMHMapNode::TNodeID, CPose2D>>>;
+	TMapID2Pose2D
+		nodesMeanPoses;  // The mean pose of the observations in the area
 	TMapID2Pose2D::iterator it2;
 
 	// Only those nodes in the "hypothesisID" are computed.
@@ -1180,7 +1186,7 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 		if (metricMap)  // ASSERT_(metricMap);
 		{
 			mrpt::opengl::CSetOfObjects::Ptr objTex =
-				mrpt::opengl::CSetOfObjects::Create();
+				mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
 			metricMap->getAs3DObject(objTex);
 			objTex->setPose(pose);
 			outScene.insert(objTex);
@@ -1200,7 +1206,8 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 		const CPose3D meanPose = CPose3D(it2->second);
 
 		// The sphere of the node:
-		mrpt::opengl::CSphere::Ptr objSphere = mrpt::opengl::CSphere::Create();
+		mrpt::opengl::CSphere::Ptr objSphere =
+			mrpt::make_aligned_shared<mrpt::opengl::CSphere>();
 
 		objSphere->setName(node->m_label);
 		objSphere->setColor(0, 0, 1);
@@ -1215,7 +1222,8 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 		outScene.insert(objSphere);
 
 		// The label with the name of the node:
-		mrpt::opengl::CText::Ptr objText = mrpt::opengl::CText::Create();
+		mrpt::opengl::CText::Ptr objText =
+			mrpt::make_aligned_shared<mrpt::opengl::CText>();
 		//	objText->m_str = node->m_label;
 		objText->setString(format("%li", (long int)node->getID()));
 		// objText->m_fontHeight = 20;
@@ -1241,7 +1249,8 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 
 				CPose3D auxPose(pose + SF_pose);
 
-				mrpt::opengl::CDisk::Ptr glObj = mrpt::opengl::CDisk::Create();
+				mrpt::opengl::CDisk::Ptr glObj =
+					mrpt::make_aligned_shared<mrpt::opengl::CDisk>();
 
 				glObj->setColor(1, 0, 0);
 
@@ -1262,7 +1271,7 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 
 				// And a line up-to the node:
 				mrpt::opengl::CSimpleLine::Ptr objLine =
-					mrpt::opengl::CSimpleLine::Create();
+					mrpt::make_aligned_shared<mrpt::opengl::CSimpleLine>();
 
 				objLine->setColor(1, 0, 0, 0.2);
 				objLine->setLineWidth(1.5);
@@ -1289,7 +1298,7 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 
 				// Draw the line:
 				mrpt::opengl::CSimpleLine::Ptr objLine =
-					mrpt::opengl::CSimpleLine::Create();
+					mrpt::make_aligned_shared<mrpt::opengl::CSimpleLine>();
 
 				objLine->setColor(0, 1, 0, 0.5);
 				objLine->setLineWidth(5);
@@ -1306,8 +1315,15 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 	MRPT_END
 }
 
+/*---------------------------------------------------------------
+			computeGloballyConsistentNodeCoordinates
+  ---------------------------------------------------------------*/
 void CHierarchicalMapMHPartition::computeGloballyConsistentNodeCoordinates(
-	std::map<CHMHMapNode::TNodeID, mrpt::poses::CPose3DPDFGaussian>& nodePoses,
+	std::map<
+		CHMHMapNode::TNodeID, CPose3DPDFGaussian,
+		std::less<CHMHMapNode::TNodeID>,
+		Eigen::aligned_allocator<std::pair<
+			const CHMHMapNode::TNodeID, CPose3DPDFGaussian>>>& nodePoses,
 	const CHMHMapNode::TNodeID& idReferenceNode,
 	const THypothesisID& hypothesisID,
 	const unsigned int& numberOfIterations) const

@@ -9,7 +9,7 @@
 #pragma once
 
 #include <mrpt/config/CConfigFileBase.h>
-#include <mrpt/math/CMatrixFixed.h>
+#include <mrpt/math/CMatrixFixedNumeric.h>
 #include <mrpt/serialization/CSerializable.h>
 #include <array>
 
@@ -19,7 +19,9 @@ namespace mrpt::img
  *  The parameters obtained for one camera resolution can be used for any other
  * resolution by means of the method TCamera::scaleToResolution()
  *
- * \sa The application camera-calib-gui for calibrating a camera
+ * \sa mrpt::vision::CCamModel, the application <a
+ * href="http://www.mrpt.org/Application:camera-calib-gui" >camera-calib-gui</a>
+ * for calibrating a camera
  * \ingroup mrpt_img_grp
  */
 class TCamera : public mrpt::serialization::CSerializable
@@ -101,17 +103,17 @@ class TCamera : public mrpt::serialization::CSerializable
 	inline void setIntrinsicParamsFromValues(
 		double fx, double fy, double cx, double cy)
 	{
-		intrinsicParams(0, 0) = fx;
-		intrinsicParams(1, 1) = fy;
-		intrinsicParams(0, 2) = cx;
-		intrinsicParams(1, 2) = cy;
+		intrinsicParams.set_unsafe(0, 0, fx);
+		intrinsicParams.set_unsafe(1, 1, fy);
+		intrinsicParams.set_unsafe(0, 2, cx);
+		intrinsicParams.set_unsafe(1, 2, cy);
 	}
 
 	/** Get the vector of distortion params of the camera  */
 	inline void getDistortionParamsVector(
 		mrpt::math::CMatrixDouble15& distParVector) const
 	{
-		for (size_t i = 0; i < 5; i++) distParVector(0, i) = dist[i];
+		for (size_t i = 0; i < 5; i++) distParVector.set_unsafe(0, i, dist[i]);
 	}
 
 	/** Get a vector with the distortion params of the camera  */
@@ -126,7 +128,7 @@ class TCamera : public mrpt::serialization::CSerializable
 	void setDistortionParamsVector(
 		const mrpt::math::CMatrixDouble15& distParVector)
 	{
-		for (size_t i = 0; i < 5; i++) dist[i] = distParVector(0, i);
+		for (size_t i = 0; i < 5; i++) dist[i] = distParVector.get_unsafe(0, i);
 	}
 
 	/** Set the whole vector of distortion params of the camera from a 4 or

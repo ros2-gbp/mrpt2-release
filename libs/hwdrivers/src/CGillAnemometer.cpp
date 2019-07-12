@@ -104,7 +104,7 @@ void CGillAnemometer::doProcess()
 	}
 
 	mrpt::obs::CObservationWindSensor::Ptr obsPtr =
-		mrpt::obs::CObservationWindSensor::Create();
+		mrpt::make_aligned_shared<mrpt::obs::CObservationWindSensor>();
 	bool have_reading = false;
 	std::string wind_reading;
 	bool time_out = false;

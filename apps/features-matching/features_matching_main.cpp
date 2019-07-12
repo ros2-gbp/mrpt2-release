@@ -76,7 +76,7 @@ bool DemoFeatures()
 	if (sel_method.empty())
 		fext.options.featsType = featFASTER10;
 	else
-		fext.options.featsType = TKeyPointMethod(atoi(sel_method.c_str()));
+		fext.options.featsType = TFeatureType(atoi(sel_method.c_str()));
 
 	// Compute descriptors:
 	auto desc_to_compute = TDescriptorType(-1);
@@ -125,7 +125,7 @@ Descriptors:
 			THROW_EXCEPTION_FMT("Error loading file: %s", file1.c_str());
 	}
 	else
-		mrpt::obs::stock_observations::exampleImage(img1, 0);
+		mrpt::obs::stock_observations::exampleImage(img1, 1);
 
 	if (!file2.empty())
 	{
@@ -203,11 +203,13 @@ Descriptors:
 		case descLogPolarImages:
 		case descSpinImages:
 		{
-			winptr2D_descr1 = std::make_shared<CDisplayWindow>("Descriptor 1");
+			winptr2D_descr1 =
+				mrpt::make_aligned_shared<CDisplayWindow>("Descriptor 1");
 			winptr2D_descr1->setPos(550, 70 + img1.getHeight());
 			winptr2D_descr1->resize(220, 200);
 
-			winptr2D_descr2 = std::make_shared<CDisplayWindow>("Descriptor 2");
+			winptr2D_descr2 =
+				mrpt::make_aligned_shared<CDisplayWindow>("Descriptor 2");
 			winptr2D_descr2->setPos(760, 70 + img1.getHeight());
 			winptr2D_descr2->resize(220, 200);
 		}
@@ -216,12 +218,12 @@ Descriptors:
 		case descSURF:
 		{
 			winptrPlot_descr1 =
-				std::make_shared<CDisplayWindowPlots>("Descriptor 1");
+				mrpt::make_aligned_shared<CDisplayWindowPlots>("Descriptor 1");
 			winptrPlot_descr1->setPos(550, 70 + img1.getHeight());
 			winptrPlot_descr1->resize(220, 200);
 
 			winptrPlot_descr2 =
-				std::make_shared<CDisplayWindowPlots>("Descriptor 2");
+				mrpt::make_aligned_shared<CDisplayWindowPlots>("Descriptor 2");
 			winptrPlot_descr2->setPos(760, 70 + img1.getHeight());
 			winptrPlot_descr2->resize(220, 200);
 		}
@@ -247,21 +249,19 @@ Descriptors:
 		// Compute distances:
 		CVectorDouble distances(feats2.size());
 
-		const auto& ft_i1 = feats1[i1];
-
 		tictac.Tic();
 		if (desc_to_compute != descAny)
 		{
 			// Ignore rotations
-			// ft_i1.descriptors.polarImgsNoRotation = true;
+			// feats1[i1]->descriptors.polarImgsNoRotation = true;
 
 			for (unsigned int i2 = 0; i2 < feats2.size(); i2++)
-				distances[i2] = ft_i1.descriptorDistanceTo(feats2[i2]);
+				distances[i2] = feats1[i1]->descriptorDistanceTo(*feats2[i2]);
 		}
 		else
 		{
 			for (unsigned int i2 = 0; i2 < feats2.size(); i2++)
-				distances[i2] = ft_i1.patchCorrelationTo(feats2[i2]);
+				distances[i2] = feats1[i1]->patchCorrelationTo(*feats2[i2]);
 		}
 		cout << "All distances computed in " << 1000.0 * tictac.Tac() << " ms"
 			 << endl;
@@ -269,9 +269,10 @@ Descriptors:
 		// Show Distances;
 		winPlots.plot(distances, ".4k", "all_dists");
 
-		std::size_t min_dist_idx = 0, max_dist_idx = 0;
-		const double min_dist = distances.minCoeff(min_dist_idx);
-		const double max_dist = distances.maxCoeff(max_dist_idx);
+		double min_dist = 0, max_dist = 0;
+		size_t min_dist_idx = 0, max_dist_idx = 0;
+		distances.minimum_maximum(
+			min_dist, max_dist, &min_dist_idx, &max_dist_idx);
 
 		const double dist_std = mrpt::math::stddev(distances);
 
@@ -286,8 +287,6 @@ Descriptors:
 		winPlots.setWindowTitle(
 			format("Distances feat #%u -> all others ", i1));
 
-		const auto& best_ft2 = feats2[min_dist_idx];
-
 		// Display the current descriptor in its window and the best descriptor
 		// from the other image:
 		switch (desc_to_compute)
@@ -300,43 +299,49 @@ Descriptors:
 				CImage auxImg1, auxImg2;
 				if (desc_to_compute == descAny)
 				{
-					auxImg1 = *ft_i1.patch;
-					auxImg2 = *best_ft2.patch;
+					auxImg1 = feats1[i1]->patch;
+					auxImg2 = feats2[min_dist_idx]->patch;
 				}
 				else if (desc_to_compute == descPolarImages)
 				{
-					auxImg1.setFromMatrix(*ft_i1.descriptors.PolarImg);
-					auxImg2.setFromMatrix(*best_ft2.descriptors.PolarImg);
+					auxImg1.setFromMatrix(feats1[i1]->descriptors.PolarImg);
+					auxImg2.setFromMatrix(
+						feats2[min_dist_idx]->descriptors.PolarImg);
 				}
 				else if (desc_to_compute == descLogPolarImages)
 				{
-					auxImg1.setFromMatrix(*ft_i1.descriptors.LogPolarImg);
-					auxImg2.setFromMatrix(*best_ft2.descriptors.LogPolarImg);
+					auxImg1.setFromMatrix(feats1[i1]->descriptors.LogPolarImg);
+					auxImg2.setFromMatrix(
+						feats2[min_dist_idx]->descriptors.LogPolarImg);
 				}
 				else if (desc_to_compute == descSpinImages)
 				{
 					{
-						const size_t nR = ft_i1.descriptors.SpinImg_range_rows;
-						const size_t nC = ft_i1.descriptors.SpinImg->size() /
-										  ft_i1.descriptors.SpinImg_range_rows;
+						const size_t nR =
+							feats1[i1]->descriptors.SpinImg_range_rows;
+						const size_t nC =
+							feats1[i1]->descriptors.SpinImg.size() /
+							feats1[i1]->descriptors.SpinImg_range_rows;
 						CMatrixFloat M1(nR, nC);
 						for (size_t r = 0; r < nR; r++)
 							for (size_t c = 0; c < nC; c++)
 								M1(r, c) =
-									(*ft_i1.descriptors.SpinImg)[c + r * nC];
+									feats1[i1]->descriptors.SpinImg[c + r * nC];
 						auxImg1.setFromMatrix(M1);
 					}
 					{
-						const size_t nR =
-							best_ft2.descriptors.SpinImg_range_rows;
+						const size_t nR = feats2[min_dist_idx]
+											  ->descriptors.SpinImg_range_rows;
 						const size_t nC =
-							best_ft2.descriptors.SpinImg->size() /
-							best_ft2.descriptors.SpinImg_range_rows;
+							feats2[min_dist_idx]->descriptors.SpinImg.size() /
+							feats2[min_dist_idx]
+								->descriptors.SpinImg_range_rows;
 						CMatrixFloat M2(nR, nC);
 						for (size_t r = 0; r < nR; r++)
 							for (size_t c = 0; c < nC; c++)
 								M2(r, c) =
-									(*best_ft2.descriptors.SpinImg)[c + r * nC];
+									feats2[min_dist_idx]
+										->descriptors.SpinImg[c + r * nC];
 						auxImg2.setFromMatrix(M2);
 					}
 				}
@@ -357,9 +362,9 @@ Descriptors:
 			{
 				vector<float> v1, v2;
 				mrpt::containers::copy_container_typecasting(
-					*ft_i1.descriptors.SIFT, v1);
+					feats1[i1]->descriptors.SIFT, v1);
 				mrpt::containers::copy_container_typecasting(
-					*best_ft2.descriptors.SIFT, v2);
+					feats2[min_dist_idx]->descriptors.SIFT, v2);
 				winptrPlot_descr1->plot(v1);
 				winptrPlot_descr2->plot(v2);
 				winptrPlot_descr1->axis_fit();
@@ -368,8 +373,8 @@ Descriptors:
 			break;
 			case descSURF:
 			{
-				winptrPlot_descr1->plot(*ft_i1.descriptors.SURF);
-				winptrPlot_descr2->plot(*best_ft2.descriptors.SURF);
+				winptrPlot_descr1->plot(feats1[i1]->descriptors.SURF);
+				winptrPlot_descr2->plot(feats2[min_dist_idx]->descriptors.SURF);
 				winptrPlot_descr1->axis_fit();
 				winptrPlot_descr2->axis_fit();
 			}
@@ -392,12 +397,10 @@ Descriptors:
 			if (distances[i2] < min_dist + 0.1 * dist_std)
 			{
 				img2_show_base.drawMark(
-					feats2[i2].keypoint.pt.x, feats2[i2].keypoint.pt.y,
-					TColor::red(), '+', 7);
+					feats2[i2]->x, feats2[i2]->y, TColor::red(), '+', 7);
 
 				img2_show_base.textOut(
-					feats2[i2].keypoint.pt.x + 10,
-					feats2[i2].keypoint.pt.y - 10,
+					feats2[i2]->x + 10, feats2[i2]->y - 10,
 					format("#%u, dist=%.02f", i2, distances[i2]),
 					TColor::gray());
 
@@ -407,8 +410,7 @@ Descriptors:
 			else
 			{
 				img2_show_base.drawMark(
-					feats2[i2].keypoint.pt.x, feats2[i2].keypoint.pt.y,
-					TColor::gray(), '+', 3);
+					feats2[i2]->x, feats2[i2]->y, TColor::gray(), '+', 3);
 			}
 		}
 
@@ -423,11 +425,9 @@ Descriptors:
 			img1_show = img1.makeDeepCopy();
 
 			img1_show.drawMark(
-				ft_i1.keypoint.pt.x, ft_i1.keypoint.pt.y, TColor::red(), '+',
-				7);
+				feats1[i1]->x, feats1[i1]->y, TColor::red(), '+', 7);
 			img1_show.drawCircle(
-				ft_i1.keypoint.pt.x, ft_i1.keypoint.pt.y, 7 + anim_loops,
-				TColor::blue());
+				feats1[i1]->x, feats1[i1]->y, 7 + anim_loops, TColor::blue());
 
 			img2_show = img2_show_base.makeDeepCopy();
 			for (unsigned int i2 = 0; i2 < feats2.size(); i2++)
@@ -435,8 +435,8 @@ Descriptors:
 				if (distances[i2] < min_dist + 0.1 * dist_std)
 				{
 					img2_show.drawCircle(
-						feats2[i2].keypoint.pt.x, feats2[i2].keypoint.pt.y,
-						7 + anim_loops, TColor::blue());
+						feats2[i2]->x, feats2[i2]->y, 7 + anim_loops,
+						TColor::blue());
 				}
 			}
 

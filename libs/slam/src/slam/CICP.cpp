@@ -10,7 +10,6 @@
 #include "slam-precomp.h"  // Precompiled headers
 
 #include <mrpt/config/CConfigFileBase.h>  // MRPT_LOAD_*()
-#include <mrpt/math/TPose2D.h>
 #include <mrpt/math/ops_containers.h>
 #include <mrpt/math/wrap2pi.h>
 #include <mrpt/poses/CPose2D.h>
@@ -23,7 +22,6 @@
 #include <mrpt/slam/CICP.h>
 #include <mrpt/system/CTicTac.h>
 #include <mrpt/tfest.h>
-#include <Eigen/Dense>
 
 using namespace mrpt::slam;
 using namespace mrpt::maps;
@@ -210,7 +208,7 @@ CPosePDF::Ptr CICP::ICP_Method_Classic(
 
 	// The gaussian PDF to estimate:
 	// ------------------------------------------------------
-	gaussPdf = std::make_shared<CPosePDFGaussian>();
+	gaussPdf = mrpt::make_aligned_shared<CPosePDFGaussian>();
 
 	// First gross approximation:
 	gaussPdf->mean = grossEst;
@@ -338,7 +336,8 @@ CPosePDF::Ptr CICP::ICP_Method_Classic(
 				// ----------------------------------------------
 				case icpCovFiniteDifferences:
 				{
-					CMatrixDouble D(3, nCorrespondences);
+					Eigen::Matrix<double, 3, Eigen::Dynamic> D(
+						3, nCorrespondences);
 
 					const TPose2D transf = gaussPdf->mean.asTPose();
 
@@ -428,15 +427,14 @@ CPosePDF::Ptr CICP::ICP_Method_Classic(
 					}  // end for each corresp.
 
 					// COV = ( D*D^T + lamba*I )^-1
-					CMatrixDouble33 DDt;
-					DDt.matProductOf_AAt(D);
+					CMatrixDouble33 DDt = D * D.transpose();
 
 					for (i = 0; i < 3; i++)
 						DDt(i, i) += 1e-6;  // Just to make sure the matrix is
 					// not singular, while not changing
 					// its covariance significantly.
 
-					gaussPdf->cov = DDt.inverse_LLt();
+					DDt.inv(gaussPdf->cov);
 				}
 				break;
 				default:
@@ -528,7 +526,7 @@ CPosePDF::Ptr CICP::ICP_Method_Classic(
 		mrpt::tfest::se2_l2_robust(
 			correspondences, options.normalizationStd, params, results);
 
-		SOG = std::make_shared<CPosePDFSOG>();
+		SOG = mrpt::make_aligned_shared<CPosePDFSOG>();
 		*SOG = results.transformation;
 
 		// And return the SOG:
@@ -604,8 +602,8 @@ CPosePDF::Ptr CICP::ICP_Method_LM(
 	q = grossEst;
 
 	// For LM inverse
-	CMatrixFixed<float, 3, 3> C;
-	CMatrixFixed<float, 3, 3>
+	CMatrixFixedNumeric<float, 3, 3> C;
+	CMatrixFixedNumeric<float, 3, 3>
 		C_inv;  // This will keep the cov. matrix at the end
 
 	// Asure maps are not empty!
@@ -723,7 +721,7 @@ CPosePDF::Ptr CICP::ICP_Method_LM(
 						((q1 - q2) / ((w1 - w2) * (w3 - w1)));
 					B = ((q1 - q2) + (A * ((w2 * w2) - (w1 * w1)))) / (w1 - w2);
 
-					dJ_dq(0, i) = (2 * A * *other_x_trans) + B;
+					dJ_dq.get_unsafe(0, i) = (2 * A * *other_x_trans) + B;
 
 					// Jacobian: dJ_dy
 					// --------------------------------------
@@ -763,14 +761,15 @@ CPosePDF::Ptr CICP::ICP_Method_LM(
 						((q1 - q2) / ((w1 - w2) * (w3 - w1)));
 					B = ((q1 - q2) + (A * ((w2 * w2) - (w1 * w1)))) / (w1 - w2);
 
-					dJ_dq(1, i) = (2 * A * *other_y_trans) + B;
+					dJ_dq.get_unsafe(1, i) = (2 * A * *other_y_trans) + B;
 
 					// Jacobian: dR_dphi
 					// --------------------------------------
-					dJ_dq(2, i) =
-						dJ_dq(0, i) *
+					dJ_dq.get_unsafe(2, i) =
+						dJ_dq.get_unsafe(0, i) *
 							(-csin * it->other_x - ccos * it->other_y) +
-						dJ_dq(1, i) * (ccos * it->other_x - csin * it->other_y);
+						dJ_dq.get_unsafe(1, i) *
+							(ccos * it->other_x - csin * it->other_y);
 
 				}  // end for each corresp.
 
@@ -778,10 +777,9 @@ CPosePDF::Ptr CICP::ICP_Method_LM(
 
 				// Compute the Hessian matrix H = dJ_dq * dJ_dq^T
 				CMatrixFloat H_(3, 3);
-				H_.matProductOf_AAt(dJ_dq);
+				H_.multiply_AAt(dJ_dq);
 
-				CMatrixFixed<float, 3, 3> H;
-				H = H_;
+				auto H = CMatrixFixedNumeric<float, 3, 3>(H_);
 
 				bool keepIteratingLM = true;
 
@@ -805,14 +803,15 @@ CPosePDF::Ptr CICP::ICP_Method_LM(
 						C(i, i) *=
 							(1 + lambda);  // Levenberg-Maquardt heuristic
 
-					C_inv = C.inverse_LLt();
+					C_inv = C.inv();
 
 					// LM_delta = C_inv * dJ_dq * sq_errors
-					const Eigen::Vector3f LM_delta =
-						(C_inv.asEigen() * dJ_dq.asEigen() *
-						 Eigen::Map<Eigen::VectorXf>(
-							 &sq_errors[0], sq_errors.size()))
-							.eval();
+					Eigen::VectorXf dJsq, LM_delta;
+					dJ_dq.multiply_Ab(
+						Eigen::Map<Eigen::VectorXf>(
+							&sq_errors[0], sq_errors.size()),
+						dJsq);
+					C_inv.multiply_Ab(dJsq, LM_delta);
 
 					q_new.x(q.x() - LM_delta[0]);
 					q_new.y(q.y() - LM_delta[1]);
@@ -907,7 +906,7 @@ CPosePDF::Ptr CICP::ICP_Method_LM(
 
 	}  // end of "if m2 is not empty"
 
-	return CPosePDFGaussian::Create(q, C_inv.cast_double());
+	return CPosePDFGaussian::Create(q, C_inv.cast<double>());
 	MRPT_END
 }
 
@@ -987,7 +986,7 @@ CPose3DPDF::Ptr CICP::ICP3D_Method_Classic(
 
 	// The gaussian PDF to estimate:
 	// ------------------------------------------------------
-	gaussPdf = std::make_shared<CPose3DPDFGaussian>();
+	gaussPdf = mrpt::make_aligned_shared<CPose3DPDFGaussian>();
 
 	// First gross approximation:
 	gaussPdf->mean = grossEst;

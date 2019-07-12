@@ -15,7 +15,6 @@
 #include <mrpt/nav/holonomic/CHolonomicFullEval.h>
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/serialization/stl_serialization.h>
-#include <Eigen/Dense>  // col(),...
 #include <cmath>
 
 using namespace mrpt;
@@ -485,7 +484,7 @@ void CHolonomicFullEval::navigate(const NavInput& ni, NavOutput& no)
 
 	// Create a log record for returning data.
 	CLogFileRecord_FullEval::Ptr log =
-		std::make_shared<CLogFileRecord_FullEval>();
+		mrpt::make_aligned_shared<CLogFileRecord_FullEval>();
 	no.logRecord = log;
 
 	const size_t numTrgs = ni.targets.size();

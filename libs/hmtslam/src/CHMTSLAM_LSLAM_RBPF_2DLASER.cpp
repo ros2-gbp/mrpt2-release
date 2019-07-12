@@ -9,18 +9,18 @@
 
 #include "hmtslam-precomp.h"  // Precomp header
 
-#include <mrpt/bayes/CParticleFilter.h>
 #include <mrpt/hmtslam/CRobotPosesGraph.h>
+#include <mrpt/math/wrap2pi.h>
+#include <mrpt/poses/CPosePDFGaussian.h>
+#include <mrpt/slam/CICP.h>
+
+#include <mrpt/bayes/CParticleFilter.h>
 #include <mrpt/io/CFileStream.h>
 #include <mrpt/math/ops_containers.h>
 #include <mrpt/math/utils.h>
-#include <mrpt/math/wrap2pi.h>
-#include <mrpt/poses/CPosePDFGaussian.h>
 #include <mrpt/random.h>
-#include <mrpt/slam/CICP.h>
 #include <mrpt/system/CTicTac.h>
 #include <mrpt/system/os.h>
-#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::slam;
@@ -346,7 +346,7 @@ void CLSLAM_RBPF_2DLASER::prediction_and_update_pfAuxiliaryPFOptimal(
 	//  where X is the robot pose prior (as implemented in
 	//  the aux. function "particlesEvaluator_AuxPFOptimal"),
 	//  and also the "m_maxLikelihood" filled with the maximum lik. values.
-	std::vector<mrpt::poses::CPose2D> newParticles;
+	mrpt::aligned_std_vector<mrpt::poses::CPose2D> newParticles;
 	vector<double> newParticlesWeight;
 	vector<size_t> newParticlesDerivedFromIdx;
 

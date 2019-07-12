@@ -144,14 +144,14 @@ void renameDirContents()
 //
 int main()
 {
+	char c;
 	try
 	{
 		cout << "Running setupDirContents fun..." << endl;
 		cout << "------------------------------" << endl;
 		setupDirContents();
 		cout << "Press a key to continue..." << endl;
-		// char c=
-		getchar();
+		c = getchar();
 
 		cout << "Running RenameDirContents fun..." << endl;
 		cout << "------------------------------" << endl;

@@ -13,8 +13,6 @@
 #include <mrpt/core/round.h>
 #include <mrpt/kinematics/CVehicleVelCmd.h>
 #include <mrpt/math/CPolygon.h>
-#include <mrpt/math/TPose2D.h>
-#include <mrpt/math/TTwist2D.h>
 #include <mrpt/math/wrap2pi.h>
 #include <mrpt/nav/holonomic/ClearanceDiagram.h>
 #include <mrpt/poses/CPose2D.h>
@@ -99,7 +97,7 @@ class CParameterizedTrajectoryGenerator
 	 *
 	 * \exception std::logic_error On invalid or missing parameters.
 	 */
-	static CParameterizedTrajectoryGenerator::Ptr CreatePTG(
+	static CParameterizedTrajectoryGenerator* CreatePTG(
 		const std::string& ptgClassName,
 		const mrpt::config::CConfigFileBase& cfg, const std::string& sSection,
 		const std::string& sKeyPrefix);

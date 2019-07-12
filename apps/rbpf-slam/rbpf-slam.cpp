@@ -422,7 +422,7 @@ void MapBuilding_RBPF()
 			CPose3DPDF::Ptr curPDFptr = mapBuilder.getCurrentPoseEstimation();
 			CPose3DPDFParticles curPDF;
 
-			if (IS_CLASS(*curPDFptr, CPose3DPDFParticles))
+			if (IS_CLASS(curPDFptr, CPose3DPDFParticles))
 			{
 				CPose3DPDFParticles::Ptr pp =
 					std::dynamic_pointer_cast<CPose3DPDFParticles>(curPDFptr);
@@ -495,11 +495,11 @@ void MapBuilding_RBPF()
 				COpenGLScene::Ptr scene;
 				if (SAVE_3D_SCENE || SHOW_PROGRESS_IN_WINDOW)
 				{
-					scene = std::make_shared<COpenGLScene>();
+					scene = mrpt::make_aligned_shared<COpenGLScene>();
 
 					// The ground:
 					mrpt::opengl::CGridPlaneXY::Ptr groundPlane =
-						mrpt::opengl::CGridPlaneXY::Create(
+						mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
 							-200, 200, -200, 200, 0, 5);
 					groundPlane->setColor(0.4, 0.4, 0.4);
 					scene->insert(groundPlane);
@@ -508,7 +508,7 @@ void MapBuilding_RBPF()
 					if (CAMERA_3DSCENE_FOLLOWS_ROBOT)
 					{
 						mrpt::opengl::CCamera::Ptr objCam =
-							mrpt::opengl::CCamera::Create();
+							mrpt::make_aligned_shared<mrpt::opengl::CCamera>();
 						CPose3D robotPose;
 						curPDF.getMean(robotPose);
 
@@ -519,14 +519,15 @@ void MapBuilding_RBPF()
 					}
 					// Draw the map(s):
 					mrpt::opengl::CSetOfObjects::Ptr objs =
-						mrpt::opengl::CSetOfObjects::Create();
+						mrpt::make_aligned_shared<
+							mrpt::opengl::CSetOfObjects>();
 					mostLikMap->getAs3DObject(objs);
 					scene->insert(objs);
 
 					// Draw the robot particles:
 					size_t M = mapBuilder.mapPDF.particlesCount();
 					mrpt::opengl::CSetOfLines::Ptr objLines =
-						mrpt::opengl::CSetOfLines::Create();
+						mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
 					objLines->setColor(0, 1, 1);
 					for (size_t i = 0; i < M; i++)
 					{
@@ -556,17 +557,18 @@ void MapBuilding_RBPF()
 						mapBuilder.mapPDF.getEstimatedPosePDFAtTime(
 							k, poseParts);
 
-						const auto [COV, meanPose] =
-							poseParts.getCovarianceAndMean();
+						CPose3D meanPose;
+						CMatrixDouble66 COV;
+						poseParts.getCovarianceAndMean(COV, meanPose);
 
 						if (meanPose.distanceTo(lastMeanPose) > minDistBtwPoses)
 						{
-							CMatrixDouble33 COV3 = COV.blockCopy<3, 3>(0, 0);
+							CMatrixDouble33 COV3 = COV.block(0, 0, 3, 3);
 
 							minDistBtwPoses = 6 * sqrt(COV3(0, 0) + COV3(1, 1));
 
 							opengl::CEllipsoid::Ptr objEllip =
-								std::make_shared<opengl::CEllipsoid>();
+								mrpt::make_aligned_shared<opengl::CEllipsoid>();
 							objEllip->setLocation(
 								meanPose.x(), meanPose.y(),
 								meanPose.z() + 0.001);

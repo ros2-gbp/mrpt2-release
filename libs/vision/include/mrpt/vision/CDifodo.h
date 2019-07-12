@@ -9,10 +9,10 @@
 
 #pragma once
 
-#include <mrpt/math/CMatrixDynamic.h>
-#include <mrpt/math/CMatrixFixed.h>
-#include <mrpt/math/TTwist3D.h>
+#include <mrpt/math/CMatrixFixedNumeric.h>
+#include <mrpt/math/types_math.h>  // Eigen
 #include <mrpt/poses/CPose3D.h>
+//#include <unsupported/Eigen/MatrixFunctions>
 
 namespace mrpt::vision
 {
@@ -61,42 +61,42 @@ class CDifodo
    protected:
 	/** Matrix that stores the original depth frames with the image resolution
 	 */
-	mrpt::math::CMatrixFloat depth_wf;
+	Eigen::MatrixXf depth_wf;
 
 	/** Matrices that store the point coordinates after downsampling. */
-	std::vector<mrpt::math::CMatrixFloat> depth;
-	std::vector<mrpt::math::CMatrixFloat> depth_old;
-	std::vector<mrpt::math::CMatrixFloat> depth_inter;
-	std::vector<mrpt::math::CMatrixFloat> depth_warped;
-	std::vector<mrpt::math::CMatrixFloat> xx;
-	std::vector<mrpt::math::CMatrixFloat> xx_inter;
-	std::vector<mrpt::math::CMatrixFloat> xx_old;
-	std::vector<mrpt::math::CMatrixFloat> xx_warped;
-	std::vector<mrpt::math::CMatrixFloat> yy;
-	std::vector<mrpt::math::CMatrixFloat> yy_inter;
-	std::vector<mrpt::math::CMatrixFloat> yy_old;
-	std::vector<mrpt::math::CMatrixFloat> yy_warped;
+	std::vector<Eigen::MatrixXf> depth;
+	std::vector<Eigen::MatrixXf> depth_old;
+	std::vector<Eigen::MatrixXf> depth_inter;
+	std::vector<Eigen::MatrixXf> depth_warped;
+	std::vector<Eigen::MatrixXf> xx;
+	std::vector<Eigen::MatrixXf> xx_inter;
+	std::vector<Eigen::MatrixXf> xx_old;
+	std::vector<Eigen::MatrixXf> xx_warped;
+	std::vector<Eigen::MatrixXf> yy;
+	std::vector<Eigen::MatrixXf> yy_inter;
+	std::vector<Eigen::MatrixXf> yy_old;
+	std::vector<Eigen::MatrixXf> yy_warped;
 
 	/** Matrices that store the depth derivatives */
-	mrpt::math::CMatrixFloat du;
-	mrpt::math::CMatrixFloat dv;
-	mrpt::math::CMatrixFloat dt;
+	Eigen::MatrixXf du;
+	Eigen::MatrixXf dv;
+	Eigen::MatrixXf dt;
 
 	/** Weights for the range flow constraint equations in the least square
 	 * solution */
-	mrpt::math::CMatrixFloat weights;
+	Eigen::MatrixXf weights;
 
 	/** Matrix which indicates whether the depth of a pixel is zero (null = 1)
 	 * or not (null = 00).*/
-	mrpt::math::CMatrixBool null;
+	Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic> null;
 
 	/** Least squares covariance matrix */
-	mrpt::math::CMatrixFloat66 est_cov;
+	Eigen::Matrix<float, 6, 6> est_cov;
 
 	/** Gaussian masks used to build the pyramid and flag to select accurate or
 	 * fast pyramid*/
 	bool fast_pyramid;
-	mrpt::math::CMatrixFloat44 f_mask;
+	Eigen::Matrix4f f_mask;
 	float g_mask[5][5];
 
 	/** Camera properties: */
@@ -143,17 +143,17 @@ class CDifodo
 	float previous_speed_eig_weight;
 
 	/** Transformations of the coarse-to-fine levels */
-	std::vector<mrpt::math::CMatrixFloat> transformations;
+	std::vector<Eigen::MatrixXf> transformations;
 
 	/** Solution from the solver at a given level */
-	mrpt::math::TTwist3D kai_loc_level;
+	Eigen::Matrix<float, 6, 1> kai_loc_level;
 
 	/** Last filtered velocity in absolute coordinates */
-	mrpt::math::TTwist3D kai_abs;
+	Eigen::Matrix<float, 6, 1> kai_abs;
 
 	/** Filtered velocity in local coordinates */
-	mrpt::math::TTwist3D kai_loc;
-	mrpt::math::TTwist3D kai_loc_old;
+	Eigen::Matrix<float, 6, 1> kai_loc;
+	Eigen::Matrix<float, 6, 1> kai_loc_old;
 
 	/** Create the gaussian image pyramid according to the number of
 	 * coarse-to-fine levels */
@@ -189,7 +189,7 @@ class CDifodo
 
    public:
 	/** Frames per second (Hz) */
-	double fps;
+	float fps;
 
 	/** Resolution of the images taken by the range camera */
 	unsigned int cam_mode;  // (1 - 640 x 480, 2 - 320 x 240, 4 - 160 x 120)
@@ -271,30 +271,32 @@ class CDifodo
 	/** Get the coordinates of the points considered by the visual odometry
 	 * method */
 	inline void getPointsCoord(
-		mrpt::math::CMatrixFloat& x, mrpt::math::CMatrixFloat& y,
-		mrpt::math::CMatrixFloat& z);
+		Eigen::MatrixXf& x, Eigen::MatrixXf& y, Eigen::MatrixXf& z);
 
 	/** Get the depth derivatives (last level) respect to u,v and t respectively
 	 */
 	inline void getDepthDerivatives(
-		mrpt::math::CMatrixFloat& cur_du, mrpt::math::CMatrixFloat& cur_dv,
-		mrpt::math::CMatrixFloat& cur_dt);
+		Eigen::MatrixXf& cur_du, Eigen::MatrixXf& cur_dv,
+		Eigen::MatrixXf& cur_dt);
 
 	/** Get the camera velocity (vx, vy, vz, wx, wy, wz) expressed in local
 	 * reference frame estimated by the solver (before filtering) */
-	inline mrpt::math::TTwist3D getSolverSolution() const
+	inline mrpt::math::CMatrixFloat61 getSolverSolution() const
 	{
 		return kai_loc_level;
 	}
 
 	/** Get the last camera velocity (vx, vy, vz, wx, wy, wz) expressed in the
 	 * world reference frame, obtained after filtering */
-	inline mrpt::math::TTwist3D getLastSpeedAbs() const { return kai_abs; }
+	inline mrpt::math::CMatrixFloat61 getLastSpeedAbs() const
+	{
+		return kai_abs;
+	}
 
 	/** Get the least-square covariance matrix */
 	inline mrpt::math::CMatrixFloat66 getCovariance() const { return est_cov; }
 	/** Get the matrix of weights */
-	inline void getWeights(mrpt::math::CMatrixFloat& we);
+	inline void getWeights(Eigen::MatrixXf& we);
 
 	/** Virtual method to be implemented in derived classes.
 	 * It should be used to load a new depth image into the variable depth_wf

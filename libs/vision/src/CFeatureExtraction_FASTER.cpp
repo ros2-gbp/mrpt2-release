@@ -28,7 +28,7 @@ using namespace std;
 
 // ------------  SSE2-optimized implementations of FASTER -------------
 void CFeatureExtraction::detectFeatures_SSE2_FASTER9(
-	const CImage& img, TKeyPointList& corners, const int threshold,
+	const CImage& img, TSimpleFeatureList& corners, const int threshold,
 	bool append_to_list, uint8_t octave,
 	std::vector<size_t>* out_feats_index_by_row)
 {
@@ -44,7 +44,7 @@ void CFeatureExtraction::detectFeatures_SSE2_FASTER9(
 #endif
 }
 void CFeatureExtraction::detectFeatures_SSE2_FASTER10(
-	const CImage& img, TKeyPointList& corners, const int threshold,
+	const CImage& img, TSimpleFeatureList& corners, const int threshold,
 	bool append_to_list, uint8_t octave,
 	std::vector<size_t>* out_feats_index_by_row)
 {
@@ -60,7 +60,7 @@ void CFeatureExtraction::detectFeatures_SSE2_FASTER10(
 #endif
 }
 void CFeatureExtraction::detectFeatures_SSE2_FASTER12(
-	const CImage& img, TKeyPointList& corners, const int threshold,
+	const CImage& img, TSimpleFeatureList& corners, const int threshold,
 	bool append_to_list, uint8_t octave,
 	std::vector<size_t>* out_feats_index_by_row)
 {
@@ -91,8 +91,8 @@ void CFeatureExtraction::extractFeaturesFASTER_N(
 	const CImage inImg_gray(inImg, FAST_REF_OR_CONVERT_TO_GRAY);
 	const cv::Mat& img = inImg_gray.asCvMatRef();
 
-	TKeyPointList corners;
-	TKeyPointMethod type_of_this_feature;
+	TSimpleFeatureList corners;
+	TFeatureType type_of_this_feature;
 
 	switch (N_fast)
 	{
@@ -135,15 +135,13 @@ void CFeatureExtraction::extractFeaturesFASTER_N(
 	{
 		const auto KLT_half_win =
 			options.FASTOptions.KLT_response_half_win_size;
-		const auto max_x =
-			static_cast<int>(inImg_gray.getWidth() - 1 - KLT_half_win);
-		const auto max_y =
-			static_cast<int>(inImg_gray.getHeight() - 1 - KLT_half_win);
+		const auto max_x = inImg_gray.getWidth() - 1 - KLT_half_win;
+		const auto max_y = inImg_gray.getHeight() - 1 - KLT_half_win;
 
 		for (size_t i = 0; i < N; i++)
 		{
-			const auto x = corners[i].pt.x;
-			const auto y = corners[i].pt.y;
+			const auto x = static_cast<unsigned int>(corners[i].pt.x);
+			const auto y = static_cast<unsigned int>(corners[i].pt.y);
 			if (x > KLT_half_win && y > KLT_half_win && x <= max_x &&
 				y <= max_y)
 				corners[i].response =
@@ -154,7 +152,7 @@ void CFeatureExtraction::extractFeaturesFASTER_N(
 
 		std::sort(
 			sorted_indices.begin(), sorted_indices.end(),
-			KeypointResponseSorter<TKeyPointList>(corners));
+			KeypointResponseSorter<TSimpleFeatureList>(corners));
 	}
 	else
 	{
@@ -192,7 +190,7 @@ void CFeatureExtraction::extractFeaturesFASTER_N(
 
 	// See the comments above for an explanation.
 	mrpt::math::CMatrixBool occupied_sections(grid_lx, grid_ly);
-	occupied_sections.fill(false);
+	occupied_sections.fillAll(false);
 
 	unsigned int nMax =
 		(nDesiredFeatures != 0 && N > nDesiredFeatures) ? nDesiredFeatures : N;
@@ -209,7 +207,7 @@ void CFeatureExtraction::extractFeaturesFASTER_N(
 	while (cont != nMax && i != N)
 	{
 		// Take the next feature from the ordered list of good features:
-		const TKeyPoint& feat = corners[sorted_indices[i]];
+		const TSimpleFeature& feat = corners[sorted_indices[i]];
 		i++;
 
 		// Patch out of the image??
@@ -225,40 +223,45 @@ void CFeatureExtraction::extractFeaturesFASTER_N(
 		if (do_filter_min_dist)
 		{
 			// Check the min-distance:
-			const auto sect_ix =
+			const auto section_idx_x =
 				size_t(feat.pt.x * occupied_grid_cell_size_inv);
-			const auto sect_iy =
+			const auto section_idx_y =
 				size_t(feat.pt.y * occupied_grid_cell_size_inv);
 
-			if (occupied_sections(sect_ix, sect_iy))
+			if (occupied_sections(section_idx_x, section_idx_y))
 				continue;  // Already occupied! skip.
 
 			// Mark section as occupied
-			occupied_sections(sect_ix, sect_iy) = true;
-			if (sect_ix > 0) occupied_sections(sect_ix - 1, sect_iy) = true;
-			if (sect_iy > 0) occupied_sections(sect_ix, sect_iy - 1) = true;
-			if (sect_ix < grid_lx - 1)
-				occupied_sections(sect_ix + 1, sect_iy) = true;
-			if (sect_iy < grid_ly - 1)
-				occupied_sections(sect_ix, sect_iy + 1) = true;
+			occupied_sections.set_unsafe(section_idx_x, section_idx_y, true);
+			if (section_idx_x > 0)
+				occupied_sections.set_unsafe(
+					section_idx_x - 1, section_idx_y, true);
+			if (section_idx_y > 0)
+				occupied_sections.set_unsafe(
+					section_idx_x, section_idx_y - 1, true);
+			if (section_idx_x < grid_lx - 1)
+				occupied_sections.set_unsafe(
+					section_idx_x + 1, section_idx_y, true);
+			if (section_idx_y < grid_ly - 1)
+				occupied_sections.set_unsafe(
+					section_idx_x, section_idx_y + 1, true);
 		}
 
 		// All tests passed: add new feature:
-		CFeature ft;
-		ft.type = type_of_this_feature;
-		ft.keypoint.ID = nextID++;
-		ft.keypoint.pt.x = feat.pt.x;
-		ft.keypoint.pt.y = feat.pt.y;
-		ft.response = feat.response;
-		ft.orientation = 0;
-		ft.keypoint.octave = 1;
-		ft.patchSize = options.patchSize;  // The size of the feature patch
+		CFeature::Ptr ft = mrpt::make_aligned_shared<CFeature>();
+		ft->type = type_of_this_feature;
+		ft->ID = nextID++;
+		ft->x = feat.pt.x;
+		ft->y = feat.pt.y;
+		ft->response = feat.response;
+		ft->orientation = 0;
+		ft->scale = 1;
+		ft->patchSize = options.patchSize;  // The size of the feature patch
 
 		if (options.patchSize > 0)
 		{
-			ft.patch.emplace();
 			inImg.extract_patch(
-				*ft.patch, round(feat.pt.x) - offset, round(feat.pt.y) - offset,
+				ft->patch, round(ft->x) - offset, round(ft->y) - offset,
 				options.patchSize,
 				options.patchSize);  // Image patch surronding the feature
 		}

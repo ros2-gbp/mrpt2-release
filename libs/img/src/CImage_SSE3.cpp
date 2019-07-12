@@ -9,8 +9,6 @@
 
 #include "img-precomp.h"  // Precompiled headers
 
-#include <mrpt/config.h>
-
 // ---------------------------------------------------------------------------
 //   This file contains the SSE3/SSSE3 optimized functions for
 //   mrpt::img::CImage

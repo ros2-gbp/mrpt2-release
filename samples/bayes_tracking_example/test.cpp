@@ -306,7 +306,7 @@ void TestBayesianTracking()
 		// Process with PF:
 		CSensoryFrame SF;
 		CObservationBearingRange::Ptr obsRangeBear =
-			CObservationBearingRange::Create();
+			mrpt::make_aligned_shared<CObservationBearingRange>();
 		obsRangeBear->sensedData.resize(1);
 		obsRangeBear->sensedData[0].range = obsRange;
 		obsRangeBear->sensedData[0].yaw = obsBearing;
@@ -436,7 +436,8 @@ CRangeBearing::CRangeBearing()
 	m_xkk[3] = 0;
 
 	// Initial cov:  Large uncertainty
-	m_pkk.setIdentity(4);
+	m_pkk.setSize(4, 4);
+	m_pkk.unit();
 	m_pkk(0, 0) = m_pkk(1, 1) = square(5.0f);
 	m_pkk(2, 2) = m_pkk(3, 3) = square(1.0f);
 }
@@ -482,7 +483,7 @@ void CRangeBearing::OnTransitionModel(
  */
 void CRangeBearing::OnTransitionJacobian(KFMatrix_VxV& F) const
 {
-	F.setIdentity();
+	F.unit();
 
 	F(0, 2) = m_deltaTime;
 	F(1, 3) = m_deltaTime;
@@ -564,7 +565,7 @@ void CRangeBearing::OnObservationJacobians(
 	kftype x = m_xkk[0];
 	kftype y = m_xkk[1];
 
-	Hx.setZero();
+	Hx.zeros();
 	Hx(0, 0) = -y / (square(x) + square(y));
 	Hx(0, 1) = 1 / (x * (1 + square(y / x)));
 

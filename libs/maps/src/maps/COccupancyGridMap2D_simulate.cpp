@@ -11,12 +11,11 @@
 
 #include <mrpt/core/round.h>  // round()
 #include <mrpt/maps/COccupancyGridMap2D.h>
-#include <mrpt/math/CVectorFixed.h>
 #include <mrpt/math/transform_gaussian.h>
 #include <mrpt/obs/CObservation2DRangeScan.h>
 #include <mrpt/obs/CObservationRange.h>
+
 #include <mrpt/random.h>
-#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::maps;
@@ -196,9 +195,8 @@ struct TFunctorLaserSimulData
 };
 
 static void func_laserSimul_callback(
-	const mrpt::math::CVectorFixedDouble<3>& x_pose,
-	const TFunctorLaserSimulData& fixed_param,
-	mrpt::math::CVectorDouble& y_scanRanges)
+	const Eigen::Vector3d& x_pose, const TFunctorLaserSimulData& fixed_param,
+	Eigen::VectorXd& y_scanRanges)
 {
 	ASSERT_(fixed_param.params && fixed_param.grid);
 	ASSERT_(fixed_param.params->decimation >= 1);
@@ -242,8 +240,8 @@ void COccupancyGridMap2D::laserScanSimulatorWithUncertainty(
 	const COccupancyGridMap2D::TLaserSimulUncertaintyParams& in_params,
 	COccupancyGridMap2D::TLaserSimulUncertaintyResult& out_results) const
 {
-	const mrpt::math::CVectorFixedDouble<3> robPoseMean =
-		in_params.robotPose.mean.asVectorVal();
+	const Eigen::Vector3d robPoseMean =
+		in_params.robotPose.mean.getAsVectorVal();
 
 	TFunctorLaserSimulData simulData;
 	simulData.grid = this;
@@ -299,6 +297,6 @@ void COccupancyGridMap2D::laserScanSimulatorWithUncertainty(
 	}
 
 	// Add minimum uncertainty: grid cell resolution:
-	out_results.scanWithUncert.rangesCovar.asEigen().diagonal().array() +=
+	out_results.scanWithUncert.rangesCovar.diagonal().array() +=
 		0.5 * resolution * resolution;
 }

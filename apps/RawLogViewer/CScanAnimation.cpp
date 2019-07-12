@@ -13,18 +13,6 @@
 #include <wx/string.h>
 //*)
 
-#ifdef None  // X header conflict...
-#undef None
-#endif
-
-#include <mrpt/maps/CColouredPointsMap.h>
-#include <mrpt/obs/CObservation3DRangeScan.h>
-#include <mrpt/obs/CObservationPointCloud.h>
-#include <mrpt/obs/CObservationVelodyneScan.h>
-#include <mrpt/opengl/CGridPlaneXY.h>
-#include <mrpt/opengl/CPlanarLaserScan.h>  // in library mrpt-maps
-#include <mrpt/opengl/stock_objects.h>
-
 #include <wx/app.h>
 #include <wx/busyinfo.h>
 #include <wx/log.h>
@@ -59,6 +47,13 @@ BEGIN_EVENT_TABLE(CScanAnimation, wxDialog)
 //(*EventTable(CScanAnimation)
 //*)
 END_EVENT_TABLE()
+
+#include <mrpt/maps/CColouredPointsMap.h>
+#include <mrpt/obs/CObservation3DRangeScan.h>
+#include <mrpt/obs/CObservationVelodyneScan.h>
+#include <mrpt/opengl/CGridPlaneXY.h>
+#include <mrpt/opengl/CPlanarLaserScan.h>  // in library mrpt-maps
+#include <mrpt/opengl/stock_objects.h>
 
 using namespace mrpt;
 using namespace mrpt::maps;
@@ -301,8 +296,9 @@ CScanAnimation::CScanAnimation(
 
 	// Initialize 3D view:
 	auto openGLSceneRef = m_plot3D->getOpenGLSceneRef();
-	openGLSceneRef->insert(mrpt::opengl::CGridPlaneXY::Create(
-		-50, 50, -50, 50, 0 /* z */, 5 /* freq */));
+	openGLSceneRef->insert(
+		mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
+			-50, 50, -50, 50, 0 /* z */, 5 /* freq */));
 	openGLSceneRef->insert(mrpt::opengl::stock_objects::CornerXYZSimple(
 		1.0 /*scale*/, 3.0 /*line width*/));
 
@@ -331,7 +327,7 @@ void CScanAnimation::RebuildMaps()
 		}
 		else if (rawlog.getType(idx) == CRawlog::etObservation)
 		{
-			CSensoryFrame::Ptr sf = std::make_shared<CSensoryFrame>();
+			CSensoryFrame::Ptr sf = mrpt::make_aligned_shared<CSensoryFrame>();
 			sf->insert(rawlog.getAsObservation(idx));
 			BuildMapAndRefresh(sf.get());
 		}
@@ -353,7 +349,7 @@ void CScanAnimation::BuildMapAndRefresh(CSensoryFrame* sf)
 	{
 		it->load();
 		// force generate 3D point clouds:
-		if (IS_CLASS(*it, CObservation3DRangeScan))
+		if (IS_CLASS(it, CObservation3DRangeScan))
 		{
 			CObservation3DRangeScan::Ptr o =
 				std::dynamic_pointer_cast<CObservation3DRangeScan>(it);
@@ -387,7 +383,7 @@ void CScanAnimation::BuildMapAndRefresh(CSensoryFrame* sf)
 	{
 		const std::string sNameInMap =
 			std::string(it->GetRuntimeClass()->className) + it->sensorLabel;
-		if (IS_CLASS(*it, CObservation2DRangeScan))
+		if (IS_CLASS(it, CObservation2DRangeScan))
 		{
 			CObservation2DRangeScan::Ptr obs =
 				std::dynamic_pointer_cast<CObservation2DRangeScan>(it);
@@ -409,7 +405,7 @@ void CScanAnimation::BuildMapAndRefresh(CSensoryFrame* sf)
 			{
 				// Create object:
 				CPlanarLaserScan::Ptr gl_obj =
-					std::make_shared<CPlanarLaserScan>();
+					mrpt::make_aligned_shared<CPlanarLaserScan>();
 				gl_obj->setScan(*obs);
 
 				TRenderObject ro;
@@ -419,7 +415,7 @@ void CScanAnimation::BuildMapAndRefresh(CSensoryFrame* sf)
 				m_plot3D->getOpenGLSceneRef()->insert(gl_obj);
 			}
 		}
-		else if (IS_CLASS(*it, CObservation3DRangeScan))
+		else if (IS_CLASS(it, CObservation3DRangeScan))
 		{
 			CObservation3DRangeScan::Ptr obs =
 				std::dynamic_pointer_cast<CObservation3DRangeScan>(it);
@@ -432,7 +428,7 @@ void CScanAnimation::BuildMapAndRefresh(CSensoryFrame* sf)
 				CColouredPointsMap::cmFromIntensityImage;
 			pointMap.insertionOptions.minDistBetweenLaserPoints = 0;
 
-			pointMap.insertObservation(*obs);
+			pointMap.insertObservation(obs.get());
 
 			// Already in the map with the same sensor label?
 			auto it_gl = m_gl_objects.find(sNameInMap);
@@ -449,7 +445,7 @@ void CScanAnimation::BuildMapAndRefresh(CSensoryFrame* sf)
 			{
 				// Create object:
 				CPointCloudColoured::Ptr gl_obj =
-					std::make_shared<CPointCloudColoured>();
+					mrpt::make_aligned_shared<CPointCloudColoured>();
 				gl_obj->setPointSize(3.0);
 				gl_obj->loadFromPointsMap(&pointMap);
 
@@ -462,7 +458,7 @@ void CScanAnimation::BuildMapAndRefresh(CSensoryFrame* sf)
 			// Add to list:
 			//				m_lstScans[obs->sensorLabel] = obs;
 		}
-		else if (IS_CLASS(*it, CObservationVelodyneScan))
+		else if (IS_CLASS(it, CObservationVelodyneScan))
 		{
 			CObservationVelodyneScan::Ptr obs =
 				std::dynamic_pointer_cast<CObservationVelodyneScan>(it);
@@ -490,43 +486,9 @@ void CScanAnimation::BuildMapAndRefresh(CSensoryFrame* sf)
 			{
 				// Create object:
 				CPointCloudColoured::Ptr gl_obj =
-					std::make_shared<CPointCloudColoured>();
+					mrpt::make_aligned_shared<CPointCloudColoured>();
 				gl_obj->setPointSize(3.0);
 				gl_obj->loadFromPointsMap(&pointMap);
-
-				TRenderObject ro;
-				ro.obj = gl_obj;
-				ro.timestamp = obs->timestamp;
-				m_gl_objects[sNameInMap] = ro;
-				m_plot3D->getOpenGLSceneRef()->insert(gl_obj);
-			}
-		}
-		else if (IS_CLASS(*it, CObservationPointCloud))
-		{
-			auto obs = std::dynamic_pointer_cast<CObservationPointCloud>(it);
-			wereScans = true;
-			if (tim_last == INVALID_TIMESTAMP || tim_last < obs->timestamp)
-				tim_last = obs->timestamp;
-
-			// Already in the map with the same sensor label?
-			auto it_gl = m_gl_objects.find(sNameInMap);
-			if (it_gl != m_gl_objects.end())
-			{
-				// Update existing object:
-				TRenderObject& ro = it_gl->second;
-				auto gl_obj =
-					std::dynamic_pointer_cast<CPointCloudColoured>(ro.obj);
-				gl_obj->loadFromPointsMap(obs->pointcloud.get());
-				gl_obj->setPose(obs->sensorPose);
-				ro.timestamp = obs->timestamp;
-			}
-			else
-			{
-				// Create object:
-				auto gl_obj = std::make_shared<CPointCloudColoured>();
-				gl_obj->setPointSize(3.0);
-				gl_obj->loadFromPointsMap(obs->pointcloud.get());
-				gl_obj->setPose(obs->sensorPose);
 
 				TRenderObject ro;
 				ro.obj = gl_obj;

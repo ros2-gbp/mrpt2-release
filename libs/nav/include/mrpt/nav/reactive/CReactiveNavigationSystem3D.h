@@ -83,6 +83,7 @@ struct TRobotShape
 class CReactiveNavigationSystem3D : public CAbstractPTGBasedReactive
 {
    public:
+	MRPT_MAKE_ALIGNED_OPERATOR_NEW
    public:
 	/** See docs in ctor of base class */
 	CReactiveNavigationSystem3D(
@@ -109,17 +110,13 @@ class CReactiveNavigationSystem3D : public CAbstractPTGBasedReactive
 	CParameterizedTrajectoryGenerator* getPTG(size_t i) override
 	{
 		ASSERT_(!m_ptgmultilevel.empty() && !m_ptgmultilevel[i].PTGs.empty());
-		return m_ptgmultilevel[i]
-			.PTGs[0]
-			.get();  // Return for the 0'th level (ptgs
+		return m_ptgmultilevel[i].PTGs[0];  // Return for the 0'th level (ptgs
 		// are replicated at each level)
 	}
 	const CParameterizedTrajectoryGenerator* getPTG(size_t i) const override
 	{
 		ASSERT_(!m_ptgmultilevel.empty() && !m_ptgmultilevel[i].PTGs.empty());
-		return m_ptgmultilevel[i]
-			.PTGs[0]
-			.get();  // Return for the 0'th level (ptgs
+		return m_ptgmultilevel[i].PTGs[0];  // Return for the 0'th level (ptgs
 		// are replicated at each level)
 	}
 
@@ -136,11 +133,12 @@ class CReactiveNavigationSystem3D : public CAbstractPTGBasedReactive
 	/** A set of PTGs of the same type, one per "height level" */
 	struct TPTGmultilevel
 	{
-		std::vector<CParameterizedTrajectoryGenerator::Ptr> PTGs;
+		std::vector<CParameterizedTrajectoryGenerator*> PTGs;
 		mrpt::math::TPoint2D TP_Target;
 		TCandidateMovementPTG holonomicmov;
 
-		TPTGmultilevel() = default;
+		TPTGmultilevel();
+		~TPTGmultilevel();
 	};
 
 	// ------------------------------------------------------

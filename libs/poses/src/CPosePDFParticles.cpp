@@ -17,7 +17,6 @@
 #include <mrpt/random.h>
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/os.h>
-#include <fstream>
 
 using namespace mrpt;
 using namespace mrpt::bayes;
@@ -105,12 +104,10 @@ void CPosePDFParticles::getMean(CPose2D& est_) const
 	}
 }
 
-std::tuple<CMatrixDouble33, CPose2D> CPosePDFParticles::getCovarianceAndMean()
-	const
+void CPosePDFParticles::getCovarianceAndMean(
+	CMatrixDouble33& cov, CPose2D& mean) const
 {
-	CMatrixDouble33 cov;
-	CPose2D mean;
-	cov.setZero();
+	cov.zeros();
 	getMean(mean);
 
 	size_t i, n = m_particles.size();
@@ -156,7 +153,6 @@ std::tuple<CMatrixDouble33, CPose2D> CPosePDFParticles::getCovarianceAndMean()
 		cov(2, 0) = cov(0, 2) = var_xp;
 		cov(1, 2) = cov(2, 1) = var_yp;
 	}
-	return {cov, mean};
 }
 
 uint8_t CPosePDFParticles::serializeGetVersion() const { return 1; }

@@ -145,13 +145,13 @@ void Test_HOKUYO()
 
 			mrpt::maps::CSimplePointsMap theMap;
 			theMap.insertionOptions.minDistBetweenLaserPoints = 0;
-			theMap.insertObservation(obs);
+			theMap.insertObservation(&obs);
 			// map.save2D_to_text_file("_out_scan.txt");
 
 			/*
 			COpenGLScene			scene3D;
 			opengl::CPointCloud::Ptr	points =
-			opengl::CPointCloud::Create();
+			mrpt::make_aligned_shared<opengl::CPointCloud>();
 			points->loadFromPointsMap(&map);
 			scene3D.insert(points);
 			CFileStream("_out_point_cloud.3Dscene",fomWrite) << scene3D;

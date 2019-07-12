@@ -110,8 +110,9 @@ void CFeatureExtraction::extractFeaturesFAST(
 			? 1
 			: (unsigned int)(1 + inImg.getHeight() * occupied_grid_cell_size_inv);
 
-	mrpt::math::CMatrixBool occupied_sections(grid_lx, grid_ly);
-	occupied_sections.fill(false);
+	mrpt::math::CMatrixBool occupied_sections(
+		grid_lx, grid_ly);  // See the comments above for an explanation.
+	occupied_sections.fillAll(false);
 
 	unsigned int nMax =
 		(nDesiredFeatures != 0 && N > nDesiredFeatures) ? nDesiredFeatures : N;
@@ -144,41 +145,49 @@ void CFeatureExtraction::extractFeaturesFAST(
 		if (do_filter_min_dist)
 		{
 			// Check the min-distance:
-			const auto sect_ix = size_t(kp.pt.x * occupied_grid_cell_size_inv);
-			const auto sect_iy = size_t(kp.pt.y * occupied_grid_cell_size_inv);
+			const auto section_idx_x =
+				size_t(kp.pt.x * occupied_grid_cell_size_inv);
+			const auto section_idx_y =
+				size_t(kp.pt.y * occupied_grid_cell_size_inv);
 
-			if (occupied_sections(sect_ix, sect_iy))
+			if (occupied_sections(section_idx_x, section_idx_y))
 				continue;  // Already occupied! skip.
 
 			// Mark section as occupied
-			occupied_sections(sect_ix, sect_iy) = true;
-			if (sect_ix > 0) occupied_sections(sect_ix - 1, sect_iy) = true;
-			if (sect_iy > 0) occupied_sections(sect_ix, sect_iy - 1) = true;
-			if (sect_ix < grid_lx - 1)
-				occupied_sections(sect_ix + 1, sect_iy) = true;
-			if (sect_iy < grid_ly - 1)
-				occupied_sections(sect_ix, sect_iy + 1) = true;
+			occupied_sections.set_unsafe(section_idx_x, section_idx_y, true);
+			if (section_idx_x > 0)
+				occupied_sections.set_unsafe(
+					section_idx_x - 1, section_idx_y, true);
+			if (section_idx_y > 0)
+				occupied_sections.set_unsafe(
+					section_idx_x, section_idx_y - 1, true);
+			if (section_idx_x < grid_lx - 1)
+				occupied_sections.set_unsafe(
+					section_idx_x + 1, section_idx_y, true);
+			if (section_idx_y < grid_ly - 1)
+				occupied_sections.set_unsafe(
+					section_idx_x, section_idx_y + 1, true);
 		}
 
 		// All tests passed: add new feature:
-		CFeature ft;
-		ft.type = featFAST;
-		ft.keypoint.ID = nextID++;
-		ft.keypoint.pt.x = kp.pt.x;
-		ft.keypoint.pt.y = kp.pt.y;
-		ft.response = kp.response;
-		ft.orientation = kp.angle;
-		ft.keypoint.octave = kp.octave;
-		ft.patchSize = options.patchSize;  // The size of the feature patch
+		CFeature::Ptr ft = mrpt::make_aligned_shared<CFeature>();
+		ft->type = featFAST;
+		ft->ID = nextID++;
+		ft->x = kp.pt.x;
+		ft->y = kp.pt.y;
+		ft->response = kp.response;
+		ft->orientation = kp.angle;
+		ft->scale = kp.octave;
+		ft->patchSize = options.patchSize;  // The size of the feature patch
 
 		if (options.patchSize > 0)
 		{
 			inImg.extract_patch(
-				*ft.patch, round(ft.keypoint.pt.x) - offset,
-				round(ft.keypoint.pt.y) - offset, options.patchSize,
+				ft->patch, round(ft->x) - offset, round(ft->y) - offset,
+				options.patchSize,
 				options.patchSize);  // Image patch surronding the feature
 		}
-		feats.emplace_back(std::move(ft));
+		feats.push_back(ft);
 		++cont;
 	}
 

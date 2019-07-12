@@ -8,7 +8,6 @@
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CVectorFixed.h>
 #include <mrpt/poses/CPose.h>
 #include <mrpt/serialization/CSerializable.h>
 
@@ -36,8 +35,7 @@ class CPose3D;
  * \sa CPoseOrPoint,CPoint2D
  * \ingroup poses_grp
  */
-class CPose2D : public CPose<CPose2D, 3>,
-				public mrpt::serialization::CSerializable
+class CPose2D : public CPose<CPose2D>, public mrpt::serialization::CSerializable
 {
    public:
 	DEFINE_SERIALIZABLE(CPose2D)
@@ -45,7 +43,7 @@ class CPose2D : public CPose<CPose2D, 3>,
 
    public:
 	/** [x,y] */
-	mrpt::math::CVectorFixedDouble<2> m_coords;
+	mrpt::math::CArrayDouble<2> m_coords;
 
    protected:
 	/** The orientation of the pose, in radians. */
@@ -122,7 +120,9 @@ class CPose2D : public CPose<CPose2D, 3>,
 	}
 
 	/** Returns a 1x3 vector with [x y phi] */
-	void asVector(vector_t& v) const;
+	void getAsVector(mrpt::math::CVectorDouble& v) const;
+	/// \overload
+	void getAsVector(mrpt::math::CArrayDouble<3>& v) const;
 
 	/** Returns the corresponding 4x4 homogeneous transformation matrix for the
 	 * point(translation) or pose (translation+orientation).
@@ -168,9 +168,6 @@ class CPose2D : public CPose<CPose2D, 3>,
 	void composePoint(
 		const mrpt::math::TPoint2D& l, mrpt::math::TPoint2D& g) const;
 
-	/// \overload
-	mrpt::math::TPoint3D composePoint(const mrpt::math::TPoint3D& l) const;
-
 	/** overload \f$ G = P \oplus L \f$ with G and L being 3D points and P this
 	 * 2D pose (the "z" coordinate remains unmodified) */
 	void composePoint(
@@ -185,11 +182,11 @@ class CPose2D : public CPose<CPose2D, 3>,
 	void inverseComposePoint(
 		const double gx, const double gy, double& lx, double& ly) const;
 	/** \overload */
-	void inverseComposePoint(
-		const mrpt::math::TPoint2D& g, mrpt::math::TPoint2D& l) const;
-	/** \overload */
-	mrpt::math::TPoint2D inverseComposePoint(
-		const mrpt::math::TPoint2D& g) const;
+	inline void inverseComposePoint(
+		const mrpt::math::TPoint2D& g, mrpt::math::TPoint2D& l) const
+	{
+		inverseComposePoint(g.x, g.y, l.x, l.y);
+	}
 
 	/** The operator \f$ u' = this \oplus u \f$ is the pose/point compounding
 	 * operator. */

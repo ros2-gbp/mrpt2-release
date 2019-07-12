@@ -1,8 +1,26 @@
 <h1 align="center">The MRPT project</h1>
 
-gcc/clang: <a href="https://circleci.com/gh/MRPT/mrpt"><img src="https://circleci.com/gh/MRPT/mrpt.svg?style=svg"></a> MSVC: <a href="https://ci.appveyor.com/project/jlblancoc/mrpt" alt="AppVeyor:msvc"><img src="https://ci.appveyor.com/api/projects/status/yjs4lpj02f6a1ylg?svg=true" /></a> Last stable release: <a href="https://github.com/MRPT/mrpt/releases" alt="Releases"><img src="https://img.shields.io/github/release/MRPT/mrpt.svg" /></a> <a href="https://gitter.im/MRPT/mrpt" alt="Gitter"><img src="https://badges.gitter.im/Join%20Chat.svg" /></a>
+<table>
+ <tr>
+  <td>gcc/clang</td>
+  <td><a href="https://travis-ci.org/MRPT/mrpt" alt="Travis:gcc,clang"><img src="https://travis-ci.org/MRPT/mrpt.png?branch=master" /></a><br/><a href="https://circleci.com/gh/MRPT/mrpt"><img src="https://circleci.com/gh/MRPT/mrpt.svg?style=svg"></a> </td>
+  <td>MSVC</td>
+  <td><a href="https://ci.appveyor.com/project/jlblancoc/mrpt" alt="AppVeyor:msvc"><img src="https://ci.appveyor.com/api/projects/status/yjs4lpj02f6a1ylg?svg=true" /></a></td>
+  <td><a href="https://codecov.io/gh/MRPT/mrpt" alt="codecov"><img src="https://codecov.io/gh/MRPT/mrpt/branch/master/graph/badge.svg" /></a></td>
+  <td><a href="https://gitter.im/MRPT/mrpt" alt="Gitter"><img src="https://badges.gitter.im/Join%20Chat.svg" /></a></td>
+  <td><a href="https://www.codetriage.com/mrpt/mrpt" alt="Open Source Helpers"><img src="https://www.codetriage.com/mrpt/mrpt/badges/users.svg" /></a></td>
+ </tr>
+ <tr>
+  <td>GH</td>
+  <td><a href="https://github.com/MRPT/mrpt/releases" alt="GitHub"><img src="https://img.shields.io/github/downloads/mrpt/mrpt/total.svg" /></a></td>
+  <td>SF(datasets)</td>
+  <td><a href="https://sourceforge.net/projects/mrpt/files/" alt="SourceForge"><img src="https://img.shields.io/sourceforge/dt/mrpt.svg" /></a></td>
+  <td>Stable</td>
+  <td><a href="https://github.com/MRPT/mrpt/releases" alt="Releases"><img src="https://img.shields.io/github/release/MRPT/mrpt.svg" /></a></td>
 
-<a href="https://repology.org/project/mrpt/versions"> <img src="https://repology.org/badge/tiny-repos/mrpt.svg" alt="Packaging status"> </a> <a href="https://codecov.io/gh/MRPT/mrpt" alt="codecov"><img src="https://codecov.io/gh/MRPT/mrpt/branch/master/graph/badge.svg" /></a>  GH downloads: <a href="https://github.com/MRPT/mrpt/releases" alt="GitHub"><img src="https://img.shields.io/github/downloads/mrpt/mrpt/total.svg" /></a> SF downloads (datasets): <a href="https://sourceforge.net/projects/mrpt/files/" alt="SourceForge"><img src="https://img.shields.io/sourceforge/dt/mrpt.svg" /></a>
+</tr>
+</table>
+
 
 ## 1. Introduction
 <img align="right" src="https://mrpt.github.io/imgs/mrpt-videos-mix2.gif">
@@ -59,7 +77,6 @@ Minimum compiler requisites:
     * clang-4 or newer.
     * Windows: Visual Studio 2017 version 15.3 or newer.
     * cmake >= 3.3 required (>=3.4 for Windows).
-    * Eigen >= 3.3 required.
   * mrpt 1.5.* and maintenance `mrpt-1.5` branch:
     * Ubuntu 14.04LTS Trusty: default gcc/clang versions
     * Windows: Visual Studio 2012

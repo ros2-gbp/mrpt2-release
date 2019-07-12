@@ -285,7 +285,7 @@ void do_grid_align()
 				if (NOISE_IN_POSE)
 				{
 					CPosePDFGaussian::Ptr newPDF =
-						std::make_shared<CPosePDFGaussian>();
+						mrpt::make_aligned_shared<CPosePDFGaussian>();
 					newPDF->copyFrom(*PDF);
 
 					// Change the pose:
@@ -351,7 +351,7 @@ void do_grid_align()
 				CMatrixDouble33 estimateCOV;
 
 				// Get the mean, or the best Gassian mean in the case of a SOG:
-				if (IS_CLASS(*parts, CPosePDFSOG) && MOST_LIKELY_SOG_MODE_ONLY)
+				if (IS_CLASS(parts, CPosePDFSOG) && MOST_LIKELY_SOG_MODE_ONLY)
 				{
 					CPosePDFSOG::Ptr pdf_SOG =
 						std::dynamic_pointer_cast<CPosePDFSOG>(parts);
@@ -365,7 +365,7 @@ void do_grid_align()
 
 				float stdPhi = sqrt(estimateCOV(2, 2));
 
-				const auto estimateCOV22 = estimateCOV.extractMatrix<2, 2>();
+				CMatrixDouble22 estimateCOV22 = estimateCOV.block(0, 0, 2, 2);
 				float stdXY = sqrt(estimateCOV22.det());
 
 				float Axy = estimateMean.distance2DTo(GT_Ax, GT_Ay);
@@ -382,7 +382,7 @@ void do_grid_align()
 				std::cout << "Estimate covariance::\n" << estimateCOV << "\n";
 
 				// Save particles:
-				if (IS_CLASS(*parts, CPosePDFParticles))
+				if (IS_CLASS(parts, CPosePDFParticles))
 				{
 					CPosePDFParticles::Ptr partsPdf =
 						std::dynamic_pointer_cast<CPosePDFParticles>(parts);
@@ -395,7 +395,7 @@ void do_grid_align()
 					std::cout << partsPdf->particlesCount() << " particles\n";
 					std::cout << "Covariance:\n\t " << estimateCOV << "\n";
 				}
-				else if (IS_CLASS(*parts, CPosePDFSOG))
+				else if (IS_CLASS(parts, CPosePDFSOG))
 				{
 					CPosePDFSOG::Ptr pdf_SOG =
 						std::dynamic_pointer_cast<CPosePDFSOG>(parts);
@@ -422,10 +422,10 @@ void do_grid_align()
 					{
 						COpenGLScene scene3D;
 						opengl::CSetOfObjects::Ptr thePDF3D =
-							std::make_shared<opengl::CSetOfObjects>();
+							mrpt::make_aligned_shared<opengl::CSetOfObjects>();
 						pdf_SOG->getAs3DObject(thePDF3D);
 						opengl::CGridPlaneXY::Ptr gridXY =
-							std::make_shared<opengl::CGridPlaneXY>(
+							mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
 								-10, 10, -10, 10, 0, 1);
 						scene3D.insert(gridXY);
 						scene3D.insert(thePDF3D);
@@ -508,10 +508,10 @@ void do_grid_align()
 							// Save as 3D scene:
 							COpenGLScene scene;
 							CSetOfObjects::Ptr obj1 =
-								std::make_shared<CSetOfObjects>();
+								mrpt::make_aligned_shared<CSetOfObjects>();
 							the_map1.getAs3DObject(obj1);
 							CSetOfObjects::Ptr obj2 =
-								std::make_shared<CSetOfObjects>();
+								mrpt::make_aligned_shared<CSetOfObjects>();
 							the_map2.getAs3DObject(obj2);
 
 							obj2->setPose(x);
@@ -521,7 +521,7 @@ void do_grid_align()
 
 							// Add also the borders of the maps:
 							CSetOfLines::Ptr lines =
-								std::make_shared<CSetOfLines>();
+								mrpt::make_aligned_shared<CSetOfLines>();
 							lines->setLineWidth(3);
 							lines->setColor(0, 0, 1);
 
@@ -546,7 +546,7 @@ void do_grid_align()
 
 #ifdef SAVE_SOG_GRID
 					// Save grid evaluation of the SOG:
-					CMatrixF gridLimits(1, 4);
+					CMatrix gridLimits(1, 4);
 					gridLimits(0, 0) = estimateMean.x - 0.10f;
 					gridLimits(0, 1) = estimateMean.x + 0.10f,
 								  gridLimits(0, 2) = estimateMean.y - 0.10f;
@@ -636,15 +636,15 @@ void do_grid_align()
 						const double dErr = P1.distanceTo(P2);
 						dErrs[i2] = dErr;
 
-						ASSERT_(!l1->features.empty());
-						ASSERT_(!l2->features.empty());
+						ASSERT_(!l1->features.empty() && l1->features[0]);
+						ASSERT_(!l2->features.empty() && l2->features[0]);
 
-						D[i2] = l1->features[0].descriptorDistanceTo(
-							l2->features[0]);
+						D[i2] = l1->features[0]->descriptorDistanceTo(
+							*l2->features[0]);
 					}
 
 					size_t best_match = 0;
-					dErrs.minCoeff(best_match);
+					dErrs.minimum(&best_match);
 					double MIN_DESCR_DIST = mrpt::math::minimum(D);
 					if (dErrs[best_match] < 0.20)
 					{

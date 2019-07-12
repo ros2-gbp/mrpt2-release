@@ -70,7 +70,10 @@ void CPosePDFGrid::getMean(CPose2D& p) const
 	se_averager.get_average(p);
 }
 
-std::tuple<CMatrixDouble33, CPose2D> CPosePDFGrid::getCovarianceAndMean() const
+/*---------------------------------------------------------------
+						getCovarianceAndMean
+  ---------------------------------------------------------------*/
+void CPosePDFGrid::getCovarianceAndMean(CMatrixDouble33& cov, CPose2D& p) const
 {
 	CPosePDFParticles auxParts;
 	auxParts.resetDeterministic(
@@ -87,7 +90,7 @@ std::tuple<CMatrixDouble33, CPose2D> CPosePDFGrid::getCovarianceAndMean() const
 					TPose2D(idx2x(x), idx2y(y), idx2phi(phiInd));
 			}
 	}
-	return auxParts.getCovarianceAndMean();
+	auxParts.getCovarianceAndMean(cov, p);
 }
 
 uint8_t CPosePDFGrid::serializeGetVersion() const { return 0; }

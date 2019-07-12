@@ -18,7 +18,7 @@ T interpolate(const T& x, const VECTOR& ys, const T& x0, const T& x1)
 {
 	MRPT_START
 	ASSERT_(x1 > x0);
-	ASSERT_(ys.size() > 0);
+	ASSERT_(!ys.empty());
 	const size_t N = ys.size();
 	if (x <= x0) return ys[0];
 	if (x >= x1) return ys[N - 1];
@@ -128,17 +128,16 @@ NUMTYPE leastSquareLinearFit(
 	const size_t N = x.size();
 
 	// X= [1 columns of ones, x' ]
-	const NUMTYPE x_min = x.minCoeff();
-	Eigen::Matrix<NUMTYPE, 2, NUM_POINTS, 0, 2, NUM_POINTS> Xt;
+	const NUMTYPE x_min = x.minimum();
+	Eigen::Matrix<NUMTYPE, 2, NUM_POINTS> Xt;
 	Xt.resize(2, N);
 	for (size_t i = 0; i < N; i++)
 	{
-		Xt(0, i) = 1;
-		Xt(1, i) = x[i] - x_min;
+		Xt.set_unsafe(0, i, 1);
+		Xt.set_unsafe(1, i, x[i] - x_min);
 	}
 
-	const auto B =
-		((Xt * Xt.transpose()).inverse().eval() * Xt * y.asEigen()).eval();
+	const auto B = ((Xt * Xt.transpose()).inv().eval() * Xt * y).eval();
 	ASSERT_(B.size() == 2);
 
 	NUMTYPE ret = B[0] + B[1] * (t - x_min);
@@ -168,22 +167,16 @@ void leastSquareLinearFit(
 
 	// X= [1 columns of ones, x' ]
 	using NUM = typename VECTORLIKE3::value_type;
-	const NUM x_min = x.minCoeff();
-	CMatrixDynamic<NUM> Xt;
+	const NUM x_min = x.minimum();
+	Eigen::Matrix<NUM, 2, NUM_POINTS> Xt;
 	Xt.resize(2, N);
 	for (size_t i = 0; i < N; i++)
 	{
-		Xt(0, i) = 1;
-		Xt(1, i) = x[i] - x_min;
+		Xt.set_unsafe(0, i, 1);
+		Xt.set_unsafe(1, i, x[i] - x_min);
 	}
 
-	// (Xt * Xt.transpose()).inverse_LLt().eval() * Xt * y;
-	CMatrixDynamic<NUM> XXt;
-	XXt.matProductOf_AAt(Xt);
-	const auto XXt_inv = XXt.inverse_LLt();
-	const auto XXt_inv_X = XXt_inv * Xt;
-	CMatrixDynamic<NUM> B;
-	B.matProductOf_Ab(XXt_inv_X, y);
+	const auto B = ((Xt * Xt.transpose()).inv().eval() * Xt * y).eval();
 	ASSERT_(B.size() == 2);
 
 	const size_t tsN = size_t(ts.size());
@@ -196,4 +189,6 @@ void leastSquareLinearFit(
 			outs[k] = mrpt::math::wrapToPi(B[0] + B[1] * (ts[k] - x_min));
 	MRPT_END
 }
-}  // namespace mrpt::math
+}  // namespace mrpt
+
+

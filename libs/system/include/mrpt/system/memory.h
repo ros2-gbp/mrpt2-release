@@ -68,8 +68,7 @@ template <
 	typename = std::enable_if_t<std::is_pointer<T>::value>>
 bool is_aligned(T ptr)
 {
-	return alignment == 0 ||
-		   reinterpret_cast<std::size_t>(ptr) % alignment == 0;
+	return reinterpret_cast<std::size_t>(ptr) % alignment == 0;
 }
 /** @} */
 
