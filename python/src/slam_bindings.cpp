@@ -190,7 +190,7 @@ mrpt::opengl::CSetOfObjects::Ptr CRangeBearingKFSLAM2D_getAs3DObject(
 	CRangeBearingKFSLAM2D& self)
 {
 	mrpt::opengl::CSetOfObjects::Ptr outObj =
-		mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+		mrpt::opengl::CSetOfObjects::Create();
 	self.getAs3DObject(outObj);
 	return outObj;
 }
@@ -251,9 +251,7 @@ tuple CMonteCarloLocalization2D_getCovarianceAndMean(
 	CMonteCarloLocalization2D& self)
 {
 	list ret_val;
-	mrpt::math::CMatrixDouble33 cov;
-	CPose2D mean_point;
-	self.getCovarianceAndMean(cov, mean_point);
+	const auto [cov, mean_point] = self.getCovarianceAndMean();
 	ret_val.append(cov);
 	ret_val.append(mean_point);
 	return tuple(ret_val);
@@ -293,7 +291,7 @@ mrpt::opengl::CSetOfObjects::Ptr CMonteCarloLocalization2D_getAs3DObject(
 	CMonteCarloLocalization2D& self)
 {
 	mrpt::opengl::CSetOfObjects::Ptr outObj =
-		mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+		mrpt::opengl::CSetOfObjects::Create();
 	self.getAs3DObject(outObj);
 	return outObj;
 }
@@ -373,9 +371,7 @@ tuple CMonteCarloLocalization3D_getCovarianceAndMean(
 	CMonteCarloLocalization3D& self)
 {
 	list ret_val;
-	mrpt::math::CMatrixDouble66 cov;
-	CPose3D mean_point;
-	self.getCovarianceAndMean(cov, mean_point);
+	const auto [cov, mean_point] = self.getCovarianceAndMean();
 	ret_val.append(cov);
 	ret_val.append(mean_point);
 	return tuple(ret_val);
@@ -415,7 +411,7 @@ mrpt::opengl::CSetOfObjects::Ptr CMonteCarloLocalization3D_getAs3DObject(
 	CMonteCarloLocalization3D& self)
 {
 	mrpt::opengl::CSetOfObjects::Ptr outObj =
-		mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+		mrpt::opengl::CSetOfObjects::Create();
 	self.getAs3DObject(outObj);
 	return outObj;
 }

@@ -11,7 +11,6 @@
 #include <mrpt/maps/CMetricMapEvents.h>
 #include <mrpt/maps/TMetricMapInitializer.h>
 #include <mrpt/maps/metric_map_types.h>
-#include <mrpt/math/lightweight_geom_data.h>
 #include <mrpt/math/math_frwds.h>
 #include <mrpt/obs/CObservation.h>
 #include <mrpt/obs/obs_frwds.h>
@@ -61,16 +60,16 @@ class CMetricMap : public mrpt::serialization::CSerializable,
 
 	/** Internal method called by insertObservation() */
 	virtual bool internal_insertObservation(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D* robotPose = nullptr) = 0;
 
 	/** Internal method called by computeObservationLikelihood() */
 	virtual double internal_computeObservationLikelihood(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D& takenFrom) = 0;
 	/** Internal method called by canComputeObservationLikelihood() */
 	virtual bool internal_canComputeObservationLikelihood(
-		const mrpt::obs::CObservation* obs) const
+		const mrpt::obs::CObservation& obs) const
 	{
 		MRPT_UNUSED_PARAM(obs);
 		return true;  // Unless implemented otherwise, assume we can always
@@ -80,7 +79,7 @@ class CMetricMap : public mrpt::serialization::CSerializable,
 	/** Hook for each time a "internal_insertObservation" returns "true"
 	 * This is called automatically from insertObservation() when
 	 * internal_insertObservation returns true. */
-	virtual void OnPostSuccesfulInsertObs(const mrpt::obs::CObservation*)
+	virtual void OnPostSuccesfulInsertObs(const mrpt::obs::CObservation&)
 	{ /* Default: do nothing */
 	}
 
@@ -120,7 +119,7 @@ class CMetricMap : public mrpt::serialization::CSerializable,
 	 * \sa CObservation::insertObservationInto
 	 */
 	bool insertObservation(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D* robotPose = nullptr);
 
 	/** A wrapper for smart pointers, just calls the non-smart pointer version.
@@ -140,12 +139,12 @@ class CMetricMap : public mrpt::serialization::CSerializable,
 	 * \sa Used in particle filter algorithms, see: CMultiMetricMapPDF::update
 	 */
 	double computeObservationLikelihood(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D& takenFrom);
 
 	/** \overload */
 	double computeObservationLikelihood(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose2D& takenFrom);
 
 	/** Returns true if this map is able to compute a sensible likelihood
@@ -156,11 +155,7 @@ class CMetricMap : public mrpt::serialization::CSerializable,
 	 * genericMapParams.enableObservationLikelihood
 	 */
 	virtual bool canComputeObservationLikelihood(
-		const mrpt::obs::CObservation* obs) const;
-
-	/** \overload */
-	bool canComputeObservationLikelihood(
-		const mrpt::obs::CObservation::Ptr& obs) const;
+		const mrpt::obs::CObservation& obs) const;
 
 	/** Returns the sum of the log-likelihoods of each individual observation
 	 * within a mrpt::obs::CSensoryFrame.  See: \ref maps_observations
@@ -296,7 +291,7 @@ class CMetricMap : public mrpt::serialization::CSerializable,
 
 	/** If the map is a simple points map or it's a multi-metric map that
 	 * contains EXACTLY one simple points map, return it.
-	 * Otherwise, return NULL
+	 * Otherwise, return nullptr
 	 */
 	virtual const mrpt::maps::CSimplePointsMap* getAsSimplePointsMap() const
 	{
@@ -304,7 +299,8 @@ class CMetricMap : public mrpt::serialization::CSerializable,
 	}
 	mrpt::maps::CSimplePointsMap* getAsSimplePointsMap()
 	{
-		return const_cast<CSimplePointsMap*>(getAsSimplePointsMap());
+		return const_cast<CSimplePointsMap*>(
+			const_cast<const CMetricMap*>(this)->getAsSimplePointsMap());
 	}
 
 };  // End of class def.

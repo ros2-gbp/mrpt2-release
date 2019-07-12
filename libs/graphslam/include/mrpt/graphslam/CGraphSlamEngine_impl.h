@@ -298,7 +298,7 @@ void CGraphSlamEngine<GRAPH_T>::initClass()
 	{
 		COpenGLScene::Ptr scene = m_win->get3DSceneAndLock();
 
-		CAxis::Ptr obj = mrpt::make_aligned_shared<CAxis>();
+		CAxis::Ptr obj = std::make_shared<CAxis>();
 		obj->setFrequency(5);
 		obj->enableTickMarks();
 		obj->setAxisLimits(-10, -10, -10, 10, 10, 10);
@@ -402,7 +402,7 @@ void CGraphSlamEngine<GRAPH_T>::initClass()
 	// COccupancyGridMap2D Initialization
 	{
 		mrpt::maps::COccupancyGridMap2D::Ptr gridmap =
-			mrpt::make_aligned_shared<mrpt::maps::COccupancyGridMap2D>();
+			mrpt::maps::COccupancyGridMap2D::Create();
 
 		gridmap->setSize(
 			/* min_x = */ -20.0f,
@@ -424,8 +424,7 @@ void CGraphSlamEngine<GRAPH_T>::initClass()
 
 	// COctoMap Initialization
 	{
-		mrpt::maps::COctoMap::Ptr octomap =
-			mrpt::make_aligned_shared<mrpt::maps::COctoMap>();
+		mrpt::maps::COctoMap::Ptr octomap = mrpt::maps::COctoMap::Create();
 
 		// TODO - adjust the insertionoptions...
 		// TODO - Read these from the .ini file
@@ -627,7 +626,7 @@ bool CGraphSlamEngine<GRAPH_T>::_execGraphSlamStep(
 		// (Format #2 rawlog file)
 
 		// odometry
-		if (IS_CLASS(observation, CObservationOdometry))
+		if (IS_CLASS(*observation, CObservationOdometry))
 		{
 			CObservationOdometry::Ptr obs_odometry =
 				std::dynamic_pointer_cast<CObservationOdometry>(observation);
@@ -635,7 +634,7 @@ bool CGraphSlamEngine<GRAPH_T>::_execGraphSlamStep(
 			m_curr_odometry_only_pose = pose_t(obs_odometry->odometry);
 			m_odometry_poses.push_back(m_curr_odometry_only_pose);
 		}
-		else if (IS_CLASS(observation, CObservation3DRangeScan))
+		else if (IS_CLASS(*observation, CObservation3DRangeScan))
 		{
 			m_last_laser_scan3D =
 				std::dynamic_pointer_cast<mrpt::obs::CObservation3DRangeScan>(
@@ -894,7 +893,7 @@ void CGraphSlamEngine<GRAPH_T>::getMap(
 
 	if (!map)
 	{
-		map = mrpt::make_aligned_shared<mrpt::maps::COccupancyGridMap2D>();
+		map = mrpt::maps::COccupancyGridMap2D::Create();
 	}
 	ASSERTDEB_(map);
 
@@ -973,7 +972,7 @@ inline void CGraphSlamEngine<GRAPH_T>::computeMap() const
 			CPose3D scan_pose = getLSPoseForGridMapVisualization(curr_node);
 
 			// Add all to gridmap
-			gridmap->insertObservation(curr_laser_scan.get(), &scan_pose);
+			gridmap->insertObservation(*curr_laser_scan, &scan_pose);
 		}
 
 		m_map_is_cached = true;
@@ -1201,14 +1200,13 @@ void CGraphSlamEngine<GRAPH_T>::updateRangeImageViewport()
 	{
 		// TODO - make this a static class member - or at least a private member
 		// of the class
-		CMatrixFloat range2D;
+
 		mrpt::img::CImage img;
 
 		// load the image if not already loaded..
 		m_last_laser_scan3D->load();
-		range2D = m_last_laser_scan3D->rangeImage *
-				  (1.0f / 5.0);  // TODO - without the magic number?
-		img.setFromMatrix(range2D);
+		img.setFromMatrix(
+			m_last_laser_scan3D->rangeImage, false /* do normalize */);
 
 		COpenGLScene::Ptr scene = m_win->get3DSceneAndLock();
 		COpenGLViewport::Ptr viewp_range = scene->getViewport("viewp_range");
@@ -1818,7 +1816,7 @@ void CGraphSlamEngine<GRAPH_T>::initMapVisualization()
 {
 	using namespace mrpt::opengl;
 
-	CSetOfObjects::Ptr map_obj = mrpt::make_aligned_shared<CSetOfObjects>();
+	CSetOfObjects::Ptr map_obj = std::make_shared<CSetOfObjects>();
 	map_obj->setName("map");
 	COpenGLScene::Ptr& scene = this->m_win->get3DSceneAndLock();
 	scene->insert(map_obj);
@@ -1899,11 +1897,11 @@ void CGraphSlamEngine<GRAPH_T>::updateMapVisualization(
 				std::dynamic_pointer_cast<CSetOfObjects>(obj);
 			if (!scan_obj)
 			{
-				scan_obj = mrpt::make_aligned_shared<CSetOfObjects>();
+				scan_obj = std::make_shared<CSetOfObjects>();
 
 				// creating and inserting the observation in the CSetOfObjects
 				mrpt::maps::CSimplePointsMap m;
-				m.insertObservation(&scan_decimated);
+				m.insertObservation(scan_decimated);
 				m.getAs3DObject(scan_obj);
 
 				scan_obj->setName(scan_name.str());
@@ -2008,7 +2006,7 @@ void CGraphSlamEngine<GRAPH_T>::initGTVisualization()
 		"was provided");
 
 	// point cloud
-	CPointCloud::Ptr GT_cloud = mrpt::make_aligned_shared<CPointCloud>();
+	CPointCloud::Ptr GT_cloud = std::make_shared<CPointCloud>();
 	GT_cloud->setPointSize(1.0);
 	GT_cloud->enablePointSmooth();
 	GT_cloud->enableColorFromX(false);
@@ -2083,8 +2081,7 @@ void CGraphSlamEngine<GRAPH_T>::initOdometryVisualization()
 	using namespace mrpt::opengl;
 
 	// point cloud
-	CPointCloud::Ptr odometry_poses_cloud =
-		mrpt::make_aligned_shared<CPointCloud>();
+	CPointCloud::Ptr odometry_poses_cloud = std::make_shared<CPointCloud>();
 	odometry_poses_cloud->setPointSize(1.0);
 	odometry_poses_cloud->enablePointSmooth();
 	odometry_poses_cloud->enableColorFromX(false);
@@ -2156,7 +2153,7 @@ void CGraphSlamEngine<GRAPH_T>::initEstimatedTrajectoryVisualization()
 
 	// SetOfLines
 	CSetOfLines::Ptr estimated_traj_setoflines =
-		mrpt::make_aligned_shared<CSetOfLines>();
+		std::make_shared<CSetOfLines>();
 	estimated_traj_setoflines->setColor_u8(m_estimated_traj_color);
 	estimated_traj_setoflines->setLineWidth(1.5);
 	estimated_traj_setoflines->setName("estimated_traj_setoflines");
