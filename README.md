@@ -1,3 +1,26 @@
+## mrpt2 (crystal) - 1.9.9-2
+
+The packages in the `mrpt2` repository were released into the `crystal` distro by running `/home/hlaux/.local/bin/bloom-release --rosdistro crystal --track crystal mrpt2` on `Fri, 12 Jul 2019 06:34:21 -0000`
+
+The `mrpt2` package was released.
+
+Version of package(s) in repository `mrpt2`:
+
+- upstream repository: https://github.com/MRPT/mrpt.git
+- release repository: https://github.com/mrpt-ros2-pkg-release/mrpt2-release.git
+- rosdistro version: `1.9.9-0`
+- old version: `1.9.9-1`
+- new version: `1.9.9-2`
+
+Versions of tools used:
+
+- bloom version: `0.8.0`
+- catkin_pkg version: `0.4.12`
+- rosdep version: `0.15.2`
+- rosdistro version: `0.7.4`
+- vcstools version: `0.1.40`
+
+
 ## mrpt2 (crystal) - 1.9.9-1
 
 The packages in the `mrpt2` repository were released into the `crystal` distro by running `/usr/bin/bloom-release --rosdistro crystal --track crystal mrpt2` on `Fri, 12 Jul 2019 05:54:12 -0000`
