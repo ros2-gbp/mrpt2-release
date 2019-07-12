@@ -10,7 +10,6 @@
 
 #include <mrpt/core/safe_pointers.h>
 #include <mrpt/img/CImage.h>
-#include <mrpt/math/lightweight_geom_data.h>
 #include <mrpt/opengl/CCamera.h>
 #include <mrpt/opengl/CLight.h>
 #include <mrpt/opengl/CSetOfObjects.h>
@@ -334,13 +333,13 @@ class COpenGLViewport : public mrpt::serialization::CSerializable,
 	/** Destructor: clears all objects. */
 	~COpenGLViewport() override;
 
-   protected:
 	/** Constructor, invoked from COpenGLScene only.
 	 */
 	COpenGLViewport(
 		COpenGLScene* parent = nullptr,
 		const std::string& name = std::string(""));
 
+   protected:
 	/** Initializes all textures in the scene (See
 	 * opengl::CTexturedPlane::loadTextureInOpenGL)
 	 */
