@@ -194,13 +194,8 @@ void CMyGLCanvas::OnPostRenderSwapBuffers(double At, wxPaintDC& dc)
 
 		// Save image directly from OpenGL
 		CImage frame(w, h, CH_RGB);
-
-		glPixelStorei(GL_PACK_ALIGNMENT, 1);
-		glPixelStorei(GL_PACK_ROW_LENGTH, 0);
-
 		glReadBuffer(GL_FRONT);
 		glReadPixels(0, 0, w, h, GL_BGR_EXT, GL_UNSIGNED_BYTE, frame(0, 0));
-		frame.flipVertical();
 
 		string fileName(format(
 			"%s/screenshot_%07i.png", capturingDir.c_str(), captureCount++));
@@ -895,7 +890,8 @@ void _DSceneViewerFrame::OnNewScene(wxCommandEvent& event)
 
 	{
 		mrpt::opengl::CGridPlaneXY::Ptr obj =
-			mrpt::opengl::CGridPlaneXY::Create(-50, 50, -50, 50, 0, 1);
+			mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
+				-50, 50, -50, 50, 0, 1);
 		obj->setColor(0.3, 0.3, 0.3);
 		openGLSceneRef->insert(obj);
 	}
@@ -1206,7 +1202,7 @@ void _DSceneViewerFrame::OnInsert3DS(wxCommandEvent& event)
 		saveLastUsedDirectoryToCfgFile(fil);
 
 		mrpt::opengl::CAssimpModel::Ptr obj3D =
-			mrpt::opengl::CAssimpModel::Create();
+			mrpt::make_aligned_shared<mrpt::opengl::CAssimpModel>();
 		obj3D->loadScene(fil);
 		obj3D->setPose(mrpt::math::TPose3D(
 			0, 0, 0, DEG2RAD(.0), DEG2RAD(0.), DEG2RAD(90.0)));
@@ -1464,13 +1460,8 @@ void _DSceneViewerFrame::OnMenuItem14Selected(wxCommandEvent& event)
 
 	// Save image directly from OpenGL
 	CImage frame(w, h, CH_RGB);
-
-	glPixelStorei(GL_PACK_ALIGNMENT, 1);
-	glPixelStorei(GL_PACK_ROW_LENGTH, 0);
-
 	glReadBuffer(GL_FRONT);
 	glReadPixels(0, 0, w, h, GL_BGR_EXT, GL_UNSIGNED_BYTE, frame(0, 0));
-	frame.flipVertical();
 
 	// Save:
 	wxString caption = wxT("Save snapshot to file");
@@ -1531,12 +1522,12 @@ void _DSceneViewerFrame::OnmnuItemChangeMaxPointsPerOctreeNodeSelected(
 
 void func_clear_octrees(const mrpt::opengl::CRenderizable::Ptr& o)
 {
-	if (IS_CLASS(*o, CPointCloud))
+	if (IS_CLASS(o, CPointCloud))
 	{
 		CPointCloud::Ptr obj = std::dynamic_pointer_cast<CPointCloud>(o);
 		obj->octree_mark_as_outdated();
 	}
-	else if (IS_CLASS(*o, CPointCloudColoured))
+	else if (IS_CLASS(o, CPointCloudColoured))
 	{
 		CPointCloudColoured::Ptr obj =
 			std::dynamic_pointer_cast<CPointCloudColoured>(o);
@@ -1573,14 +1564,14 @@ void func_gather_stats(const mrpt::opengl::CRenderizable::Ptr& o)
 {
 	sceneStats.nObjects++;
 
-	if (IS_CLASS(*o, CPointCloud))
+	if (IS_CLASS(o, CPointCloud))
 	{
 		CPointCloud::Ptr obj = std::dynamic_pointer_cast<CPointCloud>(o);
 		sceneStats.nPoints += obj->size();
 		sceneStats.nOctreeVisible += obj->octree_get_visible_nodes();
 		sceneStats.nOctreeTotal += obj->octree_get_node_count();
 	}
-	else if (IS_CLASS(*o, CPointCloudColoured))
+	else if (IS_CLASS(o, CPointCloudColoured))
 	{
 		CPointCloudColoured::Ptr obj =
 			std::dynamic_pointer_cast<CPointCloudColoured>(o);
@@ -1628,18 +1619,18 @@ CSetOfObjects::Ptr aux_gl_octrees_bb;
 
 void func_get_octbb(const mrpt::opengl::CRenderizable::Ptr& o)
 {
-	if (IS_CLASS(*o, CPointCloud))
+	if (IS_CLASS(o, CPointCloud))
 	{
 		CPointCloud::Ptr obj = std::dynamic_pointer_cast<CPointCloud>(o);
-		CSetOfObjects::Ptr new_bb = std::make_shared<CSetOfObjects>();
+		CSetOfObjects::Ptr new_bb = mrpt::make_aligned_shared<CSetOfObjects>();
 		obj->octree_get_graphics_boundingboxes(*new_bb);
 		aux_gl_octrees_bb->insert(new_bb);
 	}
-	else if (IS_CLASS(*o, CPointCloudColoured))
+	else if (IS_CLASS(o, CPointCloudColoured))
 	{
 		CPointCloudColoured::Ptr obj =
 			std::dynamic_pointer_cast<CPointCloudColoured>(o);
-		CSetOfObjects::Ptr new_bb = std::make_shared<CSetOfObjects>();
+		CSetOfObjects::Ptr new_bb = mrpt::make_aligned_shared<CSetOfObjects>();
 		obj->octree_get_graphics_boundingboxes(*new_bb);
 		aux_gl_octrees_bb->insert(new_bb);
 	}
@@ -1671,7 +1662,7 @@ void _DSceneViewerFrame::OnmnuItemShowCloudOctreesSelected(
 						std::dynamic_pointer_cast<CSetOfObjects>(obj);
 				else
 				{
-					gl_octrees_bb = std::make_shared<CSetOfObjects>();
+					gl_octrees_bb = mrpt::make_aligned_shared<CSetOfObjects>();
 					gl_octrees_bb->setName(name_octrees_bb_globj);
 					openGLSceneRef->insert(gl_octrees_bb);
 				}
@@ -1727,12 +1718,13 @@ void _DSceneViewerFrame::OnMenuItemImportPLYPointCloud(wxCommandEvent& event)
 
 		if (dlgPLY.rbClass->GetSelection() == 0)
 		{
-			gl_points = std::make_shared<opengl::CPointCloud>();
+			gl_points = mrpt::make_aligned_shared<opengl::CPointCloud>();
 			ply_obj = gl_points.get();
 		}
 		else
 		{
-			gl_points_col = std::make_shared<opengl::CPointCloudColoured>();
+			gl_points_col =
+				mrpt::make_aligned_shared<opengl::CPointCloudColoured>();
 			ply_obj = gl_points_col.get();
 		}
 
@@ -1753,12 +1745,13 @@ void _DSceneViewerFrame::OnMenuItemImportPLYPointCloud(wxCommandEvent& event)
 		{
 			auto openGLSceneRef = m_canvas->getOpenGLSceneRef();
 			// Set the point cloud as the only object in scene:
-			openGLSceneRef = std::make_shared<opengl::COpenGLScene>();
+			openGLSceneRef = mrpt::make_aligned_shared<opengl::COpenGLScene>();
 
 			if (dlgPLY.cbXYGrid->GetValue())
 			{
 				mrpt::opengl::CGridPlaneXY::Ptr obj =
-					mrpt::opengl::CGridPlaneXY::Create(-50, 50, -50, 50, 0, 1);
+					mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
+						-50, 50, -50, 50, 0, 1);
 				obj->setColor(0.3, 0.3, 0.3);
 				openGLSceneRef->insert(obj);
 			}
@@ -1845,12 +1838,12 @@ struct visitor_export_PLY
 
 	void operator()(const mrpt::opengl::CRenderizable::Ptr& obj)
 	{
-		if (IS_CLASS(*obj, CPointCloud))
+		if (IS_CLASS(obj, CPointCloud))
 		{
 			CPointCloud::Ptr o = std::dynamic_pointer_cast<CPointCloud>(obj);
 			o->saveToPlyFile(format("%s_%03u.ply", filename.c_str(), ++count));
 		}
-		else if (IS_CLASS(*obj, CPointCloudColoured))
+		else if (IS_CLASS(obj, CPointCloudColoured))
 		{
 			CPointCloudColoured::Ptr o =
 				std::dynamic_pointer_cast<CPointCloudColoured>(obj);
@@ -2112,9 +2105,10 @@ void _DSceneViewerFrame::OnmnuImportLASSelected(wxCommandEvent& event)
 		opengl::CPointCloudColoured::Ptr gl_points_col;
 
 		if (dlgPLY.rbClass->GetSelection() == 0)
-			gl_points = std::make_shared<opengl::CPointCloud>();
+			gl_points = mrpt::make_aligned_shared<opengl::CPointCloud>();
 		else
-			gl_points_col = std::make_shared<opengl::CPointCloudColoured>();
+			gl_points_col =
+				mrpt::make_aligned_shared<opengl::CPointCloudColoured>();
 
 		mrpt::maps::CColouredPointsMap pts_map;
 		mrpt::maps::LAS_HeaderInfo las_hdr;
@@ -2151,13 +2145,13 @@ void _DSceneViewerFrame::OnmnuImportLASSelected(wxCommandEvent& event)
 		const double scene_size = bb_min.distanceTo(bb_max);
 
 		// Set the point cloud as the only object in scene:
-		auto scene = std::make_shared<opengl::COpenGLScene>();
+		auto scene = mrpt::make_aligned_shared<opengl::COpenGLScene>();
 		m_canvas->setOpenGLSceneRef(scene);
 
 		if (dlgPLY.cbXYGrid->GetValue())
 		{
 			mrpt::opengl::CGridPlaneXY::Ptr obj =
-				mrpt::opengl::CGridPlaneXY::Create(
+				mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
 					bb_min.x, bb_max.x, bb_min.y, bb_max.y, 0,
 					scene_size * 0.02);
 			obj->setColor(0.3, 0.3, 0.3);

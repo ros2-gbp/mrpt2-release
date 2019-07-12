@@ -8,8 +8,9 @@
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixDynamic.h>
+#include <mrpt/math/CMatrixTemplateNumeric.h>
 #include <mrpt/math/math_frwds.h>
+
 #include <mrpt/math/ops_matrices.h>
 #include <mrpt/math/ops_vectors.h>
 
@@ -47,7 +48,7 @@ inline typename MATRIXLIKE::Scalar normalPDFInf(
 		size_t(cov_inv.cols()) == size_t(mu.size()));
 	T ret = ::exp(
 		static_cast<T>(-0.5) *
-		mrpt::math::multiply_HtCH_scalar(x - mu, cov_inv));
+		mrpt::math::multiply_HCHt_scalar((x - mu).eval(), cov_inv));
 	return scaled_pdf
 			   ? ret
 			   : ret * ::sqrt(
@@ -86,7 +87,7 @@ typename MATRIXLIKE::Scalar normalPDF(
 	ASSERTDEB_(size_t(cov.cols()) == size_t(d.size()));
 	return std::exp(
 			   static_cast<typename MATRIXLIKE::Scalar>(-0.5) *
-			   mrpt::math::multiply_HtCH_scalar(d, cov.inverse_LLt())) /
+			   mrpt::math::multiply_HCHt_scalar(d, cov.inverse())) /
 		   (::pow(
 				static_cast<typename MATRIXLIKE::Scalar>(M_2PI),
 				static_cast<typename MATRIXLIKE::Scalar>(0.5 * cov.cols())) *
@@ -116,7 +117,7 @@ double KLD_Gaussians(
 		cov1.isSquare());
 	const size_t N = mu0.size();
 	MATRIXLIKE2 cov1_inv;
-	cov1.inverse_LLt(cov1_inv);
+	cov1.inv(cov1_inv);
 	const VECTORLIKE1 mu_difs = mu0 - mu1;
 	return 0.5 * (log(cov1.det() / cov0.det()) + (cov1_inv * cov0).trace() +
 				  multiply_HCHt_scalar(mu_difs, cov1_inv) - N);
@@ -212,21 +213,27 @@ std::pair<double, double> noncentralChi2PDF_CDF(
  * \param confidenceInterval A number in the range (0,1) such as the confidence
  * interval will be [100*confidenceInterval, 100*(1-confidenceInterval)].
  */
-template <typename CONTAINER, typename T>
+template <typename CONTAINER>
 void confidenceIntervals(
-	const CONTAINER& data, T& out_mean, T& out_lower_conf_interval,
-	T& out_upper_conf_interval, const double confidenceInterval = 0.1,
-	const size_t histogramNumBins = 1000)
+	const CONTAINER& data,
+	typename mrpt::math::ContainerType<CONTAINER>::element_t& out_mean,
+	typename mrpt::math::ContainerType<CONTAINER>::element_t&
+		out_lower_conf_interval,
+	typename mrpt::math::ContainerType<CONTAINER>::element_t&
+		out_upper_conf_interval,
+	const double confidenceInterval = 0.1, const size_t histogramNumBins = 1000)
 {
 	MRPT_START
-	// don't use .empty() here to allow using matrices
-	ASSERT_(data.size() != 0);
+	ASSERT_(
+		data.size() != 0);  // don't use .empty() here to allow using matrices
 	ASSERT_(confidenceInterval > 0 && confidenceInterval < 1);
 
 	out_mean = mean(data);
-	const auto x_min = data.minCoeff();
-	const auto x_max = data.maxCoeff();
-	const auto binWidth = (x_max - x_min) / histogramNumBins;
+	typename mrpt::math::ContainerType<CONTAINER>::element_t x_min, x_max;
+	minimum_maximum(data, x_min, x_max);
+
+	const typename mrpt::math::ContainerType<CONTAINER>::element_t binWidth =
+		(x_max - x_min) / histogramNumBins;
 
 	const std::vector<double> H =
 		mrpt::math::histogram(data, x_min, x_max, histogramNumBins);

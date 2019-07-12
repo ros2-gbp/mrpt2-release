@@ -24,7 +24,6 @@ class CObservationBeaconRanges;
 class CObservationBearingRange;
 class CObservationStereoImages;
 class CObservationGPS;
-class CObservationPointCloud;
 }  // namespace obs
 namespace maps
 {

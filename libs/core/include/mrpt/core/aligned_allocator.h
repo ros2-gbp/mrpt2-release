@@ -9,9 +9,17 @@
 
 #pragma once
 
-#include <mrpt/core/alignment_req.h>
 #include <memory>
 #include <type_traits>
+
+// This is to match Eigen expectations on alignment of dynamic objects:
+#if defined(__AVX2__) || defined(EIGEN_VECTORIZE_AVX512)
+#define MRPT_MAX_ALIGN_BYTES 64
+#elif defined(__AVX__)
+#define MRPT_MAX_ALIGN_BYTES 32
+#else
+#define MRPT_MAX_ALIGN_BYTES 16
+#endif
 
 namespace mrpt
 {
@@ -24,14 +32,7 @@ inline void* aligned_calloc(size_t bytes, size_t alignment);
 /** Aligned allocator that is compatible with C++11.
  * Default alignment can be 16 (default), 32 (if __AVX__ is defined) or 64
  * (if __AVX2__ is defined).
- * See: https://bitbucket.org/eigen/eigen/commits/f5b7700
- *
- * This was used (before May-2019) to provide custom STL aligned containers,
- * but the new(n,m) addition to C++17 rendered this needless (at last!)
- * See: http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1409
- *
- * Anyway, this allocator class is left here just in case it is needed for
- * something else.
+ * See also: https://bitbucket.org/eigen/eigen/commits/f5b7700
  */
 template <class T, size_t AligmentBytes = MRPT_MAX_ALIGN_BYTES>
 class aligned_allocator_cpp11 : public std::allocator<T>
@@ -70,4 +71,58 @@ class aligned_allocator_cpp11 : public std::allocator<T>
 	void deallocate(pointer p, size_type /*num*/) { mrpt::aligned_free(p); }
 };
 
+/** Creates a `shared_ptr` with aligned memory via aligned_allocator_cpp11<>.
+ * \ingroup mrpt_base_grp
+ */
+template <typename T, class... Args>
+std::shared_ptr<T> make_aligned_shared(Args&&... args)
+{
+	using T_nc = typename std::remove_const<T>::type;
+	return std::allocate_shared<T>(
+		mrpt::aligned_allocator_cpp11<T_nc>(), std::forward<Args>(args)...);
+}
+
+/** Put this macro inside any class with members that require {16,32,64}-byte
+ * memory alignment (e.g. Eigen matrices), to override default new()/delete().
+ * Obviously, this macro is only *required* if the class is to be instantiated
+ * in dynamic memory.
+ */
+#define MRPT_MAKE_ALIGNED_OPERATOR_NEW                                         \
+	void* operator new(size_t size)                                            \
+	{                                                                          \
+		return mrpt::aligned_malloc(size, MRPT_MAX_ALIGN_BYTES);               \
+	}                                                                          \
+	void* operator new[](size_t size)                                          \
+	{                                                                          \
+		return mrpt::aligned_malloc(size, MRPT_MAX_ALIGN_BYTES);               \
+	}                                                                          \
+	void operator delete(void* ptr) noexcept { mrpt::aligned_free(ptr); }      \
+	void operator delete[](void* ptr) noexcept { mrpt::aligned_free(ptr); }    \
+	/* in-place new and delete. since (at least afaik) there is no actual   */ \
+	/* memory allocated we can safely let the default implementation handle */ \
+	/* this particular case. */                                                \
+	static void* operator new(size_t size, void* ptr)                          \
+	{                                                                          \
+		return ::operator new(size, ptr);                                      \
+	}                                                                          \
+	void operator delete(void* memory, void* ptr) noexcept                     \
+	{                                                                          \
+		return ::operator delete(memory, ptr);                                 \
+	}                                                                          \
+	/* nothrow-new (returns zero instead of std::bad_alloc) */                 \
+	void* operator new(size_t size, const std::nothrow_t&) noexcept            \
+	{                                                                          \
+		try                                                                    \
+		{                                                                      \
+			return mrpt::aligned_malloc(size, MRPT_MAX_ALIGN_BYTES);           \
+		}                                                                      \
+		catch (...)                                                            \
+		{                                                                      \
+			return nullptr;                                                    \
+		}                                                                      \
+	}                                                                          \
+	void operator delete(void* ptr, const std::nothrow_t&)noexcept             \
+	{                                                                          \
+		mrpt::aligned_free(ptr);                                               \
+	}
 }  // namespace mrpt

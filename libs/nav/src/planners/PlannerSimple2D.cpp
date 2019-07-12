@@ -9,7 +9,6 @@
 
 #include "nav-precomp.h"  // Precompiled headers
 
-#include <mrpt/math/TPose2D.h>
 #include <mrpt/nav/planners/PlannerSimple2D.h>
 
 using namespace mrpt;

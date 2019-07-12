@@ -9,8 +9,6 @@
 
 #include "img-precomp.h"  // Precompiled headers
 
-#include <mrpt/config.h>
-
 #if MRPT_HAS_SSE2
 // ---------------------------------------------------------------------------
 //   This file contains the SSE2 optimized functions for mrpt::img::CImage

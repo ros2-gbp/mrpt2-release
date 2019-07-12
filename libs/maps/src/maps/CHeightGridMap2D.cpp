@@ -146,7 +146,7 @@ bool CHeightGridMap2D::insertIndividualPoint(
 }
 
 bool CHeightGridMap2D::internal_insertObservation(
-	const CObservation& obs, const CPose3D* robotPose)
+	const CObservation* obs, const CPose3D* robotPose)
 {
 	return dem_internal_insertObservation(obs, robotPose);
 }
@@ -155,7 +155,7 @@ bool CHeightGridMap2D::internal_insertObservation(
 						computeObservationLikelihood
   ---------------------------------------------------------------*/
 double CHeightGridMap2D::internal_computeObservationLikelihood(
-	const CObservation& obs, const CPose3D& takenFrom)
+	const CObservation* obs, const CPose3D& takenFrom)
 {
 	MRPT_UNUSED_PARAM(obs);
 	MRPT_UNUSED_PARAM(takenFrom);
@@ -294,7 +294,7 @@ void CHeightGridMap2D::getAs3DObject(
 
 	if (HEIGHTGRIDMAP_EXPORT3D_AS_MESH_value)
 	{
-		opengl::CMesh::Ptr mesh = std::make_shared<opengl::CMesh>();
+		opengl::CMesh::Ptr mesh = mrpt::make_aligned_shared<opengl::CMesh>();
 
 		mesh->setGridLimits(m_x_min, m_x_max, m_y_min, m_y_max);
 
@@ -317,8 +317,8 @@ void CHeightGridMap2D::getAs3DObject(
 			{
 				const THeightGridmapCell* c = cellByIndex(x, y);
 				ASSERTDEB_(c);
-				Z(x, y) = c->h;
-				mask(x, y) = c->w ? 1 : 0;
+				Z.set_unsafe(x, y, c->h);
+				mask.set_unsafe(x, y, c->w ? 1 : 0);
 			}
 		}
 		mesh->setZ(Z);
@@ -330,7 +330,7 @@ void CHeightGridMap2D::getAs3DObject(
 	{
 		// As points:
 		mrpt::opengl::CPointCloudColoured::Ptr obj =
-			mrpt::opengl::CPointCloudColoured::Create();
+			mrpt::make_aligned_shared<mrpt::opengl::CPointCloudColoured>();
 		obj->setPointSize(2);
 
 		// Find min/max:

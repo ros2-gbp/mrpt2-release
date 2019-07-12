@@ -83,7 +83,7 @@ class CFixedIntervalsNRD
 	using pose_t = typename GRAPH_T::constraint_t::type_value;
 	using global_pose_t = typename GRAPH_T::global_pose_t;
 
-	using inf_mat_t = mrpt::math::CMatrixFixed<
+	using inf_mat_t = mrpt::math::CMatrixFixedNumeric<
 		double, constraint_t::state_length, constraint_t::state_length>;
 	/**\brief Node Registration Decider */
 	using parent_t =

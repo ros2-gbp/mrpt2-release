@@ -44,7 +44,7 @@ class CPose3DPDFGaussian : public CPose3DPDF
 	/** Assures the symmetry of the covariance matrix (eventually certain
 	 * operations in the math-coprocessor lead to non-symmetric matrixes!)
 	 */
-	void enforceCovSymmetry();
+	void assureSymmetry();
 
    public:
 	/** Default constructor
@@ -92,9 +92,12 @@ class CPose3DPDFGaussian : public CPose3DPDF
 	 * the mean, both at once.
 	 * \sa getMean
 	 */
-	std::tuple<cov_mat_t, type_value> getCovarianceAndMean() const override
+	void getCovarianceAndMean(
+		mrpt::math::CMatrixDouble66& out_cov,
+		CPose3D& mean_point) const override
 	{
-		return {this->cov, this->mean};
+		out_cov = this->cov;
+		mean_point = this->mean;
 	}
 
 	void asString(std::string& s) const;

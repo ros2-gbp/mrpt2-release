@@ -462,7 +462,7 @@ void loadMapInto3DScene(COpenGLScene& scene)
 		}
 
 		mrpt::opengl::CGridPlaneXY::Ptr gridobj =
-			mrpt::opengl::CGridPlaneXY::Create(
+			mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
 				minC.x - 20, maxC.x + 20, minC.y - 20, maxC.y + 20, minC.z - 2,
 				5);
 		gridobj->setColor(0.3, 0.3, 0.3, 1);
@@ -481,13 +481,13 @@ void loadMapInto3DScene(COpenGLScene& scene)
 	// The robot path:
 	{
 		mrpt::opengl::CSetOfLines::Ptr obj =
-			mrpt::opengl::CSetOfLines::Create();
+			mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
 
 		obj->setColor(0, 1, 0, 0.5);
 		obj->setLineWidth(4);
 
 		mrpt::opengl::CSetOfLines::Ptr obj2 =
-			mrpt::opengl::CSetOfLines::Create();
+			mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
 		obj2->setColor(1, 0, 0, 0.5);
 		obj2->setLineWidth(2);
 
@@ -572,7 +572,8 @@ void loadMapInto3DScene(COpenGLScene& scene)
 
 	// The built maps:
 	// ---------------------------
-	opengl::CSetOfObjects::Ptr objs = std::make_shared<opengl::CSetOfObjects>();
+	opengl::CSetOfObjects::Ptr objs =
+		mrpt::make_aligned_shared<opengl::CSetOfObjects>();
 	theMap.getAs3DObject(objs);
 	scene.insert(objs);
 }
@@ -707,7 +708,7 @@ void CFormRawMap::OnbtnGenerateClick(wxCommandEvent&)
 			{
 				// Always, process odometry:
 				const CObservation* obs = rawlog.getAsObservation(i).get();
-				if (IS_CLASS(*obs, CObservationOdometry))
+				if (IS_CLASS(obs, CObservationOdometry))
 				{
 					const auto* obsOdo =
 						static_cast<const CObservationOdometry*>(obs);
@@ -718,7 +719,7 @@ void CFormRawMap::OnbtnGenerateClick(wxCommandEvent&)
 				{
 					CPose3D dumPose(curPose);
 					theMap.insertObservation(
-						*rawlog.getAsObservation(i), &dumPose);
+						rawlog.getAsObservation(i).get(), &dumPose);
 					last_tim = rawlog.getAsObservation(i)->timestamp;
 				}
 				addNewPathEntry = true;
@@ -1011,7 +1012,9 @@ void CFormRawMap::OnbtnGeneratePathsClick(wxCommandEvent&)
 	progDia.Update((int)nComputationSteps);
 
 	// Add a layer with a covariance with the last pose:
-	const auto [COV, meanPose] = pdfParts.getCovarianceAndMean();
+	CMatrixDouble33 COV;
+	CPose2D meanPose;
+	pdfParts.getCovarianceAndMean(COV, meanPose);
 
 	mpCovarianceEllipse* lyCov =
 		new mpCovarianceEllipse(COV(0, 0), COV(1, 1), COV(0, 1));
@@ -1117,7 +1120,7 @@ void CFormRawMap::OnGenerateFromRTK(wxCommandEvent&)
 					size_t& dec_cnt = decim_count[o->sensorLabel];
 
 					if ((++dec_cnt % decimate) == 0)
-						theMap.insertObservation(*o, &p);
+						theMap.insertObservation(o.get(), &p);
 				}
 			}
 			break;
@@ -1346,7 +1349,7 @@ void CFormRawMap::OnbtnSavePathClick(wxCommandEvent&)
 
 		// Standard matrix used for all the sensors on the vehicle:
 		CMatrixDouble COV_sensor_local;
-		COV_sensor_local.setZero(6, 6);
+		COV_sensor_local.zeros(6, 6);
 
 		{
 			CConfigFileMemory cfg;

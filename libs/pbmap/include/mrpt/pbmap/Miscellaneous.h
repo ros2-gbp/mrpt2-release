@@ -18,9 +18,8 @@
 #include <mrpt/config.h>
 #if MRPT_HAS_PCL
 
-#include <Eigen/Dense>
-
 #include <mrpt/math/ops_containers.h>
+#include <mrpt/math/types_math.h>  // Eigen
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <iostream>
@@ -56,8 +55,7 @@ Eigen::Matrix<dataType, 3, 1> compose(
 	Eigen::Matrix<dataType, 4, 4>& pose, Eigen::Matrix<dataType, 3, 1>& point)
 {
 	Eigen::Matrix<dataType, 3, 1> transformedPoint =
-		pose.template block<3, 3>(0, 0) * point +
-		pose.template block<3, 1>(0, 3);
+		pose.block(0, 0, 3, 3) * point + pose.block(0, 3, 3, 1);
 	return transformedPoint;
 }
 
@@ -67,11 +65,11 @@ Eigen::Matrix<dataType, 4, 4> compose(
 	Eigen::Matrix<dataType, 4, 4>& pose1, Eigen::Matrix<dataType, 4, 4>& pose2)
 {
 	Eigen::Matrix<dataType, 4, 4> transformedPose;
-	transformedPose.template block<3, 3>(0, 0) =
-		pose1.template block<3, 3>(0, 0) * pose2.template block<3, 3>(0, 0);
+	transformedPose.block(0, 0, 3, 3) =
+		pose1.block(0, 0, 3, 3) * pose2.block(0, 0, 3, 3);
 	transformedPose.block(0, 3, 3, 1) =
 		pose1.block(0, 3, 3, 1) +
-		pose1.template block<3, 3>(0, 0) * pose2.block(0, 3, 3, 1);
+		pose1.block(0, 0, 3, 3) * pose2.block(0, 3, 3, 1);
 	transformedPose.row(3) << 0, 0, 0, 1;
 	return transformedPose;
 }
@@ -81,10 +79,9 @@ template <class dataType>
 Eigen::Matrix<dataType, 4, 4> inverse(Eigen::Matrix<dataType, 4, 4>& pose)
 {
 	Eigen::Matrix<dataType, 4, 4> inverse;
-	inverse.template block<3, 3>(0, 0) =
-		pose.template block<3, 3>(0, 0).transpose();
+	inverse.block(0, 0, 3, 3) = pose.block(0, 0, 3, 3).transpose();
 	inverse.block(0, 3, 3, 1) =
-		-(inverse.template block<3, 3>(0, 0) * pose.block(0, 3, 3, 1));
+		-(inverse.block(0, 0, 3, 3) * pose.block(0, 3, 3, 1));
 	inverse.row(3) << 0, 0, 0, 1;
 	return inverse;
 }

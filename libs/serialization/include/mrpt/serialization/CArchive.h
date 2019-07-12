@@ -22,8 +22,7 @@
 #include <vector>
 
 // See: https://gcc.gnu.org/viewcvs/gcc?view=revision&revision=258854
-// See: https://stackoverflow.com/a/46507150/1631514
-#if defined(__clang__) && (__clang_major__ <= 7)
+#if defined(__clang__) && (__GLIBCXX__ <= 20180419)
 #define HAS_BROKEN_CLANG_STD_VISIT
 #endif
 
@@ -172,7 +171,7 @@ class CArchive
 	CSerializable::Ptr ReadObject() { return ReadObject<CSerializable>(); }
 	/** Reads an object from stream, its class determined at runtime, and
 	 * returns a smart pointer to the object. This version is similar to
-	 * std::make_shared<T>.
+	 * mrpt::make_aligned_shared<T>.
 	 * \exception std::exception On I/O error or undefined class.
 	 * \exception CExceptionEOF On an End-Of-File condition found
 	 * at a correct place: an EOF that abruptly finishes in the middle of one
@@ -194,7 +193,7 @@ class CArchive
 				THROW_EXCEPTION_FMT(
 					"Stored object has class '%s' which is not registered!",
 					strClassName.c_str());
-			obj = mrpt::ptr_cast<CSerializable>::from(classId->createObject());
+			obj.reset(dynamic_cast<CSerializable*>(classId->createObject()));
 		}
 		internal_ReadObject(
 			obj.get() /* may be nullptr */, strClassName, isOldFormat,
@@ -232,7 +231,7 @@ class CArchive
 		CSerializable::Ptr& ptr,
 		std::enable_if_t<!mrpt::is_shared_ptr<T>::value>* = nullptr)
 	{
-		if (IS_CLASS(*ptr, T)) return dynamic_cast<T&>(*ptr);
+		if (IS_CLASS(ptr, T)) return dynamic_cast<T&>(*ptr);
 		return ReadVariant_helper<RET, R...>(ptr);
 	}
 
@@ -264,7 +263,7 @@ class CArchive
 				strClassName.c_str());
 		if (strClassName != "nullptr")
 		{
-			obj = mrpt::ptr_cast<CSerializable>::from(classId->createObject());
+			obj.reset(dynamic_cast<CSerializable*>(classId->createObject()));
 		}
 		internal_ReadObject(obj.get(), strClassName, isOldFormat, version);
 		if (!obj)
@@ -277,8 +276,9 @@ class CArchive
 		}
 	}
 
-#if !defined(HAS_BROKEN_CLANG_STD_VISIT)
-	/** Writes a Variant to the stream */
+#ifndef HAS_BROKEN_CLANG_STD_VISIT
+	/** Writes a Variant to the stream.
+	 */
 	template <typename T>
 	void WriteVariant(T t)
 	{
@@ -588,17 +588,3 @@ CArchiveStreamBase<STREAM> archiveFrom(STREAM& s)
 	return CArchiveStreamBase<STREAM>(s);
 }
 }  // namespace mrpt::serialization
-
-namespace mrpt::rtti
-{
-// for std::variant
-template <>
-struct CLASS_ID_impl<std::monostate>
-{
-	static constexpr const mrpt::rtti::TRuntimeClassId* get()
-	{
-		return nullptr;
-	}
-};
-
-}  // namespace mrpt::rtti

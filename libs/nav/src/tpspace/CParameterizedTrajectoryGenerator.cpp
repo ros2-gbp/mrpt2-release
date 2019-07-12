@@ -14,7 +14,6 @@
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/filesystem.h>
 #include <mrpt/system/os.h>
-#include <fstream>
 
 using namespace mrpt::nav;
 

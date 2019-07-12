@@ -76,7 +76,7 @@ bool TRuntimeClassId::derivedFrom(const char* pBaseClass_name) const
 	return false;
 }
 
-CObject::Ptr TRuntimeClassId::createObject() const
+CObject* TRuntimeClassId::createObject() const
 {
 	if (!ptrCreateObject)
 	{
@@ -85,12 +85,13 @@ CObject::Ptr TRuntimeClassId::createObject() const
 			"[TRuntimeClassId::createObject] Trying to create an object "
 			"without dynamic constructor. classname=`%s`\n",
 			className != nullptr ? className : "nullptr");
-		return CObject::Ptr();
+		return nullptr;
 	}
 
 	try
 	{
-		return this->ptrCreateObject();
+		CObject* ret = (*ptrCreateObject)();
+		return ret;
 	}
 	catch (std::bad_alloc&)
 	{
@@ -105,9 +106,18 @@ TRuntimeClassId* CObject::_GetBaseClass() { return nullptr; }
 const struct TRuntimeClassId CObject::runtimeClassId = {"CObject", nullptr,
 														nullptr};
 
-mrpt::rtti::CObject::Ptr mrpt::rtti::classFactory(const std::string& className)
+mrpt::rtti::CObject* mrpt::rtti::classFactory(const std::string& className)
 {
 	auto pR = findRegisteredClass(className);
 	if (!pR) return nullptr;
 	return pR->createObject();
+}
+
+mrpt::rtti::CObject::Ptr mrpt::rtti::classFactoryPtr(
+	const std::string& className)
+{
+	mrpt::rtti::CObject::Ptr ret;
+	auto pR = findRegisteredClass(className);
+	if (pR) ret.reset(pR->createObject());
+	return ret;
 }

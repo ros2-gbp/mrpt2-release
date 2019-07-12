@@ -9,12 +9,12 @@
 #pragma once
 
 #include <mrpt/config/CLoadableOptions.h>
+#include <mrpt/core/aligned_std_map.h>
+#include <mrpt/core/aligned_std_vector.h>
 #include <mrpt/img/CImage.h>
-#include <mrpt/math/TPoint3D.h>
+#include <mrpt/math/lightweight_geom_data.h>
 #include <mrpt/tfest/TMatchingPair.h>
 #include <mrpt/typemeta/TEnumType.h>
-#include <map>
-#include <vector>
 
 namespace mrpt::vision
 {
@@ -29,10 +29,11 @@ using TLandmarkID = uint64_t;
 using TCameraPoseID = uint64_t;
 
 /** A list of camera frames (6D poses) indexed by unique IDs. */
-using TFramePosesMap = std::map<TCameraPoseID, mrpt::poses::CPose3D>;
+using TFramePosesMap =
+	mrpt::aligned_std_map<TCameraPoseID, mrpt::poses::CPose3D>;
 /** A list of camera frames (6D poses), which assumes indexes are unique,
  * consecutive IDs. */
-using TFramePosesVec = std::vector<mrpt::poses::CPose3D>;
+using TFramePosesVec = mrpt::aligned_std_vector<mrpt::poses::CPose3D>;
 
 /** A list of landmarks (3D points) indexed by unique IDs. */
 using TLandmarkLocationsMap = std::map<TLandmarkID, mrpt::math::TPoint3D>;
@@ -40,8 +41,11 @@ using TLandmarkLocationsMap = std::map<TLandmarkID, mrpt::math::TPoint3D>;
  * consecutive IDs. */
 using TLandmarkLocationsVec = std::vector<mrpt::math::TPoint3D>;
 
-/** Types of key point detectors */
-enum TKeyPointMethod : int8_t
+/** Types of features - This means that the point has been detected with this
+ * algorithm, which is independent of additional descriptors a feature may also
+ * have
+ */
+enum TFeatureType : int8_t
 {
 	/** Non-defined feature (also used for Occupancy features) */
 	featNotDefined = -1,
@@ -61,18 +65,24 @@ enum TKeyPointMethod : int8_t
 	   machine learning approach to corner detection", E. Rosten, R. Porter and
 	   T. Drummond, PAMI, 2009). */
 	featFAST,
-	/** FASTER-9 detector, Edward Rosten's libcvd, SSE2 optimized */
+	/** FASTER-9 detector, Edward Rosten's libcvd implementation optimized for
+	   SSE2. */
 	featFASTER9,
-	/** FASTER-9 detector, Edward Rosten's libcvd, SSE2 optimized */
+	/** FASTER-9 detector, Edward Rosten's libcvd implementation optimized for
+	   SSE2. */
 	featFASTER10,
-	/** FASTER-9 detector, Edward Rosten's libcvd, SSE2 optimized */
+	/** FASTER-9 detector, Edward Rosten's libcvd implementation optimized for
+	   SSE2. */
 	featFASTER12,
-	/** ORB detector and descriptor, OpenCV's implementation */
+	/** ORB detector and descriptor, OpenCV's implementation ("ORB: an efficient
+	   alternative to SIFT or SURF", E. Rublee, V. Rabaud, K. Konolige, G.
+	   Bradski, ICCV, 2012). */
 	featORB,
 	// #added by Raghavender Sahdev
 	featAKAZE,  //!< AKAZE detector, OpenCV's implementation
 	featLSD  //!< LSD detector, OpenCV's implementation
 	// Remember: If new values are added, also update MRPT_FILL_ENUM below!
+
 };
 
 /** The bitwise OR combination of values of TDescriptorType are used in
@@ -311,7 +321,7 @@ struct TStereoSystemParams : public mrpt::config::CLoadableOptions
 struct TROI
 {
 	// Constructors
-	TROI() = default;
+	TROI();
 	TROI(float x1, float x2, float y1, float y2, float z1, float z2);
 
 	// Members
@@ -328,7 +338,7 @@ struct TROI
 struct TImageROI
 {
 	// Constructors
-	TImageROI() = default;
+	TImageROI();
 	TImageROI(float x1, float x2, float y1, float y2);
 
 	// Members
@@ -685,7 +695,7 @@ struct TMultiResDescOptions : public mrpt::config::CLoadableOptions
 
 /** @} */  // end of grouping
 }  // namespace mrpt::vision
-MRPT_ENUM_TYPE_BEGIN(mrpt::vision::TKeyPointMethod)
+MRPT_ENUM_TYPE_BEGIN(mrpt::vision::TFeatureType)
 using namespace mrpt::vision;
 MRPT_FILL_ENUM(featNotDefined);
 MRPT_FILL_ENUM(featKLT);

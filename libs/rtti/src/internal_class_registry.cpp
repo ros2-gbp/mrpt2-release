@@ -147,18 +147,8 @@ void mrpt::rtti::registerAllPendingClasses()
 void mrpt::rtti::registerClass(const TRuntimeClassId* pNewClass)
 {
 	// Register it:
-	if (pNewClass && pNewClass->className)
-	{
-		CClassRegistry::Instance().Add(
-			std::string(pNewClass->className), *pNewClass);
-	}
-	else
-	{
-		fprintf(
-			stderr,
-			"[mrpt::rtti::registerClass] Warning: Invoked with a nullptr "
-			"classname (?).\n");
-	}
+	CClassRegistry::Instance().Add(
+		std::string(pNewClass->className), *pNewClass);
 
 	// Automatically register all classes when the first one is registered.
 	registerAllPendingClasses();

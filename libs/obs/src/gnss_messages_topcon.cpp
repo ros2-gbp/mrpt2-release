@@ -12,8 +12,6 @@
 #include <mrpt/math/matrix_serialization.h>  // for << of matrices
 #include <mrpt/obs/gnss_messages_topcon.h>
 
-#include <ostream>
-
 using namespace std;
 using namespace mrpt::obs::gnss;
 

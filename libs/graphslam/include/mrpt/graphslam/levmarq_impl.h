@@ -8,7 +8,6 @@
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <Eigen/Dense>
 #include <vector>
 
 namespace mrpt
@@ -39,7 +38,7 @@ struct AuxErrorEval<CPose2D, gst>
 		const MAT& J1, MAT& JtJ, const EDGE_ITERATOR& edge)
 	{
 		MRPT_UNUSED_PARAM(edge);
-		JtJ.matProductOf_AtA(J1);
+		JtJ = J1.transpose() * J1;
 	}
 
 	template <class MAT, class EDGE_ITERATOR>
@@ -47,7 +46,7 @@ struct AuxErrorEval<CPose2D, gst>
 		const MAT& J1, const MAT& J2, MAT& JtJ, const EDGE_ITERATOR& edge)
 	{
 		MRPT_UNUSED_PARAM(edge);
-		JtJ.asEigen() = J1.transpose() * J2.asEigen();
+		JtJ = J1.transpose() * J2;
 	}
 
 	template <class JAC, class EDGE_ITERATOR, class VEC1, class VEC2>
@@ -55,8 +54,8 @@ struct AuxErrorEval<CPose2D, gst>
 		const JAC& J, const EDGE_ITERATOR& edge, const VEC1& ERR, VEC2& OUT)
 	{
 		MRPT_UNUSED_PARAM(edge);
-		const auto grad_incr = (J.transpose() * ERR.asEigen()).eval();
-		OUT.asEigen() += grad_incr;
+		const auto grad_incr = (J.transpose() * ERR).eval();
+		OUT += grad_incr;
 	}
 };
 
@@ -69,7 +68,7 @@ struct AuxErrorEval<CPose3D, gst>
 		const MAT& J1, MAT& JtJ, const EDGE_ITERATOR& edge)
 	{
 		MRPT_UNUSED_PARAM(edge);
-		JtJ.matProductOf_AtA(J1);
+		JtJ = J1.transpose() * J1;
 	}
 
 	template <class MAT, class EDGE_ITERATOR>
@@ -77,7 +76,7 @@ struct AuxErrorEval<CPose3D, gst>
 		const MAT& J1, const MAT& J2, MAT& JtJ, const EDGE_ITERATOR& edge)
 	{
 		MRPT_UNUSED_PARAM(edge);
-		JtJ.asEigen() = J1.transpose() * J2.asEigen();
+		JtJ = J1.transpose() * J2;
 	}
 
 	template <class JAC, class EDGE_ITERATOR, class VEC1, class VEC2>
@@ -85,7 +84,7 @@ struct AuxErrorEval<CPose3D, gst>
 		const JAC& J, const EDGE_ITERATOR& edge, const VEC1& ERR, VEC2& OUT)
 	{
 		MRPT_UNUSED_PARAM(edge);
-		OUT.asEigen() += J.transpose() * ERR.asEigen();
+		OUT += J.transpose() * ERR;
 	}
 };
 
@@ -97,23 +96,20 @@ struct AuxErrorEval<CPosePDFGaussianInf, gst>
 	static inline void multiplyJtLambdaJ(
 		const MAT& J1, MAT& JtJ, const EDGE_ITERATOR& edge)
 	{
-		JtJ.asEigen() =
-			(J1.transpose() * edge->second.cov_inv.asEigen()) * J1.asEigen();
+		JtJ = (J1.transpose() * edge->second.cov_inv) * J1;
 	}
 	template <class MAT, class EDGE_ITERATOR>
 	static inline void multiplyJ1tLambdaJ2(
 		const MAT& J1, const MAT& J2, MAT& JtJ, const EDGE_ITERATOR& edge)
 	{
-		JtJ.asEigen() =
-			(J1.transpose() * edge->second.cov_inv.asEigen()) * J2.asEigen();
+		JtJ = (J1.transpose() * edge->second.cov_inv) * J2;
 	}
 
 	template <class JAC, class EDGE_ITERATOR, class VEC1, class VEC2>
 	static inline void multiply_Jt_W_err(
 		const JAC& J, const EDGE_ITERATOR& edge, const VEC1& ERR, VEC2& OUT)
 	{
-		OUT.asEigen() +=
-			(J.transpose() * edge->second.cov_inv.asEigen()) * ERR.asEigen();
+		OUT += (J.transpose() * edge->second.cov_inv) * ERR;
 	}
 };
 
@@ -125,24 +121,21 @@ struct AuxErrorEval<CPose3DPDFGaussianInf, gst>
 	static inline void multiplyJtLambdaJ(
 		const MAT& J1, MAT& JtJ, const EDGE_ITERATOR& edge)
 	{
-		JtJ.asEigen() =
-			(J1.transpose() * edge->second.cov_inv.asEigen()) * J1.asEigen();
+		JtJ = (J1.transpose() * edge->second.cov_inv) * J1;
 	}
 
 	template <class MAT, class EDGE_ITERATOR>
 	static inline void multiplyJ1tLambdaJ2(
 		const MAT& J1, const MAT& J2, MAT& JtJ, const EDGE_ITERATOR& edge)
 	{
-		JtJ.asEigen() =
-			(J1.transpose() * edge->second.cov_inv.asEigen()) * J2.asEigen();
+		JtJ = (J1.transpose() * edge->second.cov_inv) * J2;
 	}
 
 	template <class JAC, class EDGE_ITERATOR, class VEC1, class VEC2>
 	static inline void multiply_Jt_W_err(
 		const JAC& J, const EDGE_ITERATOR& edge, const VEC1& ERR, VEC2& OUT)
 	{
-		OUT.asEigen() +=
-			(J.transpose() * edge->second.cov_inv.asEigen()) * ERR.asEigen();
+		OUT += (J.transpose() * edge->second.cov_inv) * ERR;
 	}
 };
 
@@ -156,7 +149,7 @@ double computeJacobiansAndErrors(
 	const std::vector<typename graphslam_traits<GRAPH_T>::observation_info_t>&
 		lstObservationData,
 	typename graphslam_traits<GRAPH_T>::map_pairIDs_pairJacobs_t& lstJacobians,
-	std::vector<typename graphslam_traits<GRAPH_T>::Array_O>& errs)
+	mrpt::aligned_std_vector<typename graphslam_traits<GRAPH_T>::Array_O>& errs)
 {
 	MRPT_UNUSED_PARAM(graph);
 	using gst = graphslam_traits<GRAPH_T>;
@@ -189,7 +182,7 @@ double computeJacobiansAndErrors(
 		errs.back() = gst::SE_TYPE::log(DinvP1invP2);
 
 		// Compute the jacobians:
-		alignas(MRPT_MAX_STATIC_ALIGN_BYTES)
+		alignas(MRPT_MAX_ALIGN_BYTES)
 			std::pair<mrpt::graphs::TPairNodeIDs, typename gst::TPairJacobs>
 				newMapEntry;
 		newMapEntry.first = ids;
@@ -205,8 +198,7 @@ double computeJacobiansAndErrors(
 	// std::accumulate(...,mrpt::squareNorm_accum<>), but led to GCC
 	// errors when enabling parallelization)
 	double ret_err = 0.0;
-	for (size_t i = 0; i < errs.size(); i++)
-		ret_err += mrpt::square(errs[i].norm());
+	for (size_t i = 0; i < errs.size(); i++) ret_err += errs[i].squaredNorm();
 	return ret_err;
 }
 

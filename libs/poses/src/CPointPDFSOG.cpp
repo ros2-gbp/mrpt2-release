@@ -18,7 +18,6 @@
 #include <mrpt/random.h>
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/os.h>
-#include <Eigen/Dense>
 
 using namespace mrpt::poses;
 using namespace mrpt::math;
@@ -78,14 +77,16 @@ void CPointPDFSOG::getMean(CPoint3D& p) const
 	p.z(Z);
 }
 
-std::tuple<CMatrixDouble33, CPoint3D> CPointPDFSOG::getCovarianceAndMean() const
+/*---------------------------------------------------------------
+						getCovarianceAndMean
+ ---------------------------------------------------------------*/
+void CPointPDFSOG::getCovarianceAndMean(
+	CMatrixDouble33& estCov, CPoint3D& p) const
 {
 	size_t N = m_modes.size();
 
-	CMatrixDouble33 estCov;
-	CPoint3D p;
 	getMean(p);
-	estCov.setZero();
+	estCov.zeros();
 
 	if (N)
 	{
@@ -95,16 +96,18 @@ std::tuple<CMatrixDouble33, CPoint3D> CPointPDFSOG::getCovarianceAndMean() const
 
 		CListGaussianModes::const_iterator it;
 
+		CMatrixDouble33 partCov;
+
 		for (it = m_modes.begin(); it != m_modes.end(); ++it)
 		{
 			double w;
 			sumW += w = exp(it->log_w);
 
+			// estCov += w * ( it->val.cov +
+			// ((estMean_i-estMean)*(~(estMean_i-estMean))) );
 			auto estMean_i = CMatrixDouble31(it->val.mean);
 			estMean_i -= estMean;
-
-			auto partCov =
-				CMatrixDouble33(estMean_i.asEigen() * estMean_i.transpose());
+			partCov.multiply_AAt(estMean_i);
 			partCov += it->val.cov;
 			partCov *= w;
 			estCov += partCov;
@@ -112,8 +115,6 @@ std::tuple<CMatrixDouble33, CPoint3D> CPointPDFSOG::getCovarianceAndMean() const
 
 		if (sumW != 0) estCov *= (1.0 / sumW);
 	}
-
-	return {estCov, p};
 }
 
 uint8_t CPointPDFSOG::serializeGetVersion() const { return 1; }
@@ -276,29 +277,31 @@ void CPointPDFSOG::bayesianFusion(
 		CMatrixDouble33 c = m.val.cov;
 
 		// Is a 2D covariance??
-		if (c(2, 2) == 0)
+		if (c.get_unsafe(2, 2) == 0)
 		{
 			is2D = true;
-			c(2, 2) = 1;
+			c.set_unsafe(2, 2, 1);
 		}
 
 		ASSERT_(c(0, 0) != 0 && c(0, 0) != 0);
 
-		const CMatrixDouble33 covInv = c.inverse_LLt();
+		CMatrixDouble33 covInv(UNINITIALIZED_MATRIX);
+		c.inv(covInv);
 
-		Eigen::Vector3d eta = covInv * CMatrixDouble31(m.val.mean);
+		CMatrixDouble31 eta = covInv * CMatrixDouble31(m.val.mean);
 
 		// Normal distribution canonical form constant:
 		// See: http://www-static.cc.gatech.edu/~wujx/paper/Gaussian.pdf
 		double a = -0.5 * (3 * log(M_2PI) - log(covInv.det()) +
-						   (eta.transpose() * c.asEigen() * eta)(0, 0));
+						   eta.multiply_HtCH_scalar(
+							   c));  // (~eta * (*it1).val.cov * eta)(0,0) );
 
 		for (const auto& m2 : p2->m_modes)
 		{
 			auxSOG_Kernel_i = m2.val;
-			if (auxSOG_Kernel_i.cov(2, 2) == 0)
+			if (auxSOG_Kernel_i.cov.get_unsafe(2, 2) == 0)
 			{
-				auxSOG_Kernel_i.cov(2, 2) = 1;
+				auxSOG_Kernel_i.cov.set_unsafe(2, 2, 1);
 				is2D = true;
 			}
 			ASSERT_(
@@ -311,18 +314,23 @@ void CPointPDFSOG::bayesianFusion(
 				// Approximate (fast) mahalanobis distance (square):
 				float mahaDist2;
 
-				float stdX2 = max(auxSOG_Kernel_i.cov(0, 0), m.val.cov(0, 0));
+				float stdX2 =
+					max(auxSOG_Kernel_i.cov.get_unsafe(0, 0),
+						m.val.cov.get_unsafe(0, 0));
 				mahaDist2 =
 					square(auxSOG_Kernel_i.mean.x() - m.val.mean.x()) / stdX2;
 
-				float stdY2 = max(auxSOG_Kernel_i.cov(1, 1), m.val.cov(1, 1));
+				float stdY2 =
+					max(auxSOG_Kernel_i.cov.get_unsafe(1, 1),
+						m.val.cov.get_unsafe(1, 1));
 				mahaDist2 +=
 					square(auxSOG_Kernel_i.mean.y() - m.val.mean.y()) / stdY2;
 
 				if (!is2D)
 				{
 					float stdZ2 =
-						max(auxSOG_Kernel_i.cov(2, 2), m.val.cov(2, 2));
+						max(auxSOG_Kernel_i.cov.get_unsafe(2, 2),
+							m.val.cov.get_unsafe(2, 2));
 					mahaDist2 +=
 						square(auxSOG_Kernel_i.mean.z() - m.val.mean.z()) /
 						stdZ2;
@@ -348,24 +356,22 @@ void CPointPDFSOG::bayesianFusion(
 
 				newKernel.val = auxGaussianProduct;  // Copy mean & cov
 
-				CMatrixDouble33 covInv_i = auxSOG_Kernel_i.cov.inverse_LLt();
-				Eigen::Vector3d eta_i =
-					CMatrixDouble31(auxSOG_Kernel_i.mean).asEigen();
-				eta_i = covInv_i.asEigen() * eta_i;
+				CMatrixDouble33 covInv_i = auxSOG_Kernel_i.cov.inv();
+				auto eta_i = CMatrixDouble31(auxSOG_Kernel_i.mean);
+				eta_i = covInv_i * eta_i;
 
-				CMatrixDouble33 new_covInv_i = newKernel.val.cov.inverse_LLt();
-				Eigen::Vector3d new_eta_i =
-					CMatrixDouble31(newKernel.val.mean).asEigen();
-				new_eta_i = new_covInv_i.asEigen() * new_eta_i;
+				CMatrixDouble33 new_covInv_i = newKernel.val.cov.inv();
+				auto new_eta_i = CMatrixDouble31(newKernel.val.mean);
+				new_eta_i = new_covInv_i * new_eta_i;
 
 				double a_i =
-					-0.5 * (3 * log(M_2PI) - log(new_covInv_i.det()) +
-							(eta_i.transpose() * auxSOG_Kernel_i.cov.asEigen() *
-							 eta_i)(0, 0));
+					-0.5 *
+					(3 * log(M_2PI) - log(new_covInv_i.det()) +
+					 (eta_i.adjoint() * auxSOG_Kernel_i.cov * eta_i)(0, 0));
 				double new_a_i =
 					-0.5 * (3 * log(M_2PI) - log(new_covInv_i.det()) +
-							(new_eta_i.transpose() *
-							 newKernel.val.cov.asEigen() * new_eta_i)(0, 0));
+							(new_eta_i.adjoint() * newKernel.val.cov *
+							 new_eta_i)(0, 0));
 
 				newKernel.log_w = m.log_w + m2.log_w + a + a_i - new_a_i;
 
@@ -385,9 +391,9 @@ void CPointPDFSOG::bayesianFusion(
 }
 
 /*---------------------------------------------------------------
-						enforceCovSymmetry
+						assureSymmetry
  ---------------------------------------------------------------*/
-void CPointPDFSOG::enforceCovSymmetry()
+void CPointPDFSOG::assureSymmetry()
 {
 	MRPT_START
 	// Differences, when they exist, appear in the ~15'th significant
@@ -554,7 +560,7 @@ void CPointPDFSOG::getMostLikelyMode(CPointPDFGaussian& outVal) const
 // m_modes.end();++it)
 //	{
 //		opengl::CEllipsoid::Ptr obj =
-// std::make_shared<opengl::CEllipsoid>();
+// mrpt::make_aligned_shared<opengl::CEllipsoid>();
 //
 //		obj->setPose( it->val.mean);
 //		obj->setCovMatrix(it->val.cov,  it->val.cov(2,2)==0  ?  2:3);

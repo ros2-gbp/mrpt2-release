@@ -8,8 +8,7 @@
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixFixed.h>
-#include <mrpt/math/CVectorDynamic.h>
+#include <mrpt/math/CMatrixFixedNumeric.h>
 #include <mrpt/math/ops_matrices.h>
 #include <mrpt/math/wrap2pi.h>
 
@@ -42,9 +41,10 @@ typename MAT::Scalar mahalanobisDistance2(
 	ASSERT_(X.size() == COV.rows() && COV.isSquare());
 #endif
 	const size_t N = X.size();
-	CVectorDynamic<typename MAT::Scalar> X_MU(N);
+	Eigen::Matrix<typename MAT::Scalar, Eigen::Dynamic, 1> X_MU(N);
 	for (size_t i = 0; i < N; i++) X_MU[i] = X[i] - MU[i];
-	auto z = COV.llt_solve(X_MU);
+	const Eigen::Matrix<typename MAT::Scalar, Eigen::Dynamic, 1> z =
+		COV.llt().solve(X_MU);
 	return z.dot(z);
 	MRPT_END
 }
@@ -82,7 +82,7 @@ typename MAT1::Scalar mahalanobisDistance2(
 	COV += COV2;
 	COV.substract_An(CROSS_COV12, 2);
 	MAT1 COV_inv;
-	COV.inverse_LLt(COV_inv);
+	COV.inv_fast(COV_inv);
 	return multiply_HCHt_scalar(mean_diffs, COV_inv);
 	MRPT_END
 }
@@ -112,7 +112,7 @@ inline typename MATRIXLIKE::Scalar mahalanobisDistance2(
 {
 	ASSERTDEB_(cov.isSquare());
 	ASSERTDEB_(size_t(cov.cols()) == size_t(delta_mu.size()));
-	return multiply_HtCH_scalar(delta_mu, cov.inverse());
+	return multiply_HCHt_scalar(delta_mu, cov.inverse());
 }
 
 /** Computes the mahalanobis distance between a point and a Gaussian, given the
@@ -134,17 +134,17 @@ inline typename MATRIXLIKE::Scalar mahalanobisDistance(
  */
 template <typename T>
 T productIntegralTwoGaussians(
-	const std::vector<T>& mean_diffs, const CMatrixDynamic<T>& COV1,
-	const CMatrixDynamic<T>& COV2)
+	const std::vector<T>& mean_diffs, const CMatrixTemplateNumeric<T>& COV1,
+	const CMatrixTemplateNumeric<T>& COV2)
 {
 	const size_t vector_dim = mean_diffs.size();
 	ASSERT_(vector_dim >= 1);
 
-	CMatrixDynamic<T> C = COV1;
+	CMatrixTemplateNumeric<T> C = COV1;
 	C += COV2;  // Sum of covs:
 	const T cov_det = C.det();
-	CMatrixDynamic<T> C_inv;
-	C.inverse_LLt(C_inv);
+	CMatrixTemplateNumeric<T> C_inv;
+	C.inv_fast(C_inv);
 
 	return std::pow(M_2PI, -0.5 * vector_dim) * (1.0 / std::sqrt(cov_det)) *
 		   exp(-0.5 * mean_diffs.multiply_HCHt_scalar(C_inv));
@@ -157,16 +157,17 @@ T productIntegralTwoGaussians(
  */
 template <typename T, size_t DIM>
 T productIntegralTwoGaussians(
-	const std::vector<T>& mean_diffs, const CMatrixFixed<T, DIM, DIM>& COV1,
-	const CMatrixFixed<T, DIM, DIM>& COV2)
+	const std::vector<T>& mean_diffs,
+	const CMatrixFixedNumeric<T, DIM, DIM>& COV1,
+	const CMatrixFixedNumeric<T, DIM, DIM>& COV2)
 {
 	ASSERT_(mean_diffs.size() == DIM);
 
-	CMatrixFixed<T, DIM, DIM> C = COV1;
+	CMatrixFixedNumeric<T, DIM, DIM> C = COV1;
 	C += COV2;  // Sum of covs:
 	const T cov_det = C.det();
-	CMatrixFixed<T, DIM, DIM> C_inv(mrpt::math::UNINITIALIZED_MATRIX);
-	C.inverse_LLt(C_inv);
+	CMatrixFixedNumeric<T, DIM, DIM> C_inv(mrpt::math::UNINITIALIZED_MATRIX);
+	C.inv_fast(C_inv);
 
 	return std::pow(M_2PI, -0.5 * DIM) * (1.0 / std::sqrt(cov_det)) *
 		   exp(-0.5 * mean_diffs.multiply_HCHt_scalar(C_inv));
@@ -193,9 +194,9 @@ void productIntegralAndMahalanobisTwoGaussians(
 	}
 	const T cov_det = C.det();
 	MATLIKE1 C_inv;
-	C.inverse_LLt(C_inv);
+	C.inv_fast(C_inv);
 
-	maha2_out = mrpt::math::multiply_HCHt_scalar(mean_diffs, C_inv);
+	maha2_out = mean_diffs.multiply_HCHt_scalar(C_inv);
 	intprod_out = std::pow(M_2PI, -0.5 * vector_dim) *
 				  (1.0 / std::sqrt(cov_det)) * exp(-0.5 * maha2_out);
 }
@@ -213,8 +214,9 @@ void mahalanobisDistance2AndLogPDF(
 	MRPT_START
 	ASSERTDEB_(cov.isSquare());
 	ASSERTDEB_(size_t(cov.cols()) == size_t(diff_mean.size()));
-	const MATRIXLIKE C_inv = cov.inverse_LLt();
-	maha2_out = multiply_HtCH_scalar(diff_mean, C_inv);
+	MATRIXLIKE C_inv;
+	cov.inv(C_inv);
+	maha2_out = multiply_HCHt_scalar(diff_mean, C_inv);
 	log_pdf_out = static_cast<typename MATRIXLIKE::Scalar>(-0.5) *
 				  (maha2_out +
 				   static_cast<typename MATRIXLIKE::Scalar>(cov.cols()) *
@@ -242,14 +244,15 @@ inline void mahalanobisDistance2AndPDF(
  * sample in a "row".
  * \param covariances Output estimated covariance; it can be a fixed/dynamic
  * matrix or a matrixview.
- * \param means Output estimated mean; it can be
- * CVectorDouble/CVectorFixedDouble, etc... \param weights_mean If !=nullptr, it
- * must point to a vector of size()==number of elements, with normalized weights
- * to take into account for the mean. \param weights_cov If !=nullptr, it must
- * point to a vector of size()==number of elements, with normalized weights to
- * take into account for the covariance. \param elem_do_wrap2pi If !=nullptr; it
- * must point to an array of "bool" of size()==dimension of each element,
- * stating if it's needed to do a wrap to
+ * \param means Output estimated mean; it can be CVectorDouble/CArrayDouble,
+ * etc...
+ * \param weights_mean If !=nullptr, it must point to a vector of
+ * size()==number of elements, with normalized weights to take into account for
+ * the mean.
+ * \param weights_cov If !=nullptr, it must point to a vector of size()==number
+ * of elements, with normalized weights to take into account for the covariance.
+ * \param elem_do_wrap2pi If !=nullptr; it must point to an array of "bool" of
+ * size()==dimension of each element, stating if it's needed to do a wrap to
  * [-pi,pi] to each dimension.
  * \sa This method is used in mrpt::math::unscented_transform_gaussian
  * \ingroup stats_grp
@@ -270,7 +273,7 @@ inline void
 	using T = typename MATRIXLIKE::Scalar;
 	const size_t DIM = elements[0].size();
 	means.resize(DIM);
-	covariances.resize(DIM, DIM);
+	covariances.setSize(DIM, DIM);
 	const size_t nElms = elements.size();
 	const T NORM = 1.0 / nElms;
 	if (weights_mean)
@@ -359,8 +362,8 @@ inline void
 				}
 				elem *= NORM;
 			}
-			covariances(i, j) = elem;
-			if (i != j) covariances(j, i) = elem;
+			covariances.get_unsafe(i, j) = elem;
+			if (i != j) covariances.get_unsafe(j, i) = elem;
 		}
 }
 
@@ -370,10 +373,10 @@ inline void
  * sample in a "row".
  * \param covariances Output estimated covariance; it can be a fixed/dynamic
  * matrix or a matrixview.
- * \param means Output estimated mean; it can be
- * CVectorDouble/CVectorFixedDouble, etc... \param elem_do_wrap2pi If !=nullptr;
- * it must point to an array of "bool" of size()==dimension of each element,
- * stating if it's needed to do a wrap to
+ * \param means Output estimated mean; it can be CVectorDouble/CArrayDouble,
+ * etc...
+ * \param elem_do_wrap2pi If !=nullptr; it must point to an array of "bool" of
+ * size()==dimension of each element, stating if it's needed to do a wrap to
  * [-pi,pi] to each dimension.
  * \ingroup stats_grp
  */

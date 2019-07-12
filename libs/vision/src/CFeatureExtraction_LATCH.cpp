@@ -71,10 +71,10 @@ void CFeatureExtraction::internal_computeLATCHDescriptors(
 	for (size_t k = 0; k < n_feats; ++k)
 	{
 		KeyPoint& kp = cv_feats[k];
-		kp.pt.x = in_features[k].keypoint.pt.x;
-		kp.pt.y = in_features[k].keypoint.pt.y;
-		kp.angle = in_features[k].orientation;
-		kp.size = in_features[k].keypoint.octave;  // ?
+		kp.pt.x = in_features[k]->x;
+		kp.pt.y = in_features[k]->y;
+		kp.angle = in_features[k]->orientation;
+		kp.size = in_features[k]->scale;
 	}  // end-for
 
 	const Mat& cvImg = inImg_gray.asCvMatRef();
@@ -88,17 +88,19 @@ void CFeatureExtraction::internal_computeLATCHDescriptors(
 	// -----------------------------------------------------------------
 	// MRPT Wrapping
 	// -----------------------------------------------------------------
-	int i = 0;
-	for (auto& ft : in_features)
+	CFeatureList::iterator itList;
+	int i;
+	for (i = 0, itList = in_features.begin(); itList != in_features.end();
+		 itList++, i++)
 	{
-		// Get the LATCH descriptor
-		ft.descriptors.LATCH.emplace();
-		ft.descriptors.LATCH->resize(cv_descs.cols);
-		for (int m = 0; m < cv_descs.cols; ++m)
-			(*ft.descriptors.LATCH)[m] = cv_descs.at<int>(i, m);
+		CFeature::Ptr ft = *itList;
 
-		i++;
-	}
+		// Get the LATCH descriptor
+		ft->descriptors.LATCH.resize(cv_descs.cols);
+		for (int m = 0; m < cv_descs.cols; ++m)
+			ft->descriptors.LATCH[m] =
+				cv_descs.at<int>(i, m);  // Get the LATCH descriptor
+	}  // end for-
 
 #endif
 	MRPT_END

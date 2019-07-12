@@ -325,6 +325,6 @@ bool CBoardSonars::checkConnectionAndConnect()
 void CBoardSonars::doProcess()
 {
 	mrpt::obs::CObservationRange::Ptr obs =
-		mrpt::obs::CObservationRange::Create();
+		mrpt::make_aligned_shared<mrpt::obs::CObservationRange>();
 	if (getObservation(*obs)) appendObservation(obs);
 }

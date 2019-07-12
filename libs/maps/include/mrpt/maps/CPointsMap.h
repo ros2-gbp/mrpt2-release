@@ -13,9 +13,9 @@
 #include <mrpt/core/safe_pointers.h>
 #include <mrpt/img/color_maps.h>
 #include <mrpt/maps/CMetricMap.h>
-#include <mrpt/math/CMatrixFixed.h>
+#include <mrpt/math/CMatrixFixedNumeric.h>
 #include <mrpt/math/KDTreeCapable.h>
-#include <mrpt/math/TPoint3D.h>
+#include <mrpt/math/lightweight_geom_data.h>
 #include <mrpt/obs/CSinCosLookUpTableFor2DScans.h>
 #include <mrpt/obs/obs_frwds.h>
 #include <mrpt/opengl/PLY_import_export.h>
@@ -965,7 +965,7 @@ class CPointsMap : public CMetricMap,
 
 	// See docs in base class
 	double internal_computeObservationLikelihood(
-		const mrpt::obs::CObservation& obs,
+		const mrpt::obs::CObservation* obs,
 		const mrpt::poses::CPose3D& takenFrom) override;
 
 	double internal_computeObservationLikelihoodPointCloud3D(
@@ -1127,7 +1127,7 @@ class CPointsMap : public CMetricMap,
 	 * See mrpt::maps::CPointsMap for the enumeration of types of observations
 	 * which are accepted. */
 	bool internal_insertObservation(
-		const mrpt::obs::CObservation& obs,
+		const mrpt::obs::CObservation* obs,
 		const mrpt::poses::CPose3D* robotPose) override;
 
 	/** Helper method for ::copyFrom() */

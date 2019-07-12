@@ -19,6 +19,16 @@ using namespace mrpt::system;
 using namespace mrpt::nav;
 using namespace std;
 
+// ---------   CReactiveNavigationSystem3D::TPTGmultilevel -----------------
+// Ctor:
+CReactiveNavigationSystem3D::TPTGmultilevel::TPTGmultilevel() = default;
+// Dtor: free PTG memory
+CReactiveNavigationSystem3D::TPTGmultilevel::~TPTGmultilevel()
+{
+	for (auto& PTG : PTGs) delete PTG;
+	PTGs.clear();
+}
+
 /*---------------------------------------------------------------
 					Constructor
   ---------------------------------------------------------------*/
@@ -118,8 +128,9 @@ void CReactiveNavigationSystem3D::loadConfigFile(
 				"[loadConfigFile] Generating PTG#%u at level %u...", j, i);
 			const std::string sPTGName =
 				c.read_string(s, format("PTG%d_TYPE", j), "", true);
-			auto ptgaux = CParameterizedTrajectoryGenerator::CreatePTG(
-				sPTGName, c, s, format("PTG%d_", j));
+			CParameterizedTrajectoryGenerator* ptgaux =
+				CParameterizedTrajectoryGenerator::CreatePTG(
+					sPTGName, c, s, format("PTG%d_", j));
 			m_ptgmultilevel[j - 1].PTGs.push_back(ptgaux);
 		}
 	}
@@ -157,14 +168,14 @@ void CReactiveNavigationSystem3D::STEP1_InitPTGs()
 				{
 					auto* ptg =
 						dynamic_cast<mrpt::nav::CPTG_RobotShape_Polygonal*>(
-							m_ptgmultilevel[j].PTGs[i].get());
+							m_ptgmultilevel[j].PTGs[i]);
 					if (ptg) ptg->setRobotShape(m_robotShape.polygon(i));
 				}
 				// Circular robot shape?
 				{
 					auto* ptg =
 						dynamic_cast<mrpt::nav::CPTG_RobotShape_Circular*>(
-							m_ptgmultilevel[j].PTGs[i].get());
+							m_ptgmultilevel[j].PTGs[i]);
 					if (ptg)
 						ptg->setRobotShapeRadius(m_robotShape.getRadius(i));
 				}
@@ -333,18 +344,6 @@ bool CReactiveNavigationSystem3D::checkCollisionWithLatestObstacles(
 	const mrpt::math::TPose2D& relative_robot_pose) const
 {
 	const size_t nSlices = m_robotShape.size();
-	if (m_WS_Obstacles_inlevels.size() != m_robotShape.size())
-	{
-		MRPT_LOG_WARN(
-			"checkCollisionWithLatestObstacles() skipped: no previous "
-			"obstacles.");
-		return false;
-	}
-	if (m_ptgmultilevel.empty())
-	{
-		MRPT_LOG_WARN("checkCollisionWithLatestObstacles() skipped: no PTGs.");
-		return false;
-	}
 
 	for (size_t idxH = 0; idxH < nSlices; ++idxH)
 	{
@@ -355,8 +354,7 @@ bool CReactiveNavigationSystem3D::checkCollisionWithLatestObstacles(
 		for (size_t i = 0;
 			 i < 1 /* assume all PTGs share the same robot shape! */; i++)
 		{
-			ASSERT_EQUAL_(m_ptgmultilevel[i].PTGs.size(), nSlices);
-			const auto ptg = m_ptgmultilevel[i].PTGs[idxH];
+			const auto ptg = this->m_ptgmultilevel[i].PTGs[idxH];
 			ASSERT_(ptg != nullptr);
 
 			const double R = ptg->getMaxRobotRadius();

@@ -67,7 +67,7 @@ do
 	# Call the standard "prepare_debian.sh" script:
 	# -------------------------------------------------------------------
 	cd ${MRPTSRC}
-	bash scripts/prepare_debian.sh -s -u -h -d ${DEBIAN_DIST} ${EMBED_EIGEN_FLAG}  -c "${MRPT_PKG_CUSTOM_CMAKE_PARAMS}"
+	bash scripts/prepare_debian.sh -s -u -h -d ${DEBIAN_DIST} -c "${MRPT_PKG_CUSTOM_CMAKE_PARAMS}"
 
 	CUR_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 	source $CUR_SCRIPT_DIR/prepare_debian_gen_snapshot_version.sh # populate MRPT_SNAPSHOT_VERSION
@@ -76,7 +76,7 @@ do
 	cd ${MRPT_DEB_DIR}/mrpt-${MRPT_VER_MMP}~snapshot${MRPT_SNAPSHOT_VERSION}${DEBIAN_DIST}/debian
 	#cp ${MRPT_EXTERN_DEBIAN_DIR}/changelog changelog
 	cp /tmp/my_changelog changelog
-	DEBCHANGE_CMD="--newversion 1:${MRPT_VERSION_STR}~snapshot${MRPT_SNAPSHOT_VERSION}${DEBIAN_DIST}-1"
+	DEBCHANGE_CMD="--newversion 1:${MRPT_VERSION_STR}~snapshot${MRPT_SNAPSHOT_VERSION}${DEBIAN_DIST}-1~ppa1~${DEBIAN_DIST}"
 	echo "Changing to a new Debian version: ${DEBCHANGE_CMD}"
 	echo "Adding a new entry to debian/changelog for distribution ${DEBIAN_DIST}"
 	DEBEMAIL=${EMAIL4DEB} debchange $DEBCHANGE_CMD -b --distribution ${DEBIAN_DIST} --force-distribution New version of upstream sources.

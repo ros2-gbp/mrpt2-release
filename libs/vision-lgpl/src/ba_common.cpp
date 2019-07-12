@@ -252,12 +252,13 @@ double mrpt::vision::reprojectionResiduals(
 void mrpt::vision::ba_build_gradient_Hessians(
 	const TSequenceFeatureObservations& observations,
 	const vector<std::array<double, 2>>& residual_vec,
-	const std::vector<JacData<6, 3, 2>>& jac_data_vec,
-	std::vector<CMatrixFixed<double, 6, 6>>& U,
-	std::vector<CVectorFixedDouble<6>>& eps_frame,
-	std::vector<CMatrixFixed<double, 3, 3>>& V,
-	std::vector<CVectorFixedDouble<3>>& eps_point, const size_t num_fix_frames,
-	const size_t num_fix_points, const vector<double>* kernel_1st_deriv)
+	const mrpt::aligned_std_vector<JacData<6, 3, 2>>& jac_data_vec,
+	mrpt::aligned_std_vector<CMatrixFixedNumeric<double, 6, 6>>& U,
+	mrpt::aligned_std_vector<CArrayDouble<6>>& eps_frame,
+	mrpt::aligned_std_vector<CMatrixFixedNumeric<double, 3, 3>>& V,
+	mrpt::aligned_std_vector<CArrayDouble<3>>& eps_point,
+	const size_t num_fix_frames, const size_t num_fix_points,
+	const vector<double>* kernel_1st_deriv)
 {
 	MRPT_START
 
@@ -281,11 +282,11 @@ void mrpt::vision::ba_build_gradient_Hessians(
 			ASSERTDEB_(JACOB.J_frame_valid);
 			ASSERT_BELOW_(frame_id, U.size());
 			CMatrixDouble66 JtJ(UNINITIALIZED_MATRIX);
-			JtJ.matProductOf_AtA(JACOB.J_frame);
+			JtJ.multiply_AtA(JACOB.J_frame);
 
-			CVectorFixedDouble<6> eps_delta;
-			// eps_delta = J^t * RESID
-			eps_delta = JACOB.J_frame.transpose() * RESID;
+			CArrayDouble<6> eps_delta;
+			JACOB.J_frame.multiply_Atb(
+				RESID, eps_delta);  // eps_delta = J^t * RESID
 			if (!use_robust_kernel)
 			{
 				eps_frame[frame_id] += eps_delta;
@@ -293,9 +294,7 @@ void mrpt::vision::ba_build_gradient_Hessians(
 			else
 			{
 				const double rho_1st_der = (*kernel_1st_deriv)[i];
-				auto scaled_eps = eps_delta;
-				scaled_eps *= rho_1st_der;
-				eps_frame[frame_id] += scaled_eps;
+				eps_frame[frame_id] += eps_delta * rho_1st_der;
 			}
 			U[frame_id] += JtJ;
 		}
@@ -305,11 +304,11 @@ void mrpt::vision::ba_build_gradient_Hessians(
 			ASSERTDEB_(JACOB.J_point_valid);
 			ASSERT_BELOW_(point_id, V.size());
 			CMatrixDouble33 JtJ(UNINITIALIZED_MATRIX);
-			JtJ.matProductOf_AtA(JACOB.J_point);
+			JtJ.multiply_AtA(JACOB.J_point);
 
-			CVectorFixedDouble<3> eps_delta;
-			// eps_delta = J^t * RESID
-			eps_delta = JACOB.J_point.transpose() * RESID;
+			CArrayDouble<3> eps_delta;
+			JACOB.J_point.multiply_Atb(
+				RESID, eps_delta);  // eps_delta = J^t * RESID
 			if (!use_robust_kernel)
 			{
 				eps_point[point_id] += eps_delta;
@@ -317,9 +316,7 @@ void mrpt::vision::ba_build_gradient_Hessians(
 			else
 			{
 				const double rho_1st_der = (*kernel_1st_deriv)[i];
-				auto scaled_eps = eps_delta;
-				scaled_eps *= rho_1st_der;
-				eps_point[point_id] += scaled_eps;
+				eps_point[point_id] += eps_delta * rho_1st_der;
 			}
 
 			V[point_id] += JtJ;
@@ -350,8 +347,8 @@ void mrpt::vision::add_se3_deltas_to_frames(
 		CPose3D& new_pose = new_frame_poses[i];
 
 		// Use the Lie Algebra methods for the increment:
-		const CPose3D incrPose =
-			mrpt::poses::Lie::SE<3>::exp(CVectorFixedDouble<6>(delta_val));
+		const CArrayDouble<6> incr(delta_val);
+		const CPose3D incrPose = Lie::SE<3>::exp(incr);
 
 		// new_pose =  old_pose  [+] delta
 		//         = exp(delta) (+) old_pose

@@ -40,7 +40,6 @@ class CConfigFilePrefixer : public CConfigFileBase
 	/** The object we are wrapping */
 	CConfigFileBase* m_bound_object{nullptr};
 	std::string m_prefix_sections, m_prefix_keys;
-	void ensureIsBound() const;
 
    protected:
 	void writeString(
@@ -75,11 +74,10 @@ class CConfigFilePrefixer : public CConfigFileBase
 
 	~CConfigFilePrefixer() override;
 
-	// See base class docs
-	void getAllSections(std::vector<std::string>& sections) const override;
+	void getAllSections(std::vector<std::string>& sections)
+		const override;  // See base class docs
 	void getAllKeys(const std::string& section, std::vector<std::string>& keys)
-		const override;
-	void clear() override;
+		const override;  // See base class docs
 
 };  // End of class def.
 }  // namespace mrpt::config

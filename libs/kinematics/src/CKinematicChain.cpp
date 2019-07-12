@@ -93,7 +93,7 @@ void CKinematicChain::serializeFrom(
  * The "ground" link pose "pose0" defaults to the origin of coordinates,
  * but anything else can be passed as the optional argument. */
 void CKinematicChain::recomputeAllPoses(
-	std::vector<mrpt::poses::CPose3D>& poses,
+	mrpt::aligned_std_vector<mrpt::poses::CPose3D>& poses,
 	const mrpt::poses::CPose3D& pose0) const
 {
 	MRPT_UNUSED_PARAM(pose0);
@@ -125,7 +125,7 @@ void CKinematicChain::recomputeAllPoses(
 									  cos(alpha)};
 
 		const CMatrixDouble33 R(r_vals);
-		const CVectorFixedDouble<3> t(t_vals);
+		const CArrayDouble<3> t(t_vals);
 
 		CPose3D link(R, t);
 
@@ -140,7 +140,7 @@ const float R = 0.01f;
 void addBar_D(mrpt::opengl::CSetOfObjects::Ptr& objs, const double d)
 {
 	mrpt::opengl::CCylinder::Ptr gl_cyl =
-		mrpt::opengl::CCylinder::Create(R, R, d);
+		mrpt::make_aligned_shared<mrpt::opengl::CCylinder>(R, R, d);
 	gl_cyl->setColor_u8(mrpt::img::TColor(0x00, 0x00, 0xff));
 	gl_cyl->setName("cyl.d");
 
@@ -150,7 +150,7 @@ void addBar_D(mrpt::opengl::CSetOfObjects::Ptr& objs, const double d)
 void addBar_A(mrpt::opengl::CSetOfObjects::Ptr& objs, const double a)
 {
 	mrpt::opengl::CCylinder::Ptr gl_cyl2 =
-		mrpt::opengl::CCylinder::Create(R, R, -a);
+		mrpt::make_aligned_shared<mrpt::opengl::CCylinder>(R, R, -a);
 	gl_cyl2->setColor_u8(mrpt::img::TColor(0xff, 0x00, 0x00));
 	gl_cyl2->setPose(mrpt::poses::CPose3D(0, 0, 0, 0, DEG2RAD(90), 0));
 	gl_cyl2->setName("cyl.a");
@@ -160,13 +160,13 @@ void addBar_A(mrpt::opengl::CSetOfObjects::Ptr& objs, const double a)
 
 void CKinematicChain::getAs3DObject(
 	mrpt::opengl::CSetOfObjects::Ptr& obj,
-	std::vector<mrpt::poses::CPose3D>* out_all_poses) const
+	mrpt::aligned_std_vector<mrpt::poses::CPose3D>* out_all_poses) const
 {
 	ASSERT_(obj);
 	const size_t N = m_links.size();
 
 	// Recompute current poses:
-	std::vector<mrpt::poses::CPose3D> all_poses;
+	mrpt::aligned_std_vector<mrpt::poses::CPose3D> all_poses;
 	recomputeAllPoses(all_poses);
 
 	m_last_gl_objects.resize(N + 1);
@@ -192,7 +192,7 @@ void CKinematicChain::getAs3DObject(
 }
 
 void CKinematicChain::update3DObject(
-	std::vector<mrpt::poses::CPose3D>* out_all_poses) const
+	mrpt::aligned_std_vector<mrpt::poses::CPose3D>* out_all_poses) const
 {
 	ASSERTMSG_(
 		(m_links.size() + 1) == m_last_gl_objects.size(),
@@ -202,7 +202,7 @@ void CKinematicChain::update3DObject(
 	const size_t N = m_links.size();
 
 	// Recompute current poses:
-	std::vector<mrpt::poses::CPose3D> all_poses;
+	mrpt::aligned_std_vector<mrpt::poses::CPose3D> all_poses;
 	recomputeAllPoses(all_poses);
 
 	for (size_t i = 0; i <= N; i++)

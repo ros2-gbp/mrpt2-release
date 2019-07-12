@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include <mrpt/math/CMatrixF.h>
+#include <mrpt/math/CMatrix.h>
 
 namespace mrpt::obs
 {
@@ -33,7 +33,7 @@ struct TRangeImageFilterParams
 	 * directions.
 	 * If both `rangeMask_min` and `rangeMask_max` are provided, the joint
 	 * filtering operation is determined by `rangeCheckBetween` */
-	const mrpt::math::CMatrixF *rangeMask_min{nullptr}, *rangeMask_max{nullptr};
+	const mrpt::math::CMatrix *rangeMask_min{nullptr}, *rangeMask_max{nullptr};
 	TRangeImageFilterParams() = default;
 };
 

@@ -11,7 +11,6 @@
 
 #include <mrpt/maps/CLandmark.h>
 #include <mrpt/maps/CLandmarksMap.h>
-#include <mrpt/math/TPose2D.h>
 #include <mrpt/math/utils.h>
 #include <mrpt/obs/CObservationBeaconRanges.h>
 #include <mrpt/slam/CRejectionSamplingRangeOnlyLocalization.h>

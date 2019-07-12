@@ -160,17 +160,7 @@ void OctetVectorToObject(
 		mrpt::serialization::CArchive& in, uint8_t serial_version) override; \
 /*! @} */
 
-/** To be added to all CSerializable-classes implementation files.
- * This version registers the class name with the NameSpace prefix.
- * \sa IMPLEMENTS_SERIALIZABLE
- */
-#define IMPLEMENTS_SERIALIZABLE_NS_PREFIX(class_name, base, NameSpace) \
-	IMPLEMENTS_MRPT_OBJECT_NS_PREFIX(class_name, base, NameSpace)
-
-/** To be added to all CSerializable-classes implementation files.
- * This version registers the class name with the NameSpace prefix.
- * \sa IMPLEMENTS_SERIALIZABLE_NS_PREFIX
- */
+/** This must be inserted in all CSerializable classes implementation files */
 #define IMPLEMENTS_SERIALIZABLE(class_name, base, NameSpace) \
 	IMPLEMENTS_MRPT_OBJECT(class_name, base, NameSpace)
 
@@ -182,11 +172,9 @@ void OctetVectorToObject(
 /** This must be inserted as implementation of some required members for
  *  virtual CSerializable classes:
  */
-#define IMPLEMENTS_VIRTUAL_SERIALIZABLE(class_name, base_class, NS) \
-	IMPLEMENTS_VIRTUAL_MRPT_OBJECT(class_name, base_class, NS)
-
-#define IMPLEMENTS_VIRTUAL_SERIALIZABLE_NS_PREFIX(class_name, base_class, NS) \
-	IMPLEMENTS_VIRTUAL_MRPT_OBJECT_NS_PREFIX(class_name, base_class, NS)
+#define IMPLEMENTS_VIRTUAL_SERIALIZABLE(    \
+	class_name, base_class_name, NameSpace) \
+	IMPLEMENTS_VIRTUAL_MRPT_OBJECT(class_name, base_class_name, NameSpace)
 
 /** This must be inserted if a custom conversion method for MEX API is
  * implemented in the class */

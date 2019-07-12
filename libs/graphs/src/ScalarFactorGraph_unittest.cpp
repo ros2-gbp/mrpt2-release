@@ -9,7 +9,6 @@
 
 #include <gtest/gtest.h>
 #include <mrpt/graphs/ScalarFactorGraph.h>
-#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::graphs;
@@ -92,7 +91,7 @@ TEST(ScalarFactorGraph, MiniMRF_UnaryEdges)
 	{
 		my_map.assign(N, .0);
 
-		mrpt::math::CVectorDouble x_incr, x_var;
+		Eigen::VectorXd x_incr, x_var;
 		gmrf.updateEstimation(x_incr, &x_var);
 
 		EXPECT_NEAR(x_incr[0], 1.0, 1e-9);
@@ -115,7 +114,7 @@ TEST(ScalarFactorGraph, MiniMRF_UnaryEdges)
 		edges1.emplace_back(my_map, 0, 4.0, 2.0);
 		gmrf.addConstraint(*edges1.rbegin());
 
-		mrpt::math::CVectorDouble x_incr, x_var;
+		Eigen::VectorXd x_incr, x_var;
 		gmrf.updateEstimation(x_incr, &x_var);
 
 		EXPECT_NEAR(x_incr[0], 2.0, 1e-9);
@@ -158,7 +157,7 @@ TEST(ScalarFactorGraph, MiniMRF_BinaryEdges)
 	{
 		my_map.assign(N, .0);
 
-		mrpt::math::CVectorDouble x_incr, x_var;
+		Eigen::VectorXd x_incr, x_var;
 		gmrf.updateEstimation(x_incr, &x_var);
 
 		EXPECT_NEAR(x_incr[0], 1.0, 1e-6);
