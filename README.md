@@ -1,3 +1,26 @@
+## mrpt2 (foxy) - 2.0.4-1
+
+The packages in the `mrpt2` repository were released into the `foxy` distro by running `/usr/bin/bloom-release mrpt2 --rosdistro foxy` on `Sun, 21 Jun 2020 07:43:21 -0000`
+
+The `mrpt2` package was released.
+
+Version of package(s) in repository `mrpt2`:
+
+- upstream repository: https://github.com/MRPT/mrpt.git
+- release repository: unknown
+- rosdistro version: `null`
+- old version: `null`
+- new version: `2.0.4-1`
+
+Versions of tools used:
+
+- bloom version: `0.9.7`
+- catkin_pkg version: `0.4.20`
+- rosdep version: `0.19.0`
+- rosdistro version: `0.8.2`
+- vcstools version: `0.1.42`
+
+
 ## mrpt2 (crystal) - 1.9.9-3
 
 The packages in the `mrpt2` repository were released into the `crystal` distro by running `/home/hlaux/.local/bin/bloom-release --rosdistro crystal --track crystal mrpt2` on `Fri, 12 Jul 2019 09:10:27 -0000`
