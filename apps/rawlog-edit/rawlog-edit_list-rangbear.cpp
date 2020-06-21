@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -33,8 +33,8 @@ DECLARE_OP_FUNCTION(op_list_rangebearing)
 	   public:
 		CRawlogProcessor_RangeBearing(
 			CFileGZInputStream& in_rawlog, TCLAP::CmdLine& cmdline,
-			bool verbose)
-			: CRawlogProcessorOnEachObservation(in_rawlog, cmdline, verbose)
+			bool Verbose)
+			: CRawlogProcessorOnEachObservation(in_rawlog, cmdline, Verbose)
 		{
 			getArgValue<std::string>(cmdline, "text-file-output", m_out_file);
 			VERBOSE_COUT << "Writing list to: " << m_out_file << endl;
@@ -54,7 +54,7 @@ DECLARE_OP_FUNCTION(op_list_rangebearing)
 
 		bool processOneObservation(CObservation::Ptr& obs) override
 		{
-			if (IS_CLASS(obs, CObservationBearingRange))
+			if (IS_CLASS(*obs, CObservationBearingRange))
 			{
 				const CObservationBearingRange::Ptr obsRB_ =
 					std::dynamic_pointer_cast<CObservationBearingRange>(obs);

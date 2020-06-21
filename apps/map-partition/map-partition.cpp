@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -178,7 +178,7 @@ void Test()
 
 	std::sort(parts.begin(), parts.end());
 
-	CMatrix B(A.rows(), A.cols());
+	CMatrixF B(A.rows(), A.cols());
 	std::vector<uint32_t> rearrIndexes;
 	std::vector<uint32_t> separations;
 	for (auto& part : parts)
@@ -200,8 +200,9 @@ void Test()
 	{
 		gui::CDisplayWindow win("Adjacency matrix");
 		gui::CDisplayWindow win2(" Rearranged adjacency matrix");
-		CImage img(A, true /* normalized in range [0,1] */);
-		CImage img2(B, true /* normalized in range [0,1] */);
+		CImage img, img2;
+		img.setFromMatrix(A, true /* normalized in range [0,1] */);
+		img2.setFromMatrix(B, true /* normalized in range [0,1] */);
 		img.saveToFile("MAP-PARTITION_RESULTS/ADJ_MATRIX_BEFORE.png");
 		img2.saveToFile("MAP-PARTITION_RESULTS/ADJ_MATRIX_AFTER.png");
 		win.showImage(img);
@@ -358,7 +359,7 @@ int main(int argc, char** argv)
 {
 	try
 	{
-		printf(" map-partition version 0.2 - Part of the MRPT\n");
+		printf(" map-partition - Part of the MRPT\n");
 		printf(
 			" MRPT C++ Library: %s - Sources timestamp: %s\n",
 			MRPT_getVersion().c_str(), MRPT_getCompilationDate().c_str());

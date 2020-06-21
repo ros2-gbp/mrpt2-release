@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -17,7 +17,6 @@
 
 using namespace mrpt::hwdrivers;
 using namespace mrpt::system;
-
 using namespace std::literals;
 
 IMPLEMENTS_GENERIC_SENSOR(CImpinjRFID, mrpt::hwdrivers)
@@ -200,6 +199,6 @@ void CImpinjRFID::closeReader()
 void CImpinjRFID::doProcess()
 {
 	mrpt::obs::CObservationRFID::Ptr obs =
-		mrpt::make_aligned_shared<mrpt::obs::CObservationRFID>();
+		mrpt::obs::CObservationRFID::Create();
 	if (getObservation(*obs)) appendObservation(obs);
 }

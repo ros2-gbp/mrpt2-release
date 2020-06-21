@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,8 +11,8 @@
 
 #include <mrpt/core/bits_math.h>  // square()
 #include <mrpt/core/exceptions.h>
-#include <mrpt/math/CArrayNumeric.h>
-#include <mrpt/math/CMatrixTemplateNumeric.h>
+#include <mrpt/math/CMatrixDynamic.h>
+#include <mrpt/math/CVectorFixed.h>
 
 namespace mrpt::math
 {
@@ -27,7 +27,7 @@ enum TConstructorFlags_Quaternions
  *alternatively, q = r + ix + jy + kz.
  *
  *  The elements of the quaternion can be accessed by either:
- *		- r(), x(), y(), z(), or
+ *		- r()(equivalent to w()), x(), y(), z(), or
  *		- the operator [] with indices running from 0 (=r) to 3 (=z).
  *
  *  Users will usually employ the type `CQuaternionDouble` instead of this
@@ -41,9 +41,9 @@ enum TConstructorFlags_Quaternions
  * \sa mrpt::poses::CPose3D
  */
 template <class T>
-class CQuaternion : public CArrayNumeric<T, 4>
+class CQuaternion : public CVectorFixed<T, 4>
 {
-	using Base = CArrayNumeric<T, 4>;
+	using Base = CVectorFixed<T, 4>;
 
    public:
 	/* @{ Constructors
@@ -57,47 +57,73 @@ class CQuaternion : public CArrayNumeric<T, 4>
 	 * no rotation. */
 	inline CQuaternion()
 	{
-		(*this)[0] = 1;
-		(*this)[1] = 0;
-		(*this)[2] = 0;
-		(*this)[3] = 0;
+		r() = 1;
+		x() = 0;
+		y() = 0;
+		z() = 0;
 	}
 
 	/**	Construct a quaternion from its parameters 'r', 'x', 'y', 'z', with q =
 	 * r + ix + jy + kz. */
-	inline CQuaternion(const T r, const T x, const T y, const T z)
+	inline CQuaternion(const T R, const T X, const T Y, const T Z)
 	{
-		(*this)[0] = r;
-		(*this)[1] = x;
-		(*this)[2] = y;
-		(*this)[3] = z;
+		r() = R;
+		x() = X;
+		y() = Y;
+		z() = Z;
+		ensurePositiveRealPart();
+
 		ASSERTMSG_(
 			std::abs(normSqr() - 1.0) < 1e-3,
 			mrpt::format(
 				"Initialization data for quaternion is not normalized: %f %f "
 				"%f %f -> sqrNorm=%f",
-				r, x, y, z, normSqr()));
+				R, X, Y, Z, normSqr()));
 	}
 
 	/* @}
 	 */
 
-	/** Return r coordinate of the quaternion */
+	/** Adhere to the convention of w>=0 to avoid ambiguity of quaternion double
+	 * cover of SO(3) */
+	inline void ensurePositiveRealPart()
+	{
+		// Ensure r()>0
+		if (r() < 0)
+		{
+			r() = -r();
+			x() = -x();
+			y() = -y();
+			z() = -z();
+		}
+	}
+
+	/** Return r (real part) coordinate of the quaternion */
 	inline T r() const { return (*this)[0]; }
+	/** Return w (real part) coordinate of the quaternion. Alias of r() */
+	inline T w() const { return (*this)[0]; }
 	/** Return x coordinate of the quaternion */
 	inline T x() const { return (*this)[1]; }
 	/** Return y coordinate of the quaternion */
 	inline T y() const { return (*this)[2]; }
 	/** Return z coordinate of the quaternion */
 	inline T z() const { return (*this)[3]; }
-	/** Set r coordinate of the quaternion */
+	/** Set r (real part) coordinate of the quaternion */
 	inline void r(const T r) { (*this)[0] = r; }
+	/** Set w (real part) coordinate of the quaternion. Alias of r() */
+	inline void w(const T w) { (*this)[0] = w; }
 	/** Set x coordinate of the quaternion */
 	inline void x(const T x) { (*this)[1] = x; }
 	/** Set y coordinate of the quaternion */
 	inline void y(const T y) { (*this)[2] = y; }
 	/** Set z coordinate of the quaternion */
 	inline void z(const T z) { (*this)[3] = z; }
+
+	inline T& r() { return (*this)[0]; }
+	inline T& x() { return (*this)[1]; }
+	inline T& y() { return (*this)[2]; }
+	inline T& z() { return (*this)[3]; }
+
 	/**	Set this quaternion to the rotation described by a 3D (Rodrigues)
 	 * rotation vector \f$ \mathbf{v} \f$:
 	 *   If \f$ \mathbf{v}=0 \f$, then the quaternion is \f$ \mathbf{q} = [1 ~
@@ -275,6 +301,7 @@ class CQuaternion : public CArrayNumeric<T, 4>
 	 */
 	inline void normalize()
 	{
+		ensurePositiveRealPart();
 		const T qq = 1.0 / std::sqrt(normSqr());
 		for (unsigned int i = 0; i < 4; i++) (*this)[i] *= qq;
 	}
@@ -288,25 +315,25 @@ class CQuaternion : public CArrayNumeric<T, 4>
 	{
 		const T n = 1.0 / std::pow(normSqr(), T(1.5));
 		J.setSize(4, 4);
-		J.get_unsafe(0, 0) = x() * x() + y() * y() + z() * z();
-		J.get_unsafe(0, 1) = -r() * x();
-		J.get_unsafe(0, 2) = -r() * y();
-		J.get_unsafe(0, 3) = -r() * z();
+		J(0, 0) = x() * x() + y() * y() + z() * z();
+		J(0, 1) = -r() * x();
+		J(0, 2) = -r() * y();
+		J(0, 3) = -r() * z();
 
-		J.get_unsafe(1, 0) = -x() * r();
-		J.get_unsafe(1, 1) = r() * r() + y() * y() + z() * z();
-		J.get_unsafe(1, 2) = -x() * y();
-		J.get_unsafe(1, 3) = -x() * z();
+		J(1, 0) = -x() * r();
+		J(1, 1) = r() * r() + y() * y() + z() * z();
+		J(1, 2) = -x() * y();
+		J(1, 3) = -x() * z();
 
-		J.get_unsafe(2, 0) = -y() * r();
-		J.get_unsafe(2, 1) = -y() * x();
-		J.get_unsafe(2, 2) = r() * r() + x() * x() + z() * z();
-		J.get_unsafe(2, 3) = -y() * z();
+		J(2, 0) = -y() * r();
+		J(2, 1) = -y() * x();
+		J(2, 2) = r() * r() + x() * x() + z() * z();
+		J(2, 3) = -y() * z();
 
-		J.get_unsafe(3, 0) = -z() * r();
-		J.get_unsafe(3, 1) = -z() * x();
-		J.get_unsafe(3, 2) = -z() * y();
-		J.get_unsafe(3, 3) = r() * r() + x() * x() + y() * y();
+		J(3, 0) = -z() * r();
+		J(3, 1) = -z() * x();
+		J(3, 2) = -z() * y();
+		J(3, 3) = r() * r() + x() * x() + y() * y();
 		J *= n;
 	}
 
@@ -319,22 +346,22 @@ class CQuaternion : public CArrayNumeric<T, 4>
 	inline void rotationJacobian(MATRIXLIKE& J) const
 	{
 		J.setSize(4, 4);
-		J.get_unsafe(0, 0) = r();
-		J.get_unsafe(0, 1) = -x();
-		J.get_unsafe(0, 2) = -y();
-		J.get_unsafe(0, 3) = -z();
-		J.get_unsafe(1, 0) = x();
-		J.get_unsafe(1, 1) = r();
-		J.get_unsafe(1, 2) = -z();
-		J.get_unsafe(1, 3) = y();
-		J.get_unsafe(2, 0) = y();
-		J.get_unsafe(2, 1) = z();
-		J.get_unsafe(2, 2) = r();
-		J.get_unsafe(2, 3) = -x();
-		J.get_unsafe(3, 0) = z();
-		J.get_unsafe(3, 1) = -y();
-		J.get_unsafe(3, 2) = x();
-		J.get_unsafe(3, 3) = r();
+		J(0, 0) = r();
+		J(0, 1) = -x();
+		J(0, 2) = -y();
+		J(0, 3) = -z();
+		J(1, 0) = x();
+		J(1, 1) = r();
+		J(1, 2) = -z();
+		J(1, 3) = y();
+		J(2, 0) = y();
+		J(2, 1) = z();
+		J(2, 2) = r();
+		J(2, 3) = -x();
+		J(3, 0) = z();
+		J(3, 1) = -y();
+		J(3, 2) = x();
+		J(3, 3) = r();
 	}
 
 	/** Calculate the 3x3 rotation matrix associated to this quaternion: \f[
@@ -357,21 +384,29 @@ class CQuaternion : public CArrayNumeric<T, 4>
 		rotationMatrixNoResize(M);
 	}
 
+	template <class MATRIXLIKE>
+	inline MATRIXLIKE rotationMatrix() const
+	{
+		MATRIXLIKE M(3, 3);
+		rotationMatrixNoResize(M);
+		return M;
+	}
+
 	/** Fill out the top-left 3x3 block of the given matrix with the rotation
 	 * matrix associated to this quaternion (does not resize the matrix, for
 	 * that, see rotationMatrix). */
 	template <class MATRIXLIKE>
 	inline void rotationMatrixNoResize(MATRIXLIKE& M) const
 	{
-		M.get_unsafe(0, 0) = r() * r() + x() * x() - y() * y() - z() * z();
-		M.get_unsafe(0, 1) = 2 * (x() * y() - r() * z());
-		M.get_unsafe(0, 2) = 2 * (z() * x() + r() * y());
-		M.get_unsafe(1, 0) = 2 * (x() * y() + r() * z());
-		M.get_unsafe(1, 1) = r() * r() - x() * x() + y() * y() - z() * z();
-		M.get_unsafe(1, 2) = 2 * (y() * z() - r() * x());
-		M.get_unsafe(2, 0) = 2 * (z() * x() - r() * y());
-		M.get_unsafe(2, 1) = 2 * (y() * z() + r() * x());
-		M.get_unsafe(2, 2) = r() * r() - x() * x() - y() * y() + z() * z();
+		M(0, 0) = r() * r() + x() * x() - y() * y() - z() * z();
+		M(0, 1) = 2 * (x() * y() - r() * z());
+		M(0, 2) = 2 * (z() * x() + r() * y());
+		M(1, 0) = 2 * (x() * y() + r() * z());
+		M(1, 1) = r() * r() - x() * x() + y() * y() - z() * z();
+		M(1, 2) = 2 * (y() * z() - r() * x());
+		M(2, 0) = 2 * (z() * x() - r() * y());
+		M(2, 1) = 2 * (y() * z() + r() * x());
+		M(2, 2) = r() * r() - x() * x() - y() * y() + z() * z();
 	}
 
 	/**	Return the conjugate quaternion  */
@@ -421,16 +456,16 @@ class CQuaternion : public CArrayNumeric<T, 4>
 
 		if (out_dr_dq && resize_out_dr_dq_to3x4) out_dr_dq->setSize(3, 4);
 		const T discr = r() * y() - x() * z();
-		if (fabs(discr) > 0.49999)
+		if (discr > 0.49999)
 		{  // pitch = 90 deg
 			pitch = 0.5 * M_PI;
 			yaw = -2 * atan2(x(), r());
 			roll = 0;
 			if (out_dr_dq)
 			{
-				out_dr_dq->zeros();
-				out_dr_dq->get_unsafe(0, 0) = +2 / x();
-				out_dr_dq->get_unsafe(0, 2) = -2 * r() / (x() * x());
+				out_dr_dq->setZero();
+				(*out_dr_dq)(0, 0) = +2 / x();
+				(*out_dr_dq)(0, 2) = -2 * r() / (x() * x());
 			}
 		}
 		else if (discr < -0.49999)
@@ -440,9 +475,9 @@ class CQuaternion : public CArrayNumeric<T, 4>
 			roll = 0;
 			if (out_dr_dq)
 			{
-				out_dr_dq->zeros();
-				out_dr_dq->get_unsafe(0, 0) = -2 / x();
-				out_dr_dq->get_unsafe(0, 2) = +2 * r() / (x() * x());
+				out_dr_dq->setZero();
+				(*out_dr_dq)(0, 0) = -2 / x();
+				(*out_dr_dq)(0, 2) = +2 * r() / (x() * x());
 			}
 		}
 		else
@@ -472,24 +507,22 @@ class CQuaternion : public CArrayNumeric<T, 4>
 				const double val8 = (val22 / val12 + 1);
 				const double val9 = -2.0 / val8;
 				// row 1:
-				out_dr_dq->get_unsafe(0, 0) = -2 * z() / val4;
-				out_dr_dq->get_unsafe(0, 1) = -2 * y() / val4;
-				out_dr_dq->get_unsafe(0, 2) =
-					-(2 * x() / val3 - y() * val5) * val6;
-				out_dr_dq->get_unsafe(0, 3) =
-					-(2 * r() / val3 - z() * val5) * val6;
+				(*out_dr_dq)(0, 0) = -2 * z() / val4;
+				(*out_dr_dq)(0, 1) = -2 * y() / val4;
+				(*out_dr_dq)(0, 2) = -(2 * x() / val3 - y() * val5) * val6;
+				(*out_dr_dq)(0, 3) = -(2 * r() / val3 - z() * val5) * val6;
 				// row 2:
-				out_dr_dq->get_unsafe(1, 0) = y() * val7;
-				out_dr_dq->get_unsafe(1, 1) = -z() * val7;
-				out_dr_dq->get_unsafe(1, 2) = r() * val7;
-				out_dr_dq->get_unsafe(1, 3) = -x() * val7;
+				(*out_dr_dq)(1, 0) = y() * val7;
+				(*out_dr_dq)(1, 1) = -z() * val7;
+				(*out_dr_dq)(1, 2) = r() * val7;
+				(*out_dr_dq)(1, 3) = -x() * val7;
 				// row 3:
-				out_dr_dq->get_unsafe(2, 0) = val9 * x() / val1;
-				out_dr_dq->get_unsafe(2, 1) =
+				(*out_dr_dq)(2, 0) = val9 * x() / val1;
+				(*out_dr_dq)(2, 1) =
 					val9 * (r() / val1 - (2 * x() * val2) / val12);
-				out_dr_dq->get_unsafe(2, 2) =
+				(*out_dr_dq)(2, 2) =
 					val9 * (z() / val1 - (2 * y() * val2) / val12);
-				out_dr_dq->get_unsafe(2, 3) = val9 * y() / val1;
+				(*out_dr_dq)(2, 3) = val9 * y() / val1;
 			}
 		}
 	}

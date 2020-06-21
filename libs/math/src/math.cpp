@@ -2,25 +2,25 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "math-precomp.h"  // Precompiled headers
 
+#include <mrpt/math/CMatrixD.h>
 #include <mrpt/math/data_utils.h>
 #include <mrpt/math/distributions.h>
+#include <mrpt/math/ops_matrices.h>
 #include <mrpt/math/utils.h>
 #include <mrpt/math/wrap2pi.h>
-#include <mrpt/math/interp_fit.hpp>
-
-#include <mrpt/math/CMatrixD.h>
-#include <mrpt/math/ops_matrices.h>
 #include <mrpt/system/string_utils.h>
+#include <Eigen/Dense>
 #include <algorithm>
 #include <cmath>  // erf(), ...
 #include <iostream>
+#include <mrpt/math/interp_fit.hpp>
 
 using namespace mrpt;
 using namespace mrpt::math;
@@ -324,7 +324,7 @@ double math::averageWrap2Pi(const CVectorDouble& angles)
 	for (CVectorDouble::Index i = 0; i < angles.size(); i++)
 	{
 		double phi = angles[i];
-		if (abs(phi) > 1.5707963267948966192313216916398)
+		if (std::abs(phi) > 1.5707963267948966192313216916398)
 		{
 			// LEFT HALF: 0,2pi
 			if (phi < 0) phi = (M_2PI + phi);
@@ -354,12 +354,12 @@ double math::averageWrap2Pi(const CVectorDouble& angles)
 }
 
 string math::MATLAB_plotCovariance2D(
-	const CMatrixFloat& cov, const CVectorFloat& mean, const float& stdCount,
-	const string& style, const size_t& nEllipsePoints)
+	const CMatrixFloat& cov, const CVectorFloat& mean, float stdCount,
+	const string& style, size_t nEllipsePoints)
 {
 	MRPT_START
-	CMatrixD cov2(cov);
-	CVectorDouble mean2(2);
+	const auto cov2 = CMatrixDouble(cov);
+	auto mean2 = CVectorDouble(2);
 	mean2[0] = mean[0];
 	mean2[1] = mean[1];
 
@@ -370,8 +370,8 @@ string math::MATLAB_plotCovariance2D(
 }
 
 string math::MATLAB_plotCovariance2D(
-	const CMatrixDouble& cov, const CVectorDouble& mean, const float& stdCount,
-	const string& style, const size_t& nEllipsePoints)
+	const CMatrixDouble& cov, const CVectorDouble& mean, float stdCount,
+	const string& style, size_t nEllipsePoints)
 {
 	MRPT_START
 
@@ -380,51 +380,51 @@ string math::MATLAB_plotCovariance2D(
 	ASSERT_(!((cov(0, 0) == 0) ^ (cov(1, 1) == 0)));  // Both or none 0
 	ASSERT_(mean.size() == 2);
 
-	std::vector<float> X, Y, COS, SIN;
-	std::vector<float>::iterator x, y, Cos, Sin;
-	double ang;
-	CMatrixD eigVal, eigVec, M;
-	string str;
-
-	X.resize(nEllipsePoints);
-	Y.resize(nEllipsePoints);
-	COS.resize(nEllipsePoints);
-	SIN.resize(nEllipsePoints);
+	const auto cov2x2 = mrpt::math::CMatrixFixed<double, 2, 2>(cov.asEigen());
+	const auto N = nEllipsePoints;
+	double ang = 0;
+	const double dAng = (M_2PI / (nEllipsePoints - 1));
+	std::vector<double> X(N), Y(N), Cos(N), Sin(N);
 
 	// Fill the angles:
-	for (Cos = COS.begin(), Sin = SIN.begin(), ang = 0; Cos != COS.end();
-		 ++Cos, ++Sin, ang += (M_2PI / (nEllipsePoints - 1)))
+	for (std::size_t idx = 0; idx < N; idx++, ang += dAng)
 	{
-		*Cos = (float)cos(ang);
-		*Sin = (float)sin(ang);
+		Cos[idx] = std::cos(ang);
+		Sin[idx] = std::sin(ang);
 	}
 
-	cov.eigenVectors(eigVec, eigVal);
-	eigVal = eigVal.array().sqrt().matrix();
-	M = eigVal * eigVec.adjoint();
+	std::vector<double> eVals;
+	mrpt::math::CMatrixFixed<double, 2, 2> eigVec, eigVals;
+	cov2x2.eig(eigVec, eVals);
+	eigVals.setDiagonal(eVals);
+
+	eigVals.asEigen() = eigVals.array().sqrt().matrix();
+
+	mrpt::math::CMatrixFixed<double, 2, 2> M;
+	M.asEigen() = eigVals.asEigen() * eigVec.transpose();
 
 	// Compute the points of the ellipsoid:
 	// ----------------------------------------------
-	for (x = X.begin(), y = Y.begin(), Cos = COS.begin(), Sin = SIN.begin();
-		 x != X.end(); ++x, ++y, ++Cos, ++Sin)
+	for (std::size_t idx = 0; idx < N; idx++)
 	{
-		*x = (float)(mean[0] + stdCount * (*Cos * M(0, 0) + *Sin * M(1, 0)));
-		*y = (float)(mean[1] + stdCount * (*Cos * M(0, 1) + *Sin * M(1, 1)));
+		X[idx] = mean[0] + stdCount * (Cos[idx] * M(0, 0) + Sin[idx] * M(1, 0));
+		X[idx] = mean[1] + stdCount * (Cos[idx] * M(0, 1) + Sin[idx] * M(1, 1));
 	}
 
 	// Save the code to plot the ellipsoid:
 	// ----------------------------------------------
+	std::string str;
 	str += string("plot([ ");
-	for (x = X.begin(); x != X.end(); ++x)
+	for (size_t i = 0; i < X.size(); i++)
 	{
-		str += format("%.4f", *x);
-		if (x != (X.end() - 1)) str += format(",");
+		str += format("%.4f", X[i]);
+		if (i != (X.size() - 1)) str += ",";
 	}
 	str += string("],[ ");
-	for (y = Y.begin(); y != Y.end(); ++y)
+	for (size_t i = 0; i < X.size(); i++)
 	{
-		str += format("%.4f", *y);
-		if (y != (Y.end() - 1)) str += format(",");
+		str += format("%.4f", Y[i]);
+		if (i != (Y.size() - 1)) str += ",";
 	}
 
 	str += format("],'%s');\n", style.c_str());
@@ -432,7 +432,7 @@ string math::MATLAB_plotCovariance2D(
 	return str;
 	MRPT_END_WITH_CLEAN_UP(std::cerr << "The matrix that led to error was: "
 									 << std::endl
-									 << cov << std::endl;)
+									 << cov.asEigen() << std::endl;)
 }
 
 double mrpt::math::interpolate2points(
@@ -460,10 +460,9 @@ double mrpt::math::interpolate2points(
  ---------------------------------------------------------------*/
 // template<typename VECTOR>
 void mrpt::math::medianFilter(
-	const std::vector<double>& inV, std::vector<double>& outV,
-	const int& _winSize, const int& numberOfSigmas)
+	const std::vector<double>& inV, std::vector<double>& outV, int _winSize,
+	[[maybe_unused]] int numberOfSigmas)
 {
-	MRPT_UNUSED_PARAM(numberOfSigmas);
 	ASSERT_((int)inV.size() >= _winSize);
 	ASSERT_(_winSize >= 2);  // The minimum window size is 3 elements
 	size_t winSize = _winSize;

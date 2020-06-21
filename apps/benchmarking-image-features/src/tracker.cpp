@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -34,10 +34,8 @@ Tracker::Tracker()
 
 	// "CFeatureTracker_KL" is by  far the most robust implementation for now:
 	tracker = CGenericFeatureTrackerAutoPtr(new CFeatureTracker_KL);
-	CImage previous_image;
-	TSequenceFeatureObservations feat_track_history;
-	save_tracked_history =
-		true;  // Dump feat_track_history to a file at the end
+	// Dump feat_track_history to a file at the end
+	save_tracked_history = true;
 	curCamPoseId = 0;
 }
 
@@ -110,7 +108,7 @@ cv::Mat Tracker::trackThemAll(
 
 	for (size_t i = 0; i < trackedFeats.size(); ++i)
 	{
-		TSimpleFeature& f = trackedFeats[i];
+		TKeyPoint& f = trackedFeats[i];
 
 		const TPixelCoordf pxRaw(f.pt.x, f.pt.y);
 		TPixelCoordf pxUndist;
@@ -155,7 +153,7 @@ cv::Mat Tracker::trackThemAll(
 		// cout << "tracked feats size" << trackedFeats.size() << endl;
 		for (size_t i = 0; i < trackedFeats.size(); ++i)
 		{
-			const TSimpleFeature& ft = trackedFeats[i];
+			const TKeyPoint& ft = trackedFeats[i];
 			std::list<TPixelCoord>& seq = feat_tracks[ft.ID];
 
 			// drawMarker(cvImg1, Point(trackedFeats.getFeatureX(i),

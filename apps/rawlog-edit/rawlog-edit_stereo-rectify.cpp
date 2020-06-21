@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -45,8 +45,8 @@ DECLARE_OP_FUNCTION(op_stereo_rectify)
 
 		CRawlogProcessor_StereoRectify(
 			CFileGZInputStream& in_rawlog, TCLAP::CmdLine& cmdline,
-			bool verbose)
-			: CRawlogProcessorOnEachObservation(in_rawlog, cmdline, verbose)
+			bool Verbose)
+			: CRawlogProcessorOnEachObservation(in_rawlog, cmdline, Verbose)
 		{
 			m_changedCams = 0;
 			m_num_external_files_failures = 0;
@@ -105,7 +105,6 @@ DECLARE_OP_FUNCTION(op_stereo_rectify)
 			string strResize;
 			if (getArgValue<string>(cmdline, "image-size", str))
 			{
-				vector<string> lstTokens;
 				tokenize(str, "x", lstTokens);
 				if (lstTokens.size() != 2)
 					throw std::runtime_error(
@@ -135,7 +134,7 @@ DECLARE_OP_FUNCTION(op_stereo_rectify)
 
 			if (strCmpI(obs->sensorLabel, target_label))
 			{
-				if (IS_CLASS(obs, CObservationStereoImages))
+				if (IS_CLASS(*obs, CObservationStereoImages))
 				{
 					CObservationStereoImages::Ptr o =
 						std::dynamic_pointer_cast<CObservationStereoImages>(

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -85,7 +85,7 @@ TEST(TopographyReconstructPathFrom3RTK, sampleDataset)
 		CVectorDouble p1vec_gt(12), p2vec_gt(12);
 		pose_GT_1.getAs12Vector(p1vec_gt);
 		pose_GT_2.getAs12Vector(p2vec_gt);
-		EXPECT_NEAR((p1vec - p1vec_gt).array().abs().sum(), 0, 1e-3);
-		EXPECT_NEAR((p2vec - p2vec_gt).array().abs().sum(), 0, 1e-3);
+		EXPECT_NEAR((p1vec - p1vec_gt).sum_abs(), 0, 1e-3);
+		EXPECT_NEAR((p2vec - p2vec_gt).sum_abs(), 0, 1e-3);
 	}
 }

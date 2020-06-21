@@ -2,13 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include <gtest/gtest.h>
 #include <mrpt/maps/CRandomFieldGridMap3D.h>
+#include <mrpt/system/filesystem.h>
 
 TEST(CRandomFieldGridMap3D, insertCheckMapBounds)
 {
@@ -43,11 +44,8 @@ TEST(CRandomFieldGridMap3D, insertCheckMapBounds)
 	EXPECT_FALSE(grid3d.insertIndividualReading(
 		val, var, TPoint3D(2.0, 6.0, 3.0), im, false));
 
-#if 0
 	grid3d.updateMapEstimation();
-	grid3d.saveAsCSV("map3D.csv");
-	grid3d.saveAsVtkStructuredGrid("map3D.vts");
-#endif
+	grid3d.saveAsCSV(mrpt::system::getTempFileName());
 }
 
 TEST(CRandomFieldGridMap3D, insertPointsAndRead)

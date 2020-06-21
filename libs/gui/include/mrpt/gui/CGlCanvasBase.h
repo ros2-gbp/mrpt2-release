@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,20 +10,16 @@
 #pragma once
 #include <mrpt/opengl/COpenGLScene.h>
 
-namespace mrpt
-{
-namespace opengl
+namespace mrpt::opengl
 {
 class CCamera;
-}
-}  // namespace mrpt
+}  // namespace mrpt::opengl
 
-namespace mrpt
-{
-namespace gui
+namespace mrpt::gui
 {
 /** This base class implements a working with opengl::Camera and a OpenGL
  * canvas, and it's used in gui::CWxGLCanvasBase and gui::CQtGlCanvasBase.
+ * \ingroup mrpt_gui_grp
  */
 class CGlCanvasBase
 {
@@ -41,8 +37,8 @@ class CGlCanvasBase
 		float cameraFOV = 30.f;
 	};
 
-	CGlCanvasBase() = default;
-	virtual ~CGlCanvasBase() = default;
+	CGlCanvasBase();
+	virtual ~CGlCanvasBase();
 	/** Sets the minimum of the zoom
 	 * See also setMaximumZoom(float) */
 	void setMinimumZoom(float zoom);
@@ -249,7 +245,7 @@ class CGlCanvasBase
 		  clearColorA = 1.f;
 	bool useCameraFromScene = false;
 	mrpt::opengl::COpenGLScene::Ptr m_openGLScene =
-		mrpt::make_aligned_shared<mrpt::opengl::COpenGLScene>();
+		mrpt::opengl::COpenGLScene::Create();
 	int m_mouseLastX = 0, m_mouseLastY = 0;
 	int m_mouseClickX = 0, m_mouseClickY = 0;
 	bool mouseClicked = false;
@@ -257,5 +253,22 @@ class CGlCanvasBase
 	float m_maxZoom = 3200.f;
 	CamaraParams m_cameraParams;
 };  // end of class
-}  // namespace gui
-}  // namespace mrpt
+
+/** A headless dummy implementation of CGlCanvasBase: can be used to keep track
+ * of user UI mouse events and update the camera parameters, with actual
+ * rendering being delegated to someone else. \ingroup mrpt_gui_grp
+ */
+class CGlCanvasBaseHeadless : public CGlCanvasBase
+{
+   public:
+	CGlCanvasBaseHeadless() = default;
+	virtual ~CGlCanvasBaseHeadless() override = default;
+
+   protected:
+	virtual void swapBuffers() override {}
+	virtual void preRender() override {}
+	virtual void postRender() override {}
+	virtual void renderError(const std::string& e) override;
+};
+
+}  // namespace mrpt::gui

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -37,11 +37,11 @@ class CObjectDetection
 		const mrpt::obs::CObservation::Ptr obs,
 		vector_detectable_object& detected)
 	{
-		detectObjects_Impl(obs.get(), detected);
+		detectObjects_Impl(*obs, detected);
 	};
 
 	inline void detectObjects(
-		const mrpt::obs::CObservation* obs, vector_detectable_object& detected)
+		const mrpt::obs::CObservation& obs, vector_detectable_object& detected)
 	{
 		detectObjects_Impl(obs, detected);
 	};
@@ -51,7 +51,7 @@ class CObjectDetection
 
    protected:
 	virtual void detectObjects_Impl(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		vector_detectable_object& detected) = 0;
 
 };  // End of class

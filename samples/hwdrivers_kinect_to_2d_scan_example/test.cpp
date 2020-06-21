@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -87,10 +87,9 @@ void thread_grabbing(TThreadParam& p)
 		while (!hard_error && !p.quit)
 		{
 			// Grab new observation from the camera:
-			CObservation3DRangeScan::Ptr obs = mrpt::make_aligned_shared<
-				CObservation3DRangeScan>();  // Smart pointers to observations
-			CObservationIMU::Ptr obs_imu =
-				mrpt::make_aligned_shared<CObservationIMU>();
+			auto obs = CObservation3DRangeScan::Create();  // Smart pointers to
+														   // observations
+			CObservationIMU::Ptr obs_imu = CObservationIMU::Create();
 
 			kinect.getNextObservation(*obs, *obs_imu, there_is_obs, hard_error);
 
@@ -167,20 +166,19 @@ void Test_Kinect()
 
 	// The 3D point cloud OpenGL object:
 	mrpt::opengl::CPointCloudColoured::Ptr gl_points =
-		mrpt::make_aligned_shared<mrpt::opengl::CPointCloudColoured>();
+		mrpt::opengl::CPointCloudColoured::Create();
 	gl_points->setPointSize(2.5);
 
 	// The 2D "laser scan" OpenGL object:
 	mrpt::opengl::CPlanarLaserScan::Ptr gl_2d_scan =
-		mrpt::make_aligned_shared<mrpt::opengl::CPlanarLaserScan>();
+		mrpt::opengl::CPlanarLaserScan::Create();
 	gl_2d_scan->enablePoints(true);
 	gl_2d_scan->enableLine(true);
 	gl_2d_scan->enableSurface(true);
 	gl_2d_scan->setSurfaceColor(0, 0, 1, 0.3);  // RGBA
 
-	mrpt::opengl::CFrustum::Ptr gl_frustum =
-		mrpt::make_aligned_shared<mrpt::opengl::CFrustum>(
-			0.2f, 5.0f, 90.0f, 5.0f, 2.0f, true, true);
+	mrpt::opengl::CFrustum::Ptr gl_frustum = mrpt::opengl::CFrustum::Create(
+		0.2f, 5.0f, 90.0f, 5.0f, 2.0f, true, true);
 
 	const double aspect_ratio =
 		480.0 / 640.0;  // kinect.rows() / double( kinect.cols() );
@@ -197,7 +195,7 @@ void Test_Kinect()
 
 		{
 			mrpt::opengl::CGridPlaneXY::Ptr gl_grid =
-				mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>();
+				mrpt::opengl::CGridPlaneXY::Create();
 			gl_grid->setColor(0.6, 0.6, 0.6);
 			scene->insert(gl_grid);
 		}
@@ -216,15 +214,13 @@ void Test_Kinect()
 		// Create the Opengl objects for the planar images, as textured planes,
 		// each in a separate viewport:
 		win3D.addTextMessage(
-			30, -25 - 1 * (VW_GAP + VW_HEIGHT), "Range data", TColorf(1, 1, 1),
-			1, MRPT_GLUT_BITMAP_HELVETICA_12);
+			30, -25 - 1 * (VW_GAP + VW_HEIGHT), "Range data", 1);
 		viewRange = scene->createViewport("view2d_range");
 		viewRange->setViewportPosition(
 			5, -10 - 1 * (VW_GAP + VW_HEIGHT), VW_WIDTH, VW_HEIGHT);
 
 		win3D.addTextMessage(
-			30, -25 - 2 * (VW_GAP + VW_HEIGHT), "Intensity data",
-			TColorf(1, 1, 1), 2, MRPT_GLUT_BITMAP_HELVETICA_12);
+			30, -25 - 2 * (VW_GAP + VW_HEIGHT), "Intensity data", 2);
 		viewInt = scene->createViewport("view2d_int");
 		viewInt->setViewportPosition(
 			5, -10 - 2 * (VW_GAP + VW_HEIGHT), VW_WIDTH, VW_HEIGHT);
@@ -258,8 +254,8 @@ void Test_Kinect()
 				// Normalize the image
 				static CMatrixFloat range2D;  // Static to save time allocating
 				// the matrix in every iteration
-				range2D = last_obs->rangeImage *
-						  (1.0 / 5.0);  // kinect.getMaxRange());
+				range2D = last_obs->rangeImage;
+				range2D *= (1.0 / last_obs->maxRange);
 
 				img.setFromMatrix(range2D);
 
@@ -274,7 +270,7 @@ void Test_Kinect()
 			{
 				// Convert to scan:
 				CObservation2DRangeScan::Ptr obs_2d =
-					mrpt::make_aligned_shared<CObservation2DRangeScan>();
+					CObservation2DRangeScan::Create();
 				const float vert_FOV = DEG2RAD(gl_frustum->getVertFOV());
 
 				mrpt::obs::T3DPointsTo2DScanParams sp;
@@ -307,7 +303,7 @@ void Test_Kinect()
 				mrpt::obs::T3DPointsProjectionParams pp;
 				pp.takeIntoAccountSensorPoseOnRobot = false;
 
-				last_obs->project3DPointsFromDepthImageInto(*gl_points, pp);
+				last_obs->unprojectInto(*gl_points, pp);
 				win3D.unlockAccess3DScene();
 				do_refresh = true;
 			}
@@ -315,15 +311,13 @@ void Test_Kinect()
 			// Some text messages:
 			win3D.get3DSceneAndLock();
 			// Estimated grabbing rate:
-			win3D.addTextMessage(
-				-100, -20, format("%.02f Hz", thrPar.Hz), TColorf(1, 1, 1),
-				"sans", 15, mrpt::opengl::FILL, 100);
+			win3D.addTextMessage(-100, -20, format("%.02f Hz", thrPar.Hz), 100);
 
 			win3D.addTextMessage(
 				10, 10,
 				"'o'/'i'-zoom out/in, '2'/'3'/'f':show/hide 2D/3D/frustum "
 				"data, mouse: orbit 3D, ESC: quit",
-				TColorf(1, 1, 1), "sans", 10, mrpt::opengl::FILL, 110);
+				110);
 
 			win3D.addTextMessage(
 				10, 25,
@@ -333,7 +327,7 @@ void Test_Kinect()
 					gl_2d_scan->isVisible() ? "YES" : "NO",
 					gl_frustum->isVisible() ? "YES" : "NO",
 					gl_frustum->getVertFOV()),
-				TColorf(1, 1, 1), "sans", 10, mrpt::opengl::FILL, 111);
+				111);
 			win3D.unlockAccess3DScene();
 
 			// Do we have accelerometer data?
@@ -347,7 +341,7 @@ void Test_Kinect()
 						last_obs_imu->rawMeasurements[IMU_X_ACC],
 						last_obs_imu->rawMeasurements[IMU_Y_ACC],
 						last_obs_imu->rawMeasurements[IMU_Z_ACC]),
-					TColorf(.7, .7, .7), "sans", 10, mrpt::opengl::FILL, 102);
+					102);
 				win3D.unlockAccess3DScene();
 				do_refresh = true;
 			}

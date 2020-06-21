@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -477,8 +477,8 @@ void CMainWindow::updateDirection(
 
 	pose.setFromValues(
 		pose[0], pose[1], pose[2], DEG2RAD(yaw), DEG2RAD(pitch), DEG2RAD(roll));
-	auto newPosePDF = std::make_shared<mrpt::poses::CPose3DPDFGaussian>(
-		pose, posePDF->getCovariance());
+	auto newPosePDF =
+		mrpt::poses::CPose3DPDFGaussian::Create(pose, posePDF->getCovariance());
 
 	posesObsPair.first = newPosePDF;
 	m_document->move(index, posesObsPair);

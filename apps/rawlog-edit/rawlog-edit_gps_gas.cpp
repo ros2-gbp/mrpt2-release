@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -75,17 +75,17 @@ DECLARE_OP_FUNCTION(op_export_gps_gas_kml)
 		// return false on any error.
 		bool processOneObservation(CObservation::Ptr& o) override
 		{
-			if (IS_CLASS(o, CObservationGPS))
+			if (IS_CLASS(*o, CObservationGPS))
 			{
 				obs = dynamic_cast<CObservationGPS*>(o.get());
-				if (!obs->has_GGA_datum)
+				if (!obs->has_GGA_datum())
 				{
 					obs = nullptr;
 					return true;  // Nothing to do...
 				}
 				hasGPS = true;
 			}
-			else if (IS_CLASS(o, CObservationGasSensors))
+			else if (IS_CLASS(*o, CObservationGasSensors))
 			{
 				obsGas = dynamic_cast<CObservationGasSensors*>(o.get());
 				if (obsGas->m_readings.size() < 1)

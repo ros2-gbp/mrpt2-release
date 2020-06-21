@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -31,7 +31,7 @@ namespace mrpt::poses
  */
 class CPose3DPDFSOG : public CPose3DPDF
 {
-	DEFINE_SERIALIZABLE(CPose3DPDFSOG)
+	DEFINE_SERIALIZABLE(CPose3DPDFSOG, mrpt::poses)
 
    public:
 	/** The struct for each mode:
@@ -55,7 +55,7 @@ class CPose3DPDFSOG : public CPose3DPDF
 	/** Assures the symmetry of the covariance matrix (eventually certain
 	 * operations in the math-coprocessor lead to non-symmetric matrixes!)
 	 */
-	void assureSymmetry();
+	void enforceCovSymmetry();
 
 	/** Access directly to this array for modify the modes as desired.
 	 *  Note that no weight can be zero!!
@@ -81,14 +81,10 @@ class CPose3DPDFSOG : public CPose3DPDF
 	iterator end() { return m_modes.end(); }
 	const_iterator begin() const { return m_modes.begin(); }
 	const_iterator end() const { return m_modes.end(); }
-	/** Returns an estimate of the pose, (the mean, or mathematical expectation
-	 * of the PDF), computed as a weighted average over all m_particles. \sa
-	 * getCovariance */
+
 	void getMean(CPose3D& mean_pose) const override;
-	/** Returns an estimate of the pose covariance matrix (6x6 cov matrix) and
-	 * the mean, both at once. \sa getMean */
-	void getCovarianceAndMean(
-		mrpt::math::CMatrixDouble66& cov, CPose3D& mean_point) const override;
+	std::tuple<cov_mat_t, type_value> getCovarianceAndMean() const override;
+
 	/** Normalize the weights in m_modes such as the maximum log-weight is 0. */
 	void normalizeWeights();
 	/** Return the Gaussian mode with the highest likelihood (or an empty

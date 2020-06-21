@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,17 +11,16 @@
 
 #include <mrpt/config.h>  // for HAVE_SINCOS
 #include <mrpt/core/bits_math.h>  // for square
-#include <mrpt/math/CArrayNumeric.h>  // for CArrayDo...
-#include <mrpt/math/CMatrix.h>  // for CMatrix
-#include <mrpt/math/CMatrixFixedNumeric.h>  // for CMatrixF...
-#include <mrpt/math/CMatrixTemplateNumeric.h>  // for CMatrixD...
+#include <mrpt/math/CMatrixDynamic.h>  // for CMatrixD...
+#include <mrpt/math/CMatrixF.h>  // for CMatrixF
+#include <mrpt/math/CMatrixFixed.h>  // for CMatrixF...
 #include <mrpt/math/CQuaternion.h>  // for CQuatern...
+#include <mrpt/math/CVectorFixed.h>  // for CArrayDo...
+#include <mrpt/math/TPoint3D.h>
 #include <mrpt/math/geometry.h>  // for skew_sym...
 #include <mrpt/math/homog_matrices.h>  // for homogene...
-#include <mrpt/math/lightweight_geom_data.h>  // for TPoint3D
 #include <mrpt/math/matrix_serialization.h>  // for operator>>
 #include <mrpt/math/ops_containers.h>  // for dotProduct
-#include <mrpt/math/types_math.h>  // for CVectorD...
 #include <mrpt/math/utils_matlab.h>
 #include <mrpt/math/wrap2pi.h>  // for wrapToPi
 #include <mrpt/poses/CPoint2D.h>  // for CPoint2D
@@ -33,6 +32,7 @@
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/serialization/CSchemeArchiveBase.h>
 #include <mrpt/serialization/CSerializable.h>  // for CSeriali...
+#include <Eigen/Dense>
 #include <algorithm>  // for move
 #include <cmath>  // for fabs
 #include <iomanip>  // for operator<<
@@ -42,7 +42,6 @@
 
 using namespace mrpt;
 using namespace mrpt::math;
-
 using namespace mrpt::poses;
 
 IMPLEMENTS_SERIALIZABLE(CPose3D, CSerializable, mrpt::poses)
@@ -53,7 +52,7 @@ IMPLEMENTS_SERIALIZABLE(CPose3D, CSerializable, mrpt::poses)
 CPose3D::CPose3D()
 {
 	m_coords[0] = m_coords[1] = m_coords[2] = 0;
-	m_ROT.unit(3, 1.0);
+	m_ROT.setIdentity();
 }
 
 CPose3D::CPose3D(
@@ -86,16 +85,16 @@ CPose3D::CPose3D(const math::CMatrixDouble& m)
 	ASSERT_ABOVEEQ_(m.rows(), 3);
 	ASSERT_ABOVEEQ_(m.cols(), 4);
 	for (int r = 0; r < 3; r++)
-		for (int c = 0; c < 3; c++) m_ROT(r, c) = m.get_unsafe(r, c);
-	for (int r = 0; r < 3; r++) m_coords[r] = m.get_unsafe(r, 3);
+		for (int c = 0; c < 3; c++) m_ROT(r, c) = m(r, c);
+	for (int r = 0; r < 3; r++) m_coords[r] = m(r, 3);
 }
 
 CPose3D::CPose3D(const math::CMatrixDouble44& m)
 	: m_ROT(UNINITIALIZED_MATRIX), m_ypr_uptodate(false)
 {
 	for (int r = 0; r < 3; r++)
-		for (int c = 0; c < 3; c++) m_ROT(r, c) = m.get_unsafe(r, c);
-	for (int r = 0; r < 3; r++) m_coords[r] = m.get_unsafe(r, 3);
+		for (int c = 0; c < 3; c++) m_ROT(r, c) = m(r, c);
+	for (int r = 0; r < 3; r++) m_coords[r] = m(r, 3);
 }
 
 /** Constructor from a quaternion (which only represents the 3D rotation part)
@@ -121,12 +120,17 @@ CPose3D::CPose3D(const CPose3DQuat& p)
 	p.quat().rotationMatrixNoResize(m_ROT);
 }
 
-uint8_t CPose3D::serializeGetVersion() const { return 2; }
+uint8_t CPose3D::serializeGetVersion() const { return 3; }
 void CPose3D::serializeTo(mrpt::serialization::CArchive& out) const
 {
-	const CPose3DQuat q(*this);
-	// The coordinates:
-	out << q[0] << q[1] << q[2] << q[3] << q[4] << q[5] << q[6];
+	// v2 serialized the equivalent CPose3DQuat representation.
+	// But this led to (**really** tiny) numerical differences between the
+	// original and reconstructed poses. To ensure bit-by-bit equivalence before
+	// and after serialization, let's get back to serializing the actual SO(3)
+	// matrix in serialization v3:
+	for (int i = 0; i < 3; i++) out << m_coords[i];
+	for (int r = 0; r < 3; r++)
+		for (int c = 0; c < 3; c++) out << m_ROT(r, c);
 }
 void CPose3D::serializeFrom(mrpt::serialization::CArchive& in, uint8_t version)
 {
@@ -135,16 +139,15 @@ void CPose3D::serializeFrom(mrpt::serialization::CArchive& in, uint8_t version)
 		case 0:
 		{
 			// The coordinates:
-			CMatrix HM2;
+			CMatrixF HM2;
 			in >> HM2;
 			ASSERT_(HM2.rows() == 4 && HM2.isSquare());
 
-			m_ROT = HM2.block(0, 0, 3, 3).cast<double>();
+			m_ROT = HM2.block<3, 3>(0, 0).cast<double>();
 
-			m_coords[0] = HM2.get_unsafe(0, 3);
-			m_coords[1] = HM2.get_unsafe(1, 3);
-			m_coords[2] = HM2.get_unsafe(2, 3);
-			m_ypr_uptodate = false;
+			m_coords[0] = HM2(0, 3);
+			m_coords[1] = HM2(1, 3);
+			m_coords[2] = HM2(2, 3);
 		}
 		break;
 		case 1:
@@ -153,12 +156,11 @@ void CPose3D::serializeFrom(mrpt::serialization::CArchive& in, uint8_t version)
 			CMatrixDouble44 HM;
 			in >> HM;
 
-			m_ROT = HM.block(0, 0, 3, 3);
+			m_ROT = HM.block<3, 3>(0, 0);
 
-			m_coords[0] = HM.get_unsafe(0, 3);
-			m_coords[1] = HM.get_unsafe(1, 3);
-			m_coords[2] = HM.get_unsafe(2, 3);
-			m_ypr_uptodate = false;
+			m_coords[0] = HM(0, 3);
+			m_coords[1] = HM(1, 3);
+			m_coords[2] = HM(2, 3);
 		}
 		break;
 		case 2:
@@ -168,16 +170,23 @@ void CPose3D::serializeFrom(mrpt::serialization::CArchive& in, uint8_t version)
 			in >> p[0] >> p[1] >> p[2] >> p[3] >> p[4] >> p[5] >> p[6];
 
 			// Extract XYZ + ROT from quaternion:
-			m_ypr_uptodate = false;
 			m_coords[0] = p.x();
 			m_coords[1] = p.y();
 			m_coords[2] = p.z();
 			p.quat().rotationMatrixNoResize(m_ROT);
 		}
 		break;
+		case 3:
+		{
+			for (int i = 0; i < 3; i++) in >> m_coords[i];
+			for (int r = 0; r < 3; r++)
+				for (int c = 0; c < 3; c++) in >> m_ROT(r, c);
+		}
+		break;
 		default:
 			MRPT_THROW_UNKNOWN_SERIALIZATION_VERSION(version);
 	};
+	m_ypr_uptodate = false;
 }
 
 void CPose3D::serializeTo(mrpt::serialization::CSchemeArchiveBase& out) const
@@ -367,13 +376,13 @@ double CPose3D::distanceEuclidean6D(const CPose3D& o) const
 ---------------------------------------------------------------*/
 void CPose3D::composePoint(
 	double lx, double ly, double lz, double& gx, double& gy, double& gz,
-	mrpt::math::CMatrixFixedNumeric<double, 3, 3>* out_jacobian_df_dpoint,
-	mrpt::math::CMatrixFixedNumeric<double, 3, 6>* out_jacobian_df_dpose,
-	mrpt::math::CMatrixFixedNumeric<double, 3, 6>* out_jacobian_df_dse3,
+	mrpt::optional_ref<mrpt::math::CMatrixDouble33> out_jacobian_df_dpoint,
+	mrpt::optional_ref<mrpt::math::CMatrixDouble36> out_jacobian_df_dpose,
+	mrpt::optional_ref<mrpt::math::CMatrixDouble36> out_jacobian_df_dse3,
 	bool use_small_rot_approx) const
 {
 	// Jacob: df/dpoint
-	if (out_jacobian_df_dpoint) *out_jacobian_df_dpoint = m_ROT;
+	if (out_jacobian_df_dpoint) out_jacobian_df_dpoint.value().get() = m_ROT;
 
 	// Jacob: df/dpose
 	if (out_jacobian_df_dpose)
@@ -381,9 +390,9 @@ void CPose3D::composePoint(
 		if (use_small_rot_approx)
 		{
 			// Linearized Jacobians around (yaw,pitch,roll)=(0,0,0):
-			alignas(MRPT_MAX_ALIGN_BYTES) const double nums[3 * 6] = {
+			alignas(MRPT_MAX_STATIC_ALIGN_BYTES) const double nums[3 * 6] = {
 				1, 0, 0, -ly, lz, 0, 0, 1, 0, lx, 0, -lz, 0, 0, 1, 0, -lx, ly};
-			out_jacobian_df_dpose->loadFromArray(nums);
+			out_jacobian_df_dpose.value().get().loadFromArray(nums);
 		}
 		else
 		{
@@ -405,7 +414,7 @@ void CPose3D::composePoint(
 			const double sr = sin(m_roll);
 #endif
 
-			alignas(MRPT_MAX_ALIGN_BYTES) const double nums[3 * 6] = {
+			alignas(MRPT_MAX_STATIC_ALIGN_BYTES) const double nums[3 * 6] = {
 				1,
 				0,
 				0,
@@ -431,7 +440,7 @@ void CPose3D::composePoint(
 				-lx * cp - ly * sp * sr - lz * sp * cr,  // d_z' / d_pitch
 				ly * cp * cr - lz * cp * sr  // d_z' / d_roll
 			};
-			out_jacobian_df_dpose->loadFromArray(nums);
+			out_jacobian_df_dpose.value().get().loadFromArray(nums);
 		}
 	}
 
@@ -442,44 +451,33 @@ void CPose3D::composePoint(
 	// Jacob: df/dse3
 	if (out_jacobian_df_dse3)
 	{
-		alignas(MRPT_MAX_ALIGN_BYTES) const double nums[3 * 6] = {
+		alignas(MRPT_MAX_STATIC_ALIGN_BYTES) const double nums[3 * 6] = {
 			1, 0, 0, 0, gz, -gy, 0, 1, 0, -gz, 0, gx, 0, 0, 1, gy, -gx, 0};
-		out_jacobian_df_dse3->loadFromArray(nums);
+		out_jacobian_df_dse3.value().get().loadFromArray(nums);
 	}
 }
 
-// TODO: Use SSE2? OTOH, this forces mem align...
-#if MRPT_HAS_SSE2 && defined(MRPT_USE_SSE2)
-/*static inline __m128 transformSSE(const __m128* matrix, const __m128& in)
+mrpt::math::TVector3D CPose3D::rotateVector(
+	const mrpt::math::TVector3D& l) const
 {
-	ASSERT_(((size_t)matrix & 15) == 0);
-	__m128 a0 = _mm_mul_ps(_mm_load_ps((float*)(matrix+0)),
-_mm_shuffle_ps(in,in,_MM_SHUFFLE(0,0,0,0)));
-	__m128 a1 = _mm_mul_ps(_mm_load_ps((float*)(matrix+1)),
-_mm_shuffle_ps(in,in,_MM_SHUFFLE(1,1,1,1)));
-	__m128 a2 = _mm_mul_ps(_mm_load_ps((float*)(matrix+2)),
-_mm_shuffle_ps(in,in,_MM_SHUFFLE(2,2,2,2)));
-
-	return _mm_add_ps(_mm_add_ps(a0,a1),a2);
-}*/
-#endif  // SSE2
-
-/*---------------------------------------------------------------
-		getAsVector
----------------------------------------------------------------*/
-void CPose3D::getAsVector(CVectorDouble& r) const
-{
-	updateYawPitchRoll();
-	r.resize(6);
-	r[0] = m_coords[0];
-	r[1] = m_coords[1];
-	r[2] = m_coords[2];
-	r[3] = m_yaw;
-	r[4] = m_pitch;
-	r[5] = m_roll;
+	mrpt::math::TVector3D g;
+	g.x = m_ROT(0, 0) * l.x + m_ROT(0, 1) * l.y + m_ROT(0, 2) * l.z;
+	g.y = m_ROT(1, 0) * l.x + m_ROT(1, 1) * l.y + m_ROT(1, 2) * l.z;
+	g.z = m_ROT(2, 0) * l.x + m_ROT(2, 1) * l.y + m_ROT(2, 2) * l.z;
+	return g;
 }
 
-void CPose3D::getAsVector(mrpt::math::CArrayDouble<6>& r) const
+mrpt::math::TVector3D CPose3D::inverseRotateVector(
+	const mrpt::math::TVector3D& g) const
+{
+	mrpt::math::TVector3D l;
+	l.x = m_ROT(0, 0) * g.x + m_ROT(1, 0) * g.y + m_ROT(2, 0) * g.z;
+	l.y = m_ROT(0, 1) * g.x + m_ROT(1, 1) * g.y + m_ROT(2, 1) * g.z;
+	l.z = m_ROT(0, 2) * g.x + m_ROT(1, 2) * g.y + m_ROT(2, 2) * g.z;
+	return l;
+}
+
+void CPose3D::asVector(vector_t& r) const
 {
 	updateYawPitchRoll();
 	r[0] = m_coords[0];
@@ -502,7 +500,7 @@ CPose3D mrpt::poses::operator-(const CPose3D& b)
 
 void CPose3D::getAsQuaternion(
 	mrpt::math::CQuaternionDouble& q,
-	mrpt::math::CMatrixFixedNumeric<double, 4, 3>* out_dq_dr) const
+	mrpt::optional_ref<mrpt::math::CMatrixDouble43> out_dq_dr) const
 {
 	updateYawPitchRoll();
 	mrpt::math::TPose3D(0, 0, 0, m_yaw, m_pitch, m_roll)
@@ -561,7 +559,7 @@ void CPose3D::composeFrom(const CPose3D& A, const CPose3D& B)
 	if (this == &B)
 	{
 		// we need to make a temporary copy of the vector:
-		const CArrayDouble<3> B_coords = B.m_coords;
+		const CVectorFixedDouble<3> B_coords = B.m_coords;
 		for (int r = 0; r < 3; r++)
 			m_coords[r] = A.m_coords[r] + A.m_ROT(r, 0) * B_coords[0] +
 						  A.m_ROT(r, 1) * B_coords[1] +
@@ -577,7 +575,7 @@ void CPose3D::composeFrom(const CPose3D& A, const CPose3D& B)
 
 	// Important: Make this multiplication AFTER the translational part, to cope
 	// with the case when A==this
-	m_ROT.multiply_AB(A.m_ROT, B.m_ROT);
+	m_ROT = A.m_ROT * B.m_ROT;
 
 	m_ypr_uptodate = false;
 }
@@ -586,7 +584,7 @@ void CPose3D::composeFrom(const CPose3D& A, const CPose3D& B)
 void CPose3D::inverse()
 {
 	CMatrixDouble33 inv_rot(UNINITIALIZED_MATRIX);
-	CArrayDouble<3> inv_xyz;
+	CVectorFixedDouble<3> inv_xyz;
 
 	mrpt::math::homogeneousMatrixInverse(m_ROT, m_coords, inv_rot, inv_xyz);
 
@@ -623,7 +621,7 @@ void CPose3D::inverseComposeFrom(const CPose3D& A, const CPose3D& B)
 
 	// XYZ part:
 	CMatrixDouble33 R_b_inv(UNINITIALIZED_MATRIX);
-	CArrayDouble<3> t_b_inv;
+	CVectorFixedDouble<3> t_b_inv;
 	mrpt::math::homogeneousMatrixInverse(B.m_ROT, B.m_coords, R_b_inv, t_b_inv);
 
 	for (int i = 0; i < 3; i++)
@@ -632,7 +630,7 @@ void CPose3D::inverseComposeFrom(const CPose3D& A, const CPose3D& B)
 					  R_b_inv(i, 2) * A.m_coords[2];
 
 	// Rot part:
-	m_ROT.multiply_AB(R_b_inv, A.m_ROT);
+	m_ROT = R_b_inv * A.m_ROT;
 	m_ypr_uptodate = false;
 }
 
@@ -642,16 +640,16 @@ void CPose3D::inverseComposeFrom(const CPose3D& A, const CPose3D& B)
 void CPose3D::inverseComposePoint(
 	const double gx, const double gy, const double gz, double& lx, double& ly,
 	double& lz,
-	mrpt::math::CMatrixFixedNumeric<double, 3, 3>* out_jacobian_df_dpoint,
-	mrpt::math::CMatrixFixedNumeric<double, 3, 6>* out_jacobian_df_dpose,
-	mrpt::math::CMatrixFixedNumeric<double, 3, 6>* out_jacobian_df_dse3) const
+	mrpt::optional_ref<mrpt::math::CMatrixDouble33> out_jacobian_df_dpoint,
+	mrpt::optional_ref<mrpt::math::CMatrixDouble36> out_jacobian_df_dpose,
+	mrpt::optional_ref<mrpt::math::CMatrixDouble36> out_jacobian_df_dse3) const
 {
 	CMatrixDouble33 R_inv(UNINITIALIZED_MATRIX);
-	CArrayDouble<3> t_inv;
+	CVectorFixedDouble<3> t_inv;
 	mrpt::math::homogeneousMatrixInverse(m_ROT, m_coords, R_inv, t_inv);
 
 	// Jacob: df/dpoint
-	if (out_jacobian_df_dpoint) *out_jacobian_df_dpoint = R_inv;
+	if (out_jacobian_df_dpoint) out_jacobian_df_dpoint.value().get() = R_inv;
 
 	// Jacob: df/dpose
 	if (out_jacobian_df_dpose)
@@ -710,7 +708,7 @@ void CPose3D::inverseComposePoint(
 		const double Ay = gy - m_coords[1];
 		const double Az = gz - m_coords[2];
 
-		alignas(MRPT_MAX_ALIGN_BYTES) const double nums[3 * 6] = {
+		alignas(MRPT_MAX_STATIC_ALIGN_BYTES) const double nums[3 * 6] = {
 			-m_ROT(0, 0),
 			-m_ROT(1, 0),
 			-m_ROT(2, 0),
@@ -732,7 +730,7 @@ void CPose3D::inverseComposePoint(
 			Ax * m31_dp + Ay * m32_dp + Az * m33_dp,  // d_x'/d_pitch
 			Ax * m31_dr + Ay * m32_dr + Az * m33_dr,  // d_x'/d_roll
 		};
-		out_jacobian_df_dpose->loadFromArray(nums);
+		out_jacobian_df_dpose.value().get().loadFromArray(nums);
 	}
 
 	lx = t_inv[0] + R_inv(0, 0) * gx + R_inv(0, 1) * gy + R_inv(0, 2) * gz;
@@ -742,9 +740,9 @@ void CPose3D::inverseComposePoint(
 	// Jacob: df/dse3
 	if (out_jacobian_df_dse3)
 	{
-		alignas(MRPT_MAX_ALIGN_BYTES) const double nums[3 * 6] = {
+		alignas(MRPT_MAX_STATIC_ALIGN_BYTES) const double nums[3 * 6] = {
 			-1, 0, 0, 0, -lz, ly, 0, -1, 0, lz, 0, -lx, 0, 0, -1, -ly, lx, 0};
-		out_jacobian_df_dse3->loadFromArray(nums);
+		out_jacobian_df_dse3.value().get().loadFromArray(nums);
 	}
 }
 
@@ -761,4 +759,30 @@ void CPose3D::setToNaN()
 mrpt::math::TPose3D CPose3D::asTPose() const
 {
 	return mrpt::math::TPose3D(x(), y(), z(), yaw(), pitch(), roll());
+}
+
+void CPose3D::fromString(const std::string& s)
+{
+	using mrpt::DEG2RAD;
+	mrpt::math::CMatrixDouble m;
+	if (!m.fromMatlabStringFormat(s))
+		THROW_EXCEPTION("Malformed expression in ::fromString");
+	ASSERTMSG_(m.rows() == 1 && m.cols() == 6, "Expected vector length=6");
+	this->setFromValues(
+		m(0, 0), m(0, 1), m(0, 2), DEG2RAD(m(0, 3)), DEG2RAD(m(0, 4)),
+		DEG2RAD(m(0, 5)));
+}
+
+void CPose3D::fromStringRaw(const std::string& s)
+{
+	this->fromString("[" + s + "]");
+}
+
+void CPose3D::getHomogeneousMatrix(mrpt::math::CMatrixDouble44& out_HM) const
+{
+	auto M = out_HM.asEigen();
+	M.block<3, 3>(0, 0) = m_ROT.asEigen();
+	for (int i = 0; i < 3; i++) out_HM(i, 3) = m_coords[i];
+	out_HM(3, 0) = out_HM(3, 1) = out_HM(3, 2) = 0.;
+	out_HM(3, 3) = 1.;
 }

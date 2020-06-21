@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,7 +10,8 @@
 
 #include <mrpt/config/CConfigFileBase.h>
 #include <mrpt/img/TColor.h>
-#include <mrpt/math/lightweight_geom_data.h>
+#include <mrpt/math/TPoint2D.h>
+#include <mrpt/math/TPose2D.h>
 #include <mrpt/opengl/opengl_frwds.h>
 #include <mrpt/system/datetime.h>
 #include <string>

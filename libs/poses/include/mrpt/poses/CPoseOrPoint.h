@@ -2,19 +2,17 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CArrayNumeric.h>
+#include <mrpt/math/CVectorFixed.h>
+#include <mrpt/math/TPoint3D.h>
 #include <mrpt/math/homog_matrices.h>
-#include <mrpt/math/lightweight_geom_data.h>
-#include <mrpt/math/math_frwds.h>  // matrices frwd decls
-#include <mrpt/serialization/CSerializable.h>
-
 #include <mrpt/poses/CPoseOrPoint_detail.h>
+#include <mrpt/serialization/CSerializable.h>
 
 namespace mrpt
 {
@@ -121,7 +119,7 @@ enum TConstructorFlags_Poses
  * \sa CPose,CPoint
  * \ingroup poses_grp
  */
-template <class DERIVEDCLASS>
+template <class DERIVEDCLASS, std::size_t DIM>
 class CPoseOrPoint
 	: public mrpt::poses::detail::pose_point_impl<
 		  DERIVEDCLASS,
@@ -133,6 +131,11 @@ class CPoseOrPoint
 		return *static_cast<const DERIVEDCLASS*>(this);
 	}
 	DERIVEDCLASS& derived() { return *static_cast<DERIVEDCLASS*>(this); }
+
+	/** Fixed-size vector of the correct size to hold all the coordinates of the
+	 * point/pose */
+	using vector_t = mrpt::math::CVectorFixedDouble<DIM>;
+
 	/** Common members of all points & poses classes.
 		@{ */
 	// Note: the access to "z" is implemented (only for 3D data types), in
@@ -180,8 +183,8 @@ class CPoseOrPoint
 	}
 
 	/** Returns the squared euclidean distance to another pose/point: */
-	template <class OTHERCLASS>
-	inline double sqrDistanceTo(const CPoseOrPoint<OTHERCLASS>& b) const
+	template <class OTHERCLASS, std::size_t DIM2>
+	inline double sqrDistanceTo(const CPoseOrPoint<OTHERCLASS, DIM2>& b) const
 	{
 		using mrpt::square;
 
@@ -207,8 +210,8 @@ class CPoseOrPoint
 	}
 
 	/** Returns the Euclidean distance to another pose/point: */
-	template <class OTHERCLASS>
-	inline double distanceTo(const CPoseOrPoint<OTHERCLASS>& b) const
+	template <class OTHERCLASS, std::size_t DIM2>
+	inline double distanceTo(const CPoseOrPoint<OTHERCLASS, DIM2>& b) const
 	{
 		return std::sqrt(sqrDistanceTo(b));
 	}
@@ -260,10 +263,10 @@ class CPoseOrPoint
 
 	/** Return the pose or point as a 1xN vector with all the components (see
 	 * derived classes for each implementation) */
-	inline mrpt::math::CVectorDouble getAsVectorVal() const
+	vector_t asVectorVal() const
 	{
-		mrpt::math::CVectorDouble v;
-		derived().getAsVector(v);
+		vector_t v;
+		derived().asVector(v);
 		return v;
 	}
 

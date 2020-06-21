@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -14,7 +14,7 @@
 #include <mrpt/io/CFileGZInputStream.h>
 #include <mrpt/io/CFileGZOutputStream.h>
 #include <mrpt/maps/CGasConcentrationGridMap2D.h>
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/math/ops_containers.h>
 #include <mrpt/obs/CObservationGasSensors.h>
 #include <mrpt/opengl/CArrow.h>
@@ -36,7 +36,7 @@ using namespace mrpt::math;
 
 //  =========== Begin of Map definition ============
 MAP_DEFINITION_REGISTER(
-	"CGasConcentrationGridMap2D,gasGrid",
+	"mrpt::maps::CGasConcentrationGridMap2D,gasGrid",
 	mrpt::maps::CGasConcentrationGridMap2D)
 
 CGasConcentrationGridMap2D::TMapDefinition::TMapDefinition()
@@ -170,7 +170,7 @@ y<windGrid_direction.getSizeY(); y++ )
 						insertObservation
   ---------------------------------------------------------------*/
 bool CGasConcentrationGridMap2D::internal_insertObservation(
-	const CObservation* obs, const CPose3D* robotPose)
+	const CObservation& obs, const CPose3D* robotPose)
 {
 	MRPT_START
 
@@ -192,19 +192,19 @@ bool CGasConcentrationGridMap2D::internal_insertObservation(
 		/********************************************************************
 					OBSERVATION TYPE: CObservationGasSensors
 		********************************************************************/
-		const auto* o = static_cast<const CObservationGasSensors*>(obs);
+		const auto& o = dynamic_cast<const CObservationGasSensors&>(obs);
 
-		if (o->sensorLabel.compare(insertionOptions.gasSensorLabel) == 0)
+		if (o.sensorLabel.compare(insertionOptions.gasSensorLabel) == 0)
 		{
 			float sensorReading;
 			CPose2D sensorPose;
 
-			if (o->sensorLabel.compare("MCEnose") == 0 ||
-				o->sensorLabel.compare("Full_MCEnose") == 0)
+			if (o.sensorLabel.compare("MCEnose") == 0 ||
+				o.sensorLabel.compare("Full_MCEnose") == 0)
 			{
-				ASSERT_(o->m_readings.size() > insertionOptions.enose_id);
+				ASSERT_(o.m_readings.size() > insertionOptions.enose_id);
 				const CObservationGasSensors::TObservationENose* it =
-					&o->m_readings[insertionOptions.enose_id];
+					&o.m_readings[insertionOptions.enose_id];
 
 				// Compute the 3D sensor pose in world coordinates:
 				sensorPose = CPose2D(
@@ -213,7 +213,7 @@ bool CGasConcentrationGridMap2D::internal_insertObservation(
 				// Compute the sensor reading value (Volts):
 				if (insertionOptions.gasSensorType == 0x0000)
 				{  // compute the mean
-					sensorReading = math::mean(it->readingsVoltage);
+					sensorReading = d2f(math::mean(it->readingsVoltage));
 				}
 				else
 				{
@@ -235,14 +235,14 @@ bool CGasConcentrationGridMap2D::internal_insertObservation(
 						cout << "Sensor especified not found, compute default "
 								"mean value"
 							 << endl;
-						sensorReading = math::mean(it->readingsVoltage);
+						sensorReading = d2f(math::mean(it->readingsVoltage));
 					}
 				}
 			}
 			else  //"GDM, RAE_PID, ENOSE_SIMUL
 			{
 				const CObservationGasSensors::TObservationENose* it =
-					&o->m_readings[0];
+					&o.m_readings[0];
 				// Compute the 3D sensor pose in world coordinates:
 				sensorPose = CPose2D(
 					CPose3D(robotPose2D) + CPose3D(it->eNosePoseOnTheRobot));
@@ -281,11 +281,9 @@ bool CGasConcentrationGridMap2D::internal_insertObservation(
 						computeObservationLikelihood
   ---------------------------------------------------------------*/
 double CGasConcentrationGridMap2D::internal_computeObservationLikelihood(
-	const CObservation* obs, const CPose3D& takenFrom)
+	[[maybe_unused]] const CObservation& obs,
+	[[maybe_unused]] const CPose3D& takenFrom)
 {
-	MRPT_UNUSED_PARAM(obs);
-	MRPT_UNUSED_PARAM(takenFrom);
-
 	THROW_EXCEPTION("Not implemented yet!");
 }
 
@@ -307,7 +305,8 @@ void CGasConcentrationGridMap2D::serializeTo(
 #if MRPT_IS_BIG_ENDIAN
 	for (uint32_t i = 0; i < n; i++)
 	{
-		out << m_map[i].kf_mean << m_map[i].dm_mean << m_map[i].dmv_var_mean;
+		out << m_map[i].kf_mean() << m_map[i].dm_mean()
+			<< m_map[i].dmv_var_mean;
 	}
 #else
 	// Little endian: just write all at once:
@@ -371,9 +370,9 @@ void CGasConcentrationGridMap2D::serializeFrom(
 				m_map.resize(n);
 				for (size_t k = 0; k < n; k++)
 				{
-					m_map[k].kf_mean =
+					m_map[k].kf_mean() =
 						(old_map[k].w != 0) ? old_map[k].wr : old_map[k].mean;
-					m_map[k].kf_std =
+					m_map[k].kf_std() =
 						(old_map[k].w != 0) ? old_map[k].w : old_map[k].std;
 				}
 			}
@@ -388,7 +387,7 @@ void CGasConcentrationGridMap2D::serializeFrom(
 // Read the note in writeToStream()
 #if MRPT_IS_BIG_ENDIAN
 				for (uint32_t i = 0; i < n; i++)
-					in >> m_map[i].kf_mean >> m_map[i].dm_mean >>
+					in >> m_map[i].kf_mean() >> m_map[i].dm_mean() >>
 						m_map[i].dmv_var_mean;
 #else
 				// Little endian: just read all at once:
@@ -448,14 +447,13 @@ CGasConcentrationGridMap2D::TInsertionOptions::TInsertionOptions()
 void CGasConcentrationGridMap2D::TInsertionOptions::dumpToTextStream(
 	std::ostream& out) const
 {
-	out << mrpt::format(
-		"\n----------- [CGasConcentrationGridMap2D::TInsertionOptions] "
-		"------------ \n\n");
-	out << mrpt::format("[TInsertionOptions.Common] ------------ \n\n");
+	out << "\n----------- [CGasConcentrationGridMap2D::TInsertionOptions] "
+		   "------------ \n\n";
+	out << "[TInsertionOptions.Common] ------------ \n\n";
 	internal_dumpToTextStream_common(
 		out);  // Common params to all random fields maps:
 
-	out << mrpt::format("[TInsertionOptions.GasSpecific] ------------ \n\n");
+	out << "[TInsertionOptions.GasSpecific] ------------ \n\n";
 	out << mrpt::format(
 		"gasSensorLabel							= %s\n",
 		gasSensorLabel.c_str());
@@ -482,7 +480,7 @@ void CGasConcentrationGridMap2D::TInsertionOptions::dumpToTextStream(
 	out << mrpt::format(
 		"std_windNoise_mod						= %f\n", std_windNoise_mod);
 
-	out << mrpt::format("\n");
+	out << "\n";
 }
 
 /*---------------------------------------------------------------
@@ -580,11 +578,11 @@ void CGasConcentrationGridMap2D::getWindAs3DObject(
 		5;  // distance between arrows, expresed as times the cell resolution
 
 	// map limits
-	float x_min = getXMin();
-	float x_max = getXMax();
-	float y_min = getYMin();
-	float y_max = getYMax();
-	float resol = getResolution();
+	float x_min = d2f(getXMin());
+	float x_max = d2f(getXMax());
+	float y_min = d2f(getYMin());
+	float y_max = d2f(getYMax());
+	float resol = d2f(getResolution());
 
 	// Ensure map dimensions match with wind map
 	unsigned int wind_map_size =
@@ -598,7 +596,7 @@ void CGasConcentrationGridMap2D::getWindAs3DObject(
 		// mrpt::system::pause();
 	}
 
-	unsigned int cx, cy;
+	size_t cx, cy;
 	vector<float> xs, ys;
 
 	// xs: array of X-axis values
@@ -670,8 +668,7 @@ void CGasConcentrationGridMap2D::increaseUncertainty(
 /*---------------------------------------------------------------
 						simulateAdvection
 ---------------------------------------------------------------*/
-bool CGasConcentrationGridMap2D::simulateAdvection(
-	const double& STD_increase_value)
+bool CGasConcentrationGridMap2D::simulateAdvection(double STD_increase_value)
 {
 	/* 1- Ensure we can use Wind Information
 	-------------------------------------------------*/
@@ -693,7 +690,7 @@ bool CGasConcentrationGridMap2D::simulateAdvection(
 	int cell_i_cx, cell_i_cy;
 	float mu_phi, mu_r, mu_modwind;
 	const size_t N = m_map.size();
-	mrpt::math::CMatrix A(N, N);
+	mrpt::math::CMatrixF A(N, N);
 	A.fill(0.0);
 	// std::vector<double> row_sum(N,0.0);
 	auto* row_sum = (double*)calloc(N, sizeof(double));
@@ -791,13 +788,14 @@ bool CGasConcentrationGridMap2D::simulateAdvection(
 			//--------
 			for (size_t it_j = 0; it_j < N; it_j++)
 			{
-				if (m_map[it_j].kf_mean != 0 && A(it_i, it_j) != 0)
+				if (m_map[it_j].kf_mean() != 0 && A(it_i, it_j) != 0)
 				{
 					if (row_sum[it_i] >= 1)
 						new_means[it_i] += (A(it_i, it_j) / row_sum[it_i]) *
-										   m_map[it_j].kf_mean;
+										   m_map[it_j].kf_mean();
 					else
-						new_means[it_i] += A(it_i, it_j) * m_map[it_j].kf_mean;
+						new_means[it_i] +=
+							A(it_i, it_j) * m_map[it_j].kf_mean();
 				}
 			}
 
@@ -818,12 +816,12 @@ bool CGasConcentrationGridMap2D::simulateAdvection(
 						new_variances[it_i] +=
 							(A(it_i, it_j) / row_sum[it_i]) *
 							(m_stackedCov(it_j, 0) +
-							 square(m_map[it_j].kf_mean - new_means[it_i]));
+							 square(m_map[it_j].kf_mean() - new_means[it_i]));
 					else
 						new_variances[it_i] +=
 							A(it_i, it_j) *
 							(m_stackedCov(it_j, 0) +
-							 square(m_map[it_j].kf_mean - new_means[it_i]));
+							 square(m_map[it_j].kf_mean() - new_means[it_i]));
 				}
 			}
 		}
@@ -831,7 +829,7 @@ bool CGasConcentrationGridMap2D::simulateAdvection(
 		// Update means and Cov of the Kalman filter state
 		for (size_t it_i = 0; it_i < N; it_i++)
 		{
-			m_map[it_i].kf_mean = new_means[it_i];  // means
+			m_map[it_i].kf_mean() = new_means[it_i];  // means
 
 			// Variances
 			// Scale the Current Covariances with the new variances

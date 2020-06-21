@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -15,7 +15,7 @@
 
 #include "vision-precomp.h"  // Precompiled headers
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 #include <mrpt/io/CMemoryStream.h>
 #include <mrpt/system/os.h>
@@ -30,9 +30,8 @@ using namespace std;
 
 void CFeatureExtraction::extractFeaturesAKAZE(
 	const mrpt::img::CImage& inImg, CFeatureList& feats, unsigned int init_ID,
-	unsigned int nDesiredFeatures, const TImageROI& ROI)
+	unsigned int nDesiredFeatures, [[maybe_unused]] const TImageROI& ROI)
 {
-	MRPT_UNUSED_PARAM(ROI);
 	MRPT_START
 	mrpt::system::CTimeLoggerEntry tle(profiler, "extractFeaturesAKAZE");
 
@@ -116,26 +115,26 @@ void CFeatureExtraction::extractFeaturesAKAZE(
 			continue;  // nope, skip.
 
 		// All tests passed: add new feature:
-		CFeature::Ptr ft = std::make_shared<CFeature>();
-		ft->type = featAKAZE;
-		ft->ID = nextID++;
-		ft->x = kp.pt.x;
-		ft->y = kp.pt.y;
-		ft->response = kp.response;
-		ft->orientation = kp.angle;
-		ft->scale = kp.octave;
-		ft->patchSize = options.patchSize;  // The size of the feature patch
+		CFeature ft;
+		ft.type = featAKAZE;
+		ft.keypoint.ID = nextID++;
+		ft.keypoint.pt.x = kp.pt.x;
+		ft.keypoint.pt.y = kp.pt.y;
+		ft.response = kp.response;
+		ft.orientation = kp.angle;
+		ft.keypoint.octave = kp.octave;
+		ft.patchSize = options.patchSize;  // The size of the feature patch
 
 		if (options.patchSize > 0)
 		{
+			ft.patch.emplace();
 			inImg.extract_patch(
-				ft->patch, round(ft->x) - offset, round(ft->y) - offset,
+				*ft.patch, round(kp.pt.x) - offset, round(kp.pt.y) - offset,
 				options.patchSize,
 				options.patchSize);  // Image patch surronding the feature
 		}
-		feats.push_back(ft);
+		feats.emplace_back(std::move(ft));
 		++cont;
-		// cout << ft->x << "  " << ft->y << endl;
 	}
 
 #endif

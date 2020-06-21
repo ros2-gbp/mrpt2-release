@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -14,7 +14,6 @@
 #include <mrpt/opengl/COpenGLScene.h>
 #include <mrpt/opengl/COpenGLViewport.h>
 #include <mrpt/opengl/CRenderizable.h>
-#include <mrpt/opengl/CRenderizableDisplayList.h>
 
 #include <mrpt/opengl/CArrow.h>
 #include <mrpt/opengl/CAssimpModel.h>
@@ -23,7 +22,8 @@
 #include <mrpt/opengl/CCamera.h>
 #include <mrpt/opengl/CColorBar.h>
 #include <mrpt/opengl/CDisk.h>
-#include <mrpt/opengl/CEllipsoid.h>
+#include <mrpt/opengl/CEllipsoid2D.h>
+#include <mrpt/opengl/CEllipsoid3D.h>
 #include <mrpt/opengl/CFrustum.h>
 #include <mrpt/opengl/CGridPlaneXY.h>
 #include <mrpt/opengl/CGridPlaneXZ.h>
@@ -50,9 +50,7 @@
 #include <mrpt/opengl/CEllipsoidInverseDepth3D.h>
 #include <mrpt/opengl/CEllipsoidRangeBearing2D.h>
 #include <mrpt/opengl/CFBORender.h>
-#include <mrpt/opengl/CGeneralizedCylinder.h>
 #include <mrpt/opengl/COctoMapVoxels.h>
-#include <mrpt/opengl/COpenGLStandardObject.h>
 #include <mrpt/opengl/CPolyhedron.h>
 #include <mrpt/opengl/CVectorField2D.h>
 #include <mrpt/opengl/CVectorField3D.h>

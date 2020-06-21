@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,6 +10,7 @@
 #include "poses-precomp.h"  // Precompiled headers
 
 #include <mrpt/config.h>  // HAVE_SINCOS
+#include <mrpt/math/TPose2D.h>
 #include <mrpt/math/wrap2pi.h>
 #include <mrpt/poses/CPoint2D.h>
 #include <mrpt/poses/CPoint3D.h>
@@ -17,6 +18,7 @@
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/serialization/CSchemeArchiveBase.h>
+#include <Eigen/Dense>
 #include <limits>
 
 using namespace mrpt;
@@ -215,6 +217,12 @@ void CPose2D::composePoint(
 {
 	this->composePoint(l.x, l.y, l.z, g.x, g.y, g.z);
 }
+mrpt::math::TPoint3D CPose2D::composePoint(const mrpt::math::TPoint3D& l) const
+{
+	mrpt::math::TPoint3D g;
+	composePoint(l, g);
+	return g;
+}
 
 void CPose2D::composePoint(
 	double lx, double ly, double lz, double& gx, double& gy, double& gz) const
@@ -235,6 +243,18 @@ void CPose2D::inverseComposePoint(
 
 	lx = Ax * m_cosphi + Ay * m_sinphi;
 	ly = -Ax * m_sinphi + Ay * m_cosphi;
+}
+void CPose2D::inverseComposePoint(
+	const mrpt::math::TPoint2D& g, mrpt::math::TPoint2D& l) const
+{
+	inverseComposePoint(g.x, g.y, l.x, l.y);
+}
+mrpt::math::TPoint2D CPose2D::inverseComposePoint(
+	const mrpt::math::TPoint2D& g) const
+{
+	mrpt::math::TPoint2D l;
+	inverseComposePoint(g, l);
+	return l;
 }
 
 /*---------------------------------------------------------------
@@ -296,17 +316,16 @@ void CPose2D::operator*=(const double s)
 ---------------------------------------------------------------*/
 void CPose2D::getHomogeneousMatrix(CMatrixDouble44& m) const
 {
-	m.unit(4, 1.0);
-
-	m.set_unsafe(0, 3, m_coords[0]);
-	m.set_unsafe(1, 3, m_coords[1]);
+	m.setIdentity();
+	m(0, 3) = m_coords[0];
+	m(1, 3) = m_coords[1];
 
 	update_cached_cos_sin();
 
-	m.get_unsafe(0, 0) = m_cosphi;
-	m.get_unsafe(0, 1) = -m_sinphi;
-	m.get_unsafe(1, 0) = m_sinphi;
-	m.get_unsafe(1, 1) = m_cosphi;
+	m(0, 0) = m_cosphi;
+	m(0, 1) = -m_sinphi;
+	m(1, 0) = m_sinphi;
+	m(1, 1) = m_cosphi;
 }
 
 /** Forces "phi" to be in the range [-pi,pi];
@@ -355,18 +374,7 @@ void CPose2D::inverse()
 	m_cossin_uptodate = false;
 }
 
-/*---------------------------------------------------------------
-		getAsVector
----------------------------------------------------------------*/
-void CPose2D::getAsVector(CVectorDouble& v) const
-{
-	v.resize(3);
-	v[0] = m_coords[0];
-	v[1] = m_coords[1];
-	v[2] = m_phi;
-}
-
-void CPose2D::getAsVector(mrpt::math::CArrayDouble<3>& v) const
+void CPose2D::asVector(vector_t& v) const
 {
 	v[0] = m_coords[0];
 	v[1] = m_coords[1];
@@ -404,9 +412,9 @@ void CPose2D::fromString(const std::string& s)
 	if (!m.fromMatlabStringFormat(s))
 		THROW_EXCEPTION("Malformed expression in ::fromString");
 	ASSERTMSG_(m.rows() == 1 && m.cols() == 3, "Expected vector length=3");
-	x(m.get_unsafe(0, 0));
-	y(m.get_unsafe(0, 1));
-	phi(DEG2RAD(m.get_unsafe(0, 2)));
+	x(m(0, 0));
+	y(m(0, 1));
+	phi(DEG2RAD(m(0, 2)));
 }
 
 void CPose2D::fromStringRaw(const std::string& s)
@@ -423,12 +431,9 @@ double CPose2D::distance2DFrobeniusTo(const CPose2D& p) const
 
 CPose3D CPose2D::operator-(const CPose3D& b) const
 {
-	CMatrixDouble44 B_INV(UNINITIALIZED_MATRIX);
-	b.getInverseHomogeneousMatrix(B_INV);
-	CMatrixDouble44 HM(UNINITIALIZED_MATRIX);
-	this->getHomogeneousMatrix(HM);
-	CMatrixDouble44 RES(UNINITIALIZED_MATRIX);
-	RES.multiply(B_INV, HM);
+	CMatrixDouble44 RES = CMatrixDouble44(
+		b.getInverseHomogeneousMatrixVal<CMatrixDouble44>() *
+		getHomogeneousMatrixVal<CMatrixDouble44>());
 	return CPose3D(RES);
 }
 

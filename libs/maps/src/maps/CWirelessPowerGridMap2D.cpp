@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -26,11 +26,10 @@ using namespace std;
 
 //  =========== Begin of Map definition ============
 MAP_DEFINITION_REGISTER(
-	"CWirelessPowerGridMap2D,wifiGrid", mrpt::maps::CWirelessPowerGridMap2D)
+	"mrpt::maps::CWirelessPowerGridMap2D,wifiGrid",
+	mrpt::maps::CWirelessPowerGridMap2D)
 
-CWirelessPowerGridMap2D::TMapDefinition::TMapDefinition()
-
-	= default;
+CWirelessPowerGridMap2D::TMapDefinition::TMapDefinition() = default;
 
 void CWirelessPowerGridMap2D::TMapDefinition::loadFromConfigFile_map_specific(
 	const mrpt::config::CConfigFileBase& source,
@@ -117,7 +116,7 @@ void CWirelessPowerGridMap2D::internal_clear()
 						insertObservation
   ---------------------------------------------------------------*/
 bool CWirelessPowerGridMap2D::internal_insertObservation(
-	const CObservation* obs, const CPose3D* robotPose)
+	const CObservation& obs, const CPose3D* robotPose)
 {
 	MRPT_START
 
@@ -139,13 +138,13 @@ bool CWirelessPowerGridMap2D::internal_insertObservation(
 		/********************************************************************
 					OBSERVATION TYPE: CObservationWirelessPower
 		********************************************************************/
-		const auto* o = static_cast<const CObservationWirelessPower*>(obs);
+		const auto& o = dynamic_cast<const CObservationWirelessPower&>(obs);
 		float sensorReading;
 
 		// Compute the 3D sensor pose in world coordinates:
-		CPose2D sensorPose = CPose2D(robotPose3D + o->sensorPoseOnRobot);
+		CPose2D sensorPose = CPose2D(robotPose3D + o.sensorPoseOnRobot);
 
-		sensorReading = o->power;
+		sensorReading = o.power;
 
 		// Normalization:
 		sensorReading = (sensorReading - insertionOptions.R_min) /
@@ -181,11 +180,9 @@ bool CWirelessPowerGridMap2D::internal_insertObservation(
 						computeObservationLikelihood
   ---------------------------------------------------------------*/
 double CWirelessPowerGridMap2D::internal_computeObservationLikelihood(
-	const CObservation* obs, const CPose3D& takenFrom)
+	[[maybe_unused]] const CObservation& obs,
+	[[maybe_unused]] const CPose3D& takenFrom)
 {
-	MRPT_UNUSED_PARAM(obs);
-	MRPT_UNUSED_PARAM(takenFrom);
-
 	THROW_EXCEPTION("Not implemented yet!");
 }
 
@@ -207,7 +204,8 @@ void CWirelessPowerGridMap2D::serializeTo(
 #if MRPT_IS_BIG_ENDIAN
 	for (uint32_t i = 0; i < n; i++)
 	{
-		out << m_map[i].kf_mean << m_map[i].dm_mean << m_map[i].dmv_var_mean;
+		out << m_map[i].kf_mean() << m_map[i].dm_mean()
+			<< m_map[i].dmv_var_mean;
 	}
 #else
 	// Little endian: just write all at once:
@@ -271,9 +269,9 @@ void CWirelessPowerGridMap2D::serializeFrom(
 				m_map.resize(n);
 				for (size_t k = 0; k < n; k++)
 				{
-					m_map[k].kf_mean =
+					m_map[k].kf_mean() =
 						(old_map[k].w != 0) ? old_map[k].wr : old_map[k].mean;
-					m_map[k].kf_std =
+					m_map[k].kf_std() =
 						(old_map[k].w != 0) ? old_map[k].w : old_map[k].std;
 				}
 			}
@@ -288,7 +286,7 @@ void CWirelessPowerGridMap2D::serializeFrom(
 // Read the note in writeToStream()
 #if MRPT_IS_BIG_ENDIAN
 				for (uint32_t i = 0; i < n; i++)
-					in >> m_map[i].kf_mean >> m_map[i].dm_mean >>
+					in >> m_map[i].kf_mean() >> m_map[i].dm_mean() >>
 						m_map[i].dmv_var_mean;
 #else
 				// Little endian: just read all at once:
@@ -336,13 +334,12 @@ CWirelessPowerGridMap2D::TInsertionOptions::TInsertionOptions() = default;
 void CWirelessPowerGridMap2D::TInsertionOptions::dumpToTextStream(
 	std::ostream& out) const
 {
-	out << mrpt::format(
-		"\n----------- [CWirelessPowerGridMap2D::TInsertionOptions] "
-		"------------ \n\n");
+	out << "\n----------- [CWirelessPowerGridMap2D::TInsertionOptions] "
+		   "------------ \n\n";
 	internal_dumpToTextStream_common(
 		out);  // Common params to all random fields maps:
 
-	out << mrpt::format("\n");
+	out << "\n";
 }
 
 /*---------------------------------------------------------------

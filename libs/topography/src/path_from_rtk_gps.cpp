@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -17,15 +17,6 @@
 #include <mrpt/topography/path_from_rtk_gps.h>
 
 #include <memory>
-
-#if MRPT_HAS_WXWIDGETS
-#include <wx/app.h>
-#include <wx/busyinfo.h>
-#include <wx/log.h>
-#include <wx/msgdlg.h>
-#include <wx/progdlg.h>
-#include <wx/string.h>
-#endif  // MRPT_HAS_WXWIDGETS
 
 using namespace std;
 using namespace mrpt;
@@ -56,21 +47,11 @@ void mrpt::topography::path_from_rtk_gps(
 {
 	MRPT_START
 
-#if MRPT_HAS_WXWIDGETS
-	// Use a smart pointer so we are safe against exceptions:
-	std::unique_ptr<wxBusyCursor> waitCursorPtr;
-	if (isGUI) waitCursorPtr = std::make_unique<wxBusyCursor>();
-#else
-	MRPT_UNUSED_PARAM(isGUI);
-#endif
-
 	// Go: generate the map:
 	ASSERT_(first <= last);
 	ASSERT_(last <= rawlog.size() - 1);
 
 	set<string> lstGPSLabels;
-
-	size_t count = 0;
 
 	robot_path.clear();
 	robot_path.setMaxTimeInterpolation(std::chrono::seconds(
@@ -110,21 +91,9 @@ void mrpt::topography::path_from_rtk_gps(
 			"ERROR: W_star matrix for uncertainty estimation is provided but "
 			"it's not a 6x6 matrix.");
 
-// ------------------------------------------
-// Look for the 2 observations:
-// ------------------------------------------
-#if MRPT_HAS_WXWIDGETS
-	wxProgressDialog* progDia = nullptr;
-	if (isGUI)
-	{
-		progDia = new wxProgressDialog(
-			wxT("Building map"), wxT("Getting GPS observations..."),
-			(int)(last - first + 1),  // range
-			nullptr,  // parent
-			wxPD_CAN_ABORT | wxPD_APP_MODAL | wxPD_SMOOTH | wxPD_AUTO_HIDE |
-				wxPD_ELAPSED_TIME | wxPD_ESTIMATED_TIME | wxPD_REMAINING_TIME);
-	}
-#endif
+	// ------------------------------------------
+	// Look for the 2 observations:
+	// ------------------------------------------
 
 	// The list with all time ordered gps's in valid RTK mode
 	using TListGPSs = std::map<
@@ -151,7 +120,7 @@ void mrpt::topography::path_from_rtk_gps(
 					CObservationGPS::Ptr obs =
 						std::dynamic_pointer_cast<CObservationGPS>(o);
 
-					if (obs->has_GGA_datum &&
+					if (obs->has_GGA_datum() &&
 						obs->getMsgByClass<gnss::Message_NMEA_GGA>()
 								.fields.fix_quality == 4)
 					{
@@ -162,7 +131,7 @@ void mrpt::topography::path_from_rtk_gps(
 					}
 
 					// Save to GPS paths:
-					if (obs->has_GGA_datum &&
+					if (obs->has_GGA_datum() &&
 						(obs->getMsgByClass<gnss::Message_NMEA_GGA>()
 								 .fields.fix_quality == 4 ||
 						 obs->getMsgByClass<gnss::Message_NMEA_GGA>()
@@ -195,26 +164,7 @@ void mrpt::topography::path_from_rtk_gps(
 			break;
 		}  // end switch type
 
-		// Show progress:
-		if ((count++ % 100) == 0)
-		{
-#if MRPT_HAS_WXWIDGETS
-			if (progDia)
-			{
-				if (!progDia->Update((int)(i - first))) abort = true;
-				wxTheApp->Yield();
-			}
-#endif
-		}
 	}  // end for i
-
-#if MRPT_HAS_WXWIDGETS
-	if (progDia)
-	{
-		delete progDia;
-		progDia = nullptr;
-	}
-#endif
 
 	// -----------------------------------------------------------
 	// At this point we already have the sensor positions, thus
@@ -297,7 +247,7 @@ void mrpt::topography::path_from_rtk_gps(
 
 		D_cov *= 4 * square(std_0);
 
-		D_cov_1 = D_cov.inv();
+		D_cov_1 = D_cov.inverse_LLt();
 
 		// cout << D_cov.inMatlabFormat() << endl;
 
@@ -410,20 +360,6 @@ void mrpt::topography::path_from_rtk_gps(
 			}  // end loop interpolate 1-out-of-5
 		}
 
-#if MRPT_HAS_WXWIDGETS
-		wxProgressDialog* progDia3 = nullptr;
-		if (isGUI)
-		{
-			progDia3 = new wxProgressDialog(
-				wxT("Building map"), wxT("Estimating 6D path..."),
-				N_GPSs,  // range
-				nullptr,  // parent
-				wxPD_CAN_ABORT | wxPD_APP_MODAL | wxPD_SMOOTH | wxPD_AUTO_HIDE |
-					wxPD_ELAPSED_TIME | wxPD_ESTIMATED_TIME |
-					wxPD_REMAINING_TIME);
-		}
-#endif
-
 		int idx_in_GPSs = 0;
 
 		for (auto i = list_gps_obs.begin(); i != list_gps_obs.end();
@@ -473,12 +409,12 @@ void mrpt::topography::path_from_rtk_gps(
 					// Create the correspondence:
 					corrs.push_back(TMatchingPair(
 						k, k,  // Indices
-						P.x, P.y, P.z,  // "This"/Global coords
-						g_it->second->sensorPose.x(),
-						g_it->second->sensorPose.y(),
-						g_it->second->sensorPose
-							.z()  // "other"/local coordinates
-						));
+						// "This"/Global coords
+						d2f(P.x), d2f(P.y), d2f(P.z),
+						// "other"/local coordinates
+						d2f(g_it->second->sensorPose.x()),
+						d2f(g_it->second->sensorPose.y()),
+						d2f(g_it->second->sensorPose.z())));
 
 					X[k] = P.x;
 					Y[k] = P.y;
@@ -560,26 +496,7 @@ void mrpt::topography::path_from_rtk_gps(
 				}
 			}
 
-			// Show progress:
-			if ((count++ % 100) == 0)
-			{
-#if MRPT_HAS_WXWIDGETS
-				if (progDia3)
-				{
-					if (!progDia3->Update(idx_in_GPSs)) abort = true;
-					wxTheApp->Yield();
-				}
-#endif
-			}
 		}  // end for i
-
-#if MRPT_HAS_WXWIDGETS
-		if (progDia3)
-		{
-			delete progDia3;
-			progDia3 = nullptr;
-		}
-#endif
 
 		if (PATH_SMOOTH_FILTER > 0 && robot_path.size() > 1)
 		{
@@ -603,8 +520,8 @@ void mrpt::topography::path_from_rtk_gps(
 					 k < PATH_SMOOTH_FILTER && q != robot_path.begin(); k++)
 				{
 					--q;
-					if (abs(mrpt::system::timeDifference(q->first, i->first)) <
-						MAX_DIST_TO_FILTER)
+					if (std::abs(mrpt::system::timeDifference(
+							q->first, i->first)) < MAX_DIST_TO_FILTER)
 					{
 						pitchs.push_back(q->second.pitch);
 						rolls.push_back(q->second.roll);
@@ -615,8 +532,8 @@ void mrpt::topography::path_from_rtk_gps(
 					 k < PATH_SMOOTH_FILTER && q != (--robot_path.end()); k++)
 				{
 					++q;
-					if (abs(mrpt::system::timeDifference(q->first, i->first)) <
-						MAX_DIST_TO_FILTER)
+					if (std::abs(mrpt::system::timeDifference(
+							q->first, i->first)) < MAX_DIST_TO_FILTER)
 					{
 						pitchs.push_back(q->second.pitch);
 						rolls.push_back(q->second.roll);

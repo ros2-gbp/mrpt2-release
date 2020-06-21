@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -56,8 +56,8 @@ CPhidgetInterfaceKitProximitySensors::CPhidgetInterfaceKitProximitySensors()
 				loadConfig_sensorSpecific
    ----------------------------------------------------- */
 void CPhidgetInterfaceKitProximitySensors::loadConfig_sensorSpecific(
-	const mrpt::config::CConfigFileBase& configSource,
-	const std::string& iniSection)
+	[[maybe_unused]] const mrpt::config::CConfigFileBase& configSource,
+	[[maybe_unused]] const std::string& iniSection)
 {
 #if MRPT_HAS_PHIDGET
 	if (!configSource.sectionExists(iniSection))
@@ -181,9 +181,6 @@ void CPhidgetInterfaceKitProximitySensors::loadConfig_sensorSpecific(
 				"-----------------+"
 			 << endl;
 	}
-#else
-	MRPT_UNUSED_PARAM(configSource);
-	MRPT_UNUSED_PARAM(iniSection);
 #endif
 }
 
@@ -209,7 +206,7 @@ void CPhidgetInterfaceKitProximitySensors::initialize()
 	}
 	// set frame rate
 	/*int miliseconds =
-	static_cast<int>(1000./static_cast<float>(m_process_rate)); for(int i = 0 ;
+	static_cast<int>(1000./d2f(m_process_rate)); for(int i = 0 ;
 	i < 8 ; i++)
 	{
 		if(m_sensorIsPlugged[i])
@@ -252,7 +249,7 @@ CPhidgetInterfaceKitProximitySensors::~CPhidgetInterfaceKitProximitySensors()
 -------------------------------------------------------------*/
 void CPhidgetInterfaceKitProximitySensors::doProcess()
 {
-	CObservationRange::Ptr obs = mrpt::make_aligned_shared<CObservationRange>();
+	CObservationRange::Ptr obs = std::make_shared<CObservationRange>();
 
 	try
 	{
@@ -274,8 +271,8 @@ void CPhidgetInterfaceKitProximitySensors::doProcess()
 /*-------------------------------------------------------------
 					getObservation
 -------------------------------------------------------------*/
-void CPhidgetInterfaceKitProximitySensors::getObservation(
-	mrpt::obs::CObservationRange& obs)
+void CPhidgetInterfaceKitProximitySensors::getObservation([
+	[maybe_unused]] mrpt::obs::CObservationRange& obs)
 {
 #if MRPT_HAS_PHIDGET
 	obs.timestamp = mrpt::system::getCurrentTime();
@@ -308,12 +305,11 @@ void CPhidgetInterfaceKitProximitySensors::getObservation(
 					obsRange.sensedDistance = 1.0;
 					break;
 				case SHARP_30cm:
-					obsRange.sensedDistance =
-						2076. / (static_cast<float>(sensorValue) - 11.);
+					obsRange.sensedDistance = 2076. / (d2f(sensorValue) - 11.);
 					break;
 				case SHARP_80cm:
 					obsRange.sensedDistance =
-						4800. / (static_cast<float>(sensorValue) - 16.92);
+						4800. / (d2f(sensorValue) - 16.92);
 					break;
 				default:
 					obsRange.sensedDistance = -1;
@@ -327,7 +323,5 @@ void CPhidgetInterfaceKitProximitySensors::getObservation(
 			obs.sensedData.push_back(obsRange);
 		}
 	}
-#else
-	MRPT_UNUSED_PARAM(obs);
 #endif
 }

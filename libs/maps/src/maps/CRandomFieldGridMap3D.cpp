@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,19 +12,9 @@
 #include <mrpt/config.h>
 #include <mrpt/config/CConfigFileBase.h>
 #include <mrpt/maps/CRandomFieldGridMap3D.h>
+#include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/CTicTac.h>
 #include <fstream>
-
-#if MRPT_HAS_VTK
-#include <vtkCellArray.h>
-#include <vtkDoubleArray.h>
-#include <vtkPointData.h>
-#include <vtkPoints.h>
-#include <vtkSmartPointer.h>
-#include <vtkStructuredGrid.h>
-#include <vtkVersion.h>
-#include <vtkXMLStructuredGridWriter.h>
-#endif
 
 using namespace mrpt;
 using namespace mrpt::maps;
@@ -54,14 +44,14 @@ void CRandomFieldGridMap3D::setSize(
 	const double resolution_xy, const double resolution_z,
 	const TRandomFieldVoxel* fill_value)
 {
-	MRPT_START;
+	MRPT_START
 
 	CDynamicGrid3D<TRandomFieldVoxel>::setSize(
 		x_min, x_max, y_min, y_max, z_min, z_max, resolution_xy, resolution_z,
 		fill_value);
 	this->internal_initialize();
 
-	MRPT_END;
+	MRPT_END
 }
 
 void CRandomFieldGridMap3D::resize(
@@ -70,14 +60,14 @@ void CRandomFieldGridMap3D::resize(
 	const TRandomFieldVoxel& defaultValueNewCells,
 	double additionalMarginMeters)
 {
-	MRPT_START;
+	MRPT_START
 
 	CDynamicGrid3D<TRandomFieldVoxel>::resize(
 		new_x_min, new_x_max, new_y_min, new_y_max, new_z_min, new_z_max,
 		defaultValueNewCells, additionalMarginMeters);
 	this->internal_initialize(false);
 
-	MRPT_END;
+	MRPT_END
 }
 
 void CRandomFieldGridMap3D::clear()
@@ -215,39 +205,6 @@ void CRandomFieldGridMap3D::TInsertionOptions::loadFromConfigFile(
 		section.c_str(), "GMRF_skip_variance", GMRF_skip_variance);
 }
 
-/** Save the current estimated grid to a VTK file (.vts) as a "structured grid".
- * \sa saveAsCSV */
-bool CRandomFieldGridMap3D::saveAsVtkStructuredGrid(
-	const std::string& fil) const
-{
-	MRPT_START;
-#if MRPT_HAS_VTK
-
-	vtkStructuredGrid* vtkGrid = vtkStructuredGrid::New();
-	this->getAsVtkStructuredGrid(vtkGrid);
-
-	// Write file
-	vtkSmartPointer<vtkXMLStructuredGridWriter> writer =
-		vtkSmartPointer<vtkXMLStructuredGridWriter>::New();
-	writer->SetFileName(fil.c_str());
-
-#if VTK_MAJOR_VERSION <= 5
-	writer->SetInput(vtkGrid);
-#else
-	writer->SetInputData(vtkGrid);
-#endif
-
-	int ret = writer->Write();
-
-	vtkGrid->Delete();
-
-	return ret == 0;
-#else
-	THROW_EXCEPTION("This method requires building MRPT against VTK!");
-#endif
-	MRPT_END
-}
-
 bool mrpt::maps::CRandomFieldGridMap3D::saveAsCSV(
 	const std::string& filName_mean, const std::string& filName_stddev) const
 {
@@ -310,7 +267,7 @@ void CRandomFieldGridMap3D::updateMapEstimation()
 		!m_mrf_factors_activeObs.empty(),
 		"Cannot update a map with no observations!");
 
-	Eigen::VectorXd x_incr, x_var;
+	mrpt::math::CVectorDouble x_incr, x_var;
 	m_gmrf.updateEstimation(
 		x_incr, insertionOptions.GMRF_skip_variance ? nullptr : &x_var);
 
@@ -348,7 +305,7 @@ bool CRandomFieldGridMap3D::insertIndividualReading(
 	   (algorithm-dependant) */
 	const bool update_map)
 {
-	MRPT_START;
+	MRPT_START
 
 	ASSERT_ABOVE_(sensorVariance, .0);
 	ASSERTMSG_(
@@ -372,7 +329,7 @@ bool CRandomFieldGridMap3D::insertIndividualReading(
 
 	return true;
 
-	MRPT_END;
+	MRPT_END
 }
 
 uint8_t CRandomFieldGridMap3D::serializeGetVersion() const { return 0; }
@@ -435,82 +392,6 @@ void CRandomFieldGridMap3D::serializeFrom(
 		default:
 			MRPT_THROW_UNKNOWN_SERIALIZATION_VERSION(version);
 	};
-}
-
-void CRandomFieldGridMap3D::getAsVtkStructuredGrid(
-	vtkStructuredGrid* output, const std::string& label_mean,
-	const std::string& label_stddev) const
-{
-	MRPT_START;
-#if MRPT_HAS_VTK
-
-	const size_t nx = this->getSizeX(), ny = this->getSizeY(),
-				 nz = this->getSizeZ();
-
-	const int num_values = nx * ny * nz;
-
-	vtkPoints* newPoints = vtkPoints::New();
-
-	vtkDoubleArray* newData = vtkDoubleArray::New();
-	newData->SetNumberOfComponents(3);
-	newData->SetNumberOfTuples(num_values);
-
-	vtkDoubleArray* mean_arr = vtkDoubleArray::New();
-	mean_arr->SetNumberOfComponents(1);
-	mean_arr->SetNumberOfTuples(num_values);
-
-	vtkDoubleArray* std_arr = vtkDoubleArray::New();
-	std_arr->SetNumberOfComponents(1);
-	std_arr->SetNumberOfTuples(num_values);
-
-	vtkIdType numtuples = newData->GetNumberOfTuples();
-
-	{
-		size_t cx = 0, cy = 0, cz = 0;
-		for (vtkIdType cc = 0; cc < numtuples; cc++)
-		{
-			const double x = idx2x(cx), y = idx2y(cy), z = idx2z(cz);
-
-			newData->SetComponent(cc, 0, x);
-			newData->SetComponent(cc, 1, y);
-			newData->SetComponent(cc, 2, z);
-
-			mean_arr->SetComponent(cc, 0, m_map[cc].mean_value);
-			std_arr->SetComponent(cc, 0, m_map[cc].stddev_value);
-
-			// Increment coordinates:
-			if (++cx >= m_size_x)
-			{
-				cx = 0;
-				if (++cy >= m_size_y)
-				{
-					cy = 0;
-					cz++;
-				}
-			}
-		}
-		ASSERT_(size_t(m_map.size()) == size_t(numtuples));
-	}
-
-	newPoints->SetData(newData);
-	newData->Delete();
-
-	output->SetExtent(0, nx - 1, 0, ny - 1, 0, nz - 1);
-	output->SetPoints(newPoints);
-	newPoints->Delete();
-
-	mean_arr->SetName(label_mean.c_str());
-	std_arr->SetName(label_stddev.c_str());
-	output->GetPointData()->AddArray(mean_arr);
-	output->GetPointData()->AddArray(std_arr);
-
-	mean_arr->Delete();
-	std_arr->Delete();
-
-#else
-	THROW_EXCEPTION("This method requires building MRPT against VTK!");
-#endif  // VTK
-	MRPT_END;
 }
 
 // ============ TObservationGMRF ===========

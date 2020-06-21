@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,7 +12,10 @@
 #include <mrpt/math/ops_vectors.h>  // << of std::vector()
 #include <mrpt/obs/CObservationImage.h>
 #include <mrpt/serialization/CArchive.h>
+
+#include <Eigen/Dense>
 #include <iostream>
+
 #if MRPT_HAS_MATLAB
 #include <mexplus/mxarray.h>
 #endif
@@ -50,20 +53,21 @@ void CObservationImage::serializeFrom(
 			}
 			else
 			{
-				CMatrix intrinsicParams, distortionParams;
+				CMatrixF intrinsicParams, distortionParams;
 				in >> distortionParams >> intrinsicParams;
 
 				if (distortionParams.rows() == 1 &&
 					distortionParams.cols() == 5)
 				{
-					const CMatrixDouble15 p = distortionParams.cast<double>();
+					CMatrixDouble15 p;
+					p = distortionParams.cast_double();
 					cameraParams.setDistortionParamsVector(p);
 				}
 				else
 					cameraParams.dist.fill(0);
 
-				cameraParams.intrinsicParams =
-					intrinsicParams.block(0, 0, 3, 3).cast<double>();
+				cameraParams.intrinsicParams = mrpt::math::CMatrixDouble33(
+					intrinsicParams.block<3, 3>(0, 0).cast<double>());
 			}
 
 			in >> image;
@@ -105,7 +109,7 @@ mxArray* CObservationImage::writeToMatlab() const
 		mexplus::MxArray::Struct(sizeof(fields) / sizeof(fields[0]), fields));
 
 	obs_struct.set("class", this->GetRuntimeClass()->className);
-	obs_struct.set("ts", this->timestamp);
+	obs_struct.set("ts", mrpt::Clock::toDouble(timestamp));
 	obs_struct.set("sensorLabel", this->sensorLabel);
 	obs_struct.set("image", this->image);
 	obs_struct.set("pose", this->cameraPose);
@@ -129,29 +133,35 @@ void CObservationImage::getDescriptionAsText(std::ostream& o) const
 	o << "Homogeneous matrix for the sensor's 3D pose, relative to robot "
 		 "base:\n";
 	o << cameraPose.getHomogeneousMatrixVal<CMatrixDouble44>() << cameraPose
-	  << endl;
+	  << "\n";
 
 	o << format(
 		"Focal length: %.03f mm\n", cameraParams.focalLengthMeters * 1000);
 
-	o << "Intrinsic parameters matrix for the camera:" << endl
-	  << cameraParams.intrinsicParams.inMatlabFormat() << endl
-	  << cameraParams.intrinsicParams << endl;
+	o << "Intrinsic parameters matrix for the camera:"
+	  << "\n"
+	  << cameraParams.intrinsicParams.inMatlabFormat() << "\n"
+	  << cameraParams.intrinsicParams << "\n";
 
 	o << "Distorsion parameters for the camera: "
-	  << cameraParams.getDistortionParamsAsVector() << endl;
+	  << cameraParams.getDistortionParamsAsVector() << "\n";
 
 	if (image.isExternallyStored())
 		o << " Image is stored externally in file: "
-		  << image.getExternalStorageFile() << endl;
+		  << image.getExternalStorageFile() << "\n";
 
-	o << format(
-		" Image size: %ux%u pixels\n", (unsigned int)image.getWidth(),
-		(unsigned int)image.getHeight());
+	if (!image.isEmpty())
+	{
+		o << format(
+			" Image size: %ux%u pixels\n", (unsigned int)image.getWidth(),
+			(unsigned int)image.getHeight());
 
-	o << " Channels order: " << image.getChannelsOrder() << endl;
+		o << " Channels order: " << image.getChannelsOrder() << "\n";
 
-	o << format(
-		" Rows are stored in top-bottom order: %s\n",
-		image.isOriginTopLeft() ? "YES" : "NO");
+		o << format(
+			" Rows are stored in top-bottom order: %s\n",
+			image.isOriginTopLeft() ? "YES" : "NO");
+	}
 }
+
+void CObservationImage::load() const { image.forceLoad(); }

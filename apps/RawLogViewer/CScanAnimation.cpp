@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,6 +12,18 @@
 #include <wx/intl.h>
 #include <wx/string.h>
 //*)
+
+#ifdef None  // X header conflict...
+#undef None
+#endif
+
+#include <mrpt/maps/CColouredPointsMap.h>
+#include <mrpt/obs/CObservation3DRangeScan.h>
+#include <mrpt/obs/CObservationPointCloud.h>
+#include <mrpt/obs/CObservationVelodyneScan.h>
+#include <mrpt/opengl/CGridPlaneXY.h>
+#include <mrpt/opengl/CPlanarLaserScan.h>  // in library mrpt-maps
+#include <mrpt/opengl/stock_objects.h>
 
 #include <wx/app.h>
 #include <wx/busyinfo.h>
@@ -47,13 +59,6 @@ BEGIN_EVENT_TABLE(CScanAnimation, wxDialog)
 //(*EventTable(CScanAnimation)
 //*)
 END_EVENT_TABLE()
-
-#include <mrpt/maps/CColouredPointsMap.h>
-#include <mrpt/obs/CObservation3DRangeScan.h>
-#include <mrpt/obs/CObservationVelodyneScan.h>
-#include <mrpt/opengl/CGridPlaneXY.h>
-#include <mrpt/opengl/CPlanarLaserScan.h>  // in library mrpt-maps
-#include <mrpt/opengl/stock_objects.h>
 
 using namespace mrpt;
 using namespace mrpt::maps;
@@ -252,53 +257,33 @@ CScanAnimation::CScanAnimation(
 	FlexGridSizer1->SetSizeHints(this);
 	Center();
 
-	Connect(
-		ID_RADIOBUTTON1, wxEVT_COMMAND_RADIOBUTTON_SELECTED,
-		(wxObjectEventFunction)&CScanAnimation::OnrbLoadedSelect);
-	Connect(
-		ID_RADIOBUTTON2, wxEVT_COMMAND_RADIOBUTTON_SELECTED,
-		(wxObjectEventFunction)&CScanAnimation::OnrbFile);
-	Connect(
-		ID_BUTTON5, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CScanAnimation::OnbtnPickInputClick);
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CScanAnimation::OnbtnPlayClick);
-	Connect(
-		ID_BUTTON2, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CScanAnimation::OnbtnStopClick);
-	Connect(
-		ID_CHECKBOX1, wxEVT_COMMAND_CHECKBOX_CLICKED,
-		(wxObjectEventFunction)&CScanAnimation::OncbAllowMixClick);
-	Connect(
-		ID_BUTTON3, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CScanAnimation::OnbtnCloseClick);
-	Connect(
-		ID_SLIDER1,
-		wxEVT_SCROLL_TOP | wxEVT_SCROLL_BOTTOM | wxEVT_SCROLL_LINEUP |
-			wxEVT_SCROLL_LINEDOWN | wxEVT_SCROLL_PAGEUP |
-			wxEVT_SCROLL_PAGEDOWN | wxEVT_SCROLL_THUMBTRACK |
-			wxEVT_SCROLL_THUMBRELEASE | wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&CScanAnimation::OnslPosCmdScrollChanged);
-	Connect(
-		ID_SLIDER1, wxEVT_SCROLL_THUMBTRACK,
-		(wxObjectEventFunction)&CScanAnimation::OnslPosCmdScrollChanged);
-	Connect(
-		ID_SLIDER1, wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&CScanAnimation::OnslPosCmdScrollChanged);
-	Connect(
-		ID_BUTTON4, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CScanAnimation::OnbtnJumpClick);
-	Connect(
-		wxID_ANY, wxEVT_INIT_DIALOG,
-		(wxObjectEventFunction)&CScanAnimation::OnInit);
+	Bind(
+		wxEVT_RADIOBUTTON, &CScanAnimation::OnrbLoadedSelect, this,
+		ID_RADIOBUTTON1);
+	Bind(wxEVT_RADIOBUTTON, &CScanAnimation::OnrbFile, this, ID_RADIOBUTTON2);
+	Bind(wxEVT_BUTTON, &CScanAnimation::OnbtnPickInputClick, this, ID_BUTTON5);
+	Bind(wxEVT_BUTTON, &CScanAnimation::OnbtnPlayClick, this, ID_BUTTON1);
+	Bind(wxEVT_BUTTON, &CScanAnimation::OnbtnStopClick, this, ID_BUTTON2);
+	Bind(
+		wxEVT_CHECKBOX, &CScanAnimation::OncbAllowMixClick, this, ID_CHECKBOX1);
+	Bind(wxEVT_BUTTON, &CScanAnimation::OnbtnCloseClick, this, ID_BUTTON3);
+	Bind(
+		wxEVT_SLIDER, &CScanAnimation::OnslPosCmdScrollChanged, this,
+		ID_SLIDER1);
+	Bind(
+		wxEVT_SCROLL_THUMBTRACK, &CScanAnimation::OnslPosCmdScrollChanged, this,
+		ID_SLIDER1);
+	Bind(
+		wxEVT_SCROLL_CHANGED, &CScanAnimation::OnslPosCmdScrollChanged, this,
+		ID_SLIDER1);
+	Bind(wxEVT_BUTTON, &CScanAnimation::OnbtnJumpClick, this, ID_BUTTON4);
+	Bind(wxEVT_INIT_DIALOG, &CScanAnimation::OnInit, this, wxID_ANY);
 	//*)
 
 	// Initialize 3D view:
 	auto openGLSceneRef = m_plot3D->getOpenGLSceneRef();
-	openGLSceneRef->insert(
-		mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
-			-50, 50, -50, 50, 0 /* z */, 5 /* freq */));
+	openGLSceneRef->insert(mrpt::opengl::CGridPlaneXY::Create(
+		-50, 50, -50, 50, 0 /* z */, 5 /* freq */));
 	openGLSceneRef->insert(mrpt::opengl::stock_objects::CornerXYZSimple(
 		1.0 /*scale*/, 3.0 /*line width*/));
 
@@ -327,7 +312,7 @@ void CScanAnimation::RebuildMaps()
 		}
 		else if (rawlog.getType(idx) == CRawlog::etObservation)
 		{
-			CSensoryFrame::Ptr sf = mrpt::make_aligned_shared<CSensoryFrame>();
+			CSensoryFrame::Ptr sf = std::make_shared<CSensoryFrame>();
 			sf->insert(rawlog.getAsObservation(idx));
 			BuildMapAndRefresh(sf.get());
 		}
@@ -343,25 +328,8 @@ void CScanAnimation::BuildMapAndRefresh(CSensoryFrame* sf)
 {
 	WX_START_TRY
 
-	// Preprocess: make sure 3D observations are ready:
-	std::vector<CObservation3DRangeScan::Ptr> obs3D_to_clear;
-	for (auto& it : *sf)
-	{
-		it->load();
-		// force generate 3D point clouds:
-		if (IS_CLASS(it, CObservation3DRangeScan))
-		{
-			CObservation3DRangeScan::Ptr o =
-				std::dynamic_pointer_cast<CObservation3DRangeScan>(it);
-			if (o->hasRangeImage && !o->hasPoints3D)
-			{
-				mrpt::obs::T3DPointsProjectionParams pp;
-				pp.takeIntoAccountSensorPoseOnRobot = false;
-				o->project3DPointsFromDepthImageInto(*o, pp);
-				obs3D_to_clear.push_back(o);
-			}
-		}
-	}
+	// load from disk if needed:
+	for (auto& it : *sf) it->load();
 
 	// Mix?
 	if (!m_mixlasers)
@@ -383,7 +351,7 @@ void CScanAnimation::BuildMapAndRefresh(CSensoryFrame* sf)
 	{
 		const std::string sNameInMap =
 			std::string(it->GetRuntimeClass()->className) + it->sensorLabel;
-		if (IS_CLASS(it, CObservation2DRangeScan))
+		if (IS_CLASS(*it, CObservation2DRangeScan))
 		{
 			CObservation2DRangeScan::Ptr obs =
 				std::dynamic_pointer_cast<CObservation2DRangeScan>(it);
@@ -405,7 +373,7 @@ void CScanAnimation::BuildMapAndRefresh(CSensoryFrame* sf)
 			{
 				// Create object:
 				CPlanarLaserScan::Ptr gl_obj =
-					mrpt::make_aligned_shared<CPlanarLaserScan>();
+					std::make_shared<CPlanarLaserScan>();
 				gl_obj->setScan(*obs);
 
 				TRenderObject ro;
@@ -415,7 +383,7 @@ void CScanAnimation::BuildMapAndRefresh(CSensoryFrame* sf)
 				m_plot3D->getOpenGLSceneRef()->insert(gl_obj);
 			}
 		}
-		else if (IS_CLASS(it, CObservation3DRangeScan))
+		else if (IS_CLASS(*it, CObservation3DRangeScan))
 		{
 			CObservation3DRangeScan::Ptr obs =
 				std::dynamic_pointer_cast<CObservation3DRangeScan>(it);
@@ -423,31 +391,54 @@ void CScanAnimation::BuildMapAndRefresh(CSensoryFrame* sf)
 			if (tim_last == INVALID_TIMESTAMP || tim_last < obs->timestamp)
 				tim_last = obs->timestamp;
 
-			CColouredPointsMap pointMap;
-			pointMap.colorScheme.scheme =
-				CColouredPointsMap::cmFromIntensityImage;
-			pointMap.insertionOptions.minDistBetweenLaserPoints = 0;
+			mrpt::maps::CPointsMap::Ptr pointMap;
+			mrpt::maps::CColouredPointsMap::Ptr pointMapCol;
+			mrpt::obs::T3DPointsProjectionParams pp;
+			pp.takeIntoAccountSensorPoseOnRobot = true;
 
-			pointMap.insertObservation(obs.get());
+			// Color from intensity image?
+			if (obs->hasRangeImage && obs->hasIntensityImage)
+			{
+				pointMapCol = mrpt::maps::CColouredPointsMap::Create();
+				pointMapCol->colorScheme.scheme =
+					CColouredPointsMap::cmFromIntensityImage;
+
+				obs->unprojectInto(*pointMapCol, pp);
+				pointMap = pointMapCol;
+			}
+			else
+			{
+				// Empty point set, or load from XYZ in observation:
+				pointMap = mrpt::maps::CSimplePointsMap::Create();
+				if (obs->hasPoints3D)
+				{
+					for (size_t i = 0; i < obs->points3D_x.size(); i++)
+						pointMap->insertPoint(
+							obs->points3D_x[i], obs->points3D_y[i],
+							obs->points3D_z[i]);
+				}
+				else if (obs->hasRangeImage)
+				{
+					obs->unprojectInto(*pointMap, pp);
+				}
+			}
 
 			// Already in the map with the same sensor label?
+			CPointCloudColoured::Ptr gl_obj;
+
 			auto it_gl = m_gl_objects.find(sNameInMap);
 			if (it_gl != m_gl_objects.end())
 			{
 				// Update existing object:
 				TRenderObject& ro = it_gl->second;
-				CPointCloudColoured::Ptr gl_obj =
-					std::dynamic_pointer_cast<CPointCloudColoured>(ro.obj);
-				gl_obj->loadFromPointsMap(&pointMap);
+				gl_obj = std::dynamic_pointer_cast<CPointCloudColoured>(ro.obj);
 				ro.timestamp = obs->timestamp;
 			}
 			else
 			{
 				// Create object:
-				CPointCloudColoured::Ptr gl_obj =
-					mrpt::make_aligned_shared<CPointCloudColoured>();
+				gl_obj = std::make_shared<CPointCloudColoured>();
 				gl_obj->setPointSize(3.0);
-				gl_obj->loadFromPointsMap(&pointMap);
 
 				TRenderObject ro;
 				ro.obj = gl_obj;
@@ -455,10 +446,23 @@ void CScanAnimation::BuildMapAndRefresh(CSensoryFrame* sf)
 				m_gl_objects[sNameInMap] = ro;
 				m_plot3D->getOpenGLSceneRef()->insert(gl_obj);
 			}
+
+			// Load as RGB or grayscale points:
+			if (pointMapCol)
+				gl_obj->loadFromPointsMap(pointMapCol.get());
+			else
+			{
+				gl_obj->loadFromPointsMap(pointMap.get());
+				mrpt::math::TPoint3D bbmin, bbmax;
+				gl_obj->getBoundingBox(bbmin, bbmax);
+				gl_obj->recolorizeByCoordinate(
+					bbmax.x, bbmin.x, 0 /*color by x*/, mrpt::img::cmJET);
+			}
+
 			// Add to list:
 			//				m_lstScans[obs->sensorLabel] = obs;
 		}
-		else if (IS_CLASS(it, CObservationVelodyneScan))
+		else if (IS_CLASS(*it, CObservationVelodyneScan))
 		{
 			CObservationVelodyneScan::Ptr obs =
 				std::dynamic_pointer_cast<CObservationVelodyneScan>(it);
@@ -486,9 +490,43 @@ void CScanAnimation::BuildMapAndRefresh(CSensoryFrame* sf)
 			{
 				// Create object:
 				CPointCloudColoured::Ptr gl_obj =
-					mrpt::make_aligned_shared<CPointCloudColoured>();
+					std::make_shared<CPointCloudColoured>();
 				gl_obj->setPointSize(3.0);
 				gl_obj->loadFromPointsMap(&pointMap);
+
+				TRenderObject ro;
+				ro.obj = gl_obj;
+				ro.timestamp = obs->timestamp;
+				m_gl_objects[sNameInMap] = ro;
+				m_plot3D->getOpenGLSceneRef()->insert(gl_obj);
+			}
+		}
+		else if (IS_CLASS(*it, CObservationPointCloud))
+		{
+			auto obs = std::dynamic_pointer_cast<CObservationPointCloud>(it);
+			wereScans = true;
+			if (tim_last == INVALID_TIMESTAMP || tim_last < obs->timestamp)
+				tim_last = obs->timestamp;
+
+			// Already in the map with the same sensor label?
+			auto it_gl = m_gl_objects.find(sNameInMap);
+			if (it_gl != m_gl_objects.end())
+			{
+				// Update existing object:
+				TRenderObject& ro = it_gl->second;
+				auto gl_obj =
+					std::dynamic_pointer_cast<CPointCloudColoured>(ro.obj);
+				gl_obj->loadFromPointsMap(obs->pointcloud.get());
+				gl_obj->setPose(obs->sensorPose);
+				ro.timestamp = obs->timestamp;
+			}
+			else
+			{
+				// Create object:
+				auto gl_obj = std::make_shared<CPointCloudColoured>();
+				gl_obj->setPointSize(3.0);
+				gl_obj->loadFromPointsMap(obs->pointcloud.get());
+				gl_obj->setPose(obs->sensorPose);
 
 				TRenderObject ro;
 				ro.obj = gl_obj;
@@ -531,11 +569,6 @@ void CScanAnimation::BuildMapAndRefresh(CSensoryFrame* sf)
 
 	// Post-process: unload 3D observations.
 	for (auto& o : *sf) o->unload();
-	for (auto& i : obs3D_to_clear)
-	{
-		i->resizePoints3DVectors(0);
-		i->hasPoints3D = false;
-	}
 
 	WX_END_TRY
 }
@@ -588,7 +621,7 @@ void CScanAnimation::OnbtnPlayClick(wxCommandEvent& event)
 
 void CScanAnimation::OnbtnStopClick(wxCommandEvent& event) { m_stop = true; }
 void CScanAnimation::OnbtnCloseClick(wxCommandEvent& event) { Close(); }
-void CScanAnimation::OnslPosCmdScrollChanged(wxScrollEvent& event)
+void CScanAnimation::OnslPosCmdScrollChanged(wxCommandEvent&)
 {
 	edIndex->SetValue(slPos->GetValue());
 	RebuildMaps();

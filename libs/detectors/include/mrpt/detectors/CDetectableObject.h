@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -42,7 +42,7 @@ class CDetectableObject : public mrpt::serialization::CSerializable
 
 class CDetectable2D : public CDetectableObject
 {
-	DEFINE_SERIALIZABLE(CDetectable2D)
+	DEFINE_SERIALIZABLE(CDetectable2D, mrpt::detectors)
 
    public:
 	/** 2D Coordinates of detected object */
@@ -51,9 +51,7 @@ class CDetectable2D : public CDetectableObject
 	float m_height, m_width;
 
 	/** Extra constructor */
-	CDetectable2D(
-		const int& x = 0, const int& y = 0, const int& height = 0,
-		const int& width = 0)
+	CDetectable2D(int x = 0, int y = 0, int height = 0, int width = 0)
 		: m_x(x), m_y(y), m_height(height), m_width(width){};
 
 	/** Copy pointer content constructor */
@@ -75,7 +73,7 @@ class CDetectable2D : public CDetectableObject
 
 class CDetectable3D : public CDetectable2D
 {
-	DEFINE_SERIALIZABLE(CDetectable3D)
+	DEFINE_SERIALIZABLE(CDetectable3D, mrpt::detectors)
 
    public:
 	CDetectable3D() = default;

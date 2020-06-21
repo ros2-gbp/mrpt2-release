@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -50,6 +50,14 @@ TEST(CConfigFileMemory, Names)
 		EXPECT_STREQ("name", names[0].c_str());
 		EXPECT_STREQ("names", names[1].c_str());
 	}
+
+	EXPECT_TRUE(third.sectionExists("sec"));
+	EXPECT_TRUE(third.sectionExists("SEC"));
+	EXPECT_FALSE(third.sectionExists("SECXX"));
+
+	EXPECT_TRUE(third.keyExists("sec", "name"));
+	EXPECT_TRUE(third.keyExists("SEC", "NAME"));
+	EXPECT_FALSE(third.keyExists("SEC", "NAMEX"));
 }
 
 TEST(CConfigFileMemory, setFromString)

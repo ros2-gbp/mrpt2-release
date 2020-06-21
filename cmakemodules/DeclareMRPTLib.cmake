@@ -22,26 +22,42 @@ include(CMakePackageConfigHelpers)
 
 # Enforce C++17 in all dependent projects:
 function(mrpt_lib_target_requires_cpp17 _TARGET)
-	if(${CMAKE_VERSION} VERSION_LESS "3.8.0")
+	get_target_property(target_type ${_TARGET} TYPE)
+	if (${target_type} STREQUAL "INTERFACE_LIBRARY")
+		set(INTERF_TYPE "INTERFACE")
+	else()
+		set(INTERF_TYPE "PUBLIC")
+	endif()
+
+
+	if(NOT ${CMAKE_VERSION} VERSION_LESS "3.8.0")
+		# Modern, clean way to do this:
+		get_target_property(target_type ${_TARGET} TYPE)
+		target_compile_features(${_TARGET} ${INTERF_TYPE} cxx_std_17)
+
+		# At present (CMake 3.12 + MSVC 19.15.26732.1) it seems cxx_std_17
+		# does not enable C++17 in MSVC (!).
+		# target_compile_options(${_TARGET} ${INTERF_TYPE} "/std:c++17")
+	else()
 		# Support older cmake versions:
 		if (MSVC)
-			target_compile_options(${_TARGET} INTERFACE "/std:c++latest")
+			target_compile_options(${_TARGET} ${INTERF_TYPE} "/std:c++latest")
 		else()
-			target_compile_options(${_TARGET} INTERFACE "-std=c++17")
+			target_compile_options(${_TARGET} ${INTERF_TYPE} "-std=c++17")
 		endif()
-	else()
-		if (NOT MSVC)
-			# Modern, clean way to do this:
-			get_target_property(target_type ${_TARGET} TYPE)
-			if (${target_type} STREQUAL "INTERFACE_LIBRARY")
-				target_compile_features(${_TARGET} INTERFACE cxx_std_17)
-			else()
-				target_compile_features(${_TARGET} PUBLIC cxx_std_17)
-			endif()
-		else()
-			# At present (CMake 3.12 + MSVC 19.15.26732.1) it seems cxx_std_17
-			# does not enable C++17 in MSVC (!).
-			target_compile_options(${_TARGET} INTERFACE "/std:c++17")
+	endif()
+endfunction()
+
+
+# handle_special_simd_flags(): Add custom flags to a set of source files
+# Only for Intel-compatible archs
+#-----------------------------------------------------------------------
+function(handle_special_simd_flags lst_files FILE_PATTERN FLAGS_TO_ADD)
+	if (MRPT_COMPILER_IS_GCC_OR_CLANG AND MRPT_ARCH_INTEL_COMPATIBLE)
+		set(_lst ${lst_files})
+		KEEP_MATCHING_FILES_FROM_LIST(${FILE_PATTERN} _lst)
+		if(NOT "${_lst}" STREQUAL "")
+			set_source_files_properties(${_lst} PROPERTIES COMPILE_FLAGS "${FLAGS_TO_ADD}")
 		endif()
 	endif()
 endfunction()
@@ -136,6 +152,8 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 	list(LENGTH ${name}_EXTRA_SRCS_NAME N_SRCS_NAMES)
 
 	if (NOT N_SRCS EQUAL N_SRCS_NAMES)
+		message(ERROR " ${name}_EXTRA_SRCS=${${name}_EXTRA_SRCS}")
+		message(ERROR " ${name}_EXTRA_SRCS_NAME=${${name}_EXTRA_SRCS_NAME}")
 		message(FATAL_ERROR "Mismatch length in ${name}_EXTRA_SRCS and ${name}_EXTRA_SRCS_NAME!")
 	endif ()
 
@@ -176,6 +194,14 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 	endif()
 
 
+	# Enable SIMD especial instructions in especialized source files, even if
+	# those instructions are NOT enabled globally for the entire build:
+	handle_special_simd_flags("${${name}_srcs}" ".*\.SSE2.cpp"  "-msse2")
+	handle_special_simd_flags("${${name}_srcs}" ".*\.SSSE3.cpp"  "-msse3 -mssse3")
+	handle_special_simd_flags("${${name}_srcs}" ".*\.AVX.cpp"  "-mavx")
+	handle_special_simd_flags("${${name}_srcs}" ".*\.AVX2.cpp"  "-mavx2")
+
+
 	# Don't include here the unit testing code:
 	REMOVE_MATCHING_FILES_FROM_LIST(".*_unittest.cpp" ${name}_srcs)
 
@@ -202,6 +228,11 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 			target_compile_definitions(${name} PUBLIC _USE_MATH_DEFINES)
 		endif()
 
+		# for gcc and clang, we must build libraries as fPIC:
+		if(NOT MSVC)
+			target_compile_options(${name} PRIVATE "-fPIC")
+		endif()
+
 		set_target_properties(${name} PROPERTIES FOLDER "modules")
 		set(iftype PUBLIC)
 		add_coverage(${name})
@@ -214,12 +245,12 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 	else()
 		# A hdr-only library: needs no real compiling
 		add_library(${name} INTERFACE)
-		
+
 		REMOVE_MATCHING_FILES_FROM_LIST(".*.h" all_${name}_srcs)
-		
+
 		# List of hdr files (for editing in IDEs,etc.):
 		target_sources(${name} INTERFACE ${all_${name}_srcs})
-		
+
 		set(iftype INTERFACE)
 	endif ()
 
@@ -228,15 +259,9 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 	add_library(mrpt::${name} ALIAS ${name})
 
 	# Include directories for target:
-	if (CMAKE_MRPT_USE_DEB_POSTFIXS)
-		set(LIB_INCL_DIR_EXPRESSION "/usr/include/mrpt/${name}/include")
-	else()
-		set(LIB_INCL_DIR_EXPRESSION "$<INSTALL_PREFIX>/include/mrpt/${name}/include")
-	endif()
-
 	target_include_directories(${name} ${iftype}
 		$<BUILD_INTERFACE:${MRPT_SOURCE_DIR}/libs/${name}/include>
-		$<INSTALL_INTERFACE:${LIB_INCL_DIR_EXPRESSION}>
+		$<INSTALL_INTERFACE:include/mrpt/${name}/include>
 	)
 
 	add_dependencies(all_mrpt_libs ${name}) # for target: all_mrpt_libs
@@ -290,13 +315,6 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 
 	add_dependencies(${name} "DocumentationFiles")  # docs files target (useful for IDE editing)
 
-	if (NOT ${headers_only})
-		target_link_libraries(${name}
-			PRIVATE
-			${MRPTLIB_LINKER_LIBS}
-			)
-	endif ()
-
 	# Set custom name of lib + dynamic link numbering convenions in Linux:
 	if (NOT ${headers_only})
 		set_target_properties(${name} PROPERTIES
@@ -314,6 +332,14 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 		set(AUX_LIST_TO_IGNORE ${all_${name}_srcs})
 		KEEP_MATCHING_FILES_FROM_LIST("^.*h$" AUX_LIST_TO_IGNORE)
 		set_source_files_properties(${AUX_LIST_TO_IGNORE} PROPERTIES HEADER_FILE_ONLY true)
+
+		# If UNIX, don't link against unused libs:
+		IF (UNIX AND NOT APPLE)
+		    set_property(
+			    TARGET ${name}
+				APPEND_STRING PROPERTY
+				LINK_FLAGS " -Wl,--as-needed -Wl,--no-undefined -Wl,--no-allow-shlib-undefined")
+		endif()
 
 		if(MRPT_ENABLE_PRECOMPILED_HDRS)
 			if (MSVC)
@@ -359,6 +385,10 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 				)
 		endif()
 
+		# MATLAB?
+		if (CMAKE_MRPT_HAS_MATLAB)
+			target_link_libraries(${name} PRIVATE ${MATLAB_LIBRARIES})
+		endif()
 		# (See comments in script_matlab.cmake)
 		# Add /DELAYLOAD:... to avoid dependency of these DLLs for standalone (non-mex) projects
 		if (CMAKE_MRPT_HAS_MATLAB AND BUILD_SHARED_LIBS AND MSVC)
@@ -370,6 +400,9 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 			#  warning LNK4199: /DELAYLOAD:libmx.dll ignored; no imports found from libmx.dll
 			# in libs which do not (yet) support mex stuff
 		endif ()
+
+
+
 
 		if (USE_IWYU)
 			set_property(
@@ -415,19 +448,24 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 	write_basic_package_version_file(
 		"${CMAKE_BINARY_DIR}/mrpt-${name}-config-version.cmake"
 		VERSION ${CMAKE_MRPT_FULL_VERSION}
-		COMPATIBILITY SameMajorVersion
+		COMPATIBILITY AnyNewerVersion
 	)
 
 	if(CMAKE_MRPT_USE_DEB_POSTFIXS)
 		set(this_lib_dev_INSTALL_PREFIX "libmrpt-${name}-dev/usr/")
 	endif()
 
+	if (WIN32)
+    set(dstDir cmake)
+  else()
+    set(dstDir share/mrpt-${name})
+  endif()
 	# mrpt-xxx-config.cmake file:
 	# Makes the project importable from installed dir:
 	# 1/3: autogenerated target file:
 	install(
 		EXPORT mrpt-${name}-targets
-		DESTINATION share/mrpt-${name}
+		DESTINATION ${dstDir}
 		NAMESPACE mrpt::
 	)
 	# 2/3: config file with manual list of dependencies:
@@ -436,7 +474,7 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 		FILES
 			"${CMAKE_BINARY_DIR}/mrpt-${name}-config.cmake"
 			"${CMAKE_BINARY_DIR}/mrpt-${name}-config-version.cmake"
-		DESTINATION share/mrpt-${name}
+		DESTINATION ${dstDir}
 	)
 
 	# Install public headers:

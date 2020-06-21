@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -57,6 +57,6 @@ TEST(COctoMapTests, insert2DScan)
 	// Insert the scan in the map and check expected values:
 	{
 		COctoMap map(0.1);
-		map.insertObservation(&scan1);
+		map.insertObservation(scan1);
 	}
 }

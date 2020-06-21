@@ -2,18 +2,18 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
-#include <mrpt/core/aligned_std_map.h>
 #include <mrpt/graphs/CNetworkOfPoses.h>
 #include <mrpt/graphs/dijkstra.h>
 #include <mrpt/gui/CDisplayWindowPlots.h>
 #include <mrpt/random.h>
 #include <mrpt/system/CTicTac.h>
 #include <iostream>
+#include <map>
 
 using namespace mrpt;
 using namespace mrpt::graphs;
@@ -34,8 +34,7 @@ typedef CDijkstra<CNetworkOfPoses2D>
 // adds a new edge to the graph. The edge is annotated with the relative
 // position of the two nodes
 void addEdge(
-	TNodeID from, TNodeID to,
-	const mrpt::aligned_std_map<TNodeID, CPose2D>& real_poses,
+	TNodeID from, TNodeID to, const std::map<TNodeID, CPose2D>& real_poses,
 	CNetworkOfPoses2D& graph_links)
 {
 	CPose2D p = real_poses.find(to)->second - real_poses.find(from)->second;
@@ -59,7 +58,7 @@ void TestDijkstra()
 	CTicTac tictac;
 	CNetworkOfPoses2D graph_links;
 	CNetworkOfPoses2D::global_poses_t optimal_poses, optimal_poses_dijkstra;
-	mrpt::aligned_std_map<TNodeID, CPose2D> real_poses;
+	std::map<TNodeID, CPose2D> real_poses;
 
 	getRandomGenerator().randomize(10);
 
@@ -70,7 +69,7 @@ void TestDijkstra()
 	const double DIST_THRES = 10;
 	const double NODES_XY_MAX = 15;
 
-	vector<float> xs, ys;
+	vector<double> xs, ys;
 
 	for (size_t j = 0; j < N_VERTEX; j++)
 	{
@@ -169,8 +168,8 @@ void TestDijkstra()
 			const CPose2D& p1 = real_poses[e->first.first];
 			const CPose2D& p2 = real_poses[e->first.second];
 
-			vector<float> X(2);
-			vector<float> Y(2);
+			vector<double> X(2);
+			vector<double> Y(2);
 			X[0] = p1.x();
 			Y[0] = p1.y();
 			X[1] = p2.x();
@@ -185,8 +184,8 @@ void TestDijkstra()
 			const CPose2D& p1 = real_poses[a->first];
 			const CPose2D& p2 = real_poses[a->second];
 
-			vector<float> X(2);
-			vector<float> Y(2);
+			vector<double> X(2);
+			vector<double> Y(2);
 			X[0] = p1.x();
 			Y[0] = p1.y();
 			X[1] = p2.x();

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -171,7 +171,7 @@ class CRangeBearing : public mrpt::bayes::CKalmanFilterCapable<
 	 * \f$.
 	 */
 	void OnObservationJacobians(
-		const size_t& idx_landmark_to_predict, KFMatrix_OxV& Hx,
+		size_t idx_landmark_to_predict, KFMatrix_OxV& Hx,
 		KFMatrix_OxF& Hy) const override;
 
 	/** Computes A=A-B, which may need to be re-implemented depending on the
@@ -270,7 +270,7 @@ void TestBayesianTracking()
 
 	// Init. simulation:
 	// -------------------------
-	float x = VEHICLE_INITIAL_X, y = VEHICLE_INITIAL_Y, phi = DEG2RAD(-180),
+	float x = VEHICLE_INITIAL_X, y = VEHICLE_INITIAL_Y, phi = -180.0_deg,
 		  v = VEHICLE_INITIAL_V, w = VEHICLE_INITIAL_W;
 	float t = 0;
 
@@ -306,7 +306,7 @@ void TestBayesianTracking()
 		// Process with PF:
 		CSensoryFrame SF;
 		CObservationBearingRange::Ptr obsRangeBear =
-			mrpt::make_aligned_shared<CObservationBearingRange>();
+			CObservationBearingRange::Create();
 		obsRangeBear->sensedData.resize(1);
 		obsRangeBear->sensedData[0].range = obsRange;
 		obsRangeBear->sensedData[0].yaw = obsBearing;
@@ -436,8 +436,7 @@ CRangeBearing::CRangeBearing()
 	m_xkk[3] = 0;
 
 	// Initial cov:  Large uncertainty
-	m_pkk.setSize(4, 4);
-	m_pkk.unit();
+	m_pkk.setIdentity(4);
 	m_pkk(0, 0) = m_pkk(1, 1) = square(5.0f);
 	m_pkk(2, 2) = m_pkk(3, 3) = square(1.0f);
 }
@@ -483,7 +482,7 @@ void CRangeBearing::OnTransitionModel(
  */
 void CRangeBearing::OnTransitionJacobian(KFMatrix_VxV& F) const
 {
-	F.unit();
+	F.setIdentity();
 
 	F(0, 2) = m_deltaTime;
 	F(1, 3) = m_deltaTime;
@@ -558,14 +557,13 @@ void CRangeBearing::OnObservationModel(
  * \param Hy  The output Jacobian \f$ \frac{\partial h_i}{\partial y_i} \f$.
  */
 void CRangeBearing::OnObservationJacobians(
-	const size_t& idx_landmark_to_predict, KFMatrix_OxV& Hx,
-	KFMatrix_OxF& Hy) const
+	size_t idx_landmark_to_predict, KFMatrix_OxV& Hx, KFMatrix_OxF& Hy) const
 {
 	// predicted bearing:
 	kftype x = m_xkk[0];
 	kftype y = m_xkk[1];
 
-	Hx.zeros();
+	Hx.setZero();
 	Hx(0, 0) = -y / (square(x) + square(y));
 	Hx(0, 1) = 1 / (x * (1 + square(y / x)));
 

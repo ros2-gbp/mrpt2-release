@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -26,19 +26,18 @@ namespace mrpt::obs
  */
 class CObservationRange : public CObservation
 {
-	DEFINE_SERIALIZABLE(CObservationRange)
+	DEFINE_SERIALIZABLE(CObservationRange, mrpt::obs)
 
    public:
-	/** Default constructor.
-	 */
-	CObservationRange();
+	CObservationRange() = default;
 
 	/** The data members
 	 */
 	float minSensorDistance{0};
 	float maxSensorDistance{5};
+
 	/** Cone aperture of each ultrasonic beam, in radians. */
-	float sensorConeApperture;
+	float sensorConeApperture = mrpt::d2f(20.0_deg);
 
 	struct TMeasurement
 	{

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -13,7 +13,7 @@
 
 namespace mrpt::hwdrivers
 {
-/** This class implements initialization and comunication methods to
+/** This class implements initialization and communication methods to
  * control a generic Pan and Tilt Unit, working in radians.
  * \ingroup mrpt_hwdrivers_grp
  */

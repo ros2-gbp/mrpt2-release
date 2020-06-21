@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -32,9 +32,9 @@ CPose3DQuat generate_points(TPoints& pA, TPoints& pB)
 	const double Dy = 1.5;
 	const double Dz = 0.75;
 
-	const double yaw = DEG2RAD(10);
-	const double pitch = DEG2RAD(20);
-	const double roll = DEG2RAD(5);
+	const double yaw = 10.0_deg;
+	const double pitch = 20.0_deg;
+	const double roll = 5.0_deg;
 
 	pA.resize(5);  // A set of points at "A" reference system
 	pB.resize(5);  // A set of points at "B" reference system
@@ -82,13 +82,13 @@ void generate_list_of_points(
 	for (unsigned int i = 0; i < 5; ++i)
 	{
 		pair.this_idx = pair.other_idx = i;
-		pair.this_x = pA[i][0];
-		pair.this_y = pA[i][1];
-		pair.this_z = pA[i][2];
+		pair.this_x = d2f(pA[i][0]);
+		pair.this_y = d2f(pA[i][1]);
+		pair.this_z = d2f(pA[i][2]);
 
-		pair.other_x = pB[i][0];
-		pair.other_y = pB[i][1];
-		pair.other_z = pB[i][2];
+		pair.other_x = d2f(pB[i][0]);
+		pair.other_y = d2f(pB[i][1]);
+		pair.other_z = d2f(pB[i][2]);
 
 		list.push_back(pair);
 	}

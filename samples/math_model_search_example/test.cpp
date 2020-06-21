@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -132,37 +132,21 @@ void TestRANSAC()
 	// Show GUI
 	// --------------------------
 	mrpt::gui::CDisplayWindow3D win("Set of points", 500, 500);
-	opengl::COpenGLScene::Ptr scene =
-		mrpt::make_aligned_shared<opengl::COpenGLScene>();
+	opengl::COpenGLScene::Ptr scene = opengl::COpenGLScene::Create();
 
-	scene->insert(mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
-		-20, 20, -20, 20, 0, 1));
+	scene->insert(opengl::CGridPlaneXY::Create(-20, 20, -20, 20, 0, 1));
 	scene->insert(opengl::stock_objects::CornerXYZ());
 
-	opengl::CPointCloud::Ptr points =
-		mrpt::make_aligned_shared<opengl::CPointCloud>();
-	points->setColor(0, 0, 1);
+	opengl::CPointCloud::Ptr points = opengl::CPointCloud::Create();
+	points->setColor(0.0f, 0.0f, 1.0f);
 	points->setPointSize(3);
 	points->enableColorFromZ();
-
-	{
-		std::vector<float> x, y, z;
-		x.reserve(data.size());
-		y.reserve(data.size());
-		z.reserve(data.size());
-		for (size_t i = 0; i < data.size(); i++)
-		{
-			x.push_back(data[i].x);
-			y.push_back(data[i].y);
-			z.push_back(data[i].z);
-		}
-		points->setAllPointsFast(x, y, z);
-	}
+	points->setAllPoints(data);
 
 	scene->insert(points);
 
 	opengl::CTexturedPlane::Ptr glPlane =
-		mrpt::make_aligned_shared<opengl::CTexturedPlane>(-4, 4, -4, 4);
+		opengl::CTexturedPlane::Create(-4, 4, -4, 4);
 
 	TPose3D glPlanePose;
 	best_model.getAsPose3D(glPlanePose);

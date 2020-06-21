@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -84,11 +84,8 @@ CDlgLog::CDlgLog(
 	timDumpLog.Start(250, false);
 	FlexGridSizer1->SetSizeHints(this);
 
-	Connect(
-		ID_TIMER1, wxEVT_TIMER,
-		(wxObjectEventFunction)&CDlgLog::OntimDumpLogTrigger);
-	Connect(
-		wxID_ANY, wxEVT_CLOSE_WINDOW, (wxObjectEventFunction)&CDlgLog::OnClose);
+	Bind(wxEVT_TIMER, &CDlgLog::OntimDumpLogTrigger, this, ID_TIMER1);
+	Bind(wxEVT_CLOSE_WINDOW, &CDlgLog::OnClose, this, wxID_ANY);
 	//*)
 
 	m_redirector = std::make_unique<CMyRedirector>(

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,7 +12,7 @@
 #include <mrpt/vision/CFeatureExtraction.h>
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 using namespace mrpt;
 using namespace mrpt::vision;
@@ -37,32 +37,45 @@ void CFeatureExtraction::internal_computeLogPolarImageDescriptors(
 	const unsigned int patch_h = options.LogPolarImagesOptions.num_angles;
 	const double rho_scale = options.LogPolarImagesOptions.rho_scale;
 	const unsigned int patch_w =
-		rho_scale * std::log(static_cast<double>(radius));
+		mrpt::round(rho_scale * std::log(static_cast<double>(radius)));
 
 	mrpt::img::CImage logpolar_frame(
 		patch_w, patch_h, in_img.getChannelCount());
 
 	// Compute intensity-domain spin images
-	for (auto it = in_features.begin(); it != in_features.end(); ++it)
+	for (auto& f : in_features)
 	{
 		// Overwrite scale with the descriptor scale:
-		(*it)->scale = radius;
+		f.keypoint.octave = radius;
 
-		// Use OpenCV to convert:
-#if MRPT_OPENCV_VERSION_NUM < 0x300
+		const auto pt = cv::Point2f(f.keypoint.pt.x, f.keypoint.pt.y);
+
 		const cv::Mat& in = in_img.asCvMatRef();
 		cv::Mat& out = logpolar_frame.asCvMatRef();
+
+#if MRPT_OPENCV_VERSION_NUM < 0x300
+		IplImage cvin, cvout;
+		in_img.getAsIplImage(&cvin);
+		logpolar_frame.getAsIplImage(&cvout);
+
 		cvLogPolar(
-			&in, &out,
-#else
+			&cvin, &cvout, pt, radius, CV_INTER_LINEAR + CV_WARP_FILL_OUTLIERS);
+#elif MRPT_OPENCV_VERSION_NUM < 0x342
 		cv::logPolar(
-			in_img.asCvMatRef(), logpolar_frame.asCvMatRef(),
+			in(cv::Rect(
+				round(pt.x - radius), round(pt.y - radius),
+				round(1 + 2 * radius), round(1 + 2 * radius))),
+			out, pt, radius, CV_INTER_LINEAR + CV_WARP_FILL_OUTLIERS);
+#else
+		// Latest opencv versions:
+		cv::warpPolar(
+			in, out, cv::Size(patch_w, patch_h), pt, radius,
+			cv::INTER_LINEAR + cv::WARP_FILL_OUTLIERS + cv::WARP_POLAR_LOG);
 #endif
-			cv::Point2f((*it)->x, (*it)->y), rho_scale,
-			CV_INTER_LINEAR + CV_WARP_FILL_OUTLIERS);
 
 		// Get the image as a matrix and save as patch:
-		logpolar_frame.getAsMatrix((*it)->descriptors.LogPolarImg);
+		f.descriptors.LogPolarImg.emplace();
+		logpolar_frame.getAsMatrix(*f.descriptors.LogPolarImg);
 
 	}  // end for it
 

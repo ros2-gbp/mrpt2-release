@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -49,8 +49,14 @@ TEST(StaticString, concat_multi)
 	auto abba = ab + ba;
 	static_assert(abba.size() == 2 * 6, "***");
 
+	// Test c_str():
 	const char* s = abba.c_str();
-	(void)(s);
+	const char* s2 = static_cast<const char*>(abba);
+	EXPECT_EQ(s, s2);
+
+	// Test cast to "const char*" () operator:
+	const char* s3 = static_cast<const char*>(a);
+	EXPECT_EQ(a.c_str(), s3);
 }
 
 TEST(num_to_string, ctor)

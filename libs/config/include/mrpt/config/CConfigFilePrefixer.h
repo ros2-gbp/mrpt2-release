@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -40,6 +40,7 @@ class CConfigFilePrefixer : public CConfigFileBase
 	/** The object we are wrapping */
 	CConfigFileBase* m_bound_object{nullptr};
 	std::string m_prefix_sections, m_prefix_keys;
+	void ensureIsBound() const;
 
    protected:
 	void writeString(
@@ -74,10 +75,11 @@ class CConfigFilePrefixer : public CConfigFileBase
 
 	~CConfigFilePrefixer() override;
 
-	void getAllSections(std::vector<std::string>& sections)
-		const override;  // See base class docs
+	// See base class docs
+	void getAllSections(std::vector<std::string>& sections) const override;
 	void getAllKeys(const std::string& section, std::vector<std::string>& keys)
-		const override;  // See base class docs
+		const override;
+	void clear() override;
 
 };  // End of class def.
 }  // namespace mrpt::config

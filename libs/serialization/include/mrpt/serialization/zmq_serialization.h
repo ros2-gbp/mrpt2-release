@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -16,10 +16,11 @@ namespace mrpt
 {
 namespace serialization
 {
-/** \addtogroup noncstream_serialization_zmq Serialization functions for ZMQ (v3
- * or above) (in #include <mrpt/serialization/serialization_zmq.h>)
- * \ingroup noncstream_serialization
+// clang-format off
+/** \addtogroup noncstream_serialization_zmq Serialization functions for ZMQ (v3 or above) (in #include <mrpt/serialization/serialization_zmq.h>) \ingroup
+ * noncstream_serialization
  * @{ */
+//clang-format on
 
 /** Send an MRPT object to a ZMQ socket.
  * \param[in] obj The object to be serialized and sent to the socket.
@@ -101,7 +102,7 @@ bool mrpt_recv_from_zmq_buf(
 {
 	if (rx_obj_length_in_bytes) *rx_obj_length_in_bytes = 0;
 	out_lst_msgs.clear();
-	target_buf.Clear();
+	target_buf.clear();
 	int64_t more;
 	size_t more_size = sizeof(more);
 	do

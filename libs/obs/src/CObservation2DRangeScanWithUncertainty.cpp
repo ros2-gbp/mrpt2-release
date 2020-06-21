@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -21,12 +21,13 @@ CObservation2DRangeScanWithUncertainty::TEvalParams::TEvalParams()
 double CObservation2DRangeScanWithUncertainty::evaluateScanLikelihood(
 	const CObservation2DRangeScan& otherScan, const TEvalParams& params) const
 {
-	ASSERT_EQUAL_((int)otherScan.scan.size(), (int)otherScan.validRange.size());
-	ASSERT_EQUAL_((int)otherScan.scan.size(), (int)this->rangesMean.size());
-	ASSERT_EQUAL_((int)otherScan.scan.size(), (int)this->rangesCovar.rows());
-	ASSERT_EQUAL_((int)otherScan.scan.size(), (int)this->rangesCovar.cols());
+	ASSERT_EQUAL_(
+		otherScan.getScanSize(), static_cast<size_t>(rangesMean.size()));
+	ASSERT_EQUAL_(
+		otherScan.getScanSize(), static_cast<size_t>(rangesCovar.rows()));
+	ASSERT_EQUAL_(rangesCovar.rows(), rangesCovar.cols());
 	ASSERT_(params.prob_outliers >= 0.0 && params.prob_outliers <= 1.0);
-	ASSERT_(otherScan.maxRange > 0.0);
+	ASSERT_(otherScan.maxRange > 0.0f);
 
 	const double sensorRangeVar = mrpt::square(otherScan.stdError);
 	const size_t N = rangesMean.size();
@@ -44,16 +45,17 @@ double CObservation2DRangeScanWithUncertainty::evaluateScanLikelihood(
 		}
 		num_valid++;
 
-		const double otherScanRange =
-			otherScan.validRange[i] ? otherScan.scan[i] : otherScan.maxRange;
+		const double otherScanRange = otherScan.getScanRangeValidity(i)
+										  ? otherScan.getScanRange(i)
+										  : otherScan.maxRange;
 
 		const double likGauss = std::exp(
 			-0.5 * mrpt::square(otherScanRange - rangesMean[i]) /
 			prediction_total_var);
 		double pi;
-		if (otherScan.scan[i] > rangesMean[i])
+		if (otherScan.getScanRange(i) > rangesMean[i])
 		{
-			if (otherScan.validRange[i])
+			if (otherScan.getScanRangeValidity(i))
 				pi = likGauss;
 			else
 				pi = std::max(likGauss, params.prob_lost_ray);

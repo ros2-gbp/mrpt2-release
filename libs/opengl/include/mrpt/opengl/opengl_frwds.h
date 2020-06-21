@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -18,12 +18,11 @@ class CCamera;
 class CColorBar;
 class CCylinder;
 class CDisk;
-class CEllipsoid;
+class CEllipsoid3D;
 class CEllipsoidInverseDepth2D;
 class CEllipsoidInverseDepth3D;
 class CEllipsoidRangeBearing2D;
 class CFrustum;
-class CGeneralizedCylinder;
 class CGridPlaneXY;
 class CGridPlaneXZ;
 class CMesh;

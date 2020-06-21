@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -26,12 +26,16 @@ TEST(COccupancyGridMap3DTests, insert2DScan)
 	// Insert the scan in the grid map and check expected values:
 	{
 		mrpt::maps::COccupancyGridMap3D grid;
-		grid.insertObservation(&scan1);
+		grid.insertObservation(scan1);
 
 		// A cell in front of the laser should have a high "freeness"
 		EXPECT_GT(grid.getFreenessByPos(0.5, 0, 0), 0.53f);
 	}
 }
+
+// We need OPENCV to read the image internal to CObservation3DRangeScan,
+// so skip this test if built without opencv.
+#if MRPT_HAS_OPENCV
 
 TEST(COccupancyGridMap3DTests, insertScan3D)
 {
@@ -54,9 +58,11 @@ TEST(COccupancyGridMap3DTests, insertScan3D)
 
 	{
 		mrpt::maps::COccupancyGridMap3D grid;
-		grid.insertObservation(obs.get());
+		grid.insertObservation(*obs);
 
 		// A cell in front of the laser should have a high "freeness"
-		EXPECT_GT(grid.getFreenessByPos(0.2, 0.2, 0.1), 0.53f);
+		EXPECT_GT(grid.getFreenessByPos(0.2f, 0.2f, 0.1f), 0.53f);
 	}
 }
+
+#endif

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -15,6 +15,7 @@
 			 multi-threading and live 3D rendering.
 */
 
+#include <mrpt/3rdparty/tclap/CmdLine.h>
 #include <mrpt/gui/CDisplayWindow3D.h>
 #include <mrpt/hwdrivers/CVelodyneScanner.h>
 #include <mrpt/io/CFileGZOutputStream.h>
@@ -22,7 +23,6 @@
 #include <mrpt/opengl/CGridPlaneXY.h>
 #include <mrpt/opengl/CPointCloudColoured.h>
 #include <mrpt/opengl/stock_objects.h>
-#include <mrpt/otherlibs/tclap/CmdLine.h>
 #include <mrpt/system/CTicTac.h>
 #include <mrpt/system/os.h>  // MRPT_getVersion()
 
@@ -239,7 +239,7 @@ int VelodyneView(int argc, char** argv)
 	win3D.setFOV(90);
 	win3D.setCameraPointingToPoint(0, 0, 0);
 	mrpt::opengl::CPointCloudColoured::Ptr gl_points =
-		mrpt::make_aligned_shared<mrpt::opengl::CPointCloudColoured>();
+		mrpt::opengl::CPointCloudColoured::Create();
 	gl_points->setPointSize(2.5);
 
 	{
@@ -247,7 +247,7 @@ int VelodyneView(int argc, char** argv)
 
 		// Create the Opengl object for the point cloud:
 		scene->insert(gl_points);
-		scene->insert(mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>());
+		scene->insert(mrpt::opengl::CGridPlaneXY::Create());
 		scene->insert(mrpt::opengl::stock_objects::CornerXYZ());
 
 		win3D.unlockAccess3DScene();
@@ -277,7 +277,7 @@ int VelodyneView(int argc, char** argv)
 			last_obs_gps = std::atomic_load(&thrPar.new_obs_gps);
 
 			std::string rmc_datum;
-			if (last_obs_gps->has_RMC_datum)
+			if (last_obs_gps->has_RMC_datum())
 			{
 				rmc_datum = mrpt::format(
 					"Lon=%.09f deg  Lat=%.09f deg  Valid?: '%c'\n",
@@ -299,7 +299,7 @@ int VelodyneView(int argc, char** argv)
 					mrpt::system::dateTimeLocalToString(last_obs_gps->timestamp)
 						.c_str(),
 					rmc_datum.c_str()),
-				TColorf(1, 1, 1), "mono", 10.0, mrpt::opengl::NICE, 102);
+				102);
 			win3D.unlockAccess3DScene();
 			do_view_refresh = true;
 		}
@@ -321,7 +321,7 @@ int VelodyneView(int argc, char** argv)
 							.c_str(),
 						static_cast<unsigned int>(
 							last_obs->scan_packets.size())),
-					TColorf(1, 1, 1), "mono", 10.0, mrpt::opengl::NICE, 103);
+					103);
 				win3D.unlockAccess3DScene();
 				do_view_refresh = true;
 			}
@@ -343,9 +343,7 @@ int VelodyneView(int argc, char** argv)
 
 			// Estimated grabbing rate:
 			win3D.get3DSceneAndLock();
-			win3D.addTextMessage(
-				-150, -20, format("%.02f Hz", thrPar.Hz), TColorf(1, 1, 1), 100,
-				MRPT_GLUT_BITMAP_HELVETICA_18);
+			win3D.addTextMessage(-150, -20, format("%.02f Hz", thrPar.Hz), 100);
 			win3D.unlockAccess3DScene();
 			do_view_refresh = true;
 		}  // end update visualization:
@@ -390,14 +388,14 @@ int VelodyneView(int argc, char** argv)
 		win3D.addTextMessage(
 			5, 10,
 			"'o'/'i'-zoom out/in, mouse: orbit 3D, spacebar: freeze, ESC: quit",
-			TColorf(1, 1, 1), "mono", 10.0, mrpt::opengl::NICE, 110);
+			110);
 		win3D.addTextMessage(
 			5, 25,
 			mrpt::format(
 				"'1'/'2': Toggle view dual last (%s)/strongest(%s) returns.",
 				pc_params.dualKeepLast ? "ON" : "OFF",
 				pc_params.dualKeepStrongest ? "ON" : "OFF"),
-			TColorf(1, 1, 1), "mono", 10.0, mrpt::opengl::NICE, 111);
+			111);
 		win3D.unlockAccess3DScene();
 
 		std::this_thread::sleep_for(50ms);

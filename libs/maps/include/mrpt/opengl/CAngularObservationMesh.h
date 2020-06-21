@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,9 +10,10 @@
 
 #include <mrpt/maps/CPointsMap.h>
 #include <mrpt/math/CMatrixB.h>
-#include <mrpt/math/CMatrixTemplate.h>
+#include <mrpt/math/CMatrixDynamic.h>
 #include <mrpt/obs/CObservation2DRangeScan.h>
-#include <mrpt/opengl/CRenderizableDisplayList.h>
+#include <mrpt/opengl/CRenderizableShaderTriangles.h>
+#include <mrpt/opengl/CRenderizableShaderWireFrame.h>
 #include <mrpt/opengl/CSetOfLines.h>
 #include <mrpt/opengl/CSetOfTriangles.h>
 
@@ -38,9 +39,10 @@ namespace mrpt::opengl
  *
  * \ingroup mrpt_maps_grp
  */
-class CAngularObservationMesh : public CRenderizableDisplayList
+class CAngularObservationMesh : public CRenderizableShaderTriangles,
+								public CRenderizableShaderWireFrame
 {
-	DEFINE_SERIALIZABLE(CAngularObservationMesh)
+	DEFINE_SERIALIZABLE(CAngularObservationMesh, mrpt::opengl)
    public:
 	/**
 	 * Range specification type, with several uses.
@@ -299,20 +301,21 @@ class CAngularObservationMesh : public CRenderizableDisplayList
 	 * content. */
 	void updateMesh() const;
 	/** Actual set of triangles to be displayed. */
-	mutable std::vector<CSetOfTriangles::TTriangle> triangles;
+	mutable std::vector<mrpt::opengl::TTriangle> triangles;
 	/** Internal method to add a triangle to the mutable mesh. */
 	void addTriangle(
 		const mrpt::math::TPoint3D& p1, const mrpt::math::TPoint3D& p2,
 		const mrpt::math::TPoint3D& p3) const;
 	/** Whether the mesh will be displayed wireframe or solid. */
-	bool mWireframe{true};
+	bool m_Wireframe{true};
 	/** Mutable variable which controls if the object has suffered any change
 	 * since last time the mesh was updated. */
 	mutable bool meshUpToDate{false};
 	/** Whether the object may present transparencies or not. */
 	bool mEnableTransparency{true};
 	/** Mutable object with the mesh's points. */
-	mutable mrpt::math::CMatrixTemplate<mrpt::math::TPoint3D> actualMesh;
+	mutable mrpt::math::CMatrixDynamic<mrpt::math::TPoint3D_data<double>>
+		actualMesh;
 	/** Scan validity matrix. */
 	mutable mrpt::math::CMatrixB validityMatrix;
 	/** Observation pitch range. When containing exactly two elements, they
@@ -334,14 +337,14 @@ class CAngularObservationMesh : public CRenderizableDisplayList
 	/**
 	 * Returns whether the object is configured as wireframe or solid.
 	 */
-	inline bool isWireframe() const { return mWireframe; }
+	inline bool isWireframe() const { return m_Wireframe; }
 	/**
 	 * Sets the display mode for the object. True=wireframe, False=solid.
 	 */
 	inline void setWireframe(bool enabled = true)
 	{
-		mWireframe = enabled;
-		CRenderizableDisplayList::notifyChange();
+		m_Wireframe = enabled;
+		CRenderizable::notifyChange();
 	}
 	/**
 	 * Returns whether the object may be transparent or not.
@@ -353,13 +356,28 @@ class CAngularObservationMesh : public CRenderizableDisplayList
 	inline void enableTransparency(bool enabled = true)
 	{
 		mEnableTransparency = enabled;
-		CRenderizableDisplayList::notifyChange();
+		CRenderizable::notifyChange();
 	}
-	/**
-	 * Renderizes the object.
-	 * \sa mrpt::opengl::CRenderizable
-	 */
-	void render_dl() const override;
+
+	/** @name Renderizable shader API virtual methods
+	 * @{ */
+	void freeOpenGLResources() override
+	{
+		CRenderizableShaderTriangles::freeOpenGLResources();
+		CRenderizableShaderWireFrame::freeOpenGLResources();
+	}
+	void render(const RenderContext& rc) const override;
+	void renderUpdateBuffers() const override;
+
+	virtual shader_list_t requiredShaders() const override
+	{
+		// May use up to two shaders (triangles and lines):
+		return {DefaultShaderID::WIREFRAME, DefaultShaderID::TRIANGLES};
+	}
+	void onUpdateBuffers_Wireframe() override;
+	void onUpdateBuffers_Triangles() override;
+	/** @} */
+
 	/**
 	 * Traces a ray to the object, returning the distance to a given pose
 	 * through its X axis.
@@ -395,7 +413,7 @@ class CAngularObservationMesh : public CRenderizableDisplayList
 	/**
 	 * Gets the mesh as a set of triangles, for displaying them.
 	 * \sa generateSetOfTriangles(std::vector<TPolygon3D>
-	 * &),mrpt::opengl::CSetOfTriangles,mrpt::opengl::CSetOfTriangles::TTriangle
+	 * &),mrpt::opengl::CSetOfTriangles,mrpt::opengl::mrpt::opengl::TTriangle
 	 */
 	void generateSetOfTriangles(CSetOfTriangles::Ptr& res) const;
 	/**
@@ -423,7 +441,7 @@ class CAngularObservationMesh : public CRenderizableDisplayList
 	 * Retrieves the full mesh, along with the validity matrix.
 	 */
 	void getActualMesh(
-		mrpt::math::CMatrixTemplate<mrpt::math::TPoint3D>& pts,
+		mrpt::math::CMatrixDynamic<mrpt::math::TPoint3D_data<double>>& pts,
 		mrpt::math::CMatrixBool& validity) const
 	{
 		if (!meshUpToDate) updateMesh();
@@ -565,8 +583,11 @@ class CAngularObservationMesh : public CRenderizableDisplayList
 		obs.maxRange = 10000;
 		obs.sensorPose = initial;
 		obs.deltaPitch = 0;
-		obs.scan = scanValues;
-		obs.validRange = valid;
+		for (size_t i = 0; i < nV; i++)
+		{
+			obs.setScanRange(i, scanValues[i]);
+			obs.setScanRangeValidity(i, valid[i]);
+		}
 	}
 };
 
@@ -583,7 +604,7 @@ void CAngularObservationMesh::trace2DSetOfRays(
 	for_each(
 		pValues.begin(), pValues.end(),
 		FTrace2D<T>(e, initial, caom, yaws, vObs, initial));
-	caom->mWireframe = false;
+	caom->m_Wireframe = false;
 	caom->mEnableTransparency = false;
 	caom->setPitchBounds(pValues);
 	caom->setScanSet(vObs);

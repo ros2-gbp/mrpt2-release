@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,7 +10,7 @@
 
 #include <mrpt/img/CImage.h>
 #include <mrpt/img/TCamera.h>
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/obs/CObservation.h>
 #include <mrpt/poses/CPose2D.h>
 #include <mrpt/poses/CPose3D.h>
@@ -31,7 +31,7 @@ namespace mrpt::obs
  */
 class CObservationImage : public CObservation
 {
-	DEFINE_SERIALIZABLE(CObservationImage)
+	DEFINE_SERIALIZABLE(CObservationImage, mrpt::obs)
 	// This must be added for declaration of MEX-related functions
 	DECLARE_MEX_CONVERSION
 
@@ -71,6 +71,8 @@ class CObservationImage : public CObservation
 		cameraPose = newSensorPose;
 	}
 	void getDescriptionAsText(std::ostream& o) const override;
+
+	void load() const override;
 
 };  // End of class def.
 

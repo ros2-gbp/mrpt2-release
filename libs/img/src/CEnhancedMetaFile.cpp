@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -211,7 +211,8 @@ void CEnhancedMetaFile::textOut(
 					selectVectorTextFont
 ---------------------------------------------------------------*/
 void CEnhancedMetaFile::selectVectorTextFont(
-	const std::string& fontName, int fontSize, bool bold, bool italic)
+	[[maybe_unused]] const std::string& fontName, [[maybe_unused]] int fontSize,
+	[[maybe_unused]] bool bold, [[maybe_unused]] bool italic)
 {
 #ifdef _WIN32
 	HFONT hFont, oldFont;
@@ -238,9 +239,6 @@ void CEnhancedMetaFile::selectVectorTextFont(
 
 	if (oldFont) ::DeleteObject(oldFont);
 #else
-	MRPT_UNUSED_PARAM(fontSize);
-	MRPT_UNUSED_PARAM(bold);
-	MRPT_UNUSED_PARAM(italic);
 	MRPT_TRY_START;
 
 	((CImage*)m_hdc.get())->selectTextFont(fontName);

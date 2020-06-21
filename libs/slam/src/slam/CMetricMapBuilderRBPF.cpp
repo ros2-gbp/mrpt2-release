@@ -2,13 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "slam-precomp.h"  // Precompiled headers
 
+#include <mrpt/core/lock_helper.h>
 #include <mrpt/core/round.h>
 #include <mrpt/img/CEnhancedMetaFile.h>
 #include <mrpt/maps/COccupancyGridMap2D.h>
@@ -82,8 +83,7 @@ CMetricMapBuilderRBPF::~CMetricMapBuilderRBPF() = default;
   ---------------------------------------------------------------*/
 void CMetricMapBuilderRBPF::clear()
 {
-	std::lock_guard<std::mutex> csl(
-		critZoneChangingMap);  // Enter critical section (updating map)
+	auto lck = mrpt::lockHelper(critZoneChangingMap);
 
 	MRPT_LOG_DEBUG("CMetricMapBuilderRBPF::clear() called.");
 	static CPose2D nullPose(0, 0, 0);
@@ -104,8 +104,7 @@ void CMetricMapBuilderRBPF::processActionObservation(
 	CActionCollection& action, CSensoryFrame& observations)
 {
 	MRPT_START
-	std::lock_guard<std::mutex> csl(
-		critZoneChangingMap);  // Enter critical section (updating map)
+	auto lck = mrpt::lockHelper(critZoneChangingMap);
 
 	// Update the traveled distance estimations:
 	{
@@ -211,7 +210,7 @@ void CMetricMapBuilderRBPF::processActionObservation(
 			<< odoIncrementSinceLastLocalization.mean);
 		// Reset distance counters:
 		odoIncrementSinceLastLocalization.mean.setFromValues(0, 0, 0, 0, 0, 0);
-		odoIncrementSinceLastLocalization.cov.zeros();
+		odoIncrementSinceLastLocalization.cov.setZero();
 
 		CParticleFilter pf;
 		pf.m_options = m_PF_options;
@@ -227,9 +226,7 @@ void CMetricMapBuilderRBPF::processActionObservation(
 			mapPDF.getEstimatedPosePDF(poseEstimation);
 			poseEstimation.getMean(meanPose);
 
-			CPose3D estPos;
-			CMatrixDouble66 cov;
-			poseEstimation.getCovarianceAndMean(cov, estPos);
+			const auto [cov, estPos] = poseEstimation.getCovarianceAndMean();
 
 			MRPT_LOG_INFO_STREAM(
 				"New pose=" << estPos << std::endl
@@ -269,12 +266,8 @@ void CMetricMapBuilderRBPF::processActionObservation(
 	for (auto& m_particle : mapPDF.m_particles)
 		m_particle.d->mapTillNow.auxParticleFilterCleanUp();
 
-	MRPT_END;
+	MRPT_END
 }
-
-MRPT_TODO(
-	"Split initialize() in two, one generic without pose, one with "
-	"particles-based PDF");
 
 /*---------------------------------------------------------------
 					initialize
@@ -288,8 +281,7 @@ void CMetricMapBuilderRBPF::initialize(
 
 	this->clear();
 
-	std::lock_guard<std::mutex> csl(
-		critZoneChangingMap);  // Enter critical section (updating map)
+	auto lck = mrpt::lockHelper(critZoneChangingMap);
 
 	mrpt::poses::CPose3D curPose;
 	if (x0)
@@ -312,8 +304,7 @@ void CMetricMapBuilderRBPF::initialize(
   ---------------------------------------------------------------*/
 CPose3DPDF::Ptr CMetricMapBuilderRBPF::getCurrentPoseEstimation() const
 {
-	CPose3DPDFParticles::Ptr posePDF =
-		mrpt::make_aligned_shared<CPose3DPDFParticles>();
+	CPose3DPDFParticles::Ptr posePDF = std::make_shared<CPose3DPDFParticles>();
 	mapPDF.getEstimatedPosePDF(*posePDF);
 
 	// Adds additional increment from accumulated odometry since last
@@ -510,9 +501,9 @@ void CMetricMapBuilderRBPF::saveCurrentPathEstimationToTextFile(
 						TConstructionOptions
   ---------------------------------------------------------------*/
 CMetricMapBuilderRBPF::TConstructionOptions::TConstructionOptions()
-	: insertionAngDistance(DEG2RAD(30)),
+	: insertionAngDistance(30.0_deg),
 
-	  localizeAngDistance(DEG2RAD(10)),
+	  localizeAngDistance(10.0_deg),
 	  PF_options(),
 	  mapsInitializers(),
 	  predictionOptions()
@@ -526,9 +517,8 @@ CMetricMapBuilderRBPF::TConstructionOptions::TConstructionOptions()
 void CMetricMapBuilderRBPF::TConstructionOptions::dumpToTextStream(
 	std::ostream& out) const
 {
-	out << mrpt::format(
-		"\n----------- [CMetricMapBuilderRBPF::TConstructionOptions] "
-		"------------ \n\n");
+	out << "\n----------- [CMetricMapBuilderRBPF::TConstructionOptions] "
+		   "------------ \n\n";
 
 	out << mrpt::format(
 		"insertionLinDistance                    = %f m\n",
@@ -550,9 +540,8 @@ void CMetricMapBuilderRBPF::TConstructionOptions::dumpToTextStream(
 
 	PF_options.dumpToTextStream(out);
 
-	out << mrpt::format(
-		"  Now showing 'mapsInitializers' and 'predictionOptions':\n");
-	out << mrpt::format("\n");
+	out << "  Now showing 'mapsInitializers' and 'predictionOptions':\n";
+	out << "\n";
 
 	mapsInitializers.dumpToTextStream(out);
 	predictionOptions.dumpToTextStream(out);

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -100,7 +100,7 @@ template <class GRAPH_T>
 void CGraphSlamHandler<GRAPH_T>::initOutputDir(
 	const std::string& output_dir_fname)
 {
-	MRPT_START;
+	MRPT_START
 	using namespace std;
 	using namespace mrpt::system;
 	using namespace mrpt;
@@ -195,7 +195,7 @@ void CGraphSlamHandler<GRAPH_T>::initOutputDir(
 	m_logger->logFmt(
 		mrpt::system::LVL_INFO, "Finished initializing output directory.");
 
-	MRPT_END;
+	MRPT_END
 }  // end of initOutputDir
 
 template <class GRAPH_T>
@@ -367,7 +367,7 @@ template <class GRAPH_T>
 void CGraphSlamHandler<GRAPH_T>::saveMap(const std::string& fname)
 {
 	mrpt::maps::COccupancyGridMap2D::Ptr map =
-		mrpt::make_aligned_shared<mrpt::maps::COccupancyGridMap2D>();
+		mrpt::maps::COccupancyGridMap2D::Create();
 	m_engine->getMap(map);
 	// map->saveAsBitmapFile(fname); // doesn't work.
 	map->saveMetricMapRepresentationToFile(fname);

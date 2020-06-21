@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -70,7 +70,7 @@ CPose3DPDF::Ptr CTopLCDetector_GridMatching::computeTopologicalObservationModel(
 	// Do the map align:
 	CPosePDF::Ptr alignRes = gridAligner.Align(
 		hMapCur.get(),  // "ref" as seen from "cur"...The order is critical!!!
-		hMapRef.get(), initEstimate, nullptr, &info);
+		hMapRef.get(), initEstimate, info);
 
 #if 0
 	{
@@ -130,10 +130,9 @@ CPose3DPDF::Ptr CTopLCDetector_GridMatching::computeTopologicalObservationModel(
  *  This should be independent of hypothesis IDs.
  */
 void CTopLCDetector_GridMatching::OnNewPose(
-	const TPoseID& poseID, const CSensoryFrame* SF)
+	[[maybe_unused]] const TPoseID& poseID,
+	[[maybe_unused]] const CSensoryFrame* SF)
 {
-	MRPT_UNUSED_PARAM(poseID);
-	MRPT_UNUSED_PARAM(SF);
 }
 
 // Initialization
@@ -150,8 +149,7 @@ void CTopLCDetector_GridMatching::TOptions::loadFromConfigFile(
 void CTopLCDetector_GridMatching::TOptions::dumpToTextStream(
 	std::ostream& out) const
 {
-	out << mrpt::format(
-		"\n----------- [CTopLCDetector_GridMatching::TOptions] ------------ "
-		"\n\n");
+	out << "\n----------- [CTopLCDetector_GridMatching::TOptions] ------------ "
+		   "\n\n";
 	matchingOptions.dumpToTextStream(out);
 }

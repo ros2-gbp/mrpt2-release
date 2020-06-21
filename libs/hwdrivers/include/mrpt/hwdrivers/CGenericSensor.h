@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,6 +11,7 @@
 
 #include <mrpt/config/CConfigFileBase.h>
 #include <mrpt/obs/CObservation.h>
+#include <mrpt/typemeta/TEnumType.h>
 #include <map>
 #include <mutex>
 
@@ -84,7 +85,8 @@ class CGenericSensor
 	{
 		ssInitializing = 0,
 		ssWorking,
-		ssError
+		ssError,
+		ssUninitialized  // New in MRPT 1.9.9
 	};
 
 	/** The current state of the sensor  */
@@ -181,16 +183,6 @@ class CGenericSensor
 			std::vector<mrpt::serialization::CSerializable::Ptr>(1, obj));
 	}
 
-	/** Auxiliary structure used for CSerializable runtime class ID support.
-	 */
-	struct CLASSINIT_GENERIC_SENSOR
-	{
-		CLASSINIT_GENERIC_SENSOR(const TSensorClassId* pNewClass)
-		{
-			CGenericSensor::registerClass(pNewClass);
-		}
-	};
-
 	/** Loads specific configuration for the device from a given source of
 	 * configuration parameters, for example, an ".ini" file, loading from the
 	 * section "[iniSection]" (see config::CConfigFileBase and derived classes)
@@ -215,10 +207,9 @@ class CGenericSensor
 
 	/** Just like createSensor, but returning a smart pointer to the newly
 	 * created sensor object. */
-	static inline CGenericSensor::Ptr createSensorPtr(
-		const std::string& className)
+	static inline Ptr createSensorPtr(const std::string& className)
 	{
-		return CGenericSensor::Ptr(createSensor(className));
+		return Ptr(createSensor(className));
 	}
 
 	/** Constructor */
@@ -263,9 +254,9 @@ class CGenericSensor
 	 * \exception std::exception If the directory doesn't exists and cannot be
 	 * created.
 	 */
-	virtual void setPathForExternalImages(const std::string& directory)
+	virtual void setPathForExternalImages([
+		[maybe_unused]] const std::string& directory)
 	{
-		MRPT_UNUSED_PARAM(directory);
 		// In this base class, the default is to ignore image paths.
 	}
 
@@ -291,8 +282,6 @@ class CGenericSensor
 	}
 
    public:
-	MRPT_MAKE_ALIGNED_OPERATOR_NEW
-
 };  // end of class
 
 static_assert(
@@ -311,10 +300,6 @@ static_assert(
  * within the class declaration.
  */
 #define DEFINE_GENERIC_SENSOR(class_name)                                    \
-   protected:                                                                \
-	static mrpt::hwdrivers::CGenericSensor::CLASSINIT_GENERIC_SENSOR         \
-		_init_##class_name;                                                  \
-                                                                             \
    public:                                                                   \
 	static mrpt::hwdrivers::TSensorClassId class##class_name;                \
 	const mrpt::hwdrivers::TSensorClassId* GetRuntimeClass() const override; \
@@ -342,3 +327,10 @@ static_assert(
 
 }  // namespace hwdrivers
 }  // namespace mrpt
+
+MRPT_ENUM_TYPE_BEGIN(mrpt::hwdrivers::CGenericSensor::TSensorState)
+MRPT_FILL_ENUM_MEMBER(mrpt::hwdrivers::CGenericSensor, ssInitializing);
+MRPT_FILL_ENUM_MEMBER(mrpt::hwdrivers::CGenericSensor, ssWorking);
+MRPT_FILL_ENUM_MEMBER(mrpt::hwdrivers::CGenericSensor, ssError);
+MRPT_FILL_ENUM_MEMBER(mrpt::hwdrivers::CGenericSensor, ssUninitialized);
+MRPT_ENUM_TYPE_END()

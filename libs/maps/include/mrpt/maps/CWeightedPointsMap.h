@@ -2,14 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
 #include <mrpt/maps/CPointsMap.h>
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/obs/CObservation2DRangeScan.h>
 #include <mrpt/obs/CObservation3DRangeScan.h>
 #include <mrpt/serialization/CSerializable.h>
@@ -28,18 +28,24 @@ namespace maps
  */
 class CWeightedPointsMap : public CPointsMap
 {
-	DEFINE_SERIALIZABLE(CWeightedPointsMap)
+	DEFINE_SERIALIZABLE(CWeightedPointsMap, mrpt::maps)
 
    public:
 	/** Default constructor */
-	CWeightedPointsMap();
-	CWeightedPointsMap(const CPointsMap& o) : CWeightedPointsMap()
+	CWeightedPointsMap() = default;
+	CWeightedPointsMap(const CPointsMap& o) { impl_copyFrom(o); }
+	CWeightedPointsMap(const CWeightedPointsMap& o) : CPointsMap()
 	{
-		CPointsMap::operator=(o);
+		impl_copyFrom(o);
 	}
-	CWeightedPointsMap operator=(const CPointsMap& o)
+	CWeightedPointsMap& operator=(const CPointsMap& o)
 	{
-		CPointsMap::operator=(o);
+		impl_copyFrom(o);
+		return *this;
+	}
+	CWeightedPointsMap& operator=(const CWeightedPointsMap& o)
+	{
+		impl_copyFrom(o);
 		return *this;
 	}
 
@@ -181,7 +187,7 @@ class PointCloudAdapter<mrpt::maps::CWeightedPointsMap>
 	/** Set number of points (to uninitialized values) */
 	inline void resize(const size_t N) { m_obj.resize(N); }
 	/** Does nothing as of now */
-	inline void setDimensions(const size_t& height, const size_t& width) {}
+	inline void setDimensions(size_t height, size_t width) {}
 	/** Get XYZ coordinates of i'th point */
 	template <typename T>
 	inline void getPointXYZ(const size_t idx, T& x, T& y, T& z) const

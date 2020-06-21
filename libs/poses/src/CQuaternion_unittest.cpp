@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,12 +10,13 @@
 #include <CTraitsTest.h>
 #include <gtest/gtest.h>
 #include <mrpt/math/CQuaternion.h>
+#include <mrpt/math/CVectorDynamic.h>
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/poses/CPose3DQuat.h>
+#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::poses;
-
 using namespace mrpt::math;
 using namespace std;
 
@@ -37,8 +38,8 @@ class QuaternionTests : public ::testing::Test
 
 		EXPECT_NEAR(
 			0,
-			std::abs((CPose3D(q1, 0, 0, 0).getAsVectorVal() -
-					  CPose3D(q1r, 0, 0, 0).getAsVectorVal())
+			std::abs((CPose3D(q1, 0, 0, 0).asVectorVal() -
+					  CPose3D(q1r, 0, 0, 0).asVectorVal())
 						 .sum()),
 			1e-6);
 	}
@@ -96,13 +97,13 @@ class QuaternionTests : public ::testing::Test
 
 	void test_ExpAndLnMatches(double v0, double v1, double v2)
 	{
-		CArrayDouble<3> v;
+		CVectorFixedDouble<3> v;
 		v[0] = v0;
 		v[1] = v1;
 		v[2] = v2;
 
 		const CQuaternionDouble q1 = CQuaternionDouble::exp(v);
-		auto q1_ln = q1.ln<CArrayDouble<3>>();
+		auto q1_ln = q1.ln<CVectorFixedDouble<3>>();
 
 		// q1_ln should be == v
 		EXPECT_NEAR(0, (q1_ln - v).array().abs().sum(), 1e-10)
@@ -120,10 +121,10 @@ TEST_F(QuaternionTests, crossProduct)
 	CQuaternionDouble q1, q2, q3;
 
 	// q1 = CQuaternionDouble(1,2,3,4); q1.normalize();
-	CPose3D p1(0, 0, 0, DEG2RAD(10), DEG2RAD(30), DEG2RAD(-20));
+	CPose3D p1(0, 0, 0, 10.0_deg, 30.0_deg, -20.0_deg);
 	p1.getAsQuaternion(q1);
 
-	CPose3D p2(0, 0, 0, DEG2RAD(30), DEG2RAD(-20), DEG2RAD(10));
+	CPose3D p2(0, 0, 0, 30.0_deg, -20.0_deg, 10.0_deg);
 	p2.getAsQuaternion(q2);
 
 	// q3 = q1 x q2
@@ -133,8 +134,7 @@ TEST_F(QuaternionTests, crossProduct)
 
 	EXPECT_NEAR(
 		0,
-		std::abs((p3.getAsVectorVal() - CPose3D(q3, 0, 0, 0).getAsVectorVal())
-					 .sum()),
+		std::abs((p3.asVectorVal() - CPose3D(q3, 0, 0, 0).asVectorVal()).sum()),
 		1e-6)
 		<< "q1 = " << q1 << endl
 		<< "q1 as CPose3D = " << CPose3D(q1, 0, 0, 0) << endl
@@ -148,18 +148,18 @@ TEST_F(QuaternionTests, crossProduct)
 // Use special cases: gimbal lock:
 TEST_F(QuaternionTests, gimbalLock)
 {
-	test_gimbalLock(DEG2RAD(20), DEG2RAD(90), DEG2RAD(0));
-	test_gimbalLock(DEG2RAD(20), DEG2RAD(-90), DEG2RAD(0));
+	test_gimbalLock(20.0_deg, 90.0_deg, 0.0_deg);
+	test_gimbalLock(20.0_deg, -90.0_deg, 0.0_deg);
 }
 
 TEST_F(QuaternionTests, ToYPRAndBack)
 {
-	test_toYPRAndBack(DEG2RAD(20), DEG2RAD(30), DEG2RAD(40));
-	test_toYPRAndBack(DEG2RAD(20), DEG2RAD(30), DEG2RAD(40));
-	test_toYPRAndBack(DEG2RAD(30), DEG2RAD(90), DEG2RAD(0));
-	test_toYPRAndBack(DEG2RAD(-30), DEG2RAD(90), DEG2RAD(0));
-	test_toYPRAndBack(DEG2RAD(-30), DEG2RAD(88), DEG2RAD(60));
-	test_toYPRAndBack(DEG2RAD(-30), DEG2RAD(10), DEG2RAD(60));
+	test_toYPRAndBack(20.0_deg, 30.0_deg, 40.0_deg);
+	test_toYPRAndBack(20.0_deg, 30.0_deg, 40.0_deg);
+	test_toYPRAndBack(30.0_deg, 90.0_deg, 0.0_deg);
+	test_toYPRAndBack(-30.0_deg, 90.0_deg, 0.0_deg);
+	test_toYPRAndBack(-30.0_deg, 88.0_deg, 60.0_deg);
+	test_toYPRAndBack(-30.0_deg, 10.0_deg, 60.0_deg);
 }
 
 TEST_F(QuaternionTests, LnAndExpMatches)

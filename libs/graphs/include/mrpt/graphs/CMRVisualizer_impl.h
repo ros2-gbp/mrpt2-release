@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -130,8 +130,8 @@ void CMRVisualizer<
 		else
 		{  // CPointCloud not yet registered.
 			// Create CPointCloud
-			strid_to_cloud.insert(make_pair(
-				curr_strid, mrpt::make_aligned_shared<CPointCloud>()));
+			strid_to_cloud.insert(
+				make_pair(curr_strid, std::make_shared<CPointCloud>()));
 			// Create TColorf
 			strid_to_color.insert(
 				make_pair(curr_strid, nodes_color_mngr.getNextTColorf()));
@@ -139,7 +139,6 @@ void CMRVisualizer<
 			CPointCloud::Ptr& curr_cloud = strid_to_cloud.at(curr_strid);
 			curr_cloud->setColor(strid_to_color.at(curr_strid));
 			curr_cloud->setPointSize(nodes_point_size);
-			curr_cloud->enablePointSmooth();
 
 		}  // end of (is CPointCloud/Color registered)
 
@@ -231,7 +230,7 @@ void CMRVisualizer<
 			// Register a new CSetOfLines when a unique pair of
 			// <agent_ID_str (of end_node), is_interconnecting_edge> is found
 			id_to_set_of_lines.insert(
-				make_pair(curr_pair, mrpt::make_aligned_shared<CSetOfLines>()));
+				make_pair(curr_pair, std::make_shared<CSetOfLines>()));
 
 			// Create TColorf if not in map
 			// Color depends only on the agent_ID_str

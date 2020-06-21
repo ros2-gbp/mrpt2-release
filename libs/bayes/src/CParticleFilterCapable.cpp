@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -96,8 +96,7 @@ void CParticleFilterCapable::computeResampling(
 			//   Select with replacement
 			// ==============================================
 			vector<double> Q;
-			mrpt::math::cumsum_tmpl<vector<double>, vector<double>, double>(
-				linW, Q);
+			mrpt::math::cumsum_tmpl<vector<double>, vector<double>>(linW, Q);
 			Q[M - 1] = 1.1;
 
 			vector<double> T(M);
@@ -165,7 +164,7 @@ void CParticleFilterCapable::computeResampling(
 
 				// perform resampling:
 				vector<double> Q;
-				mrpt::math::cumsum_tmpl<vector<double>, vector<double>, double>(
+				mrpt::math::cumsum_tmpl<vector<double>, vector<double>>(
 					linW_mod, Q);
 				Q[M - 1] = 1.1;
 
@@ -200,8 +199,7 @@ void CParticleFilterCapable::computeResampling(
 			//   prStratified
 			// ==============================================
 			vector<double> Q;
-			mrpt::math::cumsum_tmpl<vector<double>, vector<double>, double>(
-				linW, Q);
+			mrpt::math::cumsum_tmpl<vector<double>, vector<double>>(linW, Q);
 			Q[M - 1] = 1.1;
 
 			// Stratified-uniform random vector:
@@ -237,8 +235,7 @@ void CParticleFilterCapable::computeResampling(
 			//   prSystematic
 			// ==============================================
 			vector<double> Q;
-			mrpt::math::cumsum_tmpl<vector<double>, vector<double>, double>(
-				linW, Q);
+			mrpt::math::cumsum_tmpl<vector<double>, vector<double>>(linW, Q);
 			Q[M - 1] = 1.1;
 
 			// Uniform random vector:
@@ -308,13 +305,11 @@ void CParticleFilterCapable::prediction_and_update(
 					prediction_and_update_...
  ---------------------------------------------------------------*/
 void CParticleFilterCapable::prediction_and_update_pfStandardProposal(
-	const mrpt::obs::CActionCollection* action,
-	const mrpt::obs::CSensoryFrame* observation,
-	const bayes::CParticleFilter::TParticleFilterOptions& PF_options)
+	[[maybe_unused]] const mrpt::obs::CActionCollection* action,
+	[[maybe_unused]] const mrpt::obs::CSensoryFrame* observation,
+	[[maybe_unused]] const bayes::CParticleFilter::TParticleFilterOptions&
+		PF_options)
 {
-	MRPT_UNUSED_PARAM(action);
-	MRPT_UNUSED_PARAM(observation);
-	MRPT_UNUSED_PARAM(PF_options);
 	THROW_EXCEPTION(
 		"Algorithm 'pfStandardProposal' is not implemented in inherited "
 		"class!");
@@ -323,13 +318,11 @@ void CParticleFilterCapable::prediction_and_update_pfStandardProposal(
 					prediction_and_update_...
  ---------------------------------------------------------------*/
 void CParticleFilterCapable::prediction_and_update_pfAuxiliaryPFStandard(
-	const mrpt::obs::CActionCollection* action,
-	const mrpt::obs::CSensoryFrame* observation,
-	const bayes::CParticleFilter::TParticleFilterOptions& PF_options)
+	[[maybe_unused]] const mrpt::obs::CActionCollection* action,
+	[[maybe_unused]] const mrpt::obs::CSensoryFrame* observation,
+	[[maybe_unused]] const bayes::CParticleFilter::TParticleFilterOptions&
+		PF_options)
 {
-	MRPT_UNUSED_PARAM(action);
-	MRPT_UNUSED_PARAM(observation);
-	MRPT_UNUSED_PARAM(PF_options);
 	THROW_EXCEPTION(
 		"Algorithm 'pfAuxiliaryPFStandard' is not implemented in inherited "
 		"class!");
@@ -338,13 +331,11 @@ void CParticleFilterCapable::prediction_and_update_pfAuxiliaryPFStandard(
 					prediction_and_update_...
  ---------------------------------------------------------------*/
 void CParticleFilterCapable::prediction_and_update_pfOptimalProposal(
-	const mrpt::obs::CActionCollection* action,
-	const mrpt::obs::CSensoryFrame* observation,
-	const bayes::CParticleFilter::TParticleFilterOptions& PF_options)
+	[[maybe_unused]] const mrpt::obs::CActionCollection* action,
+	[[maybe_unused]] const mrpt::obs::CSensoryFrame* observation,
+	[[maybe_unused]] const bayes::CParticleFilter::TParticleFilterOptions&
+		PF_options)
 {
-	MRPT_UNUSED_PARAM(action);
-	MRPT_UNUSED_PARAM(observation);
-	MRPT_UNUSED_PARAM(PF_options);
 	THROW_EXCEPTION(
 		"Algorithm 'pfOptimalProposal' is not implemented in inherited class!");
 }
@@ -352,13 +343,11 @@ void CParticleFilterCapable::prediction_and_update_pfOptimalProposal(
 					prediction_and_update_...
  ---------------------------------------------------------------*/
 void CParticleFilterCapable::prediction_and_update_pfAuxiliaryPFOptimal(
-	const mrpt::obs::CActionCollection* action,
-	const mrpt::obs::CSensoryFrame* observation,
-	const bayes::CParticleFilter::TParticleFilterOptions& PF_options)
+	[[maybe_unused]] const mrpt::obs::CActionCollection* action,
+	[[maybe_unused]] const mrpt::obs::CSensoryFrame* observation,
+	[[maybe_unused]] const bayes::CParticleFilter::TParticleFilterOptions&
+		PF_options)
 {
-	MRPT_UNUSED_PARAM(action);
-	MRPT_UNUSED_PARAM(observation);
-	MRPT_UNUSED_PARAM(PF_options);
 	THROW_EXCEPTION(
 		"Algorithm 'pfAuxiliaryPFOptimal' is not implemented in inherited "
 		"class!");
@@ -502,7 +491,7 @@ size_t CParticleFilterCapable::fastDrawSample(
 				"resamplingMethod must be 'prMultinomial' for a dynamic number "
 				"of particles!");
 
-		double draw = getRandomGenerator().drawUniform(0, 0.999999);
+		double draw = getRandomGenerator().drawUniform(0.0, 0.999999);
 		double CDF_next = -1.;
 		double CDF = -1.;
 

@@ -2,13 +2,12 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/core/aligned_std_map.h>
 #include <mrpt/poses/Lie/SE.h>
 #include <mrpt/system/datetime.h>
 #include <map>
@@ -143,8 +142,8 @@ class FrameTransformer : public FrameTransformerInterface<DIM>
 	};
 
 	// map: [parent] -> { [child] -> relPoseChildWRTParent }
-	using pose_tree_t = mrpt::aligned_std_map<
-		std::string, mrpt::aligned_std_map<std::string, TF_TreeEdge>>;
+	using pose_tree_t =
+		std::map<std::string, std::map<std::string, TF_TreeEdge>>;
 	pose_tree_t m_pose_edges_buffer;
 };
 

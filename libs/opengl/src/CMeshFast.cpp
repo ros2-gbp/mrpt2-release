@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,12 +10,12 @@
 #include "opengl-precomp.h"  // Precompiled header
 
 #include <mrpt/img/color_maps.h>
+#include <mrpt/math/ops_containers.h>
 #include <mrpt/opengl/CMeshFast.h>
 #include <mrpt/opengl/CSetOfTriangles.h>
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/serialization/CArchive.h>
-
-#include "opengl_internals.h"
+#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::opengl;
@@ -24,11 +24,11 @@ using namespace mrpt::poses;
 using namespace mrpt::math;
 using namespace std;
 
-IMPLEMENTS_SERIALIZABLE(CMeshFast, CRenderizableDisplayList, mrpt::opengl)
+IMPLEMENTS_SERIALIZABLE(CMeshFast, CRenderizable, mrpt::opengl)
 
 void CMeshFast::updatePoints() const
 {
-	CRenderizableDisplayList::notifyChange();
+	CRenderizable::notifyChange();
 
 	const auto cols = Z.cols();
 	const auto rows = Z.rows();
@@ -52,70 +52,44 @@ void CMeshFast::updatePoints() const
 	pointsUpToDate = true;
 }
 
-/*---------------------------------------------------------------
-							render
-  ---------------------------------------------------------------*/
-void CMeshFast::render_dl() const
+void CMeshFast::onUpdateBuffers_Points()
 {
-#if MRPT_HAS_OPENGL_GLUT
+	using mrpt::img::TColor;
+	using mrpt::img::TColorf;
 
 	if (!pointsUpToDate) updatePoints();
 
-	ASSERT_(X.size() == Y.size());
-	ASSERT_(X.size() == Z.size());
+	ASSERT_EQUAL_(X.size(), Y.size());
+	ASSERT_EQUAL_(X.size(), Z.size());
 
-	if (m_color.A != 255)
+	auto& vbd = CRenderizableShaderPoints::m_vertex_buffer_data;
+	auto& cbd = CRenderizableShaderPoints::m_color_buffer_data;
+	vbd.clear();
+	cbd.clear();
+
+	for (int i = 0; i < X.rows(); i++)
 	{
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	}
-
-	glPointSize(m_pointSize);
-
-	if (m_pointSmooth)
-		glEnable(GL_POINT_SMOOTH);
-	else
-		glDisable(GL_POINT_SMOOTH);
-
-	// Disable lighting for point clouds:
-	glDisable(GL_LIGHTING);
-
-	glBegin(GL_POINTS);
-	for (unsigned int i = 0; i < X.rows(); i++)
-		for (unsigned int j = 0; j < X.cols(); j++)
+		for (int j = 0; j < X.cols(); j++)
 		{
+			TColor col;
+
 			if (m_isImage && m_textureImage.isColor())
-				glColor4f(C_r(i, j), C_g(i, j), C_b(i, j), m_color.A / 255.f);
-
+				col = TColor(C_r(i, j), C_g(i, j), C_b(i, j), m_color.A);
 			else if (m_isImage)
-				glColor4f(C(i, j), C(i, j), C(i, j), m_color.A / 255.f);
-
+				col = TColor(C(i, j), C(i, j), C(i, j), m_color.A);
 			else if (m_colorFromZ)
 			{
 				float rz, gz, bz;
-				colormap(m_colorMap, C(i, j), rz, gz, bz);
-				glColor4f(rz, gz, bz, m_color.A / 255.f);
+				colormap(m_colorMap, C(i, j) / 255.0f, rz, gz, bz);
+				col = TColorf(rz, gz, bz, m_color.A / 255.f).asTColor();
 			}
-
 			else
-				glColor4f(
-					m_color.R / 255.f, m_color.G / 255.f, m_color.B / 255.f,
-					m_color.A / 255.f);
+				col = m_color;
 
-			glVertex3f(X(i, j), Y(i, j), Z(i, j));
+			cbd.emplace_back(col);
+			vbd.emplace_back(X(i, j), Y(i, j), Z(i, j));
 		}
-
-	glEnd();
-
-	glEnable(GL_LIGHTING);
-
-	// Undo flags:
-	if (m_color.A != 255) glDisable(GL_BLEND);
-
-	if (m_pointSmooth) glDisable(GL_POINT_SMOOTH);
-
-	checkOpenGLError();
-#endif
+	}
 }
 
 void CMeshFast::assignImage(const CImage& img)
@@ -126,8 +100,7 @@ void CMeshFast::assignImage(const CImage& img)
 	m_textureImage = img;
 
 	// Delete content in Z
-	Z.setSize(img.getHeight(), img.getWidth());
-	Z.assign(0);
+	Z.setZero(img.getHeight(), img.getWidth());
 
 	// Update flags/states
 	m_modified_Image = true;
@@ -136,13 +109,13 @@ void CMeshFast::assignImage(const CImage& img)
 	m_isImage = true;
 	pointsUpToDate = false;
 
-	CRenderizableDisplayList::notifyChange();
+	CRenderizable::notifyChange();
 
 	MRPT_END
 }
 
 void CMeshFast::assignImageAndZ(
-	const CImage& img, const mrpt::math::CMatrixTemplateNumeric<float>& in_Z)
+	const CImage& img, const mrpt::math::CMatrixDynamic<float>& in_Z)
 {
 	MRPT_START
 
@@ -162,7 +135,7 @@ void CMeshFast::assignImageAndZ(
 	m_isImage = true;
 	pointsUpToDate = false;
 
-	CRenderizableDisplayList::notifyChange();
+	CRenderizable::notifyChange();
 
 	MRPT_END
 }
@@ -180,7 +153,6 @@ void CMeshFast::serializeTo(mrpt::serialization::CArchive& out) const
 	out << m_colorFromZ;
 	out << int16_t(m_colorMap);
 	out << m_pointSize;
-	out << m_pointSmooth;
 }
 
 void CMeshFast::serializeFrom(
@@ -208,7 +180,6 @@ void CMeshFast::serializeFrom(
 			in >> i;
 			m_colorMap = TColormap(i);
 			in >> m_pointSize;
-			in >> m_pointSmooth;
 			m_modified_Z = true;
 		}
 
@@ -218,25 +189,24 @@ void CMeshFast::serializeFrom(
 		default:
 			MRPT_THROW_UNKNOWN_SERIALIZATION_VERSION(version);
 	};
-	CRenderizableDisplayList::notifyChange();
+	CRenderizable::notifyChange();
 }
 
 void CMeshFast::updateColorsMatrix() const
 {
-	if ((!m_modified_Z) && (!m_modified_Image)) return;
+	if (!m_modified_Z && !m_modified_Image) return;
 
-	CRenderizableDisplayList::notifyChange();
+	CRenderizable::notifyChange();
 
 	if (m_isImage)
 	{
 		const int cols = m_textureImage.getWidth();
 		const int rows = m_textureImage.getHeight();
 
-		if ((cols != Z.cols()) || (rows != Z.rows()))
-		{
-			printf("\nTexture Image and Z sizes have to be equal");
-		}
-		else if (m_textureImage.isColor())
+		ASSERT_EQUAL_(cols, Z.cols());
+		ASSERT_EQUAL_(rows, Z.rows());
+
+		if (m_textureImage.isColor())
 		{
 			C_r.setSize(rows, cols);
 			C_g.setSize(rows, cols);
@@ -258,8 +228,12 @@ void CMeshFast::updateColorsMatrix() const
 
 		// Color is proportional to difference between height of a cell and
 		//  the mean of the nearby cells MEANS:
-		C = Z;
-		C.normalize(0.01f, 0.99f);
+		Eigen::MatrixXf Zf = Z.asEigen().cast<float>();
+		mrpt::math::normalize(Zf, 0.01f, 0.99f);
+
+		Zf *= 255;
+
+		C = Zf.cast<uint8_t>();
 	}
 
 	m_modified_Image = false;
@@ -267,7 +241,7 @@ void CMeshFast::updateColorsMatrix() const
 	pointsUpToDate = false;
 }
 
-void CMeshFast::setZ(const mrpt::math::CMatrixTemplateNumeric<float>& in_Z)
+void CMeshFast::setZ(const mrpt::math::CMatrixDynamic<float>& in_Z)
 {
 	Z = in_Z;
 	m_modified_Z = true;
@@ -276,7 +250,7 @@ void CMeshFast::setZ(const mrpt::math::CMatrixTemplateNumeric<float>& in_Z)
 	// Delete previously loaded images
 	m_isImage = false;
 
-	CRenderizableDisplayList::notifyChange();
+	CRenderizable::notifyChange();
 }
 
 void CMeshFast::getBoundingBox(

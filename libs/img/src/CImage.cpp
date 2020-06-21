@@ -2,20 +2,22 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
+//
 #include "img-precomp.h"  // Precompiled headers
+//
 
+#include <mrpt/core/cpu.h>
 #include <mrpt/core/round.h>  // for round()
 #include <mrpt/img/CImage.h>
 #include <mrpt/io/CFileInputStream.h>
 #include <mrpt/io/CFileOutputStream.h>
 #include <mrpt/io/CMemoryStream.h>
-#include <mrpt/io/zip.h>
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/math/fourier.h>
 #include <mrpt/math/utils.h>  // for roundup()
 #include <mrpt/serialization/CArchive.h>
@@ -23,10 +25,11 @@
 #include <mrpt/system/CTimeLogger.h>
 #include <mrpt/system/filesystem.h>
 #include <mrpt/system/memory.h>
+
 #include <iostream>
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 #include "CImage_impl.h"
 
@@ -35,7 +38,7 @@
 #endif
 
 // Prototypes of SSE2/SSE3/SSSE3 optimized functions:
-#include "CImage_SSEx.h"
+#include "CImage.SSEx.h"
 
 using namespace mrpt;
 using namespace mrpt::img;
@@ -46,16 +49,10 @@ using namespace std;
 // This must be added to any CSerializable class implementation file.
 IMPLEMENTS_SERIALIZABLE(CImage, CSerializable, mrpt::img)
 
-static bool DISABLE_ZIP_COMPRESSION_value = false;
 static bool DISABLE_JPEG_COMPRESSION_value = true;
 static int SERIALIZATION_JPEG_QUALITY_value = 95;
 static std::string IMAGES_PATH_BASE(".");
 
-void CImage::DISABLE_ZIP_COMPRESSION(bool val)
-{
-	DISABLE_ZIP_COMPRESSION_value = val;
-}
-bool CImage::DISABLE_ZIP_COMPRESSION() { return DISABLE_ZIP_COMPRESSION_value; }
 void CImage::DISABLE_JPEG_COMPRESSION(bool val)
 {
 	DISABLE_JPEG_COMPRESSION_value = val;
@@ -159,7 +156,7 @@ static PixelDepth cvDepth2PixelDepth(int64_t d)
 	return PixelDepth::D8U;
 }
 
-#endif  // MRPT_HAS_OPENCV
+#endif	// MRPT_HAS_OPENCV
 
 // Default ctor
 CImage::CImage() : m_impl(mrpt::make_impl<CImage::Impl>()) {}
@@ -262,17 +259,13 @@ void CImage::resize(
 	// legit for the img to be uninitialized.
 
 	// If we're resizing to exactly the current size, do nothing:
+	if (static_cast<unsigned>(m_impl->img.cols) == width &&
+		static_cast<unsigned>(m_impl->img.rows) == height &&
+		m_impl->img.channels() == nChannels &&
+		m_impl->img.depth() == static_cast<int>(pixelDepth2CvDepth(depth)))
 	{
-		_IplImage ipl = m_impl->img;
-
-		if (static_cast<unsigned>(ipl.width) == width &&
-			static_cast<unsigned>(ipl.height) == height &&
-			ipl.nChannels == nChannels &&
-			static_cast<unsigned>(ipl.depth) == pixelDepth2IPLCvDepth(depth))
-		{
-			// Nothing to do:
-			return;
-		}
+		// Nothing to do:
+		return;
 	}
 
 #if IMAGE_ALLOC_PERFLOG
@@ -378,15 +371,15 @@ void CImage::loadFromMemoryBuffer(
 	resize(width, height, color ? CH_RGB : CH_GRAY);
 	m_imgIsExternalStorage = false;
 
-	_IplImage ii(m_impl->img);
-	IplImage* img = &ii;
+	auto* imgData = m_impl->img.data;
+	const auto imgWidthStep = m_impl->img.step[0];
 
 	if (color && swapRedBlue)
 	{
 		// Do copy & swap at once:
 		unsigned char* ptr_src = rawpixels;
-		auto* ptr_dest = reinterpret_cast<unsigned char*>(img->imageData);
-		const int bytes_per_row_out = img->widthStep;
+		auto* ptr_dest = imgData;
+		const int bytes_per_row_out = imgWidthStep;
 
 		for (int h = height; h--;)
 		{
@@ -403,18 +396,19 @@ void CImage::loadFromMemoryBuffer(
 	}
 	else
 	{
-		if (img->widthStep == img->width * img->nChannels)
+		if (imgWidthStep ==
+			static_cast<size_t>(m_impl->img.cols * m_impl->img.channels()))
 		{
 			// Copy the image data:
-			memcpy(img->imageData, rawpixels, img->imageSize);
+			memcpy(imgData, rawpixels, m_impl->img.dataend - m_impl->img.data);
 		}
 		else
 		{
 			// Copy the image row by row:
 			unsigned char* ptr_src = rawpixels;
-			auto* ptr_dest = reinterpret_cast<unsigned char*>(img->imageData);
+			auto* ptr_dest = imgData;
 			int bytes_per_row = width * (color ? 3 : 1);
-			int bytes_per_row_out = img->widthStep;
+			int bytes_per_row_out = imgWidthStep;
 			for (unsigned int y = 0; y < height; y++)
 			{
 				memcpy(ptr_dest, ptr_src, bytes_per_row);
@@ -500,107 +494,91 @@ void CImage::serializeTo(mrpt::serialization::CArchive& out) const
 	if (m_imgIsExternalStorage) out << m_externalFile;
 // Nothing else to serialize!
 #else
-	{
-		// Added in version 6: possibility of being stored offline:
-		out << m_imgIsExternalStorage;
 
-		if (m_imgIsExternalStorage)
+	// Added in version 6: possibility of being stored offline:
+	out << m_imgIsExternalStorage;
+
+	if (m_imgIsExternalStorage)
+	{
+		out << m_externalFile;
+		return;
+	}
+	// Normal image loaded in memory:
+	ASSERT_(m_impl);
+
+	const bool hasColor = m_impl->img.empty() ? false : isColor();
+
+	out << hasColor;
+
+	// Version >2: Color->JPEG, GrayScale->BYTE's array!
+	const int32_t width = m_impl->img.cols;
+	const int32_t height = m_impl->img.rows;
+	if (!hasColor)
+	{
+		// GRAY-SCALE: Raw bytes:
+		// Version 3: ZIP compression!
+		// Version 4: Skip zip if the image size <= 16Kb
+		int32_t origin = 0;	 // not used mrpt v1.9.9
+		uint32_t imageSize = height * m_impl->img.step[0];
+		// Version 10: depth
+		int32_t depth = m_impl->img.depth();
+
+		out << width << height << origin << imageSize
+			<< int32_t(cvDepth2PixelDepth(depth));
+
+		// Version 5: Use CImage::DISABLE_ZIP_COMPRESSION
+		// Dec 2019: Remove this feature since it's not worth.
+		// We still spend 1 byte for this constant bool just not to
+		// bump the serialization number.
+		bool imageStoredAsZip = false;
+
+		out << imageStoredAsZip;
+
+		if (imageSize > 0 && m_impl->img.data != nullptr)
+			out.WriteBuffer(m_impl->img.data, imageSize);
+	}
+	else
+	{
+		// COLOR: High quality JPEG image
+
+		// v7: If size is 0xN or Nx0, don't call
+		// "saveToStreamAsJPEG"!!
+
+		// v8: If DISABLE_JPEG_COMPRESSION
+		if (!CImage::DISABLE_JPEG_COMPRESSION())
 		{
-			out << m_externalFile;
+			// normal behavior: compress images:
+			out << width << height;
+
+			if (width >= 1 && height >= 1)
+			{
+				// Save to temporary memory stream:
+				mrpt::io::CMemoryStream aux;
+				saveToStreamAsJPEG(aux, CImage::SERIALIZATION_JPEG_QUALITY());
+
+				const auto nBytes =
+					static_cast<uint32_t>(aux.getTotalBytesCount());
+
+				out << nBytes;
+				out.WriteBuffer(aux.getRawBufferData(), nBytes);
+			}
 		}
 		else
-		{  // Normal image loaded in memory:
-			ASSERT_(m_impl);
+		{  // (New in v8)
+			// Don't JPEG-compress behavior:
+			// Use negative image sizes to signal this behavior:
+			const int32_t neg_width = -width;
+			const int32_t neg_height = -height;
 
-			const bool hasColor = m_impl->img.empty() ? false : isColor();
+			out << neg_width << neg_height;
 
-			out << hasColor;
+			// Dump raw image data:
+			const auto bytes_per_row = width * 3;
 
-			// Version >2: Color->JPEG, GrayScale->BYTE's array!
-			const int32_t width = m_impl->img.cols;
-			const int32_t height = m_impl->img.rows;
-			if (!hasColor)
-			{
-				// GRAY-SCALE: Raw bytes:
-				// Version 3: ZIP compression!
-				// Version 4: Skip zip if the image size <= 16Kb
-				int32_t origin = 0;  // not used mrpt v1.9.9
-				uint32_t imageSize = height * m_impl->img.step[0];
-				// Version 10: depth
-				int32_t depth = m_impl->img.depth();
-
-				out << width << height << origin << imageSize
-					<< int32_t(cvDepth2PixelDepth(depth));
-
-				// Version 5: Use CImage::DISABLE_ZIP_COMPRESSION
-				bool imageStoredAsZip = !CImage::DISABLE_ZIP_COMPRESSION() &&
-										(imageSize > 16 * 1024);
-
-				out << imageStoredAsZip;
-
-				// Version 4: Skip zip if the image size <= 16Kb
-				if (imageStoredAsZip)
-				{
-					std::vector<unsigned char> tempBuf;
-					mrpt::io::zip::compress(
-						m_impl->img.data, imageSize, tempBuf);
-
-					auto zipDataLen = static_cast<int32_t>(tempBuf.size());
-					out << zipDataLen;
-
-					out.WriteBuffer(&tempBuf[0], tempBuf.size());
-					tempBuf.clear();
-				}
-				else
-				{
-					if (imageSize > 0 && m_impl->img.data != nullptr)
-						out.WriteBuffer(m_impl->img.data, imageSize);
-				}
-			}
-			else
-			{
-				// COLOR: High quality JPEG image
-
-				// v7: If size is 0xN or Nx0, don't call
-				// "saveToStreamAsJPEG"!!
-
-				// v8: If DISABLE_JPEG_COMPRESSION
-				if (!CImage::DISABLE_JPEG_COMPRESSION())
-				{
-					// normal behavior: compress images:
-					out << width << height;
-
-					if (width >= 1 && height >= 1)
-					{
-						// Save to temporary memory stream:
-						mrpt::io::CMemoryStream aux;
-						saveToStreamAsJPEG(
-							aux, CImage::SERIALIZATION_JPEG_QUALITY());
-
-						const auto nBytes =
-							static_cast<uint32_t>(aux.getTotalBytesCount());
-
-						out << nBytes;
-						out.WriteBuffer(aux.getRawBufferData(), nBytes);
-					}
-				}
-				else
-				{  // (New in v8)
-					// Don't JPEG-compress behavior:
-					// Use negative image sizes to signal this behavior:
-					const int32_t neg_width = -width;
-					const int32_t neg_height = -height;
-
-					out << neg_width << neg_height;
-
-					// Dump raw image data:
-					const auto bytes_per_row = width * 3;
-
-					out.WriteBuffer(m_impl->img.data, bytes_per_row * height);
-				}
-			}
-		}  // end m_imgIsExternalStorage=false
+			out.WriteBuffer(m_impl->img.data, bytes_per_row * height);
+		}
 	}
+
 #endif
 }
 
@@ -645,11 +623,13 @@ void CImage::serializeFrom(mrpt::serialization::CArchive& in, uint8_t version)
 		case 1:
 		{
 			// Version 1: High quality JPEG image
-			mrpt::io::CMemoryStream aux;
 			uint32_t nBytes;
 			in >> nBytes;
-			aux.changeSize(nBytes + 10);
-			in.ReadBuffer(aux.getRawBufferData(), nBytes);
+			std::vector<uint8_t> buf(nBytes);
+			in.ReadBuffer(buf.data(), nBytes);
+
+			mrpt::io::CMemoryStream aux;
+			aux.assignMemoryNotOwn(buf.data(), buf.size());
 			aux.Seek(0);
 			loadFromStreamAsJPEG(aux);
 		}
@@ -695,11 +675,9 @@ void CImage::serializeFrom(mrpt::serialization::CArchive& in, uint8_t version)
 					resize(
 						static_cast<uint32_t>(width),
 						static_cast<uint32_t>(height), CH_GRAY, depth);
-					ASSERT_(
-						static_cast<uint32_t>(imageSize) ==
-						static_cast<uint32_t>(width) *
-							static_cast<uint32_t>(height) *
-							m_impl->img.step[0]);
+					ASSERT_EQUAL_(
+						static_cast<uint32_t>(imageSize),
+						static_cast<uint32_t>(height) * m_impl->img.step[0]);
 
 					if (version == 2)
 					{
@@ -726,19 +704,9 @@ void CImage::serializeFrom(mrpt::serialization::CArchive& in, uint8_t version)
 						{
 							uint32_t zipDataLen;
 							in >> zipDataLen;
-
-#if 0
-						size_t outDataBufferSize = imageSize;
-						size_t outDataActualSize;
-						mrpt::io::zip::decompress(
-						    in, zipDataLen, m_impl->img.data,
-							outDataBufferSize, outDataActualSize);
-						ASSERT_(outDataActualSize == outDataBufferSize);
-#else
 							THROW_EXCEPTION(
-								"ZIP image deserialization not "
-								"implemented");
-#endif
+								"ZIP image deserialization not supported "
+								"anymore");
 						}
 						else
 						{
@@ -797,12 +765,16 @@ void CImage::serializeFrom(mrpt::serialization::CArchive& in, uint8_t version)
 					// COLOR IMAGE: JPEG
 					if (loadJPEG)
 					{
-						mrpt::io::CMemoryStream aux;
 						uint32_t nBytes;
 						in >> nBytes;
-						aux.changeSize(nBytes + 10);
-						in.ReadBuffer(aux.getRawBufferData(), nBytes);
+
+						std::vector<uint8_t> buf(nBytes);
+						in.ReadBuffer(buf.data(), nBytes);
+
+						mrpt::io::CMemoryStream aux;
+						aux.assignMemoryNotOwn(buf.data(), buf.size());
 						aux.Seek(0);
+
 						loadFromStreamAsJPEG(aux);
 					}
 				}
@@ -826,8 +798,7 @@ IMPLEMENTS_MEXPLUS_FROM(mrpt::img::CImage)
 mxArray* CImage::writeToMatlab() const
 {
 #if MRPT_HAS_MATLAB
-	cv::Mat cvImg = cv::cvarrToMat(this->getAs<IplImage>());
-	return mexplus::from(cvImg);
+	return mexplus::from(this->asCvMatRef());
 #else
 	THROW_EXCEPTION("MRPT built without MATLAB/Mex support");
 #endif
@@ -840,7 +811,7 @@ void CImage::getSize(TImageSize& s) const
 	s.x = m_impl->img.cols;
 	s.y = m_impl->img.rows;
 #else
-	THROW_EXCEPTION("MRPT built without MATLAB/Mex support");
+	THROW_EXCEPTION("MRPT built without OpenCV support");
 #endif
 }
 
@@ -858,10 +829,16 @@ std::string CImage::getChannelsOrder() const
 {
 #if MRPT_HAS_OPENCV
 	makeSureImageIsLoaded();  // For delayed loaded images stored externally
-	IplImage ipl(m_impl->img);
-	return std::string(ipl.channelSeq);
+
+	// modern opencv versions used these fixed order (see opencv
+	// core/src/array.cpp)
+	const int chCount = m_impl->img.channels();
+	ASSERT_ABOVEEQ_(chCount, 1);
+	ASSERT_BELOWEQ_(chCount, 4);
+	const std::array<const char*, 4> orderNames = {"GRAY", "", "BGR", "BGRA"};
+	return std::string(orderNames.at(chCount - 1));
 #else
-	THROW_EXCEPTION("MRPT built without MATLAB/Mex support");
+	THROW_EXCEPTION("MRPT built without OpenCV support");
 #endif
 }
 
@@ -871,7 +848,7 @@ size_t CImage::getRowStride() const
 	makeSureImageIsLoaded();  // For delayed loaded images stored externally
 	return m_impl->img.step[0];
 #else
-	THROW_EXCEPTION("MRPT built without MATLAB/Mex support");
+	THROW_EXCEPTION("MRPT built without OpenCV support");
 #endif
 }
 
@@ -891,7 +868,16 @@ bool CImage::isColor() const
 	makeSureImageIsLoaded();  // For delayed loaded images stored externally
 	return m_impl->img.channels() == 3;
 #else
-	THROW_EXCEPTION("MRPT built without MATLAB/Mex support");
+	THROW_EXCEPTION("MRPT built without OpenCV support");
+#endif
+}
+
+bool CImage::isEmpty() const
+{
+#if MRPT_HAS_OPENCV
+	return m_imgIsExternalStorage || m_impl->img.empty();
+#else
+	THROW_EXCEPTION("MRPT built without OpenCV support");
 #endif
 }
 
@@ -901,7 +887,7 @@ TImageChannels CImage::getChannelCount() const
 	makeSureImageIsLoaded();  // For delayed loaded images stored externally
 	return static_cast<TImageChannels>(m_impl->img.channels());
 #else
-	THROW_EXCEPTION("MRPT built without MATLAB/Mex support");
+	THROW_EXCEPTION("MRPT built without OpenCV support");
 #endif
 }
 
@@ -964,9 +950,10 @@ static bool my_img_to_grayscale(const cv::Mat& src, cv::Mat& dest)
 	if (dest.size() != src.size() || dest.type() != src.type())
 		dest = cv::Mat(src.rows, src.cols, CV_8UC1);
 
-// If possible, use SSE optimized version:
-#if MRPT_HAS_SSE3
-	if ((src.step[0] & 0x0f) == 0 && (dest.step[0] & 0x0f) == 0)
+		// If possible, use SSE optimized version:
+#if MRPT_ARCH_INTEL_COMPATIBLE
+	if ((src.step[0] & 0x0f) == 0 && (dest.step[0] & 0x0f) == 0 &&
+		mrpt::cpu::supports(mrpt::cpu::feature::SSSE3))
 	{
 		image_SSSE3_bgr_to_gray_8u(
 			src.ptr<uint8_t>(), dest.ptr<uint8_t>(), src.cols, src.rows,
@@ -974,6 +961,7 @@ static bool my_img_to_grayscale(const cv::Mat& src, cv::Mat& dest)
 		return true;
 	}
 #endif
+
 	// OpenCV Method:
 	cv::cvtColor(src, dest, CV_BGR2GRAY);
 	return false;
@@ -1016,17 +1004,17 @@ bool CImage::scaleHalf(CImage& out, TInterpolationMethod interp) const
 	out.resize(w >> 1, h >> 1, getChannelCount());
 	auto& img_out = out.m_impl->img;
 
-	// If possible, use SSE optimized version:
-#if MRPT_HAS_SSE3
-	if (img.channels() == 3 && interp == IMG_INTERP_NN)
+// If possible, use SSE optimized version:
+#if MRPT_ARCH_INTEL_COMPATIBLE
+	if (img.channels() == 3 && interp == IMG_INTERP_NN &&
+		mrpt::cpu::supports(mrpt::cpu::feature::SSSE3))
 	{
 		image_SSSE3_scale_half_3c8u(
 			img.data, img_out.data, w, h, img.step[0], img_out.step[0]);
 		return true;
 	}
-#endif
-#if MRPT_HAS_SSE2
-	if (img.channels() == 1)
+
+	if (img.channels() == 1 && mrpt::cpu::supports(mrpt::cpu::feature::SSE2))
 	{
 		if (interp == IMG_INTERP_NN)
 		{
@@ -1204,37 +1192,34 @@ float CImage::correlate(
 		(img2.getHeight() + height_init > getHeight()))
 		THROW_EXCEPTION("Correlation Error!, image to correlate out of bounds");
 
-	unsigned int i, j;
 	float x1, x2;
 	float syy = 0.0f, sxy = 0.0f, sxx = 0.0f, m1 = 0.0f, m2 = 0.0f,
 		  n = (float)(img2.getHeight() * img2.getWidth());
-	//	IplImage *ipl1 = (*this).img;
-	//	IplImage *ipl2 = img2.img;
 
 	// find the means
-	for (i = 0; i < img2.getHeight(); i++)
+	for (size_t i = 0; i < img2.getHeight(); i++)
 	{
-		for (j = 0; j < img2.getWidth(); j++)
+		for (size_t j = 0; j < img2.getWidth(); j++)
 		{
 			m1 += *(*this)(
 				j + width_init,
 				i + height_init);  //(double)(ipl1->imageData[i*ipl1->widthStep
 			//+ j ]);
 			m2 += *img2(
-				j, i);  //(double)(ipl2->imageData[i*ipl2->widthStep + j ]);
+				j, i);	//(double)(ipl2->imageData[i*ipl2->widthStep + j ]);
 		}  //[ row * ipl->widthStep +  col * ipl->nChannels +  channel ];
 	}
 	m1 /= n;
 	m2 /= n;
 
-	for (i = 0; i < img2.getHeight(); i++)
+	for (size_t i = 0; i < img2.getHeight(); i++)
 	{
-		for (j = 0; j < img2.getWidth(); j++)
+		for (size_t j = 0; j < img2.getWidth(); j++)
 		{
 			x1 = *(*this)(j + width_init, i + height_init) -
 				 m1;  //(double)(ipl1->imageData[i*ipl1->widthStep
 					  //+ j]) - m1;
-			x2 = *img2(j, i) - m2;  //(double)(ipl2->imageData[i*ipl2->widthStep
+			x2 = *img2(j, i) - m2;	//(double)(ipl2->imageData[i*ipl2->widthStep
 									//+ j]) - m2;
 			sxx += x1 * x1;
 			syy += x2 * x2;
@@ -1279,32 +1264,75 @@ void CImage::getAsMatrix(
 	if (doResize || outMatrix.rows() < ly || outMatrix.cols() < lx)
 		outMatrix.setSize(y_max - y_min + 1, x_max - x_min + 1);
 
-	if (isColor())
+	const bool is_color = isColor();
+
+	// Luminance: Y = 0.3R + 0.59G + 0.11B
+	for (int y = 0; y < ly; y++)
 	{
-		// Luminance: Y = 0.3R + 0.59G + 0.11B
-		for (int y = 0; y < ly; y++)
+		const uint8_t* pixels = ptr<uint8_t>(x_min, y_min + y);
+		for (int x = 0; x < lx; x++)
 		{
-			const uint8_t* pixels = ptr<uint8_t>(x_min, y_min + y);
-			for (int x = 0; x < lx; x++)
+			float aux;
+			if (is_color)
 			{
-				float aux = *pixels++ * 0.3f;
+				aux = *pixels++ * 0.3f;
 				aux += *pixels++ * 0.59f;
 				aux += *pixels++ * 0.11f;
-				if (normalize_01) aux *= (1.0f / 255);
-				outMatrix.coeffRef(y, x) = aux;
 			}
+			else
+			{
+				aux = (*pixels++);
+			}
+			outMatrix.coeffRef(y, x) = aux;
 		}
 	}
-	else
+	if (normalize_01) outMatrix *= (1.0f / 255);
+
+	MRPT_END
+#endif
+}
+
+void CImage::getAsMatrix(
+	CMatrix_u8& outMatrix, bool doResize, int x_min, int y_min, int x_max,
+	int y_max) const
+{
+#if MRPT_HAS_OPENCV
+	MRPT_START
+	makeSureImageIsLoaded();  // For delayed loaded images stored externally
+
+	const auto& img = m_impl->img;
+
+	// Set sizes:
+	if (x_max == -1) x_max = img.cols - 1;
+	if (y_max == -1) y_max = img.rows - 1;
+
+	ASSERT_(x_min >= 0 && x_min < img.cols && x_min < x_max);
+	ASSERT_(y_min >= 0 && y_min < img.rows && y_min < y_max);
+
+	int lx = (x_max - x_min + 1);
+	int ly = (y_max - y_min + 1);
+
+	if (doResize || outMatrix.rows() < ly || outMatrix.cols() < lx)
+		outMatrix.setSize(y_max - y_min + 1, x_max - x_min + 1);
+
+	const bool is_color = isColor();
+
+	// Luminance: Y = 0.3R + 0.59G + 0.11B
+	for (int y = 0; y < ly; y++)
 	{
-		for (int y = 0; y < ly; y++)
+		const uint8_t* pixels = ptr<uint8_t>(x_min, y_min + y);
+		for (int x = 0; x < lx; x++)
 		{
-			const uint8_t* pixels = ptr<uint8_t>(x_min, y_min + y);
-			for (int x = 0; x < lx; x++)
+			if (is_color)
 			{
-				float aux = (*pixels++);
-				if (normalize_01) aux *= (1.0f / 255);
-				outMatrix.coeffRef(y, x) = aux;
+				unsigned int aux = *pixels++ * 3000;  // 0.3f;
+				aux += *pixels++ * 5900;  // 0.59f;
+				aux += *pixels++ * 1100;  // 0.11f;
+				outMatrix.coeffRef(y, x) = static_cast<uint8_t>(aux / 1000);
+			}
+			else
+			{
+				outMatrix.coeffRef(y, x) = (*pixels++);
 			}
 		}
 	}
@@ -1312,7 +1340,6 @@ void CImage::getAsMatrix(
 	MRPT_END
 #endif
 }
-
 void CImage::getAsRGBMatrices(
 	mrpt::math::CMatrixFloat& R, mrpt::math::CMatrixFloat& G,
 	mrpt::math::CMatrixFloat& B, bool doResize, int x_min, int y_min, int x_max,
@@ -1338,32 +1365,71 @@ void CImage::getAsRGBMatrices(
 	if (doResize || G.rows() < ly || G.cols() < lx) G.setSize(ly, lx);
 	if (doResize || B.rows() < ly || B.cols() < lx) B.setSize(ly, lx);
 
-	if (isColor())
+	const bool is_color = isColor();
+	for (int y = 0; y < ly; y++)
 	{
-		for (int y = 0; y < ly; y++)
+		const uint8_t* pixels = ptr<uint8_t>(x_min, y_min + y);
+		for (int x = 0; x < lx; x++)
 		{
-			const uint8_t* pixels = ptr<uint8_t>(x_min, y_min + y);
-			for (int x = 0; x < lx; x++)
+			if (is_color)
 			{
-				float aux = *pixels++ * (1.0f / 255);
-				R.coeffRef(y, x) = aux;
-				aux = *pixels++ * (1.0f / 255);
-				G.coeffRef(y, x) = aux;
-				aux = *pixels++ * (1.0f / 255);
-				B.coeffRef(y, x) = aux;
+				R.coeffRef(y, x) = u8tof(*pixels++);
+				G.coeffRef(y, x) = u8tof(*pixels++);
+				B.coeffRef(y, x) = u8tof(*pixels++);
+			}
+			else
+			{
+				R.coeffRef(y, x) = G.coeffRef(y, x) = B.coeffRef(y, x) =
+					u8tof(*pixels++);
 			}
 		}
 	}
-	else
+
+	MRPT_END
+#endif
+}
+
+void CImage::getAsRGBMatrices(
+	mrpt::math::CMatrix_u8& R, mrpt::math::CMatrix_u8& G,
+	mrpt::math::CMatrix_u8& B, bool doResize, int x_min, int y_min, int x_max,
+	int y_max) const
+{
+#if MRPT_HAS_OPENCV
+	MRPT_START
+
+	makeSureImageIsLoaded();  // For delayed loaded images stored externally
+	const auto& img = m_impl->img;
+
+	// Set sizes:
+	if (x_max == -1) x_max = img.cols - 1;
+	if (y_max == -1) y_max = img.rows - 1;
+
+	ASSERT_(x_min >= 0 && x_min < img.cols && x_min < x_max);
+	ASSERT_(y_min >= 0 && y_min < img.rows && y_min < y_max);
+
+	int lx = (x_max - x_min + 1);
+	int ly = (y_max - y_min + 1);
+
+	if (doResize || R.rows() < ly || R.cols() < lx) R.setSize(ly, lx);
+	if (doResize || G.rows() < ly || G.cols() < lx) G.setSize(ly, lx);
+	if (doResize || B.rows() < ly || B.cols() < lx) B.setSize(ly, lx);
+
+	const bool is_color = isColor();
+	for (int y = 0; y < ly; y++)
 	{
-		for (int y = 0; y < ly; y++)
+		const uint8_t* pixels = ptr<uint8_t>(x_min, y_min + y);
+		for (int x = 0; x < lx; x++)
 		{
-			const uint8_t* pixels = ptr<uint8_t>(x_min, y_min + y);
-			for (int x = 0; x < lx; x++)
+			if (is_color)
 			{
-				R.coeffRef(y, x) = (*pixels) * (1.0f / 255);
-				G.coeffRef(y, x) = (*pixels) * (1.0f / 255);
-				B.coeffRef(y, x) = (*pixels++) * (1.0f / 255);
+				R.coeffRef(y, x) = *pixels++;
+				G.coeffRef(y, x) = *pixels++;
+				B.coeffRef(y, x) = *pixels++;
+			}
+			else
+			{
+				R.coeffRef(y, x) = G.coeffRef(y, x) = B.coeffRef(y, x) =
+					*pixels++;
 			}
 		}
 	}
@@ -1402,7 +1468,7 @@ void CImage::cross_correlation_FFT(
 	size_t lx = mrpt::round2up<size_t>(actual_lx);
 	size_t ly = mrpt::round2up<size_t>(actual_ly);
 
-	CMatrix i1(ly, lx), i2(ly, lx);
+	CMatrixF i1(ly, lx), i2(ly, lx);
 
 	// We fill the images with the bias, such as when we substract the bias
 	// later on,
@@ -1417,11 +1483,11 @@ void CImage::cross_correlation_FFT(
 	in_img.getAsMatrix(i1, false);
 
 	// Remove the bias now:
-	i2.array() -= biasThisImg;
-	i1.array() -= biasInImg;
+	i2 -= biasThisImg;
+	i1 -= biasInImg;
 
 	// FFT:
-	CMatrix I1_R, I1_I, I2_R, I2_I, ZEROS(ly, lx);
+	CMatrixF I1_R, I1_I, I2_R, I2_I, ZEROS(ly, lx);
 	math::dft2_complex(i1, ZEROS, I1_R, I1_I);
 	math::dft2_complex(i2, ZEROS, I2_R, I2_I);
 
@@ -1429,19 +1495,19 @@ void CImage::cross_correlation_FFT(
 	for (y = 0; y < ly; y++)
 		for (x = 0; x < lx; x++)
 		{
-			float r1 = I1_R.get_unsafe(y, x);
-			float r2 = I2_R.get_unsafe(y, x);
+			float r1 = I1_R(y, x);
+			float r2 = I2_R(y, x);
 
-			float ii1 = I1_I.get_unsafe(y, x);
-			float ii2 = I2_I.get_unsafe(y, x);
+			float ii1 = I1_I(y, x);
+			float ii2 = I2_I(y, x);
 
 			float den = square(r1) + square(ii1);
-			I2_R.set_unsafe(y, x, (r1 * r2 + ii1 * ii2) / den);
-			I2_I.set_unsafe(y, x, (ii2 * r1 - r2 * ii1) / den);
+			I2_R(y, x) = (r1 * r2 + ii1 * ii2) / den;
+			I2_I(y, x) = (ii2 * r1 - r2 * ii1) / den;
 		}
 
 	// IFFT:
-	CMatrix res_R, res_I;
+	CMatrixF res_R, res_I;
 	math::idft2_complex(I2_R, I2_I, res_R, res_I);
 
 	out_corr.setSize(actual_ly, actual_lx);
@@ -1452,7 +1518,7 @@ void CImage::cross_correlation_FFT(
 	MRPT_END
 }
 
-void CImage::getAsMatrixTiled(CMatrix& outMatrix) const
+void CImage::getAsMatrixTiled(CMatrixFloat& outMatrix) const
 {
 #if MRPT_HAS_OPENCV
 	MRPT_START
@@ -1467,32 +1533,32 @@ void CImage::getAsMatrixTiled(CMatrix& outMatrix) const
 	if (isColor())
 	{
 		// Luminance: Y = 0.3R + 0.59G + 0.11B
-		for (unsigned int y = 0; y < matrix_ly; y++)
+		for (CMatrixFloat::Index y = 0; y < matrix_ly; y++)
 		{
 			unsigned char* min_pixels = (*this)(0, y % img.rows, 0);
 			unsigned char* max_pixels = min_pixels + img.cols * 3;
 			unsigned char* pixels = min_pixels;
 			float aux;
-			for (unsigned int x = 0; x < matrix_lx; x++)
+			for (CMatrixFloat::Index x = 0; x < matrix_lx; x++)
 			{
 				aux = *pixels++ * 0.30f;
 				aux += *pixels++ * 0.59f;
 				aux += *pixels++ * 0.11f;
-				outMatrix.set_unsafe(y, x, aux);
+				outMatrix(y, x) = aux;
 				if (pixels >= max_pixels) pixels = min_pixels;
 			}
 		}
 	}
 	else
 	{
-		for (unsigned int y = 0; y < matrix_ly; y++)
+		for (CMatrixFloat::Index y = 0; y < matrix_ly; y++)
 		{
 			unsigned char* min_pixels = (*this)(0, y % img.rows, 0);
 			unsigned char* max_pixels = min_pixels + img.cols;
 			unsigned char* pixels = min_pixels;
-			for (unsigned int x = 0; x < matrix_lx; x++)
+			for (CMatrixFloat::Index x = 0; x < matrix_lx; x++)
 			{
-				outMatrix.set_unsafe(y, x, *pixels++);
+				outMatrix(y, x) = *pixels++;
 				if (pixels >= max_pixels) pixels = min_pixels;
 			}
 		}
@@ -1639,14 +1705,13 @@ void CImage::undistort(
 	const auto& intrMat = cameraParams.intrinsicParams;
 	const auto& dist = cameraParams.dist;
 
-	cv::Mat distM(1, 5, CV_64F, const_cast<double*>(&dist[0]));
+	cv::Mat distM(1, dist.size(), CV_64F, const_cast<double*>(&dist[0]));
 	cv::Mat inMat(3, 3, CV_64F);
 
 	for (int i = 0; i < 3; i++)
 		for (int j = 0; j < 3; j++) inMat.at<double>(i, j) = intrMat(i, j);
 
 	cv::undistort(srcImg, out_img.m_impl->img, inMat, distM);
-
 #endif
 }
 
@@ -1723,7 +1788,7 @@ void CImage::rotateImage(
 
 	// Apply rotation & scale:
 	double m[2 * 3] = {scale * cos(ang), -scale * sin(ang), 1.0 * cx,
-					   scale * sin(ang), scale * cos(ang),  1.0 * cy};
+					   scale * sin(ang), scale * cos(ang),	1.0 * cy};
 	cv::Mat M(2, 3, CV_64F, m);
 
 	double dx = (srcImg.cols - 1) * 0.5;
@@ -1748,9 +1813,9 @@ bool CImage::drawChessboardCorners(
 	auto& img = m_impl->img;
 
 	unsigned int x, y, i;
-	CvPoint prev_pt = cvPoint(0, 0);
+	cv::Point prev_pt = cvPoint(0, 0);
 	const int line_max = 8;
-	CvScalar line_colors[8];
+	cv::Scalar line_colors[8];
 
 	line_colors[0] = CV_RGB(255, 0, 0);
 	line_colors[1] = CV_RGB(255, 128, 0);
@@ -1763,28 +1828,25 @@ bool CImage::drawChessboardCorners(
 
 	CCanvas::selectTextFont("10x20");
 
-	IplImage iplp(img);
-	IplImage* ipl = &iplp;
-
 	for (y = 0, i = 0; y < check_size_y; y++)
 	{
-		CvScalar color = line_colors[y % line_max];
+		const auto color = line_colors[y % line_max];
 		for (x = 0; x < check_size_x; x++, i++)
 		{
-			CvPoint pt;
+			cv::Point pt;
 			pt.x = cvRound(cornerCoords[i].x);
 			pt.y = cvRound(cornerCoords[i].y);
 
-			if (i != 0) cvLine(ipl, prev_pt, pt, color, lines_width);
+			if (i != 0) cv::line(img, prev_pt, pt, color, lines_width);
 
-			cvLine(
-				ipl, cvPoint(pt.x - r, pt.y - r), cvPoint(pt.x + r, pt.y + r),
+			cv::line(
+				img, cvPoint(pt.x - r, pt.y - r), cvPoint(pt.x + r, pt.y + r),
 				color, lines_width);
-			cvLine(
-				ipl, cvPoint(pt.x - r, pt.y + r), cvPoint(pt.x + r, pt.y - r),
+			cv::line(
+				img, cvPoint(pt.x - r, pt.y + r), cvPoint(pt.x + r, pt.y - r),
 				color, lines_width);
 
-			if (r > 0) cvCircle(ipl, pt, r + 1, color);
+			if (r > 0) cv::circle(img, pt, r + 1, color);
 			prev_pt = pt;
 
 			// Text label with the corner index in the first and last
@@ -1858,8 +1920,17 @@ void CImage::equalizeHist(CImage& out_img) const
 		THROW_EXCEPTION("Operation only supported for grayscale images");
 #endif
 }
+
+// See: https://github.com/MRPT/mrpt/issues/885
+// This seems a bug in GCC?
+#if defined(__GNUC__)
+#define MRPT_DISABLE_FULL_OPTIMIZATION __attribute__((optimize("O1")))
+#else
+#define MRPT_DISABLE_FULL_OPTIMIZATION
+#endif
+
 template <unsigned int HALF_WIN_SIZE>
-void image_KLT_response_template(
+void MRPT_DISABLE_FULL_OPTIMIZATION image_KLT_response_template(
 	const uint8_t* in, const int widthStep, unsigned int x, unsigned int y,
 	int32_t& _gxx, int32_t& _gyy, int32_t& _gxy)
 {
@@ -1893,7 +1964,7 @@ void image_KLT_response_template(
 	_gxy = gxy;
 }
 
-float CImage::KLT_response(
+float MRPT_DISABLE_FULL_OPTIMIZATION CImage::KLT_response(
 	const unsigned int x, const unsigned int y,
 	const unsigned int half_window_size) const
 {
@@ -2016,8 +2087,8 @@ float CImage::KLT_response(
 	//    ( gxy  gyy )
 	// See, for example:
 	// mrpt::math::detail::eigenVectorsMatrix_special_2x2():
-	const float t = Gxx + Gyy;  // Trace
-	const float de = Gxx * Gyy - Gxy * Gxy;  // Det
+	const float t = Gxx + Gyy;	// Trace
+	const float de = Gxx * Gyy - Gxy * Gxy;	 // Det
 	// The smallest eigenvalue is:
 	return 0.5f * (t - std::sqrt(t * t - 4.0f * de));
 #else
@@ -2099,9 +2170,9 @@ bool CImage::loadTGA(
 
 		for (unsigned int c = 0; c < width; c++)
 		{
-			*data++ = bytes[idx++];  // R
-			*data++ = bytes[idx++];  // G
-			*data++ = bytes[idx++];  // B
+			*data++ = bytes[idx++];	 // R
+			*data++ = bytes[idx++];	 // G
+			*data++ = bytes[idx++];	 // B
 			*data_alpha++ = bytes[idx++];  // A
 		}
 	}
@@ -2109,7 +2180,21 @@ bool CImage::loadTGA(
 	return true;
 #else
 	return false;
-#endif  // MRPT_HAS_OPENCV
+#endif	// MRPT_HAS_OPENCV
+}
+
+void CImage::getAsIplImage(IplImage* dest) const
+{
+#if MRPT_HAS_OPENCV
+	makeSureImageIsLoaded();
+
+#if MRPT_OPENCV_VERSION_NUM < 0x300
+	ASSERT_(dest != nullptr);
+	*dest = cvIplImage(m_impl->img);
+#else
+	THROW_EXCEPTION("Method not supported in OpenCV>=3.0");
+#endif
+#endif
 }
 
 std::ostream& mrpt::img::operator<<(std::ostream& o, const TPixelCoordf& p)

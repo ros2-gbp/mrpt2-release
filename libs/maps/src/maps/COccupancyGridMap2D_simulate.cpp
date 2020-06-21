@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,11 +11,12 @@
 
 #include <mrpt/core/round.h>  // round()
 #include <mrpt/maps/COccupancyGridMap2D.h>
+#include <mrpt/math/CVectorFixed.h>
 #include <mrpt/math/transform_gaussian.h>
 #include <mrpt/obs/CObservation2DRangeScan.h>
 #include <mrpt/obs/CObservationRange.h>
-
 #include <mrpt/random.h>
+#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::maps;
@@ -82,7 +83,7 @@ void COccupancyGridMap2D::sonarSimulator(
 		// distance:
 		ASSERT_(inout_observation.sensorConeApperture > 0);
 		size_t nRays =
-			round(1 + inout_observation.sensorConeApperture / DEG2RAD(1.0));
+			round(1 + inout_observation.sensorConeApperture / 1.0_deg);
 
 		double direction = sensorAbsolutePose.phi() -
 						   0.5 * inout_observation.sensorConeApperture;
@@ -163,7 +164,7 @@ void COccupancyGridMap2D::simulateScanRay(
 	// Store:
 	// Check out of the grid?
 	// Tip: if x<0, (unsigned)(x) will also be >>> size_x ;-)
-	if (abs(hitCellOcc_int) <= 1 || static_cast<unsigned>(x) >= size_x ||
+	if (std::abs(hitCellOcc_int) <= 1 || static_cast<unsigned>(x) >= size_x ||
 		static_cast<unsigned>(y) >= size_y)
 	{
 		out_valid = false;
@@ -195,8 +196,9 @@ struct TFunctorLaserSimulData
 };
 
 static void func_laserSimul_callback(
-	const Eigen::Vector3d& x_pose, const TFunctorLaserSimulData& fixed_param,
-	Eigen::VectorXd& y_scanRanges)
+	const mrpt::math::CVectorFixedDouble<3>& x_pose,
+	const TFunctorLaserSimulData& fixed_param,
+	mrpt::math::CVectorDouble& y_scanRanges)
 {
 	ASSERT_(fixed_param.params && fixed_param.grid);
 	ASSERT_(fixed_param.params->decimation >= 1);
@@ -240,8 +242,8 @@ void COccupancyGridMap2D::laserScanSimulatorWithUncertainty(
 	const COccupancyGridMap2D::TLaserSimulUncertaintyParams& in_params,
 	COccupancyGridMap2D::TLaserSimulUncertaintyResult& out_results) const
 {
-	const Eigen::Vector3d robPoseMean =
-		in_params.robotPose.mean.getAsVectorVal();
+	const mrpt::math::CVectorFixedDouble<3> robPoseMean =
+		in_params.robotPose.mean.asVectorVal();
 
 	TFunctorLaserSimulData simulData;
 	simulData.grid = this;
@@ -297,6 +299,6 @@ void COccupancyGridMap2D::laserScanSimulatorWithUncertainty(
 	}
 
 	// Add minimum uncertainty: grid cell resolution:
-	out_results.scanWithUncert.rangesCovar.diagonal().array() +=
+	out_results.scanWithUncert.rangesCovar.asEigen().diagonal().array() +=
 		0.5 * resolution * resolution;
 }

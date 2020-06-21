@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -137,7 +137,7 @@ std::mutex critSec_UpdateScene;
 // The file to open (from cmd line), or an empty string
 extern std::string global_fileToOpen;
 // The configuration file:
-extern CConfigFile* iniFile;
+extern std::unique_ptr<CConfigFile> iniFile;
 
 bool isCapturing = false;
 string capturingDir = ".";
@@ -173,15 +173,7 @@ void CMyGLCanvas::OnRenderError(const wxString& str)
 	logWin->Show();
 }
 
-void CMyGLCanvas::OnPreRender()
-{
-	// This was used to receive scenes from a TCP stream, but it's not used
-	// anymore now:
-	// Do we have to update the scene??
-	//	std::lock_guard<std::mutex>   lock(critSec_UpdateScene );
-	//	if (newOpenGLScene) { m_openGLScene.reset(); m_openGLScene =
-	// newOpenGLScene; newOpenGLScene.reset(); }
-}
+void CMyGLCanvas::OnPreRender() {}
 
 void CMyGLCanvas::OnPostRenderSwapBuffers(double At, wxPaintDC& dc)
 {
@@ -194,8 +186,13 @@ void CMyGLCanvas::OnPostRenderSwapBuffers(double At, wxPaintDC& dc)
 
 		// Save image directly from OpenGL
 		CImage frame(w, h, CH_RGB);
+
+		glPixelStorei(GL_PACK_ALIGNMENT, 1);
+		glPixelStorei(GL_PACK_ROW_LENGTH, 0);
+
 		glReadBuffer(GL_FRONT);
 		glReadPixels(0, 0, w, h, GL_BGR_EXT, GL_UNSIGNED_BYTE, frame(0, 0));
+		frame.flipVertical();
 
 		string fileName(format(
 			"%s/screenshot_%07i.png", capturingDir.c_str(), captureCount++));
@@ -229,15 +226,7 @@ void CMyGLCanvas::OnPostRenderSwapBuffers(double At, wxPaintDC& dc)
 	theWindow->StatusBar1->SetStatusText(str.c_str(), 3);
 }
 
-void CMyGLCanvas::OnPostRender()
-{
-	// Show filename over the screen??
-	if (showFileNameInViewport)
-	{
-		mrpt::opengl::CRenderizable::renderTextBitmap(
-			20, 20, extractFileName(loadedFileName).c_str());
-	}
-}
+void CMyGLCanvas::OnPostRender() {}
 
 void CMyGLCanvas::OnCharCustom(wxKeyEvent& event)
 {
@@ -707,139 +696,61 @@ _DSceneViewerFrame::_DSceneViewerFrame(wxWindow* parent, wxWindowID id)
 	FlexGridSizer1->SetSizeHints(this);
 	Center();
 
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnNewScene);
-	Connect(
-		ID_BUTTON2, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnOpenFile);
-	Connect(
-		ID_BUTTON3, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnPrevious);
-	Connect(
-		ID_BUTTON4, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnNext);
-	Connect(
-		ID_BUTTON5, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnReload);
-	Connect(
-		ID_BUTTON6, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnMenuOptions);
-	Connect(
-		ID_BUTTON7, wxEVT_COMMAND_TOGGLEBUTTON_CLICKED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnbtnOrthoClicked);
-	Connect(
-		ID_BUTTON8, wxEVT_COMMAND_TOGGLEBUTTON_CLICKED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnbtnAutoplayClicked);
-	Connect(
-		ID_BUTTON9, wxEVT_COMMAND_TOGGLEBUTTON_CLICKED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnBtnRecordClicked);
-	Connect(
-		ID_BUTTON10, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnAbout);
-	Connect(
-		ID_BUTTON11, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnQuit);
-	Connect(
-		ID_MENUITEM1, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnNewScene);
-	Connect(
-		ID_MENUITEM2, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnOpenFile);
-	Connect(
-		ID_MENUITEM5, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnReload);
-	Connect(
-		ID_MENUITEM7, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnMenuSave);
-	Connect(
-		ID_MENUITEM6, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnInsert3DS);
-	Connect(
-		ID_MENUITEM20, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::
-			OnMenuItemImportPLYPointCloud);
-	Connect(
-		ID_MENUITEM25, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnmnuImportLASSelected);
-	Connect(
-		ID_MENUITEM22, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnMenuItemExportPointsPLY);
-	Connect(
-		ID_MENUITEM29, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnPrevious);
-	Connect(
-		ID_MENUITEM30, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnNext);
-	Connect(
-		ID_MENUITEM12, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnMenuItem14Selected);
-	Connect(
-		ID_MENUITEM23, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnMenuItemHighResRender);
-	Connect(
-		ID_MENUITEM18, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnmnuSceneStatsSelected);
-	Connect(
-		idMenuQuit, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnQuit);
-	Connect(
-		ID_MENUITEM24, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnmnuSelectNoneSelected);
-	Connect(
-		ID_MENUITEM26, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnmnuSelectByClassSelected);
-	Connect(
-		ID_MENUITEM27, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::
-			OnmnuSelectionScaleSelected);
-	Connect(
-		ID_MENUITEM28, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::
-			OnmnuSelectionDeleteSelected);
-	Connect(
-		ID_MENUITEM4, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnMenuBackColor);
-	Connect(
-		ID_MENUITEM3, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnMenuOptions);
-	Connect(
-		ID_MENUITEM15, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::
-			OnmnuItemShowCloudOctreesSelected);
-	Connect(
-		ID_MENUITEM17, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::
-			OnmnuItemChangeMaxPointsPerOctreeNodeSelected);
-	Connect(
-		ID_MENUITEM11, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnMenuDeleteAll);
-	Connect(
-		ID_MENUITEM9, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnMenuAddSICK);
-	Connect(
-		ID_MENUITEM10, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnStartCameraTravelling);
-	Connect(
-		idMenuAbout, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnAbout);
-	Connect(
-		ID_TIMER1, wxEVT_TIMER,
-		(wxObjectEventFunction)&_DSceneViewerFrame::
-			OntimLoadFileCmdLineTrigger);
+	using svf = _DSceneViewerFrame;
+
+	Bind(wxEVT_BUTTON, &svf::OnNewScene, this, ID_BUTTON1);
+	Bind(wxEVT_BUTTON, &svf::OnOpenFile, this, ID_BUTTON2);
+	Bind(wxEVT_BUTTON, &svf::OnPrevious, this, ID_BUTTON3);
+	Bind(wxEVT_BUTTON, &svf::OnNext, this, ID_BUTTON4);
+	Bind(wxEVT_BUTTON, &svf::OnReload, this, ID_BUTTON5);
+	Bind(wxEVT_BUTTON, &svf::OnMenuOptions, this, ID_BUTTON6);
+	Bind(
+		wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, &svf::OnbtnOrthoClicked, this,
+		ID_BUTTON7);
+	Bind(
+		wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, &svf::OnbtnAutoplayClicked, this,
+		ID_BUTTON8);
+	Bind(
+		wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, &svf::OnBtnRecordClicked, this,
+		ID_BUTTON9);
+	Bind(wxEVT_BUTTON, &svf::OnAbout, this, ID_BUTTON10);
+	Bind(wxEVT_BUTTON, &svf::OnQuit, this, ID_BUTTON11);
+	Bind(wxEVT_MENU, &svf::OnNewScene, this, ID_MENUITEM1);
+	Bind(wxEVT_MENU, &svf::OnOpenFile, this, ID_MENUITEM2);
+	Bind(wxEVT_MENU, &svf::OnReload, this, ID_MENUITEM5);
+	Bind(wxEVT_MENU, &svf::OnMenuSave, this, ID_MENUITEM7);
+	Bind(wxEVT_MENU, &svf::OnInsert3DS, this, ID_MENUITEM6);
+	Bind(wxEVT_MENU, &svf::OnMenuItemImportPLYPointCloud, this, ID_MENUITEM20);
+	Bind(wxEVT_MENU, &svf::OnmnuImportLASSelected, this, ID_MENUITEM25);
+	Bind(wxEVT_MENU, &svf::OnMenuItemExportPointsPLY, this, ID_MENUITEM22);
+	Bind(wxEVT_MENU, &svf::OnPrevious, this, ID_MENUITEM29);
+	Bind(wxEVT_MENU, &svf::OnNext, this, ID_MENUITEM30);
+	Bind(wxEVT_MENU, &svf::OnMenuItem14Selected, this, ID_MENUITEM12);
+	Bind(wxEVT_MENU, &svf::OnMenuItemHighResRender, this, ID_MENUITEM23);
+	Bind(wxEVT_MENU, &svf::OnmnuSceneStatsSelected, this, ID_MENUITEM18);
+	Bind(wxEVT_MENU, &svf::OnQuit, this, idMenuQuit);
+	Bind(wxEVT_MENU, &svf::OnmnuSelectNoneSelected, this, ID_MENUITEM24);
+	Bind(wxEVT_MENU, &svf::OnmnuSelectByClassSelected, this, ID_MENUITEM26);
+	Bind(wxEVT_MENU, &svf::OnmnuSelectionScaleSelected, this, ID_MENUITEM27);
+	Bind(wxEVT_MENU, &svf::OnmnuSelectionDeleteSelected, this, ID_MENUITEM28);
+	Bind(wxEVT_MENU, &svf::OnMenuBackColor, this, ID_MENUITEM4);
+	Bind(wxEVT_MENU, &svf::OnMenuOptions, this, ID_MENUITEM3);
+	Bind(
+		wxEVT_MENU, &svf::OnmnuItemShowCloudOctreesSelected, this,
+		ID_MENUITEM15);
+	Bind(
+		wxEVT_MENU, &svf::OnmnuItemChangeMaxPointsPerOctreeNodeSelected, this,
+		ID_MENUITEM17);
+	Bind(wxEVT_MENU, &svf::OnMenuDeleteAll, this, ID_MENUITEM11);
+	Bind(wxEVT_MENU, &svf::OnMenuAddSICK, this, ID_MENUITEM9);
+	Bind(wxEVT_MENU, &svf::OnStartCameraTravelling, this, ID_MENUITEM10);
+	Bind(wxEVT_MENU, &svf::OnAbout, this, idMenuAbout);
+	Bind(wxEVT_TIMER, &svf::OntimLoadFileCmdLineTrigger, this, ID_TIMER1);
 	//*)
 
-	Connect(
-		ID_MENUITEM14, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&_DSceneViewerFrame::
-			OnMenuCameraTrackingArbitrary);
-
-	Connect(
-		ID_TIMER_AUTOPLAY, wxEVT_TIMER,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OntimAutoplay);
-	Connect(
-		ID_TRAVELLING_TIMER, wxEVT_TIMER,
-		(wxObjectEventFunction)&_DSceneViewerFrame::OnTravellingTrigger);
+	Bind(wxEVT_MENU, &svf::OnMenuCameraTrackingArbitrary, this, ID_MENUITEM14);
+	Bind(wxEVT_TIMER, &svf::OntimAutoplay, this, ID_TIMER_AUTOPLAY);
+	Bind(wxEVT_TIMER, &svf::OnTravellingTrigger, this, ID_TRAVELLING_TIMER);
 
 	// Create the wxCanvas object:
 	m_canvas =
@@ -854,7 +765,7 @@ _DSceneViewerFrame::_DSceneViewerFrame(wxWindow* parent, wxWindowID id)
 	wxCommandEvent dummEvent;
 	OnNewScene(dummEvent);
 
-	m_autoplayTimer = new wxTimer(this, ID_TIMER_AUTOPLAY);
+	m_autoplayTimer = std::make_unique<wxTimer>(this, ID_TIMER_AUTOPLAY);
 
 	m_tTravelling.SetOwner(this, ID_TRAVELLING_TIMER);
 
@@ -866,8 +777,6 @@ _DSceneViewerFrame::_DSceneViewerFrame(wxWindow* parent, wxWindowID id)
 _DSceneViewerFrame::~_DSceneViewerFrame()
 {
 	theWindow = nullptr;
-
-	delete m_autoplayTimer;
 
 	//(*Destroy(_DSceneViewerFrame)
 	//*)
@@ -890,9 +799,8 @@ void _DSceneViewerFrame::OnNewScene(wxCommandEvent& event)
 
 	{
 		mrpt::opengl::CGridPlaneXY::Ptr obj =
-			mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
-				-50, 50, -50, 50, 0, 1);
-		obj->setColor(0.3, 0.3, 0.3);
+			mrpt::opengl::CGridPlaneXY::Create(-50, 50, -50, 50, 0, 1);
+		obj->setColor(0.3f, 0.3f, 0.3f);
 		openGLSceneRef->insert(obj);
 	}
 
@@ -1014,6 +922,12 @@ void _DSceneViewerFrame::loadFromFile(
 		}
 
 		loadedFileName = fil;
+
+		if (showFileNameInViewport)
+		{
+			openGLSceneRef->getViewport()->addTextMessage(
+				20, 20, extractFileName(loadedFileName));
+		}
 
 		// Set the file name as window title:
 		updateTitle();
@@ -1202,10 +1116,9 @@ void _DSceneViewerFrame::OnInsert3DS(wxCommandEvent& event)
 		saveLastUsedDirectoryToCfgFile(fil);
 
 		mrpt::opengl::CAssimpModel::Ptr obj3D =
-			mrpt::make_aligned_shared<mrpt::opengl::CAssimpModel>();
+			mrpt::opengl::CAssimpModel::Create();
 		obj3D->loadScene(fil);
-		obj3D->setPose(mrpt::math::TPose3D(
-			0, 0, 0, DEG2RAD(.0), DEG2RAD(0.), DEG2RAD(90.0)));
+		obj3D->setPose(mrpt::math::TPose3D(0, 0, 0, .0_deg, 0._deg, 90.0_deg));
 		m_canvas->getOpenGLSceneRef()->insert(obj3D);
 
 		m_canvas->Refresh();
@@ -1460,8 +1373,13 @@ void _DSceneViewerFrame::OnMenuItem14Selected(wxCommandEvent& event)
 
 	// Save image directly from OpenGL
 	CImage frame(w, h, CH_RGB);
+
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	glPixelStorei(GL_PACK_ROW_LENGTH, 0);
+
 	glReadBuffer(GL_FRONT);
 	glReadPixels(0, 0, w, h, GL_BGR_EXT, GL_UNSIGNED_BYTE, frame(0, 0));
+	frame.flipVertical();
 
 	// Save:
 	wxString caption = wxT("Save snapshot to file");
@@ -1522,12 +1440,12 @@ void _DSceneViewerFrame::OnmnuItemChangeMaxPointsPerOctreeNodeSelected(
 
 void func_clear_octrees(const mrpt::opengl::CRenderizable::Ptr& o)
 {
-	if (IS_CLASS(o, CPointCloud))
+	if (IS_CLASS(*o, CPointCloud))
 	{
 		CPointCloud::Ptr obj = std::dynamic_pointer_cast<CPointCloud>(o);
 		obj->octree_mark_as_outdated();
 	}
-	else if (IS_CLASS(o, CPointCloudColoured))
+	else if (IS_CLASS(*o, CPointCloudColoured))
 	{
 		CPointCloudColoured::Ptr obj =
 			std::dynamic_pointer_cast<CPointCloudColoured>(o);
@@ -1564,14 +1482,14 @@ void func_gather_stats(const mrpt::opengl::CRenderizable::Ptr& o)
 {
 	sceneStats.nObjects++;
 
-	if (IS_CLASS(o, CPointCloud))
+	if (IS_CLASS(*o, CPointCloud))
 	{
 		CPointCloud::Ptr obj = std::dynamic_pointer_cast<CPointCloud>(o);
 		sceneStats.nPoints += obj->size();
 		sceneStats.nOctreeVisible += obj->octree_get_visible_nodes();
 		sceneStats.nOctreeTotal += obj->octree_get_node_count();
 	}
-	else if (IS_CLASS(o, CPointCloudColoured))
+	else if (IS_CLASS(*o, CPointCloudColoured))
 	{
 		CPointCloudColoured::Ptr obj =
 			std::dynamic_pointer_cast<CPointCloudColoured>(o);
@@ -1619,18 +1537,18 @@ CSetOfObjects::Ptr aux_gl_octrees_bb;
 
 void func_get_octbb(const mrpt::opengl::CRenderizable::Ptr& o)
 {
-	if (IS_CLASS(o, CPointCloud))
+	if (IS_CLASS(*o, CPointCloud))
 	{
 		CPointCloud::Ptr obj = std::dynamic_pointer_cast<CPointCloud>(o);
-		CSetOfObjects::Ptr new_bb = mrpt::make_aligned_shared<CSetOfObjects>();
+		CSetOfObjects::Ptr new_bb = std::make_shared<CSetOfObjects>();
 		obj->octree_get_graphics_boundingboxes(*new_bb);
 		aux_gl_octrees_bb->insert(new_bb);
 	}
-	else if (IS_CLASS(o, CPointCloudColoured))
+	else if (IS_CLASS(*o, CPointCloudColoured))
 	{
 		CPointCloudColoured::Ptr obj =
 			std::dynamic_pointer_cast<CPointCloudColoured>(o);
-		CSetOfObjects::Ptr new_bb = mrpt::make_aligned_shared<CSetOfObjects>();
+		CSetOfObjects::Ptr new_bb = std::make_shared<CSetOfObjects>();
 		obj->octree_get_graphics_boundingboxes(*new_bb);
 		aux_gl_octrees_bb->insert(new_bb);
 	}
@@ -1662,7 +1580,7 @@ void _DSceneViewerFrame::OnmnuItemShowCloudOctreesSelected(
 						std::dynamic_pointer_cast<CSetOfObjects>(obj);
 				else
 				{
-					gl_octrees_bb = mrpt::make_aligned_shared<CSetOfObjects>();
+					gl_octrees_bb = std::make_shared<CSetOfObjects>();
 					gl_octrees_bb->setName(name_octrees_bb_globj);
 					openGLSceneRef->insert(gl_octrees_bb);
 				}
@@ -1718,13 +1636,12 @@ void _DSceneViewerFrame::OnMenuItemImportPLYPointCloud(wxCommandEvent& event)
 
 		if (dlgPLY.rbClass->GetSelection() == 0)
 		{
-			gl_points = mrpt::make_aligned_shared<opengl::CPointCloud>();
+			gl_points = std::make_shared<opengl::CPointCloud>();
 			ply_obj = gl_points.get();
 		}
 		else
 		{
-			gl_points_col =
-				mrpt::make_aligned_shared<opengl::CPointCloudColoured>();
+			gl_points_col = std::make_shared<opengl::CPointCloudColoured>();
 			ply_obj = gl_points_col.get();
 		}
 
@@ -1745,14 +1662,13 @@ void _DSceneViewerFrame::OnMenuItemImportPLYPointCloud(wxCommandEvent& event)
 		{
 			auto openGLSceneRef = m_canvas->getOpenGLSceneRef();
 			// Set the point cloud as the only object in scene:
-			openGLSceneRef = mrpt::make_aligned_shared<opengl::COpenGLScene>();
+			openGLSceneRef = std::make_shared<opengl::COpenGLScene>();
 
 			if (dlgPLY.cbXYGrid->GetValue())
 			{
 				mrpt::opengl::CGridPlaneXY::Ptr obj =
-					mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
-						-50, 50, -50, 50, 0, 1);
-				obj->setColor(0.3, 0.3, 0.3);
+					mrpt::opengl::CGridPlaneXY::Create(-50, 50, -50, 50, 0, 1);
+				obj->setColor(0.3f, 0.3f, 0.3f);
 				openGLSceneRef->insert(obj);
 			}
 
@@ -1838,12 +1754,12 @@ struct visitor_export_PLY
 
 	void operator()(const mrpt::opengl::CRenderizable::Ptr& obj)
 	{
-		if (IS_CLASS(obj, CPointCloud))
+		if (IS_CLASS(*obj, CPointCloud))
 		{
 			CPointCloud::Ptr o = std::dynamic_pointer_cast<CPointCloud>(obj);
 			o->saveToPlyFile(format("%s_%03u.ply", filename.c_str(), ++count));
 		}
-		else if (IS_CLASS(obj, CPointCloudColoured))
+		else if (IS_CLASS(*obj, CPointCloudColoured))
 		{
 			CPointCloudColoured::Ptr o =
 				std::dynamic_pointer_cast<CPointCloudColoured>(obj);
@@ -2105,10 +2021,9 @@ void _DSceneViewerFrame::OnmnuImportLASSelected(wxCommandEvent& event)
 		opengl::CPointCloudColoured::Ptr gl_points_col;
 
 		if (dlgPLY.rbClass->GetSelection() == 0)
-			gl_points = mrpt::make_aligned_shared<opengl::CPointCloud>();
+			gl_points = std::make_shared<opengl::CPointCloud>();
 		else
-			gl_points_col =
-				mrpt::make_aligned_shared<opengl::CPointCloudColoured>();
+			gl_points_col = std::make_shared<opengl::CPointCloudColoured>();
 
 		mrpt::maps::CColouredPointsMap pts_map;
 		mrpt::maps::LAS_HeaderInfo las_hdr;
@@ -2145,16 +2060,16 @@ void _DSceneViewerFrame::OnmnuImportLASSelected(wxCommandEvent& event)
 		const double scene_size = bb_min.distanceTo(bb_max);
 
 		// Set the point cloud as the only object in scene:
-		auto scene = mrpt::make_aligned_shared<opengl::COpenGLScene>();
+		auto scene = std::make_shared<opengl::COpenGLScene>();
 		m_canvas->setOpenGLSceneRef(scene);
 
 		if (dlgPLY.cbXYGrid->GetValue())
 		{
 			mrpt::opengl::CGridPlaneXY::Ptr obj =
-				mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
+				mrpt::opengl::CGridPlaneXY::Create(
 					bb_min.x, bb_max.x, bb_min.y, bb_max.y, 0,
 					scene_size * 0.02);
-			obj->setColor(0.3, 0.3, 0.3);
+			obj->setColor(0.3f, 0.3f, 0.3f);
 			scene->insert(obj);
 		}
 

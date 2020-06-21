@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixTemplateNumeric.h>
+#include <mrpt/math/CMatrixDynamic.h>
 #include <mrpt/math/math_frwds.h>
 #include <mrpt/poses/CPose2D.h>
 #include <mrpt/poses/CPose3D.h>
@@ -32,7 +32,7 @@ namespace mrpt::poses
  *  the kind of sample you ask it for, but will skip missing terms or fill out
  * with zeroes as required.
  * Specifically, when sampling 3D poses from a 2D pose pdf, this class will be
- * smart enought to draw only
+ * smart enough to draw only
  *  the 3 required dimensions, avoiding a waste of time with the other 3 missing
  * components.
  *
@@ -44,9 +44,9 @@ class CPoseRandomSampler
    protected:
 	// Only ONE of these can be not-NULL at a time.
 	/** A local copy of the PDF */
-	std::unique_ptr<const CPosePDF> m_pdf2D;
+	CPosePDF::Ptr m_pdf2D;
 	/** A local copy of the PDF */
-	std::unique_ptr<const CPose3DPDF> m_pdf3D;
+	CPose3DPDF::Ptr m_pdf3D;
 
 	mrpt::math::CMatrixDouble33 m_fastdraw_gauss_Z3;
 	mrpt::math::CMatrixDouble66 m_fastdraw_gauss_Z6;
@@ -73,31 +73,13 @@ class CPoseRandomSampler
 	/** This method must be called to select the PDF from which to draw samples.
 	 * \sa drawSample
 	 */
-	void setPosePDF(const CPosePDF* pdf);
+	void setPosePDF(const CPosePDF& pdf);
 
 	/** This method must be called to select the PDF from which to draw samples.
 	 * \sa drawSample
 	 */
-	void setPosePDF(const CPosePDF::Ptr& pdf);
+	void setPosePDF(const CPose3DPDF& pdf);
 
-	/** This method must be called to select the PDF from which to draw samples.
-	 * \sa drawSample
-	 */
-	void setPosePDF(const CPosePDF& pdf) { setPosePDF(&pdf); }
-	/** This method must be called to select the PDF from which to draw samples.
-	 * \sa drawSample
-	 */
-	void setPosePDF(const CPose3DPDF* pdf);
-
-	/** This method must be called to select the PDF from which to draw samples.
-	 * \sa drawSample
-	 */
-	void setPosePDF(const CPose3DPDF::Ptr& pdf);
-
-	/** This method must be called to select the PDF from which to draw samples.
-	 * \sa drawSample
-	 */
-	void setPosePDF(const CPose3DPDF& pdf) { setPosePDF(&pdf); }
 	/** Generate a new sample from the selected PDF.
 	 * \return A reference to the same object passed as argument.
 	 * \sa setPosePDF
@@ -130,12 +112,7 @@ class CPoseRandomSampler
 
 	/** Retrieves the 3x3 covariance of the original PDF in \f$ [ x ~ y ~ \phi ]
 	 * \f$. */
-	inline void getOriginalPDFCov2D(mrpt::math::CMatrixDouble& cov3x3) const
-	{
-		mrpt::math::CMatrixDouble33 M;
-		this->getOriginalPDFCov2D(M);
-		cov3x3 = mrpt::math::CMatrixDouble(M);
-	}
+	void getOriginalPDFCov2D(mrpt::math::CMatrixDouble& cov3x3) const;
 
 	/** Retrieves the 6x6 covariance of the original PDF in \f$ [ x ~ y ~ z ~
 	 * yaw ~ pitch ~ roll ] \f$. */
@@ -143,12 +120,7 @@ class CPoseRandomSampler
 
 	/** Retrieves the 6x6 covariance of the original PDF in \f$ [ x ~ y ~ z ~
 	 * yaw ~ pitch ~ roll ] \f$. */
-	inline void getOriginalPDFCov3D(mrpt::math::CMatrixDouble& cov6x6) const
-	{
-		mrpt::math::CMatrixDouble66 M;
-		this->getOriginalPDFCov3D(M);
-		cov6x6 = mrpt::math::CMatrixDouble(M);
-	}
+	void getOriginalPDFCov3D(mrpt::math::CMatrixDouble& cov6x6) const;
 
 };  // End of class def.
 }  // namespace mrpt::poses

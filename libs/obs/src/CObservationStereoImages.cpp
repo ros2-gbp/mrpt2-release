@@ -2,16 +2,17 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "obs-precomp.h"  // Precompiled headers
 
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/obs/CObservationStereoImages.h>
 #include <mrpt/serialization/CArchive.h>
+
 #if MRPT_HAS_MATLAB
 #include <mexplus/mxarray.h>
 #endif
@@ -80,12 +81,13 @@ void CObservationStereoImages::serializeFrom(
 			}
 			else
 			{
-				CMatrix intParams;
-				in >> intParams;  // Get the intrinsic params
-				leftCamera.intrinsicParams =
-					CMatrixDouble33(intParams);  // Set them to both cameras
-				rightCamera.intrinsicParams = CMatrixDouble33(
-					intParams);  // ... distortion parameters are set to zero
+				CMatrixF intParams;
+				// Get the intrinsic params
+				in >> intParams;
+				// Set them to both cameras
+				leftCamera.intrinsicParams = intParams;
+				// ... distortion parameters are set to zero
+				rightCamera.intrinsicParams = intParams;
 			}
 
 			in >> imageLeft >> imageRight;  // For all the versions
@@ -152,7 +154,7 @@ mxArray* CObservationStereoImages::writeToMatlab() const
 		mexplus::MxArray::Struct(sizeof(fields) / sizeof(fields[0]), fields));
 
 	obs_struct.set("class", this->GetRuntimeClass()->className);
-	obs_struct.set("ts", this->timestamp);
+	obs_struct.set("ts", mrpt::Clock::toDouble(timestamp));
 	obs_struct.set("sensorLabel", this->sensorLabel);
 	obs_struct.set("imageL", this->imageLeft);
 	obs_struct.set("imageR", this->imageRight);
@@ -225,28 +227,29 @@ void CObservationStereoImages::getDescriptionAsText(std::ostream& o) const
 
 	o << "Homogeneous matrix for the sensor's 3D pose, relative to robot "
 		 "base:\n";
-	o << cameraPose.getHomogeneousMatrixVal<CMatrixDouble44>() << endl
-	  << "Camera pose: " << cameraPose << endl
-	  << "Camera pose (YPR): " << CPose3D(cameraPose) << endl
-	  << endl;
+	o << cameraPose.getHomogeneousMatrixVal<CMatrixDouble44>() << "\n"
+	  << "Camera pose: " << cameraPose << "\n"
+	  << "Camera pose (YPR): " << CPose3D(cameraPose) << "\n"
+	  << "\n";
 
 	mrpt::img::TStereoCamera stParams;
 	getStereoCameraParams(stParams);
-	o << stParams.dumpAsText() << endl;
+	o << stParams.dumpAsText() << "\n";
 
-	o << "Right camera pose wrt left camera (YPR):" << endl
-	  << CPose3D(stParams.rightCameraPose) << endl;
+	o << "Right camera pose wrt left camera (YPR):"
+	  << "\n"
+	  << CPose3D(stParams.rightCameraPose) << "\n";
 
 	if (imageLeft.isExternallyStored())
 		o << " Left image is stored externally in file: "
-		  << imageLeft.getExternalStorageFile() << endl;
+		  << imageLeft.getExternalStorageFile() << "\n";
 
 	o << " Right image";
 	if (hasImageRight)
 	{
 		if (imageRight.isExternallyStored())
 			o << " is stored externally in file: "
-			  << imageRight.getExternalStorageFile() << endl;
+			  << imageRight.getExternalStorageFile() << "\n";
 	}
 	else
 		o << " : No.\n";
@@ -256,18 +259,28 @@ void CObservationStereoImages::getDescriptionAsText(std::ostream& o) const
 	{
 		if (imageDisparity.isExternallyStored())
 			o << " is stored externally in file: "
-			  << imageDisparity.getExternalStorageFile() << endl;
+			  << imageDisparity.getExternalStorageFile() << "\n";
 	}
 	else
 		o << " : No.\n";
 
-	o << format(
-		" Image size: %ux%u pixels\n", (unsigned int)imageLeft.getWidth(),
-		(unsigned int)imageLeft.getHeight());
+	if (!imageLeft.isEmpty())
+	{
+		o << format(
+			" Image size: %ux%u pixels\n", (unsigned int)imageLeft.getWidth(),
+			(unsigned int)imageLeft.getHeight());
 
-	o << " Channels order: " << imageLeft.getChannelsOrder() << endl;
+		o << " Channels order: " << imageLeft.getChannelsOrder() << "\n";
 
-	o << format(
-		" Rows are stored in top-bottom order: %s\n",
-		imageLeft.isOriginTopLeft() ? "YES" : "NO");
+		o << format(
+			" Rows are stored in top-bottom order: %s\n",
+			imageLeft.isOriginTopLeft() ? "YES" : "NO");
+	}
+}
+
+void CObservationStereoImages::load() const
+{
+	imageLeft.forceLoad();
+	imageRight.forceLoad();
+	imageDisparity.forceLoad();
 }

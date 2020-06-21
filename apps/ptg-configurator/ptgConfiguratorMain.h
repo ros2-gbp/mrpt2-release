@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -26,7 +26,7 @@
 #include "MyGLCanvas.h"
 //*)
 
-#include <mrpt/otherlibs/mathplot/mathplot.h>
+#include <mrpt/3rdparty/mathplot/mathplot.h>
 
 #include <mrpt/gui/CMyRedirector.h>
 
@@ -70,7 +70,7 @@ class ptgConfiguratorframe : public wxFrame
 	void OnbtnRebuildTPObsClick(wxCommandEvent& event);
 	void OnbtnPlaceObsClick(wxCommandEvent& event);
 	void OnbtnPlaceTargetClick(wxCommandEvent& event);
-	void OnslidPathHighlightCmdScroll(wxScrollEvent& event);
+	void OnslidPathHighlightCmdScroll(wxCommandEvent&);
 	void OncbHighlightOnePathClick(wxCommandEvent& event);
 	void OnedIndexHighlightPathChange(wxSpinEvent& event);
 	void OnedCfgText(wxCommandEvent& event);
@@ -218,7 +218,7 @@ class ptgConfiguratorframe : public wxFrame
 	void dumpPTGcfgToTextBox();
 
 	/* Methods: */
-	CMyRedirector* m_myRedirector;
+	std::unique_ptr<CMyRedirector> m_myRedirector;
 
 	/**  The state of the cursor onto the 3D view */
 	enum TCursorPickState

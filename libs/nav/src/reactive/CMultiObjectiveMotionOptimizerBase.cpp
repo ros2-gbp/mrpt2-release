@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -232,13 +232,12 @@ CMultiObjectiveMotionOptimizerBase::Ptr
 			mrpt::rtti::findRegisteredClass(className);
 		if (!classId) return nullptr;
 
-		return CMultiObjectiveMotionOptimizerBase::Ptr(
-			dynamic_cast<CMultiObjectiveMotionOptimizerBase*>(
-				classId->createObject()));
+		return mrpt::ptr_cast<CMultiObjectiveMotionOptimizerBase>::from(
+			classId->createObject());
 	}
 	catch (...)
 	{
-		return nullptr;
+		return CMultiObjectiveMotionOptimizerBase::Ptr();
 	}
 }
 
@@ -247,8 +246,8 @@ CMultiObjectiveMotionOptimizerBase::TParamsBase::TParamsBase()
 	// Default scores:
 	formula_score["collision_free_distance"] = "collision_free_distance";
 	formula_score["path_index_near_target"] =
-		"var dif:=abs(target_k-move_k); if (dif>(num_paths/2)) { "
-		"dif:=num_paths-dif; }; exp(-abs(dif / (num_paths/10.0)));";
+		"var dif:=std::abs(target_k-move_k); if (dif>(num_paths/2)) { "
+		"dif:=num_paths-dif; }; exp(-std::abs(dif / (num_paths/10.0)));";
 	formula_score["euclidean_nearness"] =
 		"(ref_dist - dist_eucl_final) / ref_dist";
 	formula_score["hysteresis"] = "hysteresis";

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -42,8 +42,8 @@ DECLARE_OP_FUNCTION(op_camera_params)
 
 		CRawlogProcessor_CamParams(
 			CFileGZInputStream& in_rawlog, TCLAP::CmdLine& cmdline,
-			bool verbose)
-			: CRawlogProcessorOnEachObservation(in_rawlog, cmdline, verbose)
+			bool Verbose)
+			: CRawlogProcessorOnEachObservation(in_rawlog, cmdline, Verbose)
 		{
 			m_changedCams = 0;
 
@@ -108,14 +108,14 @@ DECLARE_OP_FUNCTION(op_camera_params)
 		{
 			if (strCmpI(obs->sensorLabel, target_label))
 			{
-				if (IS_CLASS(obs, CObservationImage))
+				if (IS_CLASS(*obs, CObservationImage))
 				{
 					CObservationImage::Ptr o =
 						std::dynamic_pointer_cast<CObservationImage>(obs);
 					o->cameraParams = new_cam_params;
 					m_changedCams++;
 				}
-				else if (IS_CLASS(obs, CObservationStereoImages))
+				else if (IS_CLASS(*obs, CObservationStereoImages))
 				{
 					CObservationStereoImages::Ptr o =
 						std::dynamic_pointer_cast<CObservationStereoImages>(

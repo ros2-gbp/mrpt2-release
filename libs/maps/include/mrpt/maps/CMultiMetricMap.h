@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -119,7 +119,7 @@ class TSetOfMetricMapInitializers;
  */
 class CMultiMetricMap : public mrpt::maps::CMetricMap
 {
-	DEFINE_SERIALIZABLE(CMultiMetricMap)
+	DEFINE_SERIALIZABLE(CMultiMetricMap, mrpt::maps)
    public:
 	/** @name Access to list of maps
 		@{ */
@@ -153,7 +153,7 @@ class CMultiMetricMap : public mrpt::maps::CMetricMap
 	 * By default (ith=0), the first match is returned.
 	 */
 	template <typename T>
-	typename T::Ptr mapByClass(const size_t& ith = 0) const
+	typename T::Ptr mapByClass(size_t ith = 0) const
 	{
 		size_t foundCount = 0;
 		const auto* class_ID = &T::GetRuntimeClassIdStatic();
@@ -214,12 +214,12 @@ class CMultiMetricMap : public mrpt::maps::CMetricMap
 	// See base class docs:
 	void internal_clear() override;
 	bool internal_insertObservation(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D* robotPose = nullptr) override;
 	bool internal_canComputeObservationLikelihood(
-		const mrpt::obs::CObservation* obs) const override;
+		const mrpt::obs::CObservation& obs) const override;
 	double internal_computeObservationLikelihood(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D& takenFrom) override;
 
 };  // End of class def.

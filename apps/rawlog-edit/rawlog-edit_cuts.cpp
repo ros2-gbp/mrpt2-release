@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -32,9 +32,9 @@ DECLARE_OP_FUNCTION(op_cut)
 	   public:
 		CRawlogProcessor_Cut(
 			mrpt::io::CFileGZInputStream& in_rawlog, TCLAP::CmdLine& cmdline,
-			bool verbose, mrpt::io::CFileGZOutputStream& out_rawlog)
+			bool Verbose, mrpt::io::CFileGZOutputStream& out_rawlog)
 			: CRawlogProcessorFilterObservations(
-				  in_rawlog, cmdline, verbose, out_rawlog),
+				  in_rawlog, cmdline, Verbose, out_rawlog),
 			  m_from_index(0),
 			  m_to_index(0),
 			  m_from_time(0),

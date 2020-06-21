@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixTemplate.h>
+#include <mrpt/math/CMatrixDynamic.h>
 #include <mrpt/math/matrix_adaptors.h>
 
 #include <algorithm>
@@ -145,14 +145,14 @@ class CBinaryRelation
 	 */
 	inline void setRelationValue(size_t e1, size_t e2, const U& newVal)
 	{
-		relation.get_unsafe(e1, e2) = newVal;
+		relation(e1, e2) = newVal;
 	}
 	/**
 	 * Get a relation value, given the indices.
 	 */
 	inline const U& getRelationValue(size_t e1, size_t e2) const
 	{
-		return relation.get_unsafe(e1, e2);
+		return relation(e1, e2);
 	}
 	inline const U& operator()(size_t e1, size_t e2) const
 	{
@@ -164,7 +164,7 @@ class CBinaryRelation
 	 */
 	inline U& getRelationValue(size_t e1, size_t e2)
 	{
-		return relation.get_unsafe(e1, e2);
+		return relation(e1, e2);
 	}
 	inline U& operator()(size_t e1, size_t e2)
 	{

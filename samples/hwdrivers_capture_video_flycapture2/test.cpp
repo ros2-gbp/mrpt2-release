@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -54,7 +54,7 @@ void TestCapture_FlyCapture2()
 	int cnt = 0;
 
 	CObservationImage::Ptr obs =
-		mrpt::make_aligned_shared<CObservationImage>();  // Memory will be freed
+		CObservationImage::Create();  // Memory will be freed
 	// by SF
 	// destructor in each loop.
 

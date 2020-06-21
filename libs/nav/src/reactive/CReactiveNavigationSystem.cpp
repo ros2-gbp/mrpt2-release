@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -36,10 +36,6 @@ CReactiveNavigationSystem::CReactiveNavigationSystem(
 CReactiveNavigationSystem::~CReactiveNavigationSystem()
 {
 	this->preDestructor();
-
-	// Free PTGs:
-	for (auto& PTG : PTGs) delete PTG;
-	PTGs.clear();
 }
 
 /*---------------------------------------------------------------
@@ -115,8 +111,8 @@ void CReactiveNavigationSystem::loadConfigFile(
 	// Load PTGs from file:
 	// ---------------------------------------------
 	// Free previous PTGs:
-	for (auto& PTG : PTGs) delete PTG;
-	PTGs.assign(PTG_COUNT, nullptr);
+	PTGs.clear();
+	PTGs.resize(PTG_COUNT);
 
 	for (unsigned int n = 0; n < PTG_COUNT; n++)
 	{
@@ -155,13 +151,13 @@ void CReactiveNavigationSystem::STEP1_InitPTGs()
 			// Polygonal robot shape?
 			{
 				auto* ptg = dynamic_cast<mrpt::nav::CPTG_RobotShape_Polygonal*>(
-					PTGs[i]);
+					PTGs[i].get());
 				if (ptg) ptg->setRobotShape(m_robotShape);
 			}
 			// Circular robot shape?
 			{
-				auto* ptg =
-					dynamic_cast<mrpt::nav::CPTG_RobotShape_Circular*>(PTGs[i]);
+				auto* ptg = dynamic_cast<mrpt::nav::CPTG_RobotShape_Circular*>(
+					PTGs[i].get());
 				if (ptg) ptg->setRobotShapeRadius(m_robotShapeCircularRadius);
 			}
 
@@ -226,6 +222,9 @@ void CReactiveNavigationSystem::STEP3_WSpaceToTPSpace(
 	const mrpt::math::TPose2D& rel_pose_PTG_origin_wrt_sense_,
 	const bool eval_clearance)
 {
+	mrpt::system::CTimeLoggerEntry tle(
+		m_navProfiler, "CReactiveNavigationSystem::STEP3_WSpaceToTPSpace()");
+
 	ASSERT_BELOW_(ptg_idx, this->getPTG_count());
 	CParameterizedTrajectoryGenerator* ptg = this->getPTG(ptg_idx);
 

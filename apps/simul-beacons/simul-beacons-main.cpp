@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -186,7 +186,7 @@ int main(int argc, char** argv)
 				if (circularPath)
 				{
 					// Circular path:
-					float Ar = DEG2RAD(5);
+					float Ar = 5.0_deg;
 					incPose = CPose2D(0.20f * cos(Ar), 0.20f * sin(Ar), Ar);
 				}
 				else
@@ -203,7 +203,7 @@ int main(int argc, char** argv)
 
 			// Simulate observations:
 			CObservationBeaconRanges::Ptr obs =
-				mrpt::make_aligned_shared<CObservationBeaconRanges>();
+				std::make_shared<CObservationBeaconRanges>();
 			obs->minSensorDistance = minSensorDistance;
 			obs->maxSensorDistance = maxSensorDistance;
 			obs->stdError = stdError;

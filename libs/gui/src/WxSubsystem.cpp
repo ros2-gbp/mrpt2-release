@@ -2,23 +2,21 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "gui-precomp.h"  // Precompiled headers
-
+//
 #include <mrpt/config.h>
-
 #include <mrpt/gui/CDisplayWindow.h>
 #include <mrpt/gui/CDisplayWindow3D.h>
 #include <mrpt/gui/CDisplayWindowPlots.h>
-
-#include <mrpt/system/os.h>
-
 #include <mrpt/gui/WxSubsystem.h>
 #include <mrpt/gui/WxUtils.h>
+#include <mrpt/system/os.h>
+#include <mrpt/system/thread_name.h>
 
 //#define  WXSUBSYSTEM_VERBOSE
 
@@ -124,17 +122,15 @@ class CDialogAskUserForCamera : public wxDialog
 			btnCancel, 1, wxALL | wxALIGN_BOTTOM | wxALIGN_CENTER_HORIZONTAL,
 			5);
 
-		Connect(
-			ID_BTN_OK, wxEVT_COMMAND_BUTTON_CLICKED,
-			(wxObjectEventFunction)&CDialogAskUserForCamera::OnBtnOk);
-		Connect(
-			ID_BTN_CANCEL, wxEVT_COMMAND_BUTTON_CLICKED,
-			(wxObjectEventFunction)&CDialogAskUserForCamera::OnBtnCancel);
+		Bind(wxEVT_BUTTON, &CDialogAskUserForCamera::OnBtnOk, this, ID_BTN_OK);
+		Bind(
+			wxEVT_BUTTON, &CDialogAskUserForCamera::OnBtnCancel, this,
+			ID_BTN_CANCEL);
 
 		SetSizer(f1);
 		Fit();
 
-		btnOk->SetFocus();  // So the default params can be accepted by just
+		btnOk->SetFocus();	// So the default params can be accepted by just
 		// pressing ENTER.
 	}
 
@@ -160,7 +156,7 @@ WxSubsystem::CWXMainFrame::CWXMainFrame(wxWindow* parent, wxWindowID id)
 	Create(
 		parent, id, _("MRPT-dummy frame window"), wxDefaultPosition,
 		wxSize(1, 1),
-		0,  // wxDEFAULT_FRAME_STYLE,
+		0,	// wxDEFAULT_FRAME_STYLE,
 		_T("id"));
 
 	if (oneInstance)
@@ -173,9 +169,9 @@ WxSubsystem::CWXMainFrame::CWXMainFrame(wxWindow* parent, wxWindowID id)
 	// Create a timer so requests from the main application thread can be
 	// processed regularly:
 	// ------------------------------------------------------------------------------------------
-	Connect(
-		ID_TIMER_WX_PROCESS_REQUESTS, wxEVT_TIMER,
-		(wxObjectEventFunction)&CWXMainFrame::OnTimerProcessRequests);
+	Bind(
+		wxEVT_TIMER, &CWXMainFrame::OnTimerProcessRequests, this,
+		ID_TIMER_WX_PROCESS_REQUESTS);
 	m_theTimer = new wxTimer(this, ID_TIMER_WX_PROCESS_REQUESTS);
 
 	m_theTimer->Start(10, true);  // One-shot
@@ -265,7 +261,7 @@ void WxSubsystem::pushPendingWxRequest(
 				"app seems already closed.\n";
 #endif
 		delete[] data;
-		return;  // wx subsystem already closed, ignore.
+		return;	 // wx subsystem already closed, ignore.
 	}
 
 	if (!cs_listPendingWxRequests)
@@ -330,7 +326,7 @@ void WxSubsystem::CWXMainFrame::OnTimerProcessRequests(wxTimerEvent& event)
 						if (!img) break;
 
 						wnd->m_image->AssignImage(new wxBitmap(
-							*img));  // Memory will be freed by the object.
+							*img));	 // Memory will be freed by the object.
 
 						if (wnd->m_image->GetSize().GetX() != img->GetWidth() &&
 							wnd->m_image->GetSize().GetY() != img->GetHeight())
@@ -450,61 +446,6 @@ void WxSubsystem::CWXMainFrame::OnTimerProcessRequests(wxTimerEvent& event)
 						if (wnd)
 						{
 							wnd->Refresh(false);
-						}
-					}
-					break;
-				// Add a 2D text message: vector_x: [0]:x, [1]:y, [2,3,4]:R G B,
-				// "x": enum of desired font. "y": unique index, "str": String.
-				case 360:
-					if (msg->source3D)
-					{
-						auto* wnd =
-							(C3DWindowDialog*)msg->source3D->getWxObject();
-						if (wnd)
-						{
-							wnd->addTextMessage(
-								msg->vector_x[0], msg->vector_x[1], msg->str,
-								mrpt::img::TColorf(
-									msg->vector_x[2], msg->vector_x[3],
-									msg->vector_x[4]),
-								size_t(msg->y),
-								mrpt::opengl::TOpenGLFont(msg->x));
-						}
-					}
-					break;
-				// Clear 2D text messages
-				case 361:
-					if (msg->source3D)
-					{
-						auto* wnd =
-							(C3DWindowDialog*)msg->source3D->getWxObject();
-						if (wnd)
-						{
-							wnd->clearTextMessages();
-						}
-					}
-					break;
-				// Add a 2D text message: vector_x: [0]:x, [1]:y, [2,3,4]:R G B,
-				// "x": enum of desired font. "y": unique index, "str": String.
-				case 362:
-					if (msg->source3D)
-					{
-						auto* wnd =
-							(C3DWindowDialog*)msg->source3D->getWxObject();
-						if (wnd)
-						{
-							wnd->addTextMessage(
-								msg->vector_x[0], msg->vector_x[1], msg->str,
-								mrpt::img::TColorf(
-									msg->vector_x[2], msg->vector_x[3],
-									msg->vector_x[4]),
-								msg->plotName, msg->vector_x[5],
-								mrpt::opengl::TOpenGLFontStyle(msg->x),
-								size_t(msg->y), msg->vector_x[6],
-								msg->vector_x[7], msg->vector_x[8] != 0,
-								mrpt::img::TColorf(
-									msg->vector_x[9], msg->vector_x[10],
-									msg->vector_x[11]));
 						}
 					}
 					break;
@@ -700,10 +641,9 @@ void WxSubsystem::CWXMainFrame::OnTimerProcessRequests(wxTimerEvent& event)
 								wxEmptyString, wxITEM_NORMAL);
 							popupMnu->Insert(0, mnuTarget);
 
-							wnd->Connect(
-								MENUITEM_ID, wxEVT_COMMAND_MENU_SELECTED,
-								(wxObjectEventFunction)&CWindowDialogPlots::
-									OnMenuSelected);
+							wnd->Bind(
+								wxEVT_MENU, &CWindowDialogPlots::OnMenuSelected,
+								wnd, MENUITEM_ID);
 						}
 					}
 					break;
@@ -761,7 +701,7 @@ void WxSubsystem::CWXMainFrame::OnTimerProcessRequests(wxTimerEvent& event)
 #ifdef WXSUBSYSTEM_VERBOSE
 					cout << "[WxSubsystem:999] Shutdown" << endl;
 #endif
-					app_closed = true;  // Do NOT launch a timer again
+					app_closed = true;	// Do NOT launch a timer again
 					if (WxSubsystem::CWXMainFrame::oneInstance)
 						((WxSubsystem::CWXMainFrame*)(WxSubsystem::
 														  CWXMainFrame::
@@ -789,41 +729,42 @@ void WxSubsystem::CWXMainFrame::OnTimerProcessRequests(wxTimerEvent& event)
 // ---------------------------------------------------------------------------------------
 // MRPT Icons
 // ---------------------------------------------------------------------------------------
-const char* mrpt_default_icon_xpm[] = {"32 32 2 1",
-									   " 	c None",
-									   ".	c #000000",
-									   "                                ",
-									   "                                ",
-									   "                                ",
-									   " .....     ..... .........      ",
-									   "  ....     ....   ...   ....    ",
-									   "  .....    ....   ...    ...    ",
-									   "  . ...   . ...   ...    ...    ",
-									   "  . ...   . ...   ...    ...    ",
-									   "  .  ... .  ...   ...   ...     ",
-									   "  .  ... .  ...   ........      ",
-									   "  .  .....  ...   ... ....      ",
-									   "  .   ...   ...   ...  ....     ",
-									   "  .   ...   ...   ...   ....    ",
-									   "  .   ..    ...   ...    ....   ",
-									   " ...   .   ..... .....    ..... ",
-									   "                                ",
-									   "                                ",
-									   "    ........     ...........    ",
-									   "     ...  ....   ..  ...  ..    ",
-									   "     ...   ...   .   ...   .    ",
-									   "     ...   ...       ...        ",
-									   "     ...   ...       ...        ",
-									   "     ...  ...        ...        ",
-									   "     .......         ...        ",
-									   "     ...             ...        ",
-									   "     ...             ...        ",
-									   "     ...             ...        ",
-									   "     ...             ...        ",
-									   "    .....           .....       ",
-									   "                                ",
-									   "                                ",
-									   "                                "};
+const char* mrpt_default_icon_xpm[] = {
+	"32 32 2 1",
+	" 	c None",
+	".	c #000000",
+	"                                ",
+	"                                ",
+	"                                ",
+	" .....     ..... .........      ",
+	"  ....     ....   ...   ....    ",
+	"  .....    ....   ...    ...    ",
+	"  . ...   . ...   ...    ...    ",
+	"  . ...   . ...   ...    ...    ",
+	"  .  ... .  ...   ...   ...     ",
+	"  .  ... .  ...   ........      ",
+	"  .  .....  ...   ... ....      ",
+	"  .   ...   ...   ...  ....     ",
+	"  .   ...   ...   ...   ....    ",
+	"  .   ..    ...   ...    ....   ",
+	" ...   .   ..... .....    ..... ",
+	"                                ",
+	"                                ",
+	"    ........     ...........    ",
+	"     ...  ....   ..  ...  ..    ",
+	"     ...   ...   .   ...   .    ",
+	"     ...   ...       ...        ",
+	"     ...   ...       ...        ",
+	"     ...  ...        ...        ",
+	"     .......         ...        ",
+	"     ...             ...        ",
+	"     ...             ...        ",
+	"     ...             ...        ",
+	"     ...             ...        ",
+	"    .....           .....       ",
+	"                                ",
+	"                                ",
+	"                                "};
 
 wxBitmap WxSubsystem::getMRPTDefaultIcon()
 {
@@ -967,7 +908,7 @@ int mrpt_wxEntryReal(int argc, char** argv)
 	{
 		// app initialization
 		if (!wxTheApp->CallOnInit())
-			return -1;  // don't call OnExit() if OnInit() failed
+			return -1;	// don't call OnExit() if OnInit() failed
 
 		// app execution
 		int ret = wxTheApp->OnRun();
@@ -975,7 +916,7 @@ int mrpt_wxEntryReal(int argc, char** argv)
 		{
 			wxLogNull logNo;  // Skip any warning in this scope.
 
-			wxTheApp->OnExit();  // This replaces the above callOnExit class
+			wxTheApp->OnExit();	 // This replaces the above callOnExit class
 			wxEntryCleanup();
 		}
 
@@ -1111,6 +1052,8 @@ bool WxSubsystem::createOneInstanceMainThread()
 			// Create a thread for message processing there:
 			wxmtd.m_wxMainThreadId = std::thread(wxMainThread);
 
+			mrpt::system::thread_name("wxMainThread", wxmtd.m_wxMainThreadId);
+
 			int maxTimeout =
 #ifdef _DEBUG
 				30000;
@@ -1138,4 +1081,4 @@ bool WxSubsystem::createOneInstanceMainThread()
 	return true;  // OK
 }
 
-#endif  // MRPT_HAS_WXWIDGETS
+#endif	// MRPT_HAS_WXWIDGETS

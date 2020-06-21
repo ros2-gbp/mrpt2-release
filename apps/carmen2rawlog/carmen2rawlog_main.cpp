@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -21,7 +21,7 @@
 // ===========================================================================
 
 #include <mrpt/io/CFileGZOutputStream.h>
-#include <mrpt/math/lightweight_geom_data.h>
+#include <mrpt/math/TPose2D.h>
 #include <mrpt/system/datetime.h>
 #include <mrpt/system/filesystem.h>
 #include <mrpt/system/os.h>
@@ -30,7 +30,7 @@
 #include <mrpt/obs/carmen_log_tools.h>
 #include <mrpt/serialization/CArchive.h>
 
-#include <mrpt/otherlibs/tclap/CmdLine.h>
+#include <mrpt/3rdparty/tclap/CmdLine.h>
 
 #include <fstream>
 #include <map>
@@ -132,7 +132,7 @@ int main(int argc, char** argv)
 				//  a "corrected" odometry from some SLAM program, so save it as
 				//  ground truth:
 				if (importedObservations.size() > 1 &&
-					IS_CLASS(importedObservations[i], CObservationOdometry))
+					IS_CLASS(*importedObservations[i], CObservationOdometry))
 				{
 					CObservationOdometry::Ptr odo =
 						std::dynamic_pointer_cast<CObservationOdometry>(

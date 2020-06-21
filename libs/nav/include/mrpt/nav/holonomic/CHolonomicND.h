@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -51,7 +51,7 @@ class CLogFileRecord_ND;
  */
 class CHolonomicND : public CAbstractHolonomicReactiveMethod
 {
-	DEFINE_SERIALIZABLE(CHolonomicND)
+	DEFINE_SERIALIZABLE(CHolonomicND, mrpt::nav)
    public:
 	/**  Initialize the parameters of the navigator, from some configuration
 	 * file, or default values if set to nullptr */
@@ -162,7 +162,7 @@ class CHolonomicND : public CAbstractHolonomicReactiveMethod
  */
 class CLogFileRecord_ND : public CHolonomicLogFileRecord
 {
-	DEFINE_SERIALIZABLE(CLogFileRecord_ND)
+	DEFINE_SERIALIZABLE(CLogFileRecord_ND, mrpt::nav)
 
    public:
 	/** Member data.

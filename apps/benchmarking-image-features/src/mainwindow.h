@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -78,7 +78,7 @@
 #include <string>
 
 /// opencv includes
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 /// MRPT includes
 #include <mrpt/vision/CFeatureExtraction.h>
@@ -322,11 +322,12 @@ class MainWindow : public QMainWindow
 	/// main Feature Extraction params
 	CFeatureExtraction fext;  //!< CFeatureExtraction object to hold/store all
 	//! parameters for detectors/descriptors
-	CFeatureList featsImage1,
-		featsImage2;  //!< stores the features in image 1 and 2
-	CImage img1, img2;  //!< stores image 1 and 2
-	TDescriptorType
-		desc_to_compute;  //!< stores the type of the descriptor to be computed
+	// stores the features in image 1 and 2
+	CFeatureList featsImage1, featsImage2;
+	// stores image 1 and 2
+	CImage img1, img2;
+	// stores the type of the descriptor to be computed
+	TDescriptorType desc_to_compute;
 
 	int numFeats;  //!< stores the number of features to be computed
 

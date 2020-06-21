@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,7 +12,8 @@
 #include <vector>
 #include "vision-precomp.h"  // Precompiled headers
 
-#include <mrpt/math/types_math.h>  // Eigen must be included first via MRPT to enable the plugin system
+//#include <mrpt/math/types_math.h>  // Eigen must be included first via MRPT to
+// enable the plugin system
 #include <Eigen/Dense>
 #include <Eigen/SVD>
 #include <Eigen/StdVector>

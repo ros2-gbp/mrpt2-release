@@ -2,14 +2,15 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "obs-precomp.h"  // Precompiled headers
 
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/core/round.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/math/wrap2pi.h>
 #include <mrpt/obs/CObservation2DRangeScan.h>
 #include <mrpt/poses/CPosePDF.h>
@@ -26,26 +27,15 @@ using namespace mrpt::math;
 // This must be added to any CSerializable class implementation file.
 IMPLEMENTS_SERIALIZABLE(CObservation2DRangeScan, CObservation, mrpt::obs)
 
-CObservation2DRangeScan::CObservation2DRangeScan(
-	const CObservation2DRangeScan& o)
-	: CObservation(o),  // base copy ctor
-	  scan(m_scan),  // proxy ctor
-	  intensity(m_intensity),  // proxy ctor
-	  validRange(m_validRange)  // proxy ctor
-{
-	// rely on compiler-generated copy op + the custom = operator in proxies.
-	*this = o;
-}
-
 uint8_t CObservation2DRangeScan::serializeGetVersion() const { return 7; }
 void CObservation2DRangeScan::serializeTo(
 	mrpt::serialization::CArchive& out) const
 {
 	// The data
 	out << aperture << rightToLeft << maxRange << sensorPose;
-	uint32_t N = scan.size();
+	uint32_t N = m_scan.size();
 	out << N;
-	ASSERT_(validRange.size() == scan.size());
+	ASSERT_EQUAL_(m_validRange.size(), m_scan.size());
 	if (N)
 	{
 		out.WriteBufferFixEndianness(&m_scan[0], N);
@@ -70,13 +60,13 @@ void CObservation2DRangeScan::truncateByDistanceAndAngle(
 	// FILTER OUT INVALID POINTS!!
 	CPose3D pose;
 	unsigned int k = 0;
-	unsigned int nPts = scan.size();
+	const auto nPts = m_scan.size();
 
 	auto itValid = m_validRange.begin();
 	for (auto itScan = m_scan.begin(); itScan != m_scan.end();
 		 itScan++, itValid++, k++)
 	{
-		float ang = fabs(k * aperture / nPts - aperture * 0.5);
+		const auto ang = std::abs(k * aperture / nPts - aperture * 0.5f);
 		float x = (*itScan) * cos(ang);
 
 		if (min_height != 0 || max_height != 0)
@@ -101,7 +91,7 @@ void CObservation2DRangeScan::serializeFrom(
 		case 2:
 		case 3:
 		{
-			CMatrix covSensorPose;
+			CMatrixF covSensorPose;
 			in >> aperture >> rightToLeft >> maxRange >> sensorPose >>
 				covSensorPose;
 			uint32_t N, i;
@@ -120,7 +110,7 @@ void CObservation2DRangeScan::serializeFrom(
 			else
 			{
 				// validRange: Default values: If distance is not maxRange
-				for (i = 0; i < N; i++) m_validRange[i] = scan[i] < maxRange;
+				for (i = 0; i < N; i++) m_validRange[i] = m_scan[i] < maxRange;
 			}
 
 			if (version >= 2)
@@ -152,7 +142,7 @@ void CObservation2DRangeScan::serializeFrom(
 		{
 			uint32_t N;
 
-			CMatrix covSensorPose;
+			CMatrixF covSensorPose;
 			in >> aperture >> rightToLeft >> maxRange >> sensorPose;
 
 			if (version < 6)  // covSensorPose was removed in version 6
@@ -228,7 +218,7 @@ mxArray* CObservation2DRangeScan::writeToMatlab() const
 
 	obs_struct.set("class", this->GetRuntimeClass()->className);
 
-	obs_struct.set("ts", this->timestamp);
+	obs_struct.set("ts", mrpt::Clock::toDouble(timestamp));
 	obs_struct.set("sensorLabel", this->sensorLabel);
 
 	obs_struct.set("scan", this->m_scan);
@@ -275,21 +265,21 @@ void CObservation2DRangeScan::filterByExclusionAreas(
 
 	MRPT_START
 
-	double Ang, dA;
-	size_t sizeRangeScan = scan.size();
+	float Ang, dA;
+	const size_t sizeRangeScan = m_scan.size();
 
-	ASSERT_(scan.size() == validRange.size());
+	ASSERT_EQUAL_(m_scan.size(), m_validRange.size());
 
 	if (!sizeRangeScan) return;
 
 	if (rightToLeft)
 	{
-		Ang = -0.5 * aperture;
+		Ang = -0.5f * aperture;
 		dA = aperture / (sizeRangeScan - 1);
 	}
 	else
 	{
-		Ang = +0.5 * aperture;
+		Ang = +0.5f * aperture;
 		dA = -aperture / (sizeRangeScan - 1);
 	}
 
@@ -304,8 +294,8 @@ void CObservation2DRangeScan::filterByExclusionAreas(
 		}
 
 		// Compute point in 2D, local to the laser center:
-		const double Lx = *scan_it * cos(Ang);
-		const double Ly = *scan_it * sin(Ang);
+		const auto Lx = *scan_it * cos(Ang);
+		const auto Ly = *scan_it * sin(Ang);
 		Ang += dA;
 
 		// To real 3D pose:
@@ -359,9 +349,9 @@ void CObservation2DRangeScan::filterByExclusionAngles(
 	MRPT_START
 
 	double Ang, dA;
-	const size_t sizeRangeScan = scan.size();
+	const size_t sizeRangeScan = m_scan.size();
 
-	ASSERT_(scan.size() == validRange.size());
+	ASSERT_EQUAL_(m_scan.size(), m_validRange.size());
 
 	if (!sizeRangeScan) return;
 
@@ -379,15 +369,18 @@ void CObservation2DRangeScan::filterByExclusionAngles(
 	// For each forbiden angle range:
 	for (const auto& angle : angles)
 	{
-		int ap_idx_ini = mrpt::math::wrapTo2Pi(angle.first - Ang) /
-						 dA;  // The signs are all right! ;-)
-		int ap_idx_end = mrpt::math::wrapTo2Pi(angle.second - Ang) / dA;
+		int ap_idx_ini =
+			mrpt::round(mrpt::math::wrapTo2Pi(angle.first - Ang) / dA);
+		int ap_idx_end =
+			mrpt::round(mrpt::math::wrapTo2Pi(angle.second - Ang) / dA);
 
 		if (ap_idx_ini < 0) ap_idx_ini = 0;
 		if (ap_idx_end < 0) ap_idx_end = 0;
 
-		if (ap_idx_ini > (int)sizeRangeScan) ap_idx_ini = sizeRangeScan - 1;
-		if (ap_idx_end > (int)sizeRangeScan) ap_idx_end = sizeRangeScan - 1;
+		if (ap_idx_ini > static_cast<int>(sizeRangeScan))
+			ap_idx_ini = sizeRangeScan - 1;
+		if (ap_idx_end > static_cast<int>(sizeRangeScan))
+			ap_idx_end = sizeRangeScan - 1;
 
 		const size_t idx_ini = ap_idx_ini;
 		const size_t idx_end = ap_idx_end;
@@ -417,6 +410,7 @@ using scan2pts_functor = void (*)(
 	const mrpt::obs::CObservation2DRangeScan& obs,
 	mrpt::maps::CMetricMap::Ptr& out_map, const void* insertOps);
 
+extern scan2pts_functor ptr_internal_build_points_map_from_scan2D;
 scan2pts_functor ptr_internal_build_points_map_from_scan2D = nullptr;
 
 void internal_set_build_points_map_from_scan2D(scan2pts_functor fn)
@@ -442,7 +436,7 @@ void CObservation2DRangeScan::internal_buildAuxPointsMap(
 /** Fill out a T2DScanProperties structure with the parameters of this scan */
 void CObservation2DRangeScan::getScanProperties(T2DScanProperties& p) const
 {
-	p.nRays = this->scan.size();
+	p.nRays = m_scan.size();
 	p.aperture = this->aperture;
 	p.rightToLeft = this->rightToLeft;
 }
@@ -467,14 +461,14 @@ void CObservation2DRangeScan::getDescriptionAsText(std::ostream& o) const
 	o << format(
 		"Samples direction: %s\n",
 		(rightToLeft) ? "Right->Left" : "Left->Right");
-	o << format("Points in the scan: %u\n", (unsigned)scan.size());
+	o << format("Points in the scan: %u\n", m_scan.size());
 	o << format("Estimated sensor 'sigma': %f\n", stdError);
 	o << format(
 		"Increment in pitch during the scan: %f deg\n", RAD2DEG(deltaPitch));
 
 	size_t i, inval = 0;
-	for (i = 0; i < scan.size(); i++)
-		if (!validRange[i]) inval++;
+	for (i = 0; i < m_scan.size(); i++)
+		if (!m_validRange[i]) inval++;
 	o << format("Invalid points in the scan: %u\n", (unsigned)inval);
 
 	o << format("Sensor maximum range: %.02f m\n", maxRange);
@@ -482,12 +476,12 @@ void CObservation2DRangeScan::getDescriptionAsText(std::ostream& o) const
 		"Sensor field-of-view (\"aperture\"): %.01f deg\n", RAD2DEG(aperture));
 
 	o << "Raw scan values: [";
-	for (i = 0; i < scan.size(); i++) o << format("%.03f ", scan[i]);
+	for (i = 0; i < m_scan.size(); i++) o << format("%.03f ", m_scan[i]);
 	o << "]\n";
 
 	o << "Raw valid-scan values: [";
-	for (i = 0; i < validRange.size(); i++)
-		o << format("%u ", validRange[i] ? 1 : 0);
+	for (i = 0; i < m_validRange.size(); i++)
+		o << format("%u ", m_validRange[i] ? 1 : 0);
 	o << "]\n\n";
 
 	if (hasIntensity())
@@ -499,7 +493,12 @@ void CObservation2DRangeScan::getDescriptionAsText(std::ostream& o) const
 	}
 }
 
-float CObservation2DRangeScan::getScanRange(const size_t i) const
+const float& CObservation2DRangeScan::getScanRange(const size_t i) const
+{
+	ASSERT_BELOW_(i, m_scan.size());
+	return m_scan[i];
+}
+float& CObservation2DRangeScan::getScanRange(const size_t i)
 {
 	ASSERT_BELOW_(i, m_scan.size());
 	return m_scan[i];
@@ -511,7 +510,12 @@ void CObservation2DRangeScan::setScanRange(const size_t i, const float val)
 	m_scan[i] = val;
 }
 
-int CObservation2DRangeScan::getScanIntensity(const size_t i) const
+const int32_t& CObservation2DRangeScan::getScanIntensity(const size_t i) const
+{
+	ASSERT_BELOW_(i, m_intensity.size());
+	return m_intensity[i];
+}
+int32_t& CObservation2DRangeScan::getScanIntensity(const size_t i)
 {
 	ASSERT_BELOW_(i, m_intensity.size());
 	return m_intensity[i];

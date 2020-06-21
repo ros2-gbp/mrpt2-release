@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -39,8 +39,8 @@ DECLARE_OP_FUNCTION(op_export_enose_txt)
 		// Default Constructor
 		CRawlogProcessor_ExportENOSE_TXT(
 			CFileGZInputStream& in_rawlog, TCLAP::CmdLine& cmdline,
-			bool verbose)
-			: CRawlogProcessorOnEachObservation(in_rawlog, cmdline, verbose),
+			bool Verbose)
+			: CRawlogProcessorOnEachObservation(in_rawlog, cmdline, Verbose),
 			  m_entriesSaved(0)
 		{
 			getArgValue<string>(cmdline, "input", m_inFile);
@@ -52,7 +52,7 @@ DECLARE_OP_FUNCTION(op_export_enose_txt)
 		// Return false on any error.
 		bool processOneObservation(CObservation::Ptr& o) override
 		{
-			if (!IS_CLASS(o, CObservationGasSensors)) return true;
+			if (!IS_CLASS(*o, CObservationGasSensors)) return true;
 
 			const CObservationGasSensors* obs =
 				dynamic_cast<CObservationGasSensors*>(o.get());

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -19,7 +19,7 @@ namespace mrpt::poses
  */
 class CPoint2DPDFGaussian : public CPoint2DPDF
 {
-	DEFINE_SERIALIZABLE(CPoint2DPDFGaussian)
+	DEFINE_SERIALIZABLE(CPoint2DPDFGaussian, mrpt::poses)
 	DEFINE_SCHEMA_SERIALIZABLE()
 
    public:
@@ -41,12 +41,9 @@ class CPoint2DPDFGaussian : public CPoint2DPDF
 	void getMean(CPoint2D& p) const override { p = this->mean; }
 	/** Returns an estimate of the point covariance matrix (2x2 cov matrix) and
 	 * the mean, both at once. \sa getMean */
-	void getCovarianceAndMean(
-		mrpt::math::CMatrixDouble22& out_cov,
-		CPoint2D& mean_point) const override
+	std::tuple<cov_mat_t, type_value> getCovarianceAndMean() const override
 	{
-		out_cov = this->cov;
-		mean_point = this->mean;
+		return {this->cov, this->mean};
 	}
 
 	/** Copy operator, translating if necesary (for example, between particles

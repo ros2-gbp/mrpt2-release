@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -13,7 +13,7 @@
 #include <mrpt/vision/CFeatureExtraction.h>
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 #ifdef HAVE_OPENCV_NONFREE  // MRPT_HAS_OPENCV_NONFREE
 #include <opencv2/nonfree/nonfree.hpp>
 #endif
@@ -55,8 +55,8 @@ void CFeatureExtraction::extractFeaturesSIFT(
 	if (usingROI)
 	{
 		ASSERT_(
-			ROI.xMin >= 0 && ROI.xMin < ROI.xMax && ROI.xMax < img.getWidth() &&
-			ROI.yMin >= 0 && ROI.yMax < img.getHeight() && ROI.yMin < ROI.yMax);
+			ROI.xMin < ROI.xMax && ROI.xMax < img.getWidth() &&
+			ROI.yMax < img.getHeight() && ROI.yMin < ROI.yMax);
 		CImage auximg;
 		img_grayscale.extract_patch(
 			auximg, ROI.xMin, ROI.yMin, ROI.xMax - ROI.xMin + 1,
@@ -150,29 +150,33 @@ void CFeatureExtraction::extractFeaturesSIFT(
 					((xBorderSup < (int)imgW) && (xBorderInf > 0) &&
 					 (yBorderSup < (int)imgH) && (yBorderInf > 0)))
 				{
-					CFeature::Ptr ft = mrpt::make_aligned_shared<CFeature>();
-					ft->type = featSIFT;
-					ft->ID = nextID++;
-					ft->x = cv_feats[i].pt.x;
-					ft->y = cv_feats[i].pt.y;
-					ft->response = cv_feats[i].response;
-					ft->orientation = cv_feats[i].angle;
-					ft->scale = cv_feats[i].size;
-					ft->patchSize =
-						options.patchSize;  // The size of the feature patch
-					ft->descriptors.SIFT.resize(128);
+					CFeature ft;
+					ft.type = featSIFT;
+					ft.keypoint.ID = nextID++;
+					ft.keypoint.pt.x = cv_feats[i].pt.x;
+					ft.keypoint.pt.y = cv_feats[i].pt.y;
+					ft.keypoint.response = cv_feats[i].response;
+					ft.orientation = cv_feats[i].angle;
+					ft.keypoint.octave =
+						mrpt::round(std::log2(cv_feats[i].size));
+					ft.patchSize = options.patchSize;
+
+					// The descriptor
+					ft.descriptors.SIFT.emplace();
+					auto& out_desc = ft.descriptors.SIFT.value();
+					out_desc.resize(128);
 					memcpy(
-						&(ft->descriptors.SIFT[0]), &desc.data[128 * i],
-						128 *
-							sizeof(ft->descriptors.SIFT[0]));  // The descriptor
+						&out_desc[0], &desc.data[128 * i],
+						128 * sizeof(out_desc[0]));
 
 					if (options.patchSize > 0)
 					{
+						mrpt::img::CImage p;
 						img.extract_patch(
-							ft->patch, round(ft->x) - offset,
-							round(ft->y) - offset, options.patchSize,
-							options.patchSize);  // Image patch surronding the
-						// feature
+							p, round(ft.keypoint.pt.x) - offset,
+							round(ft.keypoint.pt.y) - offset, options.patchSize,
+							options.patchSize);
+						ft.patch = std::move(p);
 					}
 					feats.push_back(ft);
 					++cont;
@@ -202,15 +206,9 @@ void CFeatureExtraction::internal_computeSiftDescriptors(
 		profiler, "internal_computeSiftDescriptors");
 
 	ASSERT_(in_features.size() > 0);
-	switch (options.SIFTOptions.implementation)
-	{
-		default:
-		{
-			cerr << "SIFT Extraction method not supported for features with "
-					"already known image coordinates"
-				 << endl;
-			break;
-		}
-	}  // end switch
+	// switch (options.SIFTOptions.implementation)
+	THROW_EXCEPTION(
+		"SIFT Extraction method not supported for features with already known "
+		"image coordinates");
 
 }  // end computeSiftDescriptors

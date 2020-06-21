@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -19,9 +19,9 @@
 
 #include <mrpt/gui/CMyRedirector.h>
 #include <mrpt/gui/WxUtils.h>
-#include "robotic_arm_kinematicsMain.h"
-
 #include <mrpt/system/os.h>
+#include <Eigen/Dense>  // for version
+#include "robotic_arm_kinematicsMain.h"
 
 using namespace mrpt;
 using namespace mrpt::system;
@@ -139,11 +139,8 @@ CAboutBox::CAboutBox(wxWindow* parent, wxWindowID id)
 	FlexGridSizer1->SetSizeHints(this);
 	Center();
 
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CAboutBox::OnButton1Click);
-	Connect(
-		wxID_ANY, wxEVT_INIT_DIALOG, (wxObjectEventFunction)&CAboutBox::OnInit);
+	Bind(wxEVT_BUTTON, &CAboutBox::OnButton1Click, this, ID_BUTTON1);
+	Bind(wxEVT_INIT_DIALOG, &CAboutBox::OnInit, this, wxID_ANY);
 	//*)
 
 	lbLicense->SetValue(mrpt::system::getMRPTLicense().c_str());
@@ -155,9 +152,8 @@ CAboutBox::~CAboutBox()
 	//*)
 }
 
-void CAboutBox::OnInit(wxInitDialogEvent& event)
+void CAboutBox::OnInit([[maybe_unused]] wxInitDialogEvent& event)
 {
-	MRPT_UNUSED_PARAM(event);
 	// Build strings:
 	wxString MRPTver(MRPT_getVersion().c_str(), wxConvLibc);
 	wxString wxVer(wxVERSION_STRING);
@@ -207,8 +203,7 @@ void CAboutBox::OnInit(wxInitDialogEvent& event)
 	FlexGridSizer1->RecalcSizes();
 }
 
-void CAboutBox::OnButton1Click(wxCommandEvent& event)
+void CAboutBox::OnButton1Click([[maybe_unused]] wxCommandEvent& event)
 {
-	MRPT_UNUSED_PARAM(event);
 	Close();
 }

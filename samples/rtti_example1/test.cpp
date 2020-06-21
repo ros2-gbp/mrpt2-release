@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -19,7 +19,7 @@ class Foo : public mrpt::rtti::CObject
 {
    public:
 	Foo() {}
-	DEFINE_MRPT_OBJECT(Foo)
+	DEFINE_MRPT_OBJECT(Foo, MyNS)
 
 	void printName() { std::cout << "printName: Foo" << std::endl; }
 };
@@ -37,7 +37,7 @@ class Bar : public BarBase
 {
    public:
 	Bar() {}
-	DEFINE_MRPT_OBJECT(Bar)
+	DEFINE_MRPT_OBJECT(Bar, MyNS)
 
 	void printName() override { std::cout << "class: Bar" << std::endl; }
 	void specificBarMethod()
@@ -68,16 +68,14 @@ void Test_UserTypes()
 
 	pBar->printName();
 	pBase->printName();
-	std::cout << "Is Foo?     => " << (IS_DERIVED(pObj, Foo) ? "Yes" : "No")
-			  << std::endl;
-	std::cout << "Is BarBase? => " << (IS_DERIVED(pObj, BarBase) ? "Yes" : "No")
-			  << std::endl;
-	std::cout << "Is Bar?     => " << (IS_DERIVED(pObj, Bar) ? "Yes" : "No")
-			  << std::endl;
-	if (IS_CLASS(pObj, Bar))
+	std::cout << "Is Foo?   => " << (IS_DERIVED(*pObj, Foo) ? "Yes\n" : "No\n");
+	std::cout << "Is BarBase? => "
+			  << (IS_DERIVED(*pObj, BarBase) ? "Yes\n" : "No\n");
+	std::cout << "Is Bar?  => " << (IS_DERIVED(*pObj, Bar) ? "Yes\n" : "No\n");
+	if (IS_CLASS(*pObj, Bar))
 	{
-		auto pBar = mrpt::ptr_cast<Bar>::from(pObj);
-		pBar->specificBarMethod();
+		auto pBar2 = mrpt::ptr_cast<Bar>::from(pObj);
+		pBar2->specificBarMethod();
 	}
 }
 
@@ -115,9 +113,8 @@ void Test_UserTypesFactory()
 
 	// Test factory:
 	{
-		mrpt::rtti::CObject::Ptr pObj =
-			mrpt::rtti::classFactoryPtr("MyNS::Bar");
-		if (IS_CLASS(pObj, MyNS::Bar))
+		mrpt::rtti::CObject::Ptr pObj = mrpt::rtti::classFactory("MyNS::Bar");
+		if (IS_CLASS(*pObj, MyNS::Bar))
 		{
 			auto pBar = mrpt::ptr_cast<MyNS::Bar>::from(pObj);
 			pBar->specificBarMethod();

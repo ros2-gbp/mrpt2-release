@@ -16,6 +16,7 @@ set_target_properties(test_legacy PROPERTIES FOLDER "unit tests")
 set_target_properties(tests_build_all PROPERTIES FOLDER "unit tests")
 if (UNIX)
 	add_custom_target(test_gdb)
+	add_custom_target(test_valgrind)
 endif()
 
 
@@ -38,11 +39,6 @@ endif()
 if (NOT "${CMAKE_GTEST_CFLAGS}" STREQUAL "")
 	add_definitions(${CMAKE_GTEST_CFLAGS})
 endif ()
-
-# Fix issue #367: undefined reference to symbol on tests linking
-if(NOT MSVC)
-    set(CMAKE_THREAD_LIBS_INIT ${CMAKE_THREAD_LIBS_INIT} "-lpthread")
-endif()
 
 if(MSVC)
 	# avoid MSVC pedantic warning on tr1. See: https://github.com/google/googletest/issues/1111
@@ -69,14 +65,13 @@ foreach(_TSTLIB ${LST_LIB_TESTS})
 	# Add the required libraries for linking:
 	if (CMAKE_MRPT_HAS_GTEST_SYSTEM)
 		# System vesion:
-		target_link_libraries(test_${_TSTLIB} ${MRPT_LINKER_LIBS_RELorDEB} gtest ${CMAKE_THREAD_LIBS_INIT})
+		set(gtest_lib_name gtest)
 	else ()
 		# Own version:
-		target_link_libraries(test_${_TSTLIB} ${MRPT_LINKER_LIBS_RELorDEB} mrptgtest ${CMAKE_THREAD_LIBS_INIT})
-		add_dependencies(test_${_TSTLIB} mrptgtest)  # Assure the MRPT library is updated:
+		set(gtest_lib_name mrptgtest)
 	endif ()
 
-	set_target_properties(test_${_TSTLIB} PROPERTIES "COMPILE_DEFINITIONS" "MRPT_TEST_LIB=${_TSTLIB}")
+	target_link_libraries(test_${_TSTLIB} ${gtest_lib_name} Threads::Threads)
 
 	# Deps:
 	get_property(lst_deps GLOBAL PROPERTY "${_TSTLIB_DASH}_LIB_DEPS")
@@ -110,19 +105,31 @@ foreach(_TSTLIB ${LST_LIB_TESTS})
 	if (UNIX)
 		# test_gdb
 		add_custom_target(run_tests_${_TSTLIB}_gdb
-		COMMAND "gdb" "-batch" "-ex" "\"run\"" "-ex" "\"bt\"" "-return-child-result" "${GENERATED_EXE}")
+			COMMAND "gdb" "-batch" "-ex" "\"run\"" "-ex" "\"bt\"" "-return-child-result" "${GENERATED_EXE}"
+			)
 		add_dependencies(run_tests_${_TSTLIB}_gdb test_${_TSTLIB})
 		add_dependencies(test_gdb run_tests_${_TSTLIB}_gdb)
+
+		# test_valgrind
+		add_custom_target(run_tests_${_TSTLIB}_valgrind
+			COMMAND "valgrind" "--error-exitcode=1" "${GENERATED_EXE}"
+			)
+		add_dependencies(run_tests_${_TSTLIB}_valgrind test_${_TSTLIB})
+		add_dependencies(test_valgrind run_tests_${_TSTLIB}_valgrind)
 	endif()
 
 	set_target_properties(test_${_TSTLIB} PROPERTIES FOLDER "unit tests")
 	set_target_properties(run_tests_${_TSTLIB} PROPERTIES FOLDER "unit tests")
 
-endforeach(_TSTLIB)
+	if (MRPT_COMPILER_IS_GCC_OR_CLANG)
+		target_compile_options(test_${_TSTLIB} PRIVATE "-Wno-abi")
+	endif()
+
+endforeach()
 
 # Special dependencies:
 if (TARGET test_mrpt_img)
     if(CMAKE_MRPT_HAS_OPENCV)
-	target_link_libraries(test_mrpt_img ${OpenCV_LIBRARIES})
+	target_link_libraries(test_mrpt_img imp_opencv)
     endif()
 endif()

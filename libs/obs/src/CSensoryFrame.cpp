@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -102,9 +102,8 @@ void CSensoryFrame::serializeFrom(
 /*---------------------------------------------------------------
 						operator +=
   ---------------------------------------------------------------*/
-void CSensoryFrame::operator+=(const CSensoryFrame& sf)
+void CSensoryFrame::operator+=([[maybe_unused]] const CSensoryFrame& sf)
 {
-	MRPT_UNUSED_PARAM(sf);
 	m_cachedMap.reset();
 	for (auto it = begin(); it != end(); ++it)
 	{
@@ -145,7 +144,7 @@ void CSensoryFrame::insert(const CObservation::Ptr& obs)
 /*---------------------------------------------------------------
 				eraseByIndex
   ---------------------------------------------------------------*/
-void CSensoryFrame::eraseByIndex(const size_t& idx)
+void CSensoryFrame::eraseByIndex(size_t idx)
 {
 	MRPT_START
 	if (idx >= size())
@@ -155,7 +154,6 @@ void CSensoryFrame::eraseByIndex(const size_t& idx)
 	m_cachedMap.reset();
 	auto it = begin() + idx;
 	ASSERT_(!*it);
-	// delete (*it);
 	m_observations.erase(it);
 	MRPT_END
 }
@@ -163,16 +161,20 @@ void CSensoryFrame::eraseByIndex(const size_t& idx)
 /*---------------------------------------------------------------
 					getObservationByIndex
   ---------------------------------------------------------------*/
-CObservation::Ptr CSensoryFrame::getObservationByIndex(const size_t& idx) const
+const CObservation::Ptr& CSensoryFrame::getObservationByIndex(size_t idx) const
 {
 	MRPT_START
-	if (idx >= size())
-		THROW_EXCEPTION_FMT(
-			"Index %u out of range.", static_cast<unsigned>(idx));
-
+	ASSERT_BELOW_(idx, size());
 	auto it = begin() + idx;
 	return *it;
-
+	MRPT_END
+}
+CObservation::Ptr& CSensoryFrame::getObservationByIndex(size_t idx)
+{
+	MRPT_START
+	ASSERT_BELOW_(idx, size());
+	auto it = begin() + idx;
+	return *it;
 	MRPT_END
 }
 
@@ -193,7 +195,7 @@ CSensoryFrame::iterator CSensoryFrame::erase(const iterator& it)
 					getObservationBySensorLabel
   ---------------------------------------------------------------*/
 CObservation::Ptr CSensoryFrame::getObservationBySensorLabel(
-	const std::string& label, const size_t& idx) const
+	const std::string& label, size_t idx) const
 {
 	MRPT_START
 
@@ -255,7 +257,7 @@ void CSensoryFrame::internal_buildAuxPointsMap(const void* options) const
 			"linking against mrpt-maps.\n");
 
 	for (const auto& it : *this)
-		if (IS_CLASS(it, CObservation2DRangeScan))
+		if (IS_CLASS(*it, CObservation2DRangeScan))
 			(*ptr_internal_build_points_map_from_scan2D)(
 				dynamic_cast<CObservation2DRangeScan&>(*it.get()), m_cachedMap,
 				options);

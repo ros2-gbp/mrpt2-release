@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -14,7 +14,7 @@
 #include <mrpt/system/CTimeLogger.h>
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 using namespace mrpt::hwdrivers;
 using namespace mrpt::system;
@@ -85,10 +85,9 @@ void COpenNI2_RGBD360::doProcess()
 
 	bool thereIs, hwError;
 
-	CObservationRGBD360::Ptr newObs =
-		mrpt::make_aligned_shared<CObservationRGBD360>();
+	CObservationRGBD360::Ptr newObs = std::make_shared<CObservationRGBD360>();
 	//	CObservation3DRangeScan::Ptr newObs =
-	// mrpt::make_aligned_shared<CObservation3DRangeScan>();
+	// std::make_shared<CObservation3DRangeScan>();
 
 	assert(getNumDevices() > 0);
 	//  unsigned sensor_id = COpenNI2Generic::vOpenDevices.front();
@@ -162,7 +161,8 @@ void COpenNI2_RGBD360::loadConfig_sensorSpecific(
  * \sa doProcess
  */
 void COpenNI2_RGBD360::getNextObservation(
-	CObservationRGBD360& out_obs, bool& there_is_obs, bool& hardware_error)
+	[[maybe_unused]] CObservationRGBD360& out_obs,
+	[[maybe_unused]] bool& there_is_obs, [[maybe_unused]] bool& hardware_error)
 {
 #if MRPT_HAS_OPENNI2
 	CTicTac tictac;
@@ -205,16 +205,17 @@ void COpenNI2_RGBD360::getNextObservation(
 					m_preview_decim_counter_range = 0;
 					if (!m_win_range[sensor_id])
 					{
-						m_win_range[sensor_id] = mrpt::make_aligned_shared<
-							mrpt::gui::CDisplayWindow>("Preview RANGE");
+						m_win_range[sensor_id] =
+							mrpt::gui::CDisplayWindow::Create("Preview RANGE");
 						m_win_range[sensor_id]->setPos(5, 5 + 250 * sensor_id);
 					}
 
 					// Normalize the image
 					mrpt::img::CImage img;
-					img.setFromMatrix(out_obs.rangeImages[sensor_id]);
-					CMatrixFloat r = out_obs.rangeImages[sensor_id] *
-									 float(1.0 / this->m_maxRange);
+					const Eigen::MatrixXf r =
+						out_obs.rangeImages[sensor_id].asEigen().cast<float>() *
+						out_obs.rangeUnits * float(1.0 / this->m_maxRange);
+					img.setFromMatrix(r, true /*normalized 0-1 */);
 					m_win_range[sensor_id]->showImage(img);
 				}
 			}
@@ -225,8 +226,9 @@ void COpenNI2_RGBD360::getNextObservation(
 					m_preview_decim_counter_rgb = 0;
 					if (!m_win_int[sensor_id])
 					{
-						m_win_int[sensor_id] = mrpt::make_aligned_shared<
-							mrpt::gui::CDisplayWindow>("Preview INTENSITY");
+						m_win_int[sensor_id] =
+							mrpt::gui::CDisplayWindow::Create(
+								"Preview INTENSITY");
 						m_win_int[sensor_id]->setPos(330, 5 + 250 * sensor_id);
 					}
 					m_win_int[sensor_id]->showImage(
@@ -242,10 +244,6 @@ void COpenNI2_RGBD360::getNextObservation(
 	}
 	cout << "getNextObservation took " << 1000 * tictac.Tac() << "ms\n";
 #else
-	MRPT_UNUSED_PARAM(out_obs);
-	MRPT_UNUSED_PARAM(there_is_obs);
-	MRPT_UNUSED_PARAM(hardware_error);
-	MRPT_UNUSED_PARAM(out_obs);
 	THROW_EXCEPTION("MRPT was built without OpenNI2 support");
 #endif  // MRPT_HAS_OPENNI2
 }
@@ -253,9 +251,9 @@ void COpenNI2_RGBD360::getNextObservation(
 /* -----------------------------------------------------
 setPathForExternalImages
 ----------------------------------------------------- */
-void COpenNI2_RGBD360::setPathForExternalImages(const std::string& directory)
+void COpenNI2_RGBD360::setPathForExternalImages([
+	[maybe_unused]] const std::string& directory)
 {
-	MRPT_UNUSED_PARAM(directory);
 	// Ignore for now. It seems performance is better grabbing everything
 	// to a single big file than creating hundreds of smaller files per
 	// second...

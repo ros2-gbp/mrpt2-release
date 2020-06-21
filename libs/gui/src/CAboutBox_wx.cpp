@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -146,11 +146,8 @@ CAboutBox::CAboutBox(
 	FlexGridSizer1->SetSizeHints(this);
 	Center();
 
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CAboutBox::OnButton1Click);
-	Connect(
-		wxID_ANY, wxEVT_INIT_DIALOG, (wxObjectEventFunction)&CAboutBox::OnInit);
+	Bind(wxEVT_BUTTON, &CAboutBox::OnButton1Click, this, ID_BUTTON1);
+	Bind(wxEVT_INIT_DIALOG, &CAboutBox::OnInit, this);
 	//*)
 
 	lbLicense->SetValue(license().c_str());

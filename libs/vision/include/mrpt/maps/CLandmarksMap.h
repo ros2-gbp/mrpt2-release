@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,7 +12,7 @@
 #include <mrpt/containers/CDynamicGrid.h>
 #include <mrpt/maps/CLandmark.h>
 #include <mrpt/maps/CMetricMap.h>
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/obs/CObservation2DRangeScan.h>
 #include <mrpt/obs/CObservationBearingRange.h>
 #include <mrpt/obs/CObservationGPS.h>
@@ -73,12 +73,12 @@ using TSequenceLandmarks = std::vector<CLandmark>;
  */
 class CLandmarksMap : public mrpt::maps::CMetricMap
 {
-	DEFINE_SERIALIZABLE(CLandmarksMap)
+	DEFINE_SERIALIZABLE(CLandmarksMap, mrpt::maps)
 
    private:
 	void internal_clear() override;
 	bool internal_insertObservation(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D* robotPose = nullptr) override;
 
    public:
@@ -120,7 +120,7 @@ class CLandmarksMap : public mrpt::maps::CMetricMap
 	 * \sa Used in particle filter algorithms, see: CMultiMetricMapPDF::update
 	 */
 	double internal_computeObservationLikelihood(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D& takenFrom) override;
 
 	/** The color of landmark ellipsoids in CLandmarksMap::getAs3DObject */
@@ -138,7 +138,6 @@ class CLandmarksMap : public mrpt::maps::CMetricMap
 		internal::TSequenceLandmarks m_landmarks;
 
 		/** A grid-map with the set of landmarks falling into each cell.
-		 *  \todo Use the KD-tree instead?
 		 */
 		mrpt::containers::CDynamicGrid<std::vector<int32_t>> m_grid;
 
@@ -199,13 +198,8 @@ class CLandmarksMap : public mrpt::maps::CMetricMap
 
 	} landmarks;
 
-	/** Constructor
-	 */
-	CLandmarksMap();
-
-	/** Virtual destructor.
-	 */
-	~CLandmarksMap() override;
+	CLandmarksMap() = default;
+	~CLandmarksMap() override = default;
 
 	/**** FAMD ***/
 	/** Map of the Euclidean Distance between the descriptors of two SIFT-based
@@ -475,7 +469,7 @@ class CLandmarksMap : public mrpt::maps::CMetricMap
 	 *(top-view, projection on the XY plane).
 	 *	\param file		The name of the file to save the script to.
 	 *  \param style	The MATLAB-like string for the style of the lines (see
-	 *'help plot' in MATLAB for posibilities)
+	 *'help plot' in MATLAB for possibilities)
 	 *  \param stdCount The ellipsoids will be drawn from the center to
 	 *"stdCount" times the "standard deviations". (default is 2std = 95%
 	 *confidence intervals)
@@ -488,7 +482,7 @@ class CLandmarksMap : public mrpt::maps::CMetricMap
 	/** Save to a MATLAB script which displays 3D error ellipses for the map.
 	 *	\param file		The name of the file to save the script to.
 	 *  \param style	The MATLAB-like string for the style of the lines (see
-	 *'help plot' in MATLAB for posibilities)
+	 *'help plot' in MATLAB for possibilities)
 	 *  \param stdCount The ellipsoids will be drawn from the center to a given
 	 *confidence interval in [0,1], e.g. 2 sigmas=0.95 (default is 2std = 0.95
 	 *confidence intervals)

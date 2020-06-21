@@ -2,14 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
 #include <mrpt/maps/CPointsMap.h>
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/obs/CObservationImage.h>
 #include <mrpt/obs/obs_frwds.h>
 #include <mrpt/serialization/CSerializable.h>
@@ -28,18 +28,24 @@ namespace maps
  */
 class CColouredPointsMap : public CPointsMap
 {
-	DEFINE_SERIALIZABLE(CColouredPointsMap)
+	DEFINE_SERIALIZABLE(CColouredPointsMap, mrpt::maps)
 
    public:
 	CColouredPointsMap() = default;
 
-	CColouredPointsMap(const CPointsMap& o) : CColouredPointsMap()
+	CColouredPointsMap(const CPointsMap& o) { CPointsMap::operator=(o); }
+	CColouredPointsMap(const CColouredPointsMap& o) : CPointsMap()
 	{
-		CPointsMap::operator=(o);
+		impl_copyFrom(o);
 	}
-	CColouredPointsMap operator=(const CPointsMap& o)
+	CColouredPointsMap& operator=(const CPointsMap& o)
 	{
-		CPointsMap::operator=(o);
+		impl_copyFrom(o);
+		return *this;
+	}
+	CColouredPointsMap& operator=(const CColouredPointsMap& o)
+	{
+		impl_copyFrom(o);
 		return *this;
 	}
 
@@ -112,7 +118,6 @@ class CColouredPointsMap : public CPointsMap
 
    public:
 	/** @} */
-	// --------------------------------------------
 
 	/** Save to a text file. In each line contains X Y Z (meters) R G B (range
 	 * [0,1]) for each point in the map.
@@ -220,10 +225,45 @@ class CColouredPointsMap : public CPointsMap
 	/** @name PCL library support
 		@{ */
 
+#if defined(PCL_LINEAR_VERSION)
 	/** Save the point cloud as a PCL PCD file, in either ASCII or binary format
 	 * \return false on any error */
-	bool savePCDFile(
-		const std::string& filename, bool save_as_binary) const override;
+	inline bool savePCDFile(
+		const std::string& filename, bool save_as_binary) const
+	{
+		pcl::PointCloud<pcl::PointXYZRGB> cloud;
+
+		const size_t nThis = this->size();
+
+		// Fill in the cloud data
+		cloud.width = nThis;
+		cloud.height = 1;
+		cloud.is_dense = false;
+		cloud.points.resize(cloud.width * cloud.height);
+
+		const float f = 255.f;
+
+		union myaux_t {
+			uint8_t rgb[4];
+			float f;
+		} aux_val;
+
+		for (size_t i = 0; i < nThis; ++i)
+		{
+			cloud.points[i].x = m_x[i];
+			cloud.points[i].y = m_y[i];
+			cloud.points[i].z = m_z[i];
+
+			aux_val.rgb[0] = static_cast<uint8_t>(this->m_color_B[i] * f);
+			aux_val.rgb[1] = static_cast<uint8_t>(this->m_color_G[i] * f);
+			aux_val.rgb[2] = static_cast<uint8_t>(this->m_color_R[i] * f);
+
+			cloud.points[i].rgb = aux_val.f;
+		}
+
+		return 0 == pcl::io::savePCDFile(filename, cloud, save_as_binary);
+	}
+#endif
 
 	/** Loads a PCL point cloud (WITH RGB information) into this MRPT class (for
 	 * clouds without RGB data, see CPointsMap::setFromPCLPointCloud() ).
@@ -343,7 +383,7 @@ class PointCloudAdapter<mrpt::maps::CColouredPointsMap>
 	/** Set number of points (to uninitialized values) */
 	inline void resize(const size_t N) { m_obj.resize(N); }
 	/** Does nothing as of now */
-	inline void setDimensions(const size_t& height, const size_t& width) {}
+	inline void setDimensions(size_t height, size_t width) {}
 	/** Get XYZ coordinates of i'th point */
 	template <typename T>
 	inline void getPointXYZ(const size_t idx, T& x, T& y, T& z) const
@@ -359,15 +399,18 @@ class PointCloudAdapter<mrpt::maps::CColouredPointsMap>
 
 	/** Get XYZ_RGBf coordinates of i'th point */
 	template <typename T>
-	inline void getPointXYZ_RGBf(
-		const size_t idx, T& x, T& y, T& z, float& r, float& g, float& b) const
+	inline void getPointXYZ_RGBAf(
+		const size_t idx, T& x, T& y, T& z, float& r, float& g, float& b,
+		float& a) const
 	{
 		m_obj.getPointRGB(idx, x, y, z, r, g, b);
+		a = 1.0f;
 	}
 	/** Set XYZ_RGBf coordinates of i'th point */
-	inline void setPointXYZ_RGBf(
+	inline void setPointXYZ_RGBAf(
 		const size_t idx, const coords_t x, const coords_t y, const coords_t z,
-		const float r, const float g, const float b)
+		const float r, const float g, const float b,
+		[[maybe_unused]] const float a)
 	{
 		m_obj.setPointRGB(idx, x, y, z, r, g, b);
 	}
@@ -411,15 +454,21 @@ class PointCloudAdapter<mrpt::maps::CColouredPointsMap>
 	{
 		float R, G, B;
 		m_obj.getPointColor_fast(idx, R, G, B);
-		r = R * 255;
-		g = G * 255;
-		b = B * 255;
+		r = mrpt::f2u8(R);
+		g = mrpt::f2u8(G);
+		b = mrpt::f2u8(B);
 	}
 	/** Set RGBu8 coordinates of i'th point */
 	inline void setPointRGBu8(
 		const size_t idx, const uint8_t r, const uint8_t g, const uint8_t b)
 	{
 		m_obj.setPointColor_fast(idx, r / 255.f, g / 255.f, b / 255.f);
+	}
+
+	/** Set XYZ coordinates of i'th point */
+	inline void setInvalidPoint(const size_t idx)
+	{
+		m_obj.setPointFast(idx, 0, 0, 0);
 	}
 
 };  // end of PointCloudAdapter<mrpt::maps::CColouredPointsMap>

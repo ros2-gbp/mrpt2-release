@@ -833,7 +833,7 @@ EXCLUDE_SYMLINKS       = NO
 # exclude all test directories for example use the pattern */test/*
 
 EXCLUDE_PATTERNS       = exprtk.* \
-                         *otherlibs*
+                         *3rdparty*
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
 # (namespaces, classes, functions, etc.) that should be excluded from the
@@ -1425,7 +1425,7 @@ DISABLE_INDEX          = NO
 # The default value is: NO.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-GENERATE_TREEVIEW      = YES
+GENERATE_TREEVIEW      = NO
 
 # The ENUM_VALUES_PER_LINE tag can be used to set the number of enum values that
 # doxygen will group on one line in the generated HTML documentation.
@@ -2051,12 +2051,10 @@ PREDEFINED             = _WIN32 \
                          MRPT_HAS_SSE2 \
                          MRPT_HAS_SSE3 \
                          MRPT_HAS_SSE4 \
-                         EIGEN_PARSED_BY_DOXYGEN \
-                         MRPT_HAS_PCL=1 \
-                         EIGEN_MATRIXBASE_PLUGIN=<mrpt/math/eigen_plugins.h> \
                          MRPT_HAS_MATLAB=1 \
                          MRPT_HAS_WXWIDGETS=1 \
-                         MRPT_HAS_OPENCV=1
+                         MRPT_HAS_OPENCV=1 \
+                         MRPT_HAS_NANOGUI=1
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this
 # tag can be used to specify a list of macro names that should be expanded. The
@@ -2080,7 +2078,6 @@ EXPAND_AS_DEFINED      = DECLARE_COMMON_CONTAINERS_MEMBERS \
                          DEFINE_MRPT_OBJECT_CUSTOM_LINKAGE \
                          DEFINE_SERIALIZABLE_CUSTOM_LINKAGE \
                          MRPT_DECLARE_DEPRECATED_FUNCTION \
-                         MRPT_DEPRECATED \
                          MAP_DEFINITION_START \
                          MAP_DEFINITION_END \
                          MAP_DEFINITION_REGISTER

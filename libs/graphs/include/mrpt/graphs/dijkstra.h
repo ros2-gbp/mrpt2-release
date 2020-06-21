@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -290,8 +290,7 @@ class CDijkstra
 					}
 				}
 
-				std::string err_str =
-					mrpt::format("Graph is not fully connected!");
+				std::string err_str = "Graph is not fully connected!";
 				throw mrpt::graphs::detail::NotConnectedGraph(
 					nodeIDs_unconnected, err_str);
 			}

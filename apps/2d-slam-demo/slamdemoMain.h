@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,7 +11,7 @@
 #define SLAMDEMOMAIN_H
 
 //(*Headers(slamdemoFrame)
-#include <mrpt/otherlibs/mathplot/mathplot.h>
+#include <mrpt/3rdparty/mathplot/mathplot.h>
 #include <wx/frame.h>
 #include <wx/grid.h>
 #include <wx/menu.h>
@@ -207,7 +207,6 @@ class slamdemoFrame : public wxFrame
 
 	// This is needed in all classes having Eigen::Matrix'es or any other class
 	// containing them:
-	MRPT_MAKE_ALIGNED_OPERATOR_NEW
 
 	// Layers in GT plot -------------
 	mpFXYVector* m_lyGTMap;

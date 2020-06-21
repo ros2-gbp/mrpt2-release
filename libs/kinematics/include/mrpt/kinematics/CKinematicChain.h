@@ -2,16 +2,16 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/core/aligned_std_vector.h>
 #include <mrpt/opengl/CSetOfObjects.h>
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/serialization/CSerializable.h>
+#include <vector>
 
 namespace mrpt
 {
@@ -69,7 +69,7 @@ mrpt::serialization::CArchive& operator<<(
  */
 class CKinematicChain : public mrpt::serialization::CSerializable
 {
-	DEFINE_SERIALIZABLE(CKinematicChain)
+	DEFINE_SERIALIZABLE(CKinematicChain, mrpt::kinematics)
 
    private:
 	/** Smart pointers to the last objects for each link, as returned in
@@ -167,16 +167,14 @@ class CKinematicChain : public mrpt::serialization::CSerializable
 	 */
 	void getAs3DObject(
 		mrpt::opengl::CSetOfObjects::Ptr& inout_gl_obj,
-		mrpt::aligned_std_vector<mrpt::poses::CPose3D>* out_all_poses =
-			nullptr) const;
+		std::vector<mrpt::poses::CPose3D>* out_all_poses = nullptr) const;
 
 	/** Read getAs3DObject() for a description.
 	 * \param[out] out_all_poses Optional output vector, will contain the poses
 	 * in the format of recomputeAllPoses()
 	 */
 	void update3DObject(
-		mrpt::aligned_std_vector<mrpt::poses::CPose3D>* out_all_poses =
-			nullptr) const;
+		std::vector<mrpt::poses::CPose3D>* out_all_poses = nullptr) const;
 
 	/** Go thru all the links of the chain and compute the global pose of each
 	 * link. The "ground" link pose "pose0" defaults to the origin of
@@ -186,7 +184,7 @@ class CKinematicChain : public mrpt::serialization::CSerializable
 	 * contains the base frame, [1] the pose after the first link, and so on.
 	 */
 	void recomputeAllPoses(
-		mrpt::aligned_std_vector<mrpt::poses::CPose3D>& poses,
+		std::vector<mrpt::poses::CPose3D>& poses,
 		const mrpt::poses::CPose3D& pose0 = mrpt::poses::CPose3D()) const;
 
 };  // End of class def.

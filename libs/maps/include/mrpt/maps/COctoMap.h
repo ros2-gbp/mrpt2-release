@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -40,7 +40,7 @@ namespace maps
 class COctoMap : public COctoMapBase<octomap::OcTree, octomap::OcTreeNode>
 {
 	// This must be added to any CSerializable derived class:
-	DEFINE_SERIALIZABLE(COctoMap)
+	DEFINE_SERIALIZABLE(COctoMap, mrpt::maps)
 
    public:
 	COctoMap(const double resolution = 0.10);  //!< Default constructor
@@ -127,7 +127,7 @@ class COctoMap : public COctoMapBase<octomap::OcTree, octomap::OcTreeNode>
    protected:
 	void internal_clear() override;
 	bool internal_insertObservation(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D* robotPose) override;
 };  // End of class def.
 }  // namespace maps

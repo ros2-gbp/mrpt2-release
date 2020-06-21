@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -30,17 +30,9 @@ CGyroKVHDSP3000::CGyroKVHDSP3000() : m_com_port(), m_sensorPose()
 {
 	m_state = ssInitializing;
 	m_sensorLabel = "KVH_DSP3000";
-	m_serialPort = nullptr;
 }
 
-/*-------------------------------------------------------------
-					~CGyroKVHDSP3000
--------------------------------------------------------------*/
-CGyroKVHDSP3000::~CGyroKVHDSP3000()
-{
-	m_serialPort->close();
-	delete m_serialPort;
-}
+CGyroKVHDSP3000::~CGyroKVHDSP3000() { m_serialPort->close(); }
 
 /*-------------------------------------------------------------
 					doProcess
@@ -56,8 +48,7 @@ void CGyroKVHDSP3000::doProcess()
 	if (m_state == ssError) return;
 
 	string msg;
-	CObservationIMU::Ptr observationGyro =
-		mrpt::make_aligned_shared<CObservationIMU>();
+	CObservationIMU::Ptr observationGyro = std::make_shared<CObservationIMU>();
 	observationGyro->timestamp = mrpt::system::now();
 
 	msg = m_serialPort->ReadString(-1, nullptr, "\n");
@@ -102,8 +93,7 @@ void CGyroKVHDSP3000::initialize()
 	  Open modem device for reading and writing and not as controlling tty
 	  because we don't want to get killed if linenoise sends CTRL-C.
 	*/
-	if (m_serialPort) delete m_serialPort;
-	m_serialPort = new CSerialPort(m_com_port);
+	m_serialPort = std::make_unique<CSerialPort>(m_com_port);
 	if (!(m_serialPort->isOpen())) THROW_EXCEPTION("can't open serial port");
 	cout << "m_COMbaud " << m_COMbauds << endl;
 	m_serialPort->setConfig(m_COMbauds);

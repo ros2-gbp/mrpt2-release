@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -100,7 +100,7 @@ Writes an object to the stream.
 ---------------------------------------------------------------*/
 void CArchive::WriteObject(const CSerializable* o)
 {
-	MRPT_START;
+	MRPT_START
 
 	// First, the "classname".
 	const char* className;
@@ -133,7 +133,7 @@ void CArchive::WriteObject(const CSerializable* o)
 	// In MRPT 0.5.5 a end flag is introduced:
 	(*this) << SERIALIZATION_END_FLAG;
 
-	MRPT_END;
+	MRPT_END
 }
 
 CArchive& CArchive::operator<<(const CSerializable::Ptr& pObj)

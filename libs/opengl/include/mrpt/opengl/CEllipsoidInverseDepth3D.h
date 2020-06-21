@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -43,19 +43,20 @@ namespace mrpt::opengl
  *
  * \ingroup mrpt_opengl_grp
  */
-class CEllipsoidInverseDepth3D : public CGeneralizedEllipsoidTemplate<3>
+class CEllipsoidInverseDepth3D : public CGeneralizedEllipsoidTemplate<3>,
+								 virtual public CRenderizable
 {
 	using BASE = CGeneralizedEllipsoidTemplate<3>;
-	DEFINE_SERIALIZABLE(CEllipsoidInverseDepth3D)
+	DEFINE_SERIALIZABLE(CEllipsoidInverseDepth3D, mrpt::opengl)
 
    public:
 	/** The maximum range to be used as a correction when a point of the
 	 * ellipsoid falls in the negative ranges (default: 1e6) */
-	void setUnderflowMaxRange(const double maxRange)
+	void setUnderflowMaxRange(const float maxRange)
 	{
 		m_underflowMaxRange = maxRange;
 	}
-	double getUnderflowMaxRange() const { return m_underflowMaxRange; }
+	float getUnderflowMaxRange() const { return m_underflowMaxRange; }
 
    protected:
 	/** To be implemented by derived classes: maps, using some arbitrary space
@@ -68,7 +69,7 @@ class CEllipsoidInverseDepth3D : public CGeneralizedEllipsoidTemplate<3>
 		std::vector<BASE::array_point_t>& out_pts) const override;
 
    private:
-	double m_underflowMaxRange{1e6};
+	float m_underflowMaxRange = 1e6f;
 
    public:
 	/** Constructor

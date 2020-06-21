@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,16 +11,15 @@
 
 #include <mrpt/bayes/CParticleFilterCapable.h>
 #include <mrpt/bayes/CParticleFilterData.h>
+#include <mrpt/math/data_utils.h>  // averageLogLikelihood()
+#include <mrpt/math/distributions.h>  // chi2inv
 #include <mrpt/obs/CActionCollection.h>
 #include <mrpt/obs/CActionRobotMovement2D.h>
 #include <mrpt/obs/CActionRobotMovement3D.h>
 #include <mrpt/random.h>
-#include <mrpt/slam/TKLDParams.h>
-
-#include <mrpt/math/data_utils.h>  // averageLogLikelihood()
-#include <mrpt/math/distributions.h>  // chi2inv
-
 #include <mrpt/slam/PF_implementations_data.h>
+#include <mrpt/slam/TKLDParams.h>
+#include <cmath>
 
 /** \file PF_implementations.h
  *  This file contains the implementations of the template members declared in
@@ -124,7 +123,7 @@ bool PF_implementation<PARTICLE_TYPE, MYSELF, STORAGE>::
 
 		ASSERT_(theResultingRobotMov.poseChange);
 		m_movementDrawer.setPosePDF(
-			theResultingRobotMov.poseChange.get_ptr());  // <--- Set mov. drawer
+			*theResultingRobotMov.poseChange);  // <--- Set mov. drawer
 		m_accumRobotMovement2DIsValid =
 			false;  // Reset odometry for next iteration
 	}
@@ -207,8 +206,7 @@ void PF_implementation<PARTICLE_TYPE, MYSELF, STORAGE>::
 			if (robotMovement2D)
 			{
 				ASSERT_(robotMovement2D->poseChange);
-				m_movementDrawer.setPosePDF(
-					robotMovement2D->poseChange.get_ptr());
+				m_movementDrawer.setPosePDF(*robotMovement2D->poseChange);
 				motionModelMeanIncr = mrpt::poses::CPose3D(
 					robotMovement2D->poseChange->getMeanVal());
 			}
@@ -369,11 +367,11 @@ void PF_implementation<PARTICLE_TYPE, MYSELF, STORAGE>::
 			const mrpt::math::TPose3D partPose =
 				getLastPose(i, pose_is_valid);  // Take the particle data:
 			auto partPose2 = mrpt::poses::CPose3D(partPose);
-			const double obs_log_likelihood =
+			const double obs_log_lik =
 				PF_SLAM_computeObservationLikelihoodForParticle(
 					PF_options, i, *sf, partPose2);
-			me->m_particles[i].log_w +=
-				obs_log_likelihood * PF_options.powFactor;
+			ASSERT_(!std::isnan(obs_log_lik) && std::isfinite(obs_log_lik));
+			me->m_particles[i].log_w += obs_log_lik * PF_options.powFactor;
 		}  // for each particle "i"
 
 		// Normalization of weights is done outside of this method
@@ -426,9 +424,8 @@ double PF_implementation<PARTICLE_TYPE, MYSELF, STORAGE>::
 	PF_SLAM_particlesEvaluator_AuxPFOptimal(
 		const mrpt::bayes::CParticleFilter::TParticleFilterOptions& PF_options,
 		const mrpt::bayes::CParticleFilterCapable* obj, size_t index,
-		const void* action, const void* observation)
+		[[maybe_unused]] const void* action, const void* observation)
 {
-	MRPT_UNUSED_PARAM(action);
 	MRPT_START
 
 	// const PF_implementation<PARTICLE_TYPE,MYSELF> *myObj =
@@ -742,7 +739,7 @@ void PF_implementation<PARTICLE_TYPE, MYSELF, STORAGE>::
 			// Do one rejection sampling step:
 			// ---------------------------------------------
 			mrpt::poses::CPose3D newPose;
-			double newParticleLogWeight;
+			double newParticleLogWeight = 0;
 			PF_SLAM_aux_perform_one_rejection_sampling_step<BINTYPE>(
 				USE_OPTIMAL_SAMPLING, doResample, maxMeanLik, k, sf, PF_options,
 				newPose, newParticleLogWeight);

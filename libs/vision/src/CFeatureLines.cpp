@@ -15,7 +15,7 @@
 #include <mrpt/vision/utils.h>
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 using namespace mrpt::vision;
 using namespace std;
@@ -63,7 +63,7 @@ static void extractLines_CannyHough(
 		// is true
 		if (fabs(theta) < 0.00001)
 		{
-			x = xF = static_cast<int>(rho + 0.5);
+			x = xF = lround(rho);
 			y = 0;
 			yF = canny_image.rows - 1;
 		}
@@ -315,8 +315,9 @@ void CFeatureLines::extractLines(
 
 	// convert cv->STL:
 	segments_out.resize(segments.size());
-	for (unsigned i = 0; i < segments.size(); i++)
-		for (int k = 0; i < 4; k++) segments_out[i][k] = segments[i][k];
+	for (size_t i = 0; i < segments.size(); i++)
+		for (size_t k = 0; k < segments_out[i].size(); k++)
+			segments_out[i][k] = segments[i][k];
 
 	// Display 2D segments
 	if (display)

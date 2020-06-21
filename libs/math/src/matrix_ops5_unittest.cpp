@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,8 +12,9 @@
 // compiling in small systems.
 
 #include <gtest/gtest.h>
-#include <mrpt/math/CMatrixFixedNumeric.h>
+#include <mrpt/math/CMatrixFixed.h>
 #include <mrpt/random.h>
+#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::math;
@@ -22,25 +23,26 @@ using namespace std;
 
 TEST(Matrices, loadFromArray)
 {
-	alignas(MRPT_MAX_ALIGN_BYTES)
+	alignas(MRPT_MAX_STATIC_ALIGN_BYTES)
 		const double nums[3 * 4] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
 
-	CMatrixFixedNumeric<double, 3, 4> mat;
+	CMatrixFixed<double, 3, 4> mat;
 	mat.loadFromArray(nums);
 
 	for (int r = 0; r < 3; r++)
 		for (int c = 0; c < 4; c++) EXPECT_EQ(nums[4 * r + c], mat(r, c));
 }
 
-alignas(MRPT_MAX_ALIGN_BYTES) static double test_nums[3 * 4] = {
+alignas(MRPT_MAX_STATIC_ALIGN_BYTES) static double test_nums[3 * 4] = {
 	1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
 
 TEST(Matrices, CMatrixFixedNumeric_loadWithEigenMap)
 {
 	// Row major
-	const CMatrixFixedNumeric<double, 3, 4> mat = Eigen::Map<
-		CMatrixFixedNumeric<double, 3, 4>::Base, MRPT_MAX_ALIGN_BYTES>(
-		test_nums);
+	const auto mat =
+		CMatrixFixed<double, 3, 4>(Eigen::Map<
+								   Eigen::Matrix<double, 3, 4, Eigen::RowMajor>,
+								   MRPT_MAX_STATIC_ALIGN_BYTES>(test_nums));
 
 	for (int r = 0; r < 3; r++)
 		for (int c = 0; c < 4; c++) EXPECT_EQ(test_nums[4 * r + c], mat(r, c));
@@ -50,7 +52,7 @@ TEST(Matrices, EigenMatrix_loadWithEigenMap)
 {
 	// Col major
 	const Eigen::Matrix<double, 3, 4> mat =
-		Eigen::Map<Eigen::Matrix<double, 3, 4>, MRPT_MAX_ALIGN_BYTES>(
+		Eigen::Map<Eigen::Matrix<double, 3, 4>, MRPT_MAX_STATIC_ALIGN_BYTES>(
 			test_nums);
 
 	for (int r = 0; r < 3; r++)  // Transposed!!

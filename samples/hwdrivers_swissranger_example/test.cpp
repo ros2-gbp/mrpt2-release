@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -82,19 +82,19 @@ void Test_SwissRanger()
 	//	win3D.resize(400,200);
 
 	// mrpt::opengl::CPointCloud::Ptr gl_points =
-	// mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
+	// mrpt::opengl::CPointCloud::Create();
 	mrpt::opengl::CPointCloudColoured::Ptr gl_points =
-		mrpt::make_aligned_shared<mrpt::opengl::CPointCloudColoured>();
+		mrpt::opengl::CPointCloudColoured::Create();
 	gl_points->setPointSize(4.5);
 
 	mrpt::opengl::CTexturedPlane::Ptr gl_img_range =
-		mrpt::make_aligned_shared<mrpt::opengl::CTexturedPlane>(
+		mrpt::opengl::CTexturedPlane::Create(
 			0.5, -0.5, -0.5 * aspect_ratio, 0.5 * aspect_ratio);
 	mrpt::opengl::CTexturedPlane::Ptr gl_img_intensity =
-		mrpt::make_aligned_shared<mrpt::opengl::CTexturedPlane>(
+		mrpt::opengl::CTexturedPlane::Create(
 			0.5, -0.5, -0.5 * aspect_ratio, 0.5 * aspect_ratio);
 	mrpt::opengl::CTexturedPlane::Ptr gl_img_intensity_rect =
-		mrpt::make_aligned_shared<mrpt::opengl::CTexturedPlane>(
+		mrpt::opengl::CTexturedPlane::Create(
 			0.5, -0.5, -0.5 * aspect_ratio, 0.5 * aspect_ratio);
 
 	{
@@ -102,7 +102,7 @@ void Test_SwissRanger()
 
 		// Create the Opengl object for the point cloud:
 		scene->insert(gl_points);
-		scene->insert(mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>());
+		scene->insert(mrpt::opengl::CGridPlaneXY::Create());
 		scene->insert(mrpt::opengl::stock_objects::CornerXYZ());
 
 		const int VW_WIDTH = 200;
@@ -112,8 +112,7 @@ void Test_SwissRanger()
 		// Create the Opengl objects for the planar images, as textured planes,
 		// each in a separate viewport:
 		win3D.addTextMessage(
-			30, -10 - 1 * (VW_GAP + VW_HEIGHT), "Range data", TColorf(1, 1, 1),
-			1, MRPT_GLUT_BITMAP_HELVETICA_12);
+			30, -10 - 1 * (VW_GAP + VW_HEIGHT), "Range data", 1);
 		opengl::COpenGLViewport::Ptr viewRange =
 			scene->createViewport("view2d_range");
 		scene->insert(gl_img_range, "view2d_range");
@@ -126,8 +125,7 @@ void Test_SwissRanger()
 		viewRange->getCamera().setZoomDistance(1.0);
 
 		win3D.addTextMessage(
-			30, -10 - 2 * (VW_GAP + VW_HEIGHT), "Intensity data",
-			TColorf(1, 1, 1), 2, MRPT_GLUT_BITMAP_HELVETICA_12);
+			30, -10 - 2 * (VW_GAP + VW_HEIGHT), "Intensity data", 2);
 		opengl::COpenGLViewport::Ptr viewInt =
 			scene->createViewport("view2d_int");
 		scene->insert(gl_img_intensity, "view2d_int");
@@ -141,7 +139,7 @@ void Test_SwissRanger()
 
 		win3D.addTextMessage(
 			30, -10 - 3 * (VW_GAP + VW_HEIGHT), "Intensity data (undistorted)",
-			TColorf(1, 1, 1), 3, MRPT_GLUT_BITMAP_HELVETICA_12);
+			3);
 		opengl::COpenGLViewport::Ptr viewIntRect =
 			scene->createViewport("view2d_intrect");
 		scene->insert(gl_img_intensity_rect, "view2d_intrect");
@@ -170,14 +168,10 @@ void Test_SwissRanger()
 		// Show ranges as 2D:
 		if (there_is_obs && obs.hasRangeImage)
 		{
-			mrpt::img::CImage img;
-			// Normalize the image
-			CMatrixFloat range2D = obs.rangeImage;
-			range2D *= 1.0 / cam.getMaxRange();
-			img.setFromMatrix(range2D);
+			mrpt::img::CImage img = obs.rangeImage_getAsImage();
 
 			win3D.get3DSceneAndLock();
-			gl_img_range->assignImage_fast(img);
+			gl_img_range->assignImage(std::move(img));
 			win3D.unlockAccess3DScene();
 		}
 
@@ -213,8 +207,7 @@ void Test_SwissRanger()
 		{
 			win3D.get3DSceneAndLock();
 			win3D.addTextMessage(
-				0.01, 0.01, format("%.02f Hz", nImgs / tictac.Tac()),
-				TColorf(0, 1, 1), 100, MRPT_GLUT_BITMAP_HELVETICA_12);
+				0.01, 0.01, format("%.02f Hz", nImgs / tictac.Tac()), 100);
 			win3D.unlockAccess3DScene();
 			nImgs = 0;
 			tictac.Tic();
@@ -258,7 +251,7 @@ void Test_SwissRanger()
 				cam.isEnabledConvGray() ? "ON" : "OFF",
 				cam.isEnabledDenoiseANF() ? "ON" : "OFF",
 				cam.isEnabledMedianFilter() ? "ON" : "OFF"),
-			TColorf(0, 0, 1), 110, MRPT_GLUT_BITMAP_HELVETICA_18);
+			110);
 		win3D.unlockAccess3DScene();
 
 		std::this_thread::sleep_for(1ms);

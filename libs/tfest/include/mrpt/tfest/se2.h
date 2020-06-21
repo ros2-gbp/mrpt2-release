@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixFixedNumeric.h>
+#include <mrpt/math/CMatrixFixed.h>
 #include <mrpt/math/math_frwds.h>
 #include <mrpt/poses/CPosePDFSOG.h>
 #include <mrpt/poses/poses_frwds.h>
@@ -142,7 +142,7 @@ struct TSE2RobustResult
 /** Robust least-squares (L2 norm) solution to finding the optimal SE(2)
  * (x,y,yaw) between two reference frames.
  * This method implements a RANSAC-based robust estimation, returning a
- * probability distribution over all the posibilities as a Sum of Gaussians.
+ * probability distribution over all the possibilities as a Sum of Gaussians.
  *
  *  The optimal transformation `q` fulfills \f$ p_{this} = q \oplus p_{other}
  * \f$, that is, the

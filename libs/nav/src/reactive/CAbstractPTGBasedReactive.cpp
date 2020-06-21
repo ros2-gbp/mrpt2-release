@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,6 +11,7 @@
 
 #include <mrpt/containers/copy_container_typecasting.h>
 #include <mrpt/containers/printf_vector.h>
+#include <mrpt/core/lock_helper.h>
 #include <mrpt/io/CFileGZOutputStream.h>
 #include <mrpt/io/CMemoryStream.h>
 #include <mrpt/maps/CPointCloudFilterByDistance.h>
@@ -55,30 +56,12 @@ bool CAbstractPTGBasedReactive::TNavigationParamsPTG::isEqual(
 		   restrict_PTG_indices == o->restrict_PTG_indices;
 }
 
-const double ESTIM_LOWPASSFILTER_ALPHA = 0.7;
-
 // Ctor:
 CAbstractPTGBasedReactive::CAbstractPTGBasedReactive(
 	CRobot2NavInterface& react_iterf_impl, bool enableConsoleOutput,
 	bool enableLogFile, const std::string& sLogDir)
 	: CWaypointsNavigator(react_iterf_impl),
-	  m_holonomicMethod(),
-	  m_prev_logfile(nullptr),
-	  m_enableKeepLogRecords(false),
 	  m_enableConsoleOutput(enableConsoleOutput),
-	  m_init_done(false),
-	  m_timelogger(false),  // default: disabled
-	  m_PTGsMustBeReInitialized(true),
-	  meanExecutionTime(ESTIM_LOWPASSFILTER_ALPHA, 0.1),
-	  meanTotalExecutionTime(ESTIM_LOWPASSFILTER_ALPHA, 0.1),
-	  meanExecutionPeriod(ESTIM_LOWPASSFILTER_ALPHA, 0.1),
-	  tim_changeSpeed_avr(ESTIM_LOWPASSFILTER_ALPHA),
-	  timoff_obstacles_avr(ESTIM_LOWPASSFILTER_ALPHA),
-	  timoff_curPoseAndSpeed_avr(ESTIM_LOWPASSFILTER_ALPHA),
-	  timoff_sendVelCmd_avr(ESTIM_LOWPASSFILTER_ALPHA),
-	  m_closing_navigator(false),
-	  m_WS_Obstacles_timestamp(INVALID_TIMESTAMP),
-	  m_infoPerPTG_timestamp(INVALID_TIMESTAMP),
 	  m_navlogfiles_dir(sLogDir)
 {
 	this->enableLogFile(enableLogFile);
@@ -118,7 +101,7 @@ CAbstractPTGBasedReactive::~CAbstractPTGBasedReactive()
 /** \callergraph */
 void CAbstractPTGBasedReactive::initialize()
 {
-	std::lock_guard<std::recursive_mutex> csl(m_nav_cs);
+	auto lck = mrpt::lockHelper(m_nav_cs);
 
 	m_infoPerPTG_timestamp = INVALID_TIMESTAMP;
 
@@ -134,7 +117,7 @@ void CAbstractPTGBasedReactive::initialize()
   ---------------------------------------------------------------*/
 void CAbstractPTGBasedReactive::enableLogFile(bool enable)
 {
-	std::lock_guard<std::recursive_mutex> csl(m_nav_cs);
+	auto lck = mrpt::lockHelper(m_nav_cs);
 
 	try
 	{
@@ -211,7 +194,7 @@ void CAbstractPTGBasedReactive::enableLogFile(bool enable)
 
 void CAbstractPTGBasedReactive::getLastLogRecord(CLogFileRecord& o)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_critZoneLastLog);
+	auto lck = mrpt::lockHelper(m_critZoneLastLog);
 	o = lastLogRecord;
 }
 
@@ -223,7 +206,7 @@ void CAbstractPTGBasedReactive::deleteHolonomicObjects()
 void CAbstractPTGBasedReactive::setHolonomicMethod(
 	const std::string& method, const mrpt::config::CConfigFileBase& ini)
 {
-	std::lock_guard<std::recursive_mutex> csl(m_nav_cs);
+	auto lck = mrpt::lockHelper(m_nav_cs);
 
 	this->deleteHolonomicObjects();
 	const size_t nPTGs = this->getPTG_count();
@@ -249,6 +232,9 @@ void CAbstractPTGBasedReactive::setHolonomicMethod(
  * \callergraph */
 void CAbstractPTGBasedReactive::performNavigationStep()
 {
+	mrpt::system::CTimeLoggerEntry tle(
+		m_navProfiler, "CAbstractPTGBasedReactive::performNavigationStep()");
+
 	// Security tests:
 	if (m_closing_navigator) return;  // Are we closing in the main thread?
 	if (!m_init_done)
@@ -334,7 +320,17 @@ void CAbstractPTGBasedReactive::performNavigationStep()
 
 		// STEP2: Load the obstacles and sort them in height bands.
 		// -----------------------------------------------------------------------------
-		if (!STEP2_SenseObstacles())
+		bool sense_ok;
+		{
+			mrpt::system::CTimeLoggerEntry tle2(
+				m_navProfiler,
+				"CAbstractPTGBasedReactive::performNavigationStep().STEP2_"
+				"SenseObstacles()");
+
+			sense_ok = STEP2_SenseObstacles();
+		}
+
+		if (!sense_ok)
 		{
 			doEmergencyStop(
 				"Error while loading and sorting the obstacles. Robot will be "
@@ -508,9 +504,14 @@ void CAbstractPTGBasedReactive::performNavigationStep()
 
 		newLogRec.navDynState = ptg_dynState;
 
-		for (size_t i = 0; i < nPTGs; i++)
 		{
-			getPTG(i)->updateNavDynamicState(ptg_dynState);
+			mrpt::system::CTimeLoggerEntry tle2(
+				m_navProfiler,
+				"CAbstractPTGBasedReactive::performNavigationStep().update_PTG_"
+				"dynamic_states");
+
+			for (size_t i = 0; i < nPTGs; i++)
+				getPTG(i)->updateNavDynamicState(ptg_dynState);
 		}
 
 		m_infoPerPTG.assign(nPTGs + 1, TInfoPerPTG());  // reset contents
@@ -521,6 +522,11 @@ void CAbstractPTGBasedReactive::performNavigationStep()
 
 		for (size_t indexPTG = 0; indexPTG < nPTGs; indexPTG++)
 		{
+			mrpt::system::CTimeLoggerEntry tle2(
+				m_navProfiler,
+				"CAbstractPTGBasedReactive::performNavigationStep().eval_"
+				"regular_PTG");
+
 			CParameterizedTrajectoryGenerator* ptg = getPTG(indexPTG);
 			TInfoPerPTG& ipf = m_infoPerPTG[indexPTG];
 
@@ -627,6 +633,10 @@ void CAbstractPTGBasedReactive::performNavigationStep()
 
 		if (can_do_nop_motion)
 		{
+			mrpt::system::CTimeLoggerEntry tle2(
+				m_navProfiler,
+				"CAbstractPTGBasedReactive::performNavigationStep().eval_NOP");
+
 			// Add the estimation of how long it takes to run the changeSpeeds()
 			// callback (usually a tiny period):
 			const mrpt::system::TTimeStamp tim_send_cmd_vel_corrected =
@@ -780,7 +790,7 @@ void CAbstractPTGBasedReactive::performNavigationStep()
 			double cmd_vel_speed_ratio = 1.0;
 			if (selectedHolonomicMovement)
 			{
-				CTimeLoggerEntry tle(
+				CTimeLoggerEntry tle2(
 					m_timelogger, "navigationStep.selectedHolonomicMovement");
 				cmd_vel_speed_ratio =
 					generate_vel_cmd(*selectedHolonomicMovement, new_vel_cmd);
@@ -804,7 +814,7 @@ void CAbstractPTGBasedReactive::performNavigationStep()
 			{
 				mrpt::system::TTimeStamp tim_send_cmd_vel;
 				{
-					mrpt::system::CTimeLoggerEntry tle(
+					mrpt::system::CTimeLoggerEntry tle2(
 						m_timlog_delays, "changeSpeeds()");
 					tim_send_cmd_vel = mrpt::system::now();
 					newLogRec.timestamps["tim_send_cmd_vel"] = tim_send_cmd_vel;
@@ -937,6 +947,9 @@ void CAbstractPTGBasedReactive::STEP8_GenerateLogRecord(
 	// ---------------------------------------
 	// STEP8: Generate log record
 	// ---------------------------------------
+	mrpt::system::CTimeLoggerEntry tle(
+		m_navProfiler, "CAbstractPTGBasedReactive::STEP8_GenerateLogRecord()");
+
 	m_timelogger.enter("navigationStep.populate_log_info");
 
 	this->loggingGetWSObstaclesAndShape(newLogRec);
@@ -978,14 +991,13 @@ void CAbstractPTGBasedReactive::STEP8_GenerateLogRecord(
 	//  Save to log file:
 	// --------------------------------------
 	{
-		mrpt::system::CTimeLoggerEntry tle(
+		mrpt::system::CTimeLoggerEntry tle2(
 			m_timelogger, "navigationStep.write_log_file");
 		if (m_logFile) archiveFrom(*m_logFile) << newLogRec;
 	}
 	// Set as last log record
 	{
-		std::lock_guard<std::recursive_mutex> lock_log(
-			m_critZoneLastLog);  // Lock
+		auto lck = mrpt::lockHelper(m_critZoneLastLog);
 		lastLogRecord = newLogRec;  // COPY
 	}
 }
@@ -1003,7 +1015,10 @@ void CAbstractPTGBasedReactive::calc_move_candidate_scores(
 	const mrpt::system::TTimeStamp tim_start_iteration,
 	const mrpt::nav::CHolonomicLogFileRecord::Ptr& hlfr)
 {
-	MRPT_START;
+	MRPT_START
+	mrpt::system::CTimeLoggerEntry tle(
+		m_navProfiler,
+		"CAbstractPTGBasedReactive::calc_move_candidate_scores()");
 
 	const double ref_dist = cm.PTG->getRefDistance();
 
@@ -1103,7 +1118,8 @@ void CAbstractPTGBasedReactive::calc_move_candidate_scores(
 	const bool is_slowdown =
 		this_is_PTG_continuation
 			? m_lastSentVelCmd.was_slowdown
-			: (cm.PTG->supportSpeedAtTarget() && TP_Target.target_k == move_k);
+			: (cm.PTG->supportSpeedAtTarget() && TP_Target.target_k == move_k &&
+			   target_d_norm < 0.99 * in_TPObstacles[move_k]);
 	cm.props["is_slowdown"] = is_slowdown ? 1 : 0;
 	cm.props["holo_stage_eval"] =
 		this_is_PTG_continuation
@@ -1196,8 +1212,9 @@ void CAbstractPTGBasedReactive::calc_move_candidate_scores(
 					cm.PTG->isBijectiveAt(move_k, predicted_step);
 				newLogRec.additional_debug_msgs["PTG_eval.bijective"] =
 					mrpt::format(
-						"isBijectiveAt(): k=%i step=%i -> %s", (int)cur_k,
-						(int)cur_ptg_step, WS_point_is_unique ? "yes" : "no");
+						"isBijectiveAt(): k=%i step=%i -> %s",
+						static_cast<int>(cur_k), static_cast<int>(cur_ptg_step),
+						WS_point_is_unique ? "yes" : "no");
 
 				if (!WS_point_is_unique)
 				{
@@ -1391,7 +1408,7 @@ void CAbstractPTGBasedReactive::calc_move_candidate_scores(
 		}
 	}
 
-	MRPT_END;
+	MRPT_END
 }
 
 double CAbstractPTGBasedReactive::generate_vel_cmd(
@@ -1447,7 +1464,7 @@ double CAbstractPTGBasedReactive::generate_vel_cmd(
 bool CAbstractPTGBasedReactive::impl_waypoint_is_reachable(
 	const mrpt::math::TPoint2D& wp) const
 {
-	MRPT_START;
+	MRPT_START
 
 	const size_t N = this->getPTG_count();
 	if (m_infoPerPTG.size() < N ||
@@ -1480,7 +1497,7 @@ bool CAbstractPTGBasedReactive::impl_waypoint_is_reachable(
 	}
 
 	return false;  // no way found
-	MRPT_END;
+	MRPT_END
 }
 
 /** \callergraph */
@@ -1529,6 +1546,9 @@ void CAbstractPTGBasedReactive::build_movement_candidate(
 	const TNavigationParams& navp,
 	const mrpt::math::TPose2D& rel_cur_pose_wrt_last_vel_cmd_NOP)
 {
+	mrpt::system::CTimeLoggerEntry tle(
+		m_navProfiler, "CAbstractPTGBasedReactive::build_movement_candidate()");
+
 	ASSERT_(ptg);
 
 	const size_t idx_in_log_infoPerPTGs =
@@ -1710,7 +1730,7 @@ void CAbstractPTGBasedReactive::build_movement_candidate(
 		// STEP5: Evaluate each movement to assign them a "evaluation" value.
 		// ---------------------------------------------------------------------
 		{
-			CTimeLoggerEntry tle(
+			CTimeLoggerEntry tle2(
 				m_timelogger, "navigationStep.calc_move_candidate_scores");
 
 			calc_move_candidate_scores(
@@ -1763,7 +1783,7 @@ void CAbstractPTGBasedReactive::build_movement_candidate(
 void CAbstractPTGBasedReactive::TAbstractPTGNavigatorParams::loadFromConfigFile(
 	const mrpt::config::CConfigFileBase& c, const std::string& s)
 {
-	MRPT_START;
+	MRPT_START
 
 	robot_absolute_speed_limits.loadConfigFile(c, s);
 
@@ -1781,7 +1801,7 @@ void CAbstractPTGBasedReactive::TAbstractPTGNavigatorParams::loadFromConfigFile(
 	MRPT_LOAD_CONFIG_VAR_CS(evaluate_clearance, bool);
 	MRPT_LOAD_CONFIG_VAR_CS(max_dist_for_timebased_path_prediction, double);
 
-	MRPT_END;
+	MRPT_END
 }
 
 void CAbstractPTGBasedReactive::TAbstractPTGNavigatorParams::saveToConfigFile(
@@ -1871,7 +1891,7 @@ CAbstractPTGBasedReactive::TAbstractPTGNavigatorParams::
 void CAbstractPTGBasedReactive::loadConfigFile(
 	const mrpt::config::CConfigFileBase& c)
 {
-	MRPT_START;
+	MRPT_START
 	m_PTGsMustBeReInitialized = true;
 
 	// At this point, we have been called from the derived class, who must be
@@ -1910,7 +1930,7 @@ void CAbstractPTGBasedReactive::loadConfigFile(
 
 	m_init_done =
 		true;  // If we reached this point without an exception, all is good.
-	MRPT_END;
+	MRPT_END
 }
 
 void CAbstractPTGBasedReactive::saveConfigFile(
@@ -1939,8 +1959,7 @@ void CAbstractPTGBasedReactive::saveConfigFile(
 			CLASS_ID(CAbstractHolonomicReactiveMethod));
 		for (const auto& cl : lst)
 		{
-			mrpt::rtti::CObject::Ptr obj =
-				mrpt::rtti::CObject::Ptr(cl->createObject());
+			mrpt::rtti::CObject::Ptr obj = cl->createObject();
 			auto* holo =
 				dynamic_cast<CAbstractHolonomicReactiveMethod*>(obj.get());
 			if (holo)
@@ -1963,8 +1982,7 @@ void CAbstractPTGBasedReactive::saveConfigFile(
 			CLASS_ID(CMultiObjectiveMotionOptimizerBase));
 		for (const auto& cl : lst)
 		{
-			mrpt::rtti::CObject::Ptr obj =
-				mrpt::rtti::CObject::Ptr(cl->createObject());
+			mrpt::rtti::CObject::Ptr obj = cl->createObject();
 			auto* momo =
 				dynamic_cast<CMultiObjectiveMotionOptimizerBase*>(obj.get());
 			if (momo)

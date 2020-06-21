@@ -2,13 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "nav-precomp.h"  // Precomp header
 
+#include <mrpt/math/TSegment2D.h>
 #include <mrpt/math/wrap2pi.h>
 #include <mrpt/nav/reactive/CWaypointsNavigator.h>
 #include <mrpt/poses/CPose2D.h>
@@ -44,11 +45,9 @@ bool CWaypointsNavigator::TNavigationParamsWaypoints::isEqual(
 }
 
 CWaypointsNavigator::CWaypointsNavigator(CRobot2NavInterface& robot_if)
-	: CAbstractNavigator(robot_if),
-	  m_was_aligning(false),
-	  m_is_aligning(false),
-	  m_last_alignment_cmd(mrpt::system::now())
+	: CAbstractNavigator(robot_if)
 {
+	m_last_alignment_cmd = mrpt::system::now();
 }
 
 CWaypointsNavigator::~CWaypointsNavigator() = default;
@@ -444,8 +443,11 @@ void CWaypointsNavigator::waypoints_navigationStep()
 void CWaypointsNavigator::navigationStep()
 {
 	MRPT_START
-	m_is_aligning =
-		false;  // the robot is aligning into a waypoint with a desired heading
+	// the robot is aligning into a waypoint with a desired heading
+	m_is_aligning = false;
+
+	mrpt::system::CTimeLoggerEntry tle(
+		m_navProfiler, "CWaypointsNavigator::navigationStep()");
 
 	if (m_navigationState != SUSPENDED)
 	{

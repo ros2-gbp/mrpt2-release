@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -30,6 +30,8 @@ EVT_CHAR(CRawlogTreeView::OnKey)
 END_EVENT_TABLE()
 
 #include <mrpt/system/datetime.h>
+
+std::atomic_bool CRawlogTreeView::RAWLOG_UNDERGOING_CHANGES{false};
 
 #define MRPT_NO_WARN_BIG_HDR  // It's ok here
 #include <mrpt/obs.h>
@@ -174,7 +176,7 @@ void CRawlogTreeView::reloadFromRawlog(int hint_rawlog_items)
 		}
 	}
 
-	//	mrpt::system::vectorToTextFile(tims,"tims.txt");
+	//	mrpt::io::vectorToTextFile(tims,"tims.txt");
 
 	// Set new size:
 	int ly = m_tree_nodes.size();
@@ -185,6 +187,18 @@ void CRawlogTreeView::reloadFromRawlog(int hint_rawlog_items)
 						reloadFromRawlog
    ------------------------------------------------------------ */
 void CRawlogTreeView::OnDraw(wxDC& dc)
+{
+	if (RAWLOG_UNDERGOING_CHANGES) return;
+	try
+	{
+		OnDrawImpl(dc);
+	}
+	catch (...)
+	{
+	}
+}
+
+void CRawlogTreeView::OnDrawImpl(wxDC& dc)
 {
 	// The origin of the window:
 	int xc0, y0;

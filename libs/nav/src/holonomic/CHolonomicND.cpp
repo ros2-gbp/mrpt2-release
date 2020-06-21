@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -58,7 +58,7 @@ void CHolonomicND::navigate(const NavInput& ni, NavOutput& no)
 	double evaluation;
 
 	// Create a log record for returning data.
-	CLogFileRecord_ND::Ptr log = mrpt::make_aligned_shared<CLogFileRecord_ND>();
+	CLogFileRecord_ND::Ptr log = std::make_shared<CLogFileRecord_ND>();
 	no.logRecord = log;
 
 	// Search gaps:
@@ -690,7 +690,7 @@ void CHolonomicND::TOptions::loadFromConfigFile(
 void CHolonomicND::TOptions::saveToConfigFile(
 	mrpt::config::CConfigFileBase& c, const std::string& s) const
 {
-	MRPT_START;
+	MRPT_START
 	const int WN = mrpt::config::MRPT_SAVE_NAME_PADDING(),
 			  WV = mrpt::config::MRPT_SAVE_VALUE_PADDING();
 

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -96,7 +96,7 @@ class CHokuyoURG : public C2DRangeFinderAbstract
 	/** The motor speed (default=600rpm) */
 	int m_motorSpeed_rpm{0};
 	/** The sensor 6D pose: */
-	poses::CPose3D m_sensorPose;
+	poses::CPose3D m_sensorPose{0, 0, 0, 0, 0, 0};
 	/** Auxiliary buffer for readings */
 	mrpt::containers::circular_buffer<uint8_t> m_rx_buffer;
 
@@ -160,18 +160,20 @@ class CHokuyoURG : public C2DRangeFinderAbstract
 	/** Turns the laser on */
 	void initialize() override;
 
-	/** Waits for a response from the device. Packet is stored in m_rcv_data,
-	 * and status codes in the reference parameters.
-	 * \return false on any error
+	/** Parses the response from the device from raw bytes in m_rx_buffer, and
+	 * stored the received frame in m_rcv_data. Status codes are stored in
+	 * m_rcv_status0 and m_rcv_status1.
+	 * \return false on any error or if received frame is incomplete and needs
+	 * more input bytes.
 	 */
-	bool receiveResponse(char& rcv_status0, char& rcv_status1);
+	bool parseResponse();
 
 	/** Assures a minimum number of bytes in the input buffer, reading from the
 	 * serial port only if required.
 	 * \return false if the number of bytes are not available, even after
 	 * trying to fetch more data from the serial port.
 	 */
-	bool assureBufferHasBytes(const size_t nDesiredBytes);
+	bool ensureBufferHasBytes(const size_t nDesiredBytes);
 
    public:
 	/** Constructor
@@ -247,11 +249,16 @@ class CHokuyoURG : public C2DRangeFinderAbstract
    protected:
 	/** temp buffer for incoming data packets */
 	std::string m_rcv_data;
+	char m_rcv_status0 = '\0', m_rcv_status1 = '\0';
 
 	/** Returns true if there is a valid stream bound to the laser scanner,
 	 * otherwise it first try to open the serial port "m_com_port"
 	 */
 	bool ensureStreamIsOpen();
+
+	/** Called upon dtor, or when trying to recover from a disconnected sensor
+	 */
+	void closeStreamConnection();
 
 	/** Used to reduce artificially the interval of scan ranges. */
 	double m_reduced_fov{0};
@@ -259,19 +266,17 @@ class CHokuyoURG : public C2DRangeFinderAbstract
 	/** If set to non-empty, the serial port will be attempted to be opened
 	 * automatically when this class is first used to request data from the
 	 * laser. */
-	std::string m_com_port;
+	std::string m_com_port{};
 
 	/** If set to non-empty and m_port_dir too, the program will try to connect
 	 * to a Hokuyo using Ethernet communication */
-	std::string m_ip_dir;
+	std::string m_ip_dir{};
 	/** If set to non-empty and m_ip_dir too, the program will try to connect to
 	 * a Hokuyo using Ethernet communication */
 	unsigned int m_port_dir{10940};
 
 	/** The information gathered when the laser is first open */
 	TSensorInfo m_sensor_info;
-
-	bool m_I_am_owner_serial_port{false};
 
 	/** Time of the first data packet, for synchronization purposes. */
 	uint32_t m_timeStartUI{0};

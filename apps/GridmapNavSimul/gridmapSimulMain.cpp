@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -108,9 +108,9 @@ wxBitmap MyArtProvider::CreateBitmap(
 #include <mrpt/obs/CRawlog.h>
 #include <mrpt/system/CTicTac.h>
 
-#include <mrpt/core/aligned_std_vector.h>
 #include <mrpt/opengl/stock_objects.h>
 #include <mrpt/serialization/CArchive.h>
+#include <vector>
 
 #include <mrpt/gui/WxUtils.h>
 
@@ -132,7 +132,7 @@ mrpt::kinematics::CVehicleSimul_DiffDriven the_robot;
 COccupancyGridMap2D the_grid;
 CJoystick joystick;
 
-mrpt::aligned_std_vector<mrpt::poses::CPose2D> robot_path_GT, robot_path_ODO;
+std::vector<mrpt::poses::CPose2D> robot_path_GT, robot_path_ODO;
 CPose2D lastOdo, pose_start;
 bool we_are_closing = false;
 long decimation = 1;
@@ -148,7 +148,7 @@ int last_pressed_key = 0;
 long LASER_N_RANGES = 361;
 double LASER_APERTURE = M_PI;
 double LASER_STD_ERROR = 0.01;
-double LASER_BEARING_STD_ERROR = DEG2RAD(0.05);
+double LASER_BEARING_STD_ERROR = 0.05_deg;
 
 class CMyGLCanvas : public CWxGLCanvasBase
 {
@@ -174,20 +174,7 @@ class CMyGLCanvas : public CWxGLCanvasBase
 void CMyGLCanvas::OnRenderError(const wxString& str) {}
 void CMyGLCanvas::OnPreRender() {}
 void CMyGLCanvas::OnPostRenderSwapBuffers(double At, wxPaintDC& dc) {}
-void CMyGLCanvas::OnPostRender()
-{
-	const mrpt::math::TPose2D p = the_robot.getCurrentGTPose();
-
-	string s = format("Pose: (%.03f,%.03f,%.02fdeg)", p.x, p.y, RAD2DEG(p.phi));
-	mrpt::opengl::CRenderizable::renderTextBitmap(
-		20, 20, s.c_str(), 1, 0, 0, MRPT_GLUT_BITMAP_HELVETICA_18);
-
-	const mrpt::math::TTwist2D vel_local = the_robot.getCurrentGTVelLocal();
-	s = format(
-		"V=%.03fm/s  W=%.02fdeg/s", vel_local.vx, RAD2DEG(vel_local.omega));
-	mrpt::opengl::CRenderizable::renderTextBitmap(
-		20, 45, s.c_str(), 1, 0, 0, MRPT_GLUT_BITMAP_HELVETICA_18);
-}
+void CMyGLCanvas::OnPostRender() {}
 
 void CMyGLCanvas::OnCharCustom(wxKeyEvent& event)
 {
@@ -679,39 +666,22 @@ gridmapSimulFrame::gridmapSimulFrame(wxWindow* parent, wxWindowID id)
 	FlexGridSizer1->Fit(this);
 	FlexGridSizer1->SetSizeHints(this);
 
-	Connect(
-		ID_BUTTON5, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&gridmapSimulFrame::OnbtnSetLaserClick);
-	Connect(
-		ID_BUTTON4, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&gridmapSimulFrame::OnbtnResimulateClick);
-	Connect(
-		ID_BUTTON6, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&gridmapSimulFrame::OnbtnQuitClick);
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&gridmapSimulFrame::OnbtnStartClick);
-	Connect(
-		ID_BUTTON2, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&gridmapSimulFrame::OnbtnEndClick);
-	Connect(
-		ID_BUTTON3, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&gridmapSimulFrame::OnbtnExploreClick);
-	Connect(
-		ID_TIMER1, wxEVT_TIMER,
-		(wxObjectEventFunction)&gridmapSimulFrame::OntimRunTrigger);
-	Connect(
-		ID_MENUITEM1, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&gridmapSimulFrame::OnbtnExploreClick);
-	Connect(
-		ID_MENUITEM_LOADMAP, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&gridmapSimulFrame::OnMenuLoadMap);
-	Connect(
-		ID_MENUITEM2, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&gridmapSimulFrame::OnbtnQuitClick);
-	Connect(
-		ID_MENUITEM3, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&gridmapSimulFrame::OnAbout);
+	Bind(
+		wxEVT_BUTTON, &gridmapSimulFrame::OnbtnSetLaserClick, this, ID_BUTTON5);
+	Bind(
+		wxEVT_BUTTON, &gridmapSimulFrame::OnbtnResimulateClick, this,
+		ID_BUTTON4);
+	Bind(wxEVT_BUTTON, &gridmapSimulFrame::OnbtnQuitClick, this, ID_BUTTON6);
+	Bind(wxEVT_BUTTON, &gridmapSimulFrame::OnbtnStartClick, this, ID_BUTTON1);
+	Bind(wxEVT_BUTTON, &gridmapSimulFrame::OnbtnEndClick, this, ID_BUTTON2);
+	Bind(wxEVT_BUTTON, &gridmapSimulFrame::OnbtnExploreClick, this, ID_BUTTON3);
+	Bind(wxEVT_TIMER, &gridmapSimulFrame::OntimRunTrigger, this, ID_TIMER1);
+	Bind(wxEVT_MENU, &gridmapSimulFrame::OnbtnExploreClick, this, ID_MENUITEM1);
+	Bind(
+		wxEVT_MENU, &gridmapSimulFrame::OnMenuLoadMap, this,
+		ID_MENUITEM_LOADMAP);
+	Bind(wxEVT_MENU, &gridmapSimulFrame::OnbtnQuitClick, this, ID_MENUITEM2);
+	Bind(wxEVT_MENU, &gridmapSimulFrame::OnAbout, this, ID_MENUITEM3);
 	//*)
 
 	// Import grid map:
@@ -737,21 +707,20 @@ gridmapSimulFrame::gridmapSimulFrame(wxWindow* parent, wxWindowID id)
 	// Populate scene:
 	auto openGLSceneRef = m_canvas->getOpenGLSceneRef();
 	openGLSceneRef->insert(
-		mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
-			-100, 100, -100, 100, 0, 5));
+		mrpt::opengl::CGridPlaneXY::Create(-100, 100, -100, 100, 0, 5));
 
 	update_grid_map_3d();
 	openGLSceneRef->insert(gl_grid);
 
 	// paths:
-	gl_path_GT = mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
+	gl_path_GT = mrpt::opengl::CPointCloud::Create();
 	gl_path_GT->setColor(0, 0, 0, 0.7);
 	gl_path_GT->setLocation(0, 0, 0.01);
 	gl_path_GT->setPointSize(3);
 
 	openGLSceneRef->insert(gl_path_GT);
 
-	gl_path_ODO = mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
+	gl_path_ODO = mrpt::opengl::CPointCloud::Create();
 	gl_path_ODO->setColor(0, 1, 0, 0.7);
 	gl_path_ODO->setLocation(0, 0, 0.01);
 	gl_path_ODO->setPointSize(2);
@@ -762,13 +731,11 @@ gridmapSimulFrame::gridmapSimulFrame(wxWindow* parent, wxWindowID id)
 	gl_robot = mrpt::opengl::stock_objects::RobotPioneer();
 	openGLSceneRef->insert(gl_robot);
 
-	gl_scan = mrpt::make_aligned_shared<mrpt::opengl::CPlanarLaserScan>();
+	gl_scan = mrpt::opengl::CPlanarLaserScan::Create();
 	gl_robot->insert(gl_scan);
 
 	// Redirect all keystrokes in this box to the gl canvas:
-	edInput->Connect(
-		wxEVT_CHAR, (wxObjectEventFunction)&CMyGLCanvas::OnCharCustom, nullptr,
-		m_canvas);
+	edInput->Bind(wxEVT_CHAR, &CMyGLCanvas::OnCharCustom, m_canvas);
 
 	// fix sizes:
 	SplitterWindow1->SetMinSize(wxSize(200, 200));
@@ -785,7 +752,7 @@ gridmapSimulFrame::~gridmapSimulFrame()
 
 void gridmapSimulFrame::update_grid_map_3d()
 {
-	if (!gl_grid) gl_grid = mrpt::make_aligned_shared<CSetOfObjects>();
+	if (!gl_grid) gl_grid = std::make_shared<CSetOfObjects>();
 	gl_grid->clear();
 	the_grid.getAs3DObject(gl_grid);
 }
@@ -915,7 +882,7 @@ void gridmapSimulFrame::OntimRunTrigger(wxTimerEvent& event)
 
 			ssu_params.robotPose.mean = p;
 			ssu_params.robotPose.cov << square(0.25), 0.0, 0.0, 0.0,
-				square(0.25), 0.0, 0.0, 0.0, square(DEG2RAD(5.0));
+				square(0.25), 0.0, 0.0, 0.0, square(5.0_deg);
 
 			the_grid.laserScanSimulatorWithUncertainty(ssu_params, ssu_out);
 			timlog.leave("laserScanSimulatorWithUncertainty");
@@ -1087,6 +1054,19 @@ void gridmapSimulFrame::OntimRunTrigger(wxTimerEvent& event)
 				robot_path_GT.rbegin()->x(), robot_path_GT.rbegin()->y(), 0);
 			CPose2D this_odo = pose_start + *robot_path_ODO.rbegin();
 			gl_path_ODO->insertPoint(this_odo.x(), this_odo.y(), 0);
+		}
+
+		{
+			auto scene = m_canvas->getOpenGLSceneRef();
+			const mrpt::math::TPose2D p = the_robot.getCurrentGTPose();
+
+			scene->getViewport()->addTextMessage(
+				20, 20, string("Pose: ") + p.asString(), 0);
+
+			const mrpt::math::TTwist2D vel_local =
+				the_robot.getCurrentGTVelLocal();
+			scene->getViewport()->addTextMessage(
+				20, 45, string("Twist local: ") + vel_local.asString(), 1);
 		}
 
 		m_canvas->setCameraPointing(p.x, p.y, m_canvas->getCameraPointingZ());

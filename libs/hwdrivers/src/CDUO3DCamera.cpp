@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -13,7 +13,7 @@
 #include <mrpt/system/filesystem.h>
 #include <mrpt/system/os.h>
 
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 #include <map>
 
@@ -181,9 +181,9 @@ TCaptureOptions_DUO3D::TYMLReadResult
 		mrpt::format("_R%dx%d_", this->m_img_width, this->m_img_height));
 	if (found == std::string::npos)
 	{
-		m_stereo_camera.leftCamera.intrinsicParams.zeros();
+		m_stereo_camera.leftCamera.intrinsicParams.setZero();
 		m_stereo_camera.leftCamera.dist.fill(0);
-		m_stereo_camera.rightCamera.intrinsicParams.zeros();
+		m_stereo_camera.rightCamera.intrinsicParams.setZero();
 		m_stereo_camera.rightCamera.dist.fill(0);
 
 		return yrr_NAME_NON_CONSISTENT;
@@ -196,7 +196,7 @@ TCaptureOptions_DUO3D::TYMLReadResult
 	if (aux_mat.size() == Size(0, 0))
 	{
 		empty = true;
-		m_stereo_camera.leftCamera.intrinsicParams.zeros();
+		m_stereo_camera.leftCamera.intrinsicParams.setZero();
 	}
 	m_stereo_camera.leftCamera.setIntrinsicParamsFromValues(
 		aux_mat.at<double>(0, 0), aux_mat.at<double>(1, 1),
@@ -217,7 +217,7 @@ TCaptureOptions_DUO3D::TYMLReadResult
 	if (aux_mat.size() == Size(0, 0))
 	{
 		empty = true;
-		m_stereo_camera.rightCamera.intrinsicParams.zeros();
+		m_stereo_camera.rightCamera.intrinsicParams.setZero();
 	}
 	m_stereo_camera.rightCamera.setIntrinsicParamsFromValues(
 		aux_mat.at<double>(0, 0), aux_mat.at<double>(1, 1),

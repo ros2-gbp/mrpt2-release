@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -38,9 +38,10 @@ class GraphSlamLevMarqTest
 		if constexpr (my_graph_t::edge_t::is_PDF())
 		{
 			const auto N = my_graph_t::edge_t::state_length;
-			using InfMat = mrpt::math::CMatrixFixedNumeric<double, N, N>;
+			using InfMat = mrpt::math::CMatrixFixed<double, N, N>;
 			auto mat = getRandomGenerator()
-						   .drawDefinitePositiveMatrix<InfMat, Eigen::VectorXd>(
+						   .drawDefinitePositiveMatrix<
+							   InfMat, mrpt::math::CVectorFixed<double, N>>(
 							   N, 2.0 /*std*/, 1.0 /*diagonal offset*/);
 			graph.insertEdge(
 				from, to, typename my_graph_t::edge_t(RelativePose, mat));
@@ -64,11 +65,11 @@ class GraphSlamLevMarqTest
 		// ----------------------------
 		// Level of noise in nodes initial positions:
 		const double STD_NOISE_NODE_XYZ = 0.5;
-		const double STD_NOISE_NODE_ANG = DEG2RAD(5);
+		const double STD_NOISE_NODE_ANG = 5.0_deg;
 
 		// Level of noise in edges:
 		const double STD_NOISE_EDGE_XYZ = 0;  // 0.01;
-		const double STD_NOISE_EDGE_ANG = 0;  // DEG2RAD(0.1);
+		const double STD_NOISE_EDGE_ANG = 0;  // 0.1_deg;
 
 		for (TNodeID j = 0; j < N_VERTEX; j++)
 		{
@@ -122,8 +123,7 @@ class GraphSlamLevMarqTest
 				if constexpr (my_graph_t::edge_t::is_PDF())
 				{
 					const auto N = my_graph_t::edge_t::state_length;
-					using InfMat =
-						mrpt::math::CMatrixFixedNumeric<double, N, N>;
+					using InfMat = mrpt::math::CMatrixFixed<double, N, N>;
 					InfMat mat;
 					mat.setIdentity();
 					edge.second += typename my_graph_t::edge_t(noise, mat);
@@ -142,8 +142,7 @@ class GraphSlamLevMarqTest
 				if constexpr (my_graph_t::edge_t::is_PDF())
 				{
 					const auto N = my_graph_t::edge_t::state_length;
-					using InfMat =
-						mrpt::math::CMatrixFixedNumeric<double, N, N>;
+					using InfMat = mrpt::math::CMatrixFixed<double, N, N>;
 					InfMat mat;
 					mat.setIdentity();
 					edge.second += typename my_graph_t::edge_t(noise, mat);

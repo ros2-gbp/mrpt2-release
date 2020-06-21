@@ -2,13 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "obs-precomp.h"  // Precompiled headers
 
+#include <mrpt/math/ops_matrices.h>
 #include <mrpt/math/point_poses2vectors.h>
 #include <mrpt/math/wrap2pi.h>
 #include <mrpt/obs/CActionRobotMovement2D.h>
@@ -16,6 +17,7 @@
 #include <mrpt/poses/CPosePDFParticles.h>
 #include <mrpt/random.h>
 #include <mrpt/serialization/CArchive.h>
+#include <Eigen/Dense>
 
 using namespace mrpt::obs;
 using namespace mrpt::poses;
@@ -30,6 +32,8 @@ IMPLEMENTS_SERIALIZABLE(CActionRobotMovement2D, CAction, mrpt::obs)
 CActionRobotMovement2D::CActionRobotMovement2D()
 	: poseChange(mrpt::poses::CPosePDFGaussian::Create())
 {
+	// Re-build the PDF to have a consistent object state:
+	computeFromOdometry(rawOdometryIncrementReading, motionModelConfiguration);
 }
 
 uint8_t CActionRobotMovement2D::serializeGetVersion() const { return 7; }
@@ -46,12 +50,13 @@ void CActionRobotMovement2D::serializeTo(
 		// The odometry data:
 		out << rawOdometryIncrementReading;
 		out.WriteAs<uint32_t>(motionModelConfiguration.modelSelection);
-		out << motionModelConfiguration.gaussianModel.a1
-			<< motionModelConfiguration.gaussianModel.a2
-			<< motionModelConfiguration.gaussianModel.a3
-			<< motionModelConfiguration.gaussianModel.a4
-			<< motionModelConfiguration.gaussianModel.minStdXY
-			<< motionModelConfiguration.gaussianModel.minStdPHI;
+		const auto& gm = motionModelConfiguration.gaussianModel;
+		out.WriteAs<float>(gm.a1);
+		out.WriteAs<float>(gm.a2);
+		out.WriteAs<float>(gm.a3);
+		out.WriteAs<float>(gm.a4);
+		out.WriteAs<float>(gm.minStdXY);
+		out.WriteAs<float>(gm.minStdPHI);
 
 		out << motionModelConfiguration.thrunModel.nParticlesCount
 			<< motionModelConfiguration.thrunModel.alfa1_rot_rot
@@ -107,12 +112,13 @@ void CActionRobotMovement2D::serializeFrom(
 				motionModelConfiguration.modelSelection =
 					static_cast<TDrawSampleMotionModel>(i);
 
-				in >> motionModelConfiguration.gaussianModel.a1 >>
-					motionModelConfiguration.gaussianModel.a2 >>
-					motionModelConfiguration.gaussianModel.a3 >>
-					motionModelConfiguration.gaussianModel.a4 >>
-					motionModelConfiguration.gaussianModel.minStdXY >>
-					motionModelConfiguration.gaussianModel.minStdPHI;
+				auto& gm = motionModelConfiguration.gaussianModel;
+				gm.a1 = in.ReadAs<float>();
+				gm.a2 = in.ReadAs<float>();
+				gm.a3 = in.ReadAs<float>();
+				gm.a4 = in.ReadAs<float>();
+				gm.minStdXY = in.ReadAs<float>();
+				gm.minStdPHI = in.ReadAs<float>();
 
 				in >> i;
 				motionModelConfiguration.thrunModel.nParticlesCount = i;
@@ -393,29 +399,6 @@ void CActionRobotMovement2D::computeFromOdometry(
 }
 
 /*---------------------------------------------------------------
-						TMotionModelOptions
- ---------------------------------------------------------------*/
-CActionRobotMovement2D::TMotionModelOptions::TMotionModelOptions()
-	: gaussianModel(), thrunModel()
-{
-	gaussianModel.a1 = 0.01f;
-	gaussianModel.a2 = RAD2DEG(0.001f);
-	gaussianModel.a3 = DEG2RAD(1.0f);
-	gaussianModel.a4 = 0.05f;
-
-	gaussianModel.minStdXY = 0.01f;
-	gaussianModel.minStdPHI = DEG2RAD(0.2f);
-
-	thrunModel.nParticlesCount = 300;
-	thrunModel.alfa1_rot_rot = 0.05f;
-	thrunModel.alfa2_rot_trans = DEG2RAD(4.0f);
-	thrunModel.alfa3_trans_trans = 0.01f;
-	thrunModel.alfa4_trans_rot = RAD2DEG(0.0001f);
-	thrunModel.additional_std_XY = 0.001f;
-	thrunModel.additional_std_phi = DEG2RAD(0.05f);
-}
-
-/*---------------------------------------------------------------
 				computeFromOdometry_modelGaussian
   ---------------------------------------------------------------*/
 void CActionRobotMovement2D::computeFromOdometry_modelGaussian(
@@ -423,8 +406,9 @@ void CActionRobotMovement2D::computeFromOdometry_modelGaussian(
 {
 	// The Gaussian PDF:
 	// ---------------------------
-	poseChange = mrpt::make_aligned_shared<CPosePDFGaussian>();
+	poseChange = std::make_shared<CPosePDFGaussian>();
 	auto* aux = dynamic_cast<CPosePDFGaussian*>(poseChange.get());
+	ASSERT_(aux != nullptr);
 
 	// See https://www.mrpt.org/Probabilistic_Motion_Models
 	// -----------------------------------
@@ -462,7 +446,7 @@ void CActionRobotMovement2D::computeFromOdometry_modelGaussian(
 	aux->mean = odometryIncrement;
 
 	// The covariance:
-	J.multiply_HCHt(C_ODO, aux->cov);
+	aux->cov = mrpt::math::multiply_HCHt(J, C_ODO);
 }
 
 /*---------------------------------------------------------------
@@ -477,6 +461,7 @@ void CActionRobotMovement2D::computeFromOdometry_modelThrun(
 
 	poseChange = CPosePDFParticles::Create();
 	auto* aux = dynamic_cast<CPosePDFParticles*>(poseChange.get());
+	ASSERT_(aux != nullptr);
 
 	// Set the number of particles:
 	aux->resetDeterministic(nullPose, o.thrunModel.nParticlesCount);
@@ -489,25 +474,25 @@ void CActionRobotMovement2D::computeFromOdometry_modelThrun(
 	// ---------------------------------------------------------------------------------------------
 
 	// The increments in odometry:
-	float Arot1 = (odometryIncrement.y() != 0 || odometryIncrement.x() != 0)
-					  ? atan2(odometryIncrement.y(), odometryIncrement.x())
-					  : 0;
-	float Atrans = odometryIncrement.norm();
-	float Arot2 = math::wrapToPi(odometryIncrement.phi() - Arot1);
+	double Arot1 = (odometryIncrement.y() != 0 || odometryIncrement.x() != 0)
+					   ? atan2(odometryIncrement.y(), odometryIncrement.x())
+					   : 0;
+	double Atrans = odometryIncrement.norm();
+	double Arot2 = math::wrapToPi(odometryIncrement.phi() - Arot1);
 
 	// Draw samples:
 	for (size_t i = 0; i < o.thrunModel.nParticlesCount; i++)
 	{
-		float Arot1_draw =
+		double Arot1_draw =
 			Arot1 - (o.thrunModel.alfa1_rot_rot * fabs(Arot1) +
 					 o.thrunModel.alfa2_rot_trans * Atrans) *
 						getRandomGenerator().drawGaussian1D_normalized();
-		float Atrans_draw =
+		double Atrans_draw =
 			Atrans -
 			(o.thrunModel.alfa3_trans_trans * Atrans +
 			 o.thrunModel.alfa4_trans_rot * (fabs(Arot1) + fabs(Arot2))) *
 				getRandomGenerator().drawGaussian1D_normalized();
-		float Arot2_draw =
+		double Arot2_draw =
 			Arot2 - (o.thrunModel.alfa1_rot_rot * fabs(Arot2) +
 					 o.thrunModel.alfa2_rot_trans * Atrans) *
 						getRandomGenerator().drawGaussian1D_normalized();
@@ -575,27 +560,27 @@ void CActionRobotMovement2D::drawSingleSample_modelThrun(
 	// ---------------------------------------------------------------------------------------------
 
 	// The increments in odometry:
-	float Arot1 = (rawOdometryIncrementReading.y() != 0 ||
-				   rawOdometryIncrementReading.x() != 0)
-					  ? atan2(
-							rawOdometryIncrementReading.y(),
-							rawOdometryIncrementReading.x())
-					  : 0;
-	float Atrans = rawOdometryIncrementReading.norm();
-	float Arot2 = math::wrapToPi(rawOdometryIncrementReading.phi() - Arot1);
+	double Arot1 = (rawOdometryIncrementReading.y() != 0 ||
+					rawOdometryIncrementReading.x() != 0)
+					   ? atan2(
+							 rawOdometryIncrementReading.y(),
+							 rawOdometryIncrementReading.x())
+					   : 0;
+	double Atrans = rawOdometryIncrementReading.norm();
+	double Arot2 = math::wrapToPi(rawOdometryIncrementReading.phi() - Arot1);
 
-	float Arot1_draw =
+	double Arot1_draw =
 		Arot1 -
 		(motionModelConfiguration.thrunModel.alfa1_rot_rot * fabs(Arot1) +
 		 motionModelConfiguration.thrunModel.alfa2_rot_trans * Atrans) *
 			getRandomGenerator().drawGaussian1D_normalized();
-	float Atrans_draw =
+	double Atrans_draw =
 		Atrans -
 		(motionModelConfiguration.thrunModel.alfa3_trans_trans * Atrans +
 		 motionModelConfiguration.thrunModel.alfa4_trans_rot *
 			 (fabs(Arot1) + fabs(Arot2))) *
 			getRandomGenerator().drawGaussian1D_normalized();
-	float Arot2_draw =
+	double Arot2_draw =
 		Arot2 -
 		(motionModelConfiguration.thrunModel.alfa1_rot_rot * fabs(Arot2) +
 		 motionModelConfiguration.thrunModel.alfa2_rot_trans * Atrans) *
@@ -661,9 +646,7 @@ void CActionRobotMovement2D::prepareFastDrawSingleSample_modelGaussian() const
 {
 	MRPT_START
 
-	ASSERT_(IS_CLASS(poseChange, CPosePDFGaussian));
-
-	CMatrixDouble33 D;
+	ASSERT_(IS_CLASS(*poseChange, CPosePDFGaussian));
 
 	const auto* gPdf = dynamic_cast<const CPosePDFGaussian*>(poseChange.get());
 	ASSERT_(gPdf != nullptr);
@@ -676,10 +659,13 @@ void CActionRobotMovement2D::prepareFastDrawSingleSample_modelGaussian() const
 	 *	  eigenvectors and the diagonal matrix D contains the eigenvalues
 	 *    as diagonal elements, sorted in <i>ascending</i> order.
 	 */
-	cov.eigenVectors(m_fastDrawGauss_Z, D);
+	std::vector<double> eigvals;
+	cov.eig_symmetric(m_fastDrawGauss_Z, eigvals);
+	CMatrixDouble33 D;
+	D.setDiagonal(eigvals);
 
 	// Scale eigenvectors with eigenvalues:
-	D = D.array().sqrt().matrix();
+	D.asEigen() = D.array().sqrt().matrix();
 	m_fastDrawGauss_Z = m_fastDrawGauss_Z * D;
 
 	MRPT_END
@@ -695,12 +681,13 @@ void CActionRobotMovement2D::prepareFastDrawSingleSample_modelThrun() const {}
 void CActionRobotMovement2D::fastDrawSingleSample_modelGaussian(
 	CPose2D& outSample) const
 {
-	CVectorFloat rndVector(3, 0);
+	CVectorDouble rndVector;
+	rndVector.assign(3, 0.0f);
 	for (size_t i = 0; i < 3; i++)
 	{
-		float rnd = getRandomGenerator().drawGaussian1D_normalized();
+		double rnd = getRandomGenerator().drawGaussian1D_normalized();
 		for (size_t d = 0; d < 3; d++)
-			rndVector[d] += (m_fastDrawGauss_Z.get_unsafe(d, i) * rnd);
+			rndVector[d] += (m_fastDrawGauss_Z(d, i) * rnd);
 	}
 
 	outSample = CPose2D(
@@ -716,4 +703,58 @@ void CActionRobotMovement2D::fastDrawSingleSample_modelThrun(
 	CPose2D& outSample) const
 {
 	drawSingleSample_modelThrun(outSample);
+}
+
+void CActionRobotMovement2D::getDescriptionAsText(std::ostream& o) const
+{
+	CAction::getDescriptionAsText(o);
+
+	CPose2D Ap;
+	CMatrixDouble33 mat;
+	poseChange->getCovarianceAndMean(mat, Ap);
+
+	o << "Robot Movement (as a gaussian pose change):\n";
+	o << " Mean = " << Ap << "\n";
+
+	o << format(" Covariance:     DET=%e\n", mat.det());
+
+	o << format("      %e %e %e\n", mat(0, 0), mat(0, 1), mat(0, 2));
+	o << format("      %e %e %e\n", mat(1, 0), mat(1, 1), mat(1, 2));
+	o << format("      %e %e %e\n", mat(2, 0), mat(2, 1), mat(2, 2));
+
+	o << "\n";
+
+	o << "Actual odometry increment reading: " << rawOdometryIncrementReading
+	  << "\n";
+
+	o << format(
+		"Actual PDF class is: '%s'\n",
+		poseChange->GetRuntimeClass()->className);
+
+	if (poseChange->GetRuntimeClass() == CLASS_ID(CPosePDFParticles))
+	{
+		CPosePDFParticles::Ptr aux =
+			std::dynamic_pointer_cast<CPosePDFParticles>(poseChange.get_ptr());
+		o << format(
+			" (Particle count = %u)\n", (unsigned)aux->m_particles.size());
+	}
+	o << "\n";
+
+	o << "Estimation method: "
+	  << mrpt::typemeta::TEnumType<TEstimationMethod>::value2name(
+			 estimationMethod)
+	  << "\n";
+
+	// Additional data:
+	if (hasEncodersInfo)
+		o << format(
+			"Encoder info: deltaL=%i deltaR=%i\n", encoderLeftTicks,
+			encoderRightTicks);
+	else
+		o << "Encoder info: Not available!\n";
+
+	if (hasVelocities)
+		o << "Velocity info: v=" << velocityLocal.asString() << "\n";
+	else
+		o << "Velocity info: Not available!\n";
 }

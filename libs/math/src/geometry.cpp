@@ -2,21 +2,28 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "math-precomp.h"  // Precompiled headers
 
-#include <mrpt/math/CArrayNumeric.h>
-#include <mrpt/math/CMatrixFixedNumeric.h>
-#include <mrpt/math/CMatrixTemplateNumeric.h>
+#include <mrpt/math/CMatrixDynamic.h>
+#include <mrpt/math/CMatrixFixed.h>
 #include <mrpt/math/CPolygon.h>
 #include <mrpt/math/CSparseMatrixTemplate.h>
+#include <mrpt/math/CVectorFixed.h>
+#include <mrpt/math/TLine2D.h>
+#include <mrpt/math/TLine3D.h>
+#include <mrpt/math/TObject2D.h>
+#include <mrpt/math/TObject3D.h>
+#include <mrpt/math/TPose2D.h>
+#include <mrpt/math/TPose3D.h>
 #include <mrpt/math/data_utils.h>
 #include <mrpt/math/geometry.h>
 #include <mrpt/math/ops_containers.h>
+#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace std;
@@ -30,8 +37,8 @@ void mrpt::math::setEpsilon(double eps) { geometryEpsilon = eps; }
 	Returns the closest point to a segment
   ---------------------------------------------------------------*/
 void math::closestFromPointToSegment(
-	const double& Px, const double& Py, const double& x1, const double& y1,
-	const double& x2, const double& y2, double& out_x, double& out_y)
+	double Px, double Py, double x1, double y1, double x2, double y2,
+	double& out_x, double& out_y)
 {
 	if (x1 == x2 && y1 == y2)
 	{
@@ -68,8 +75,8 @@ void math::closestFromPointToSegment(
 	Returns the closest point to a line
   ---------------------------------------------------------------*/
 void math::closestFromPointToLine(
-	const double& Px, const double& Py, const double& x1, const double& y1,
-	const double& x2, const double& y2, double& out_x, double& out_y)
+	double Px, double Py, double x1, double y1, double x2, double y2,
+	double& out_x, double& out_y)
 {
 	if (x1 == x2 && y1 == y2)
 	{
@@ -91,8 +98,7 @@ void math::closestFromPointToLine(
 	Returns the sq. distance to closest point to a line
   ---------------------------------------------------------------*/
 double math::closestSquareDistanceFromPointToLine(
-	const double& Px, const double& Py, const double& x1, const double& y1,
-	const double& x2, const double& y2)
+	double Px, double Py, double x1, double y1, double x2, double y2)
 {
 	if (x1 == x2 && y1 == y2)
 	{
@@ -216,8 +222,8 @@ bool math::SegmentsIntersection(
 {
 	double x, y;
 	bool b = SegmentsIntersection(x1, y1, x2, y2, x3, y3, x4, y4, x, y);
-	ix = static_cast<float>(x);
-	iy = static_cast<float>(y);
+	ix = d2f(x);
+	iy = d2f(y);
 	return b;
 }
 
@@ -225,8 +231,8 @@ bool math::SegmentsIntersection(
 						Intersect
   ---------------------------------------------------------------*/
 bool math::pointIntoPolygon2D(
-	const double& px, const double& py, unsigned int polyEdges,
-	const double* poly_xs, const double* poly_ys)
+	double px, double py, unsigned int polyEdges, const double* poly_xs,
+	const double* poly_ys)
 {
 	unsigned int i, j;
 	bool res = false;
@@ -256,8 +262,8 @@ bool math::pointIntoPolygon2D(
 						Intersect
   ---------------------------------------------------------------*/
 double math::distancePointToPolygon2D(
-	const double& px, const double& py, unsigned int polyEdges,
-	const double* poly_xs, const double* poly_ys)
+	double px, double py, unsigned int polyEdges, const double* poly_xs,
+	const double* poly_ys)
 {
 	unsigned int i, j;
 	double minDist = 1e20f;
@@ -290,11 +296,9 @@ double math::distancePointToPolygon2D(
 					minDistBetweenLines
  --------------------------------------------------------------- */
 bool math::minDistBetweenLines(
-	const double& p1_x, const double& p1_y, const double& p1_z,
-	const double& p2_x, const double& p2_y, const double& p2_z,
-	const double& p3_x, const double& p3_y, const double& p3_z,
-	const double& p4_x, const double& p4_y, const double& p4_z, double& x,
-	double& y, double& z, double& dist)
+	double p1_x, double p1_y, double p1_z, double p2_x, double p2_y,
+	double p2_z, double p3_x, double p3_y, double p3_z, double p4_x,
+	double p4_y, double p4_z, double& x, double& y, double& z, double& dist)
 {
 	const double EPS = 1e-30f;
 
@@ -361,10 +365,9 @@ bool math::minDistBetweenLines(
 				Rectangles Intersect
   ---------------------------------------------------------------*/
 bool math::RectanglesIntersection(
-	const double& R1_x_min, const double& R1_x_max, const double& R1_y_min,
-	const double& R1_y_max, const double& R2_x_min, const double& R2_x_max,
-	const double& R2_y_min, const double& R2_y_max, const double& R2_pose_x,
-	const double& R2_pose_y, const double& R2_pose_phi)
+	double R1_x_min, double R1_x_max, double R1_y_min, double R1_y_max,
+	double R2_x_min, double R2_x_max, double R2_y_min, double R2_y_max,
+	double R2_pose_x, double R2_pose_y, double R2_pose_phi)
 {
 	// Compute the rotated R2:
 	// ----------------------------------------
@@ -476,12 +479,12 @@ bool intersectInCommonLine(
 {
 	// Move in a free coordinate, searching for minima and maxima.
 	size_t i1 = 0;
-	while (abs(lin.director[i1]) < geometryEpsilon) i1++;
+	while (std::abs(lin.director[i1]) < geometryEpsilon) i1++;
 	TSegment3D s11 = (s1[0][i1] > s1[1][i1]) ? TSegment3D(s1[1], s1[0]) : s1;
 	TSegment3D s21 = (s2[0][i1] > s2[1][i1]) ? TSegment3D(s2[1], s2[0]) : s2;
 	TPoint3D pMin = ((s11[0][i1] < s21[0][i1]) ? s21 : s11)[0];
 	TPoint3D pMax = ((s11[1][i1] < s21[1][i1]) ? s11 : s21)[1];
-	if (abs(pMax[i1] - pMin[i1]) < geometryEpsilon)
+	if (std::abs(pMax[i1] - pMin[i1]) < geometryEpsilon)
 	{  // Intersection is a point
 		obj = pMax;
 		return true;
@@ -499,12 +502,12 @@ bool intersectInCommonLine(
 	TObject2D& obj)
 {
 	// Move in a free coordinate, searching for minima and maxima
-	size_t i1 = (abs(lin.coefs[0]) >= geometryEpsilon) ? 1 : 0;
+	size_t i1 = (std::abs(lin.coefs[0]) >= geometryEpsilon) ? 1 : 0;
 	TSegment2D s11 = (s1[0][i1] > s1[1][i1]) ? TSegment2D(s1[1], s1[0]) : s1;
 	TSegment2D s21 = (s2[0][i1] > s2[1][i1]) ? TSegment2D(s2[1], s2[0]) : s2;
 	TPoint2D pMin = ((s11[0][i1] < s21[0][i1]) ? s21 : s11)[0];
 	TPoint2D pMax = ((s11[1][i1] < s21[1][i1]) ? s11 : s21)[1];
-	if (abs(pMax[i1] - pMin[i1]) < geometryEpsilon)
+	if (std::abs(pMax[i1] - pMin[i1]) < geometryEpsilon)
 	{  // Intersection is a point
 		obj = pMax;
 		return true;
@@ -525,7 +528,7 @@ inline void unsafeProjectPoint(
 	newPoint.x = dummy.x;
 	newPoint.y = dummy.y;
 }
-void unsafeProjectPolygon(
+void mrpt::math::internal::unsafeProjectPolygon(
 	const TPolygon3D& poly, const TPose3D& pose, TPolygon2D& newPoly)
 {
 	size_t N = poly.size();
@@ -543,7 +546,7 @@ bool intersect(
 		if (obj.getPoint(p))
 		{
 			for (size_t i = 0; i < 3; i++)
-				if (abs(l2.director[i]) > geometryEpsilon)
+				if (std::abs(l2.director[i]) > geometryEpsilon)
 				{
 					d = (p[i] - l2.pBase[i]) / l2.director[i];
 					break;
@@ -552,7 +555,8 @@ bool intersect(
 			TPolygon2D newPoly;
 			TPoint2D newP;
 			unsafeProjectPoint(p, p1.inversePose, newP);
-			unsafeProjectPolygon(p1.poly, p1.inversePose, newPoly);
+			mrpt::math::internal::unsafeProjectPolygon(
+				p1.poly, p1.inversePose, newPoly);
 			return newPoly.contains(newP);
 		}
 	return false;
@@ -609,24 +613,6 @@ bool intersect(
 	}
 }
 // End of auxiliary methods
-math::TPolygonWithPlane::TPolygonWithPlane(const TPolygon3D& p) : poly(p)
-{
-	poly.getBestFittingPlane(plane);
-	plane.getAsPose3D(pose);
-	// inversePose = -pose;
-	CMatrixDouble44 P_inv;
-	pose.getInverseHomogeneousMatrix(P_inv);
-	inversePose.fromHomogeneousMatrix(P_inv);
-
-	unsafeProjectPolygon(poly, inversePose, poly2D);
-}
-void math::TPolygonWithPlane::getPlanes(
-	const vector<TPolygon3D>& oldPolys, vector<TPolygonWithPlane>& newPolys)
-{
-	size_t N = oldPolys.size();
-	newPolys.resize(N);
-	for (size_t i = 0; i < N; i++) newPolys[i] = oldPolys[i];
-}
 
 bool math::intersect(const TSegment3D& s1, const TSegment3D& s2, TObject3D& obj)
 {
@@ -692,13 +678,14 @@ bool math::intersect(const TPlane& p1, const TPlane& p2, TObject3D& obj)
 {
 	TLine3D lin;
 	crossProduct3D(p1.coefs, p2.coefs, lin.director);
-	if ((abs(lin.director[0]) < geometryEpsilon) &&
-		(abs(lin.director[1]) < geometryEpsilon) &&
-		(abs(lin.director[2]) < geometryEpsilon))
+	if ((std::abs(lin.director[0]) < geometryEpsilon) &&
+		(std::abs(lin.director[1]) < geometryEpsilon) &&
+		(std::abs(lin.director[2]) < geometryEpsilon))
 	{
 		// Planes are parallel
 		for (size_t i = 0; i < 3; i++)
-			if (abs(p1.coefs[i] * p2.coefs[3] - p1.coefs[3] * p2.coefs[i]) >=
+			if (std::abs(
+					p1.coefs[i] * p2.coefs[3] - p1.coefs[3] * p2.coefs[i]) >=
 				geometryEpsilon)
 				return false;
 		// Planes are the same
@@ -712,7 +699,7 @@ bool math::intersect(const TPlane& p1, const TPlane& p2, TObject3D& obj)
 		// The following process manages to create a random point in the line
 		// without loss of generality and almost without conditional sentences.
 		size_t i1 = 0;
-		while (abs(lin.director[i1]) < geometryEpsilon) i1++;
+		while (std::abs(lin.director[i1]) < geometryEpsilon) i1++;
 		// At this point, i1 points to a coordinate (0->x, 1->y, 2->z) in which
 		// we can move freely.
 		// If we arbitrarily assign this coordinate to 0, we'll find a suitable
@@ -737,11 +724,11 @@ bool math::intersect(const TPlane& p1, const TLine3D& r2, TObject3D& obj)
 	// n=p1.coefs[0]*r2.director[0]+p1.coefs[1]*r2.director[1]+p1.coefs[2]*r2.director[2];
 	double n = dotProduct<3, double>(p1.coefs, r2.director);
 	double e = p1.evaluatePoint(r2.pBase);
-	if (abs(n) < geometryEpsilon)
+	if (std::abs(n) < geometryEpsilon)
 	{
 		// Plane's normal and line's director are orthogonal, so both are
 		// parallel
-		if (abs(e) < geometryEpsilon)
+		if (std::abs(e) < geometryEpsilon)
 		{
 			// Line is contained in plane.
 			obj = r2;
@@ -774,7 +761,7 @@ bool math::intersect(const TLine3D& r1, const TLine3D& r2, TObject3D& obj)
 	{
 		double sysDet = -r1.director[c1[i]] * r2.director[c2[i]] +
 						r2.director[c1[i]] * r1.director[c2[i]];
-		if (abs(sysDet) < geometryEpsilon) continue;
+		if (std::abs(sysDet) < geometryEpsilon) continue;
 		// We've found a coordinate in which we can solve the associated system
 		d[c1[i]] = r2.pBase[c1[i]] - r1.pBase[c1[i]];
 		d[c2[i]] = r2.pBase[c2[i]] - r1.pBase[c2[i]];
@@ -803,7 +790,7 @@ bool math::intersect(const TLine3D& r1, const TLine3D& r2, TObject3D& obj)
 bool math::intersect(const TLine2D& r1, const TLine2D& r2, TObject2D& obj)
 {
 	double sysDet = r1.coefs[0] * r2.coefs[1] - r1.coefs[1] * r2.coefs[0];
-	if (abs(sysDet) >= geometryEpsilon)
+	if (std::abs(sysDet) >= geometryEpsilon)
 	{
 		// Resulting point comes simply from solving an equation.
 		TPoint2D p;
@@ -815,12 +802,12 @@ bool math::intersect(const TLine2D& r1, const TLine2D& r2, TObject2D& obj)
 	else
 	{
 		// Lines are parallel
-		if (abs(r1.coefs[0] * r2.coefs[2] - r1.coefs[2] * r2.coefs[0]) >=
-			geometryEpsilon)
+		if (std::abs(r1.coefs[0] * r2.coefs[2] - r1.coefs[2] * r2.coefs[0]) >=
+				geometryEpsilon ||
+			std::abs(r1.coefs[1] * r2.coefs[2] - r1.coefs[2] * r2.coefs[1]) >=
+				geometryEpsilon)
 			return false;
-		if (abs(r1.coefs[1] * r2.coefs[2] - r1.coefs[2] * r2.coefs[1]) >=
-			geometryEpsilon)
-			return false;
+
 		// Lines are the same
 		obj = r1;
 		return true;
@@ -867,7 +854,7 @@ double math::getAngle(const TPlane& s1, const TPlane& s2)
 	}
 	double s = sqrt(n1 * n2);
 	if (s < geometryEpsilon) throw std::logic_error("Invalid plane(s)");
-	if (abs(s) < abs(c))
+	if (std::abs(s) < std::abs(c))
 		return (c / s < 0) ? M_PI : 0;
 	else
 		return acos(c / s);
@@ -884,7 +871,7 @@ double math::getAngle(const TPlane& s1, const TLine3D& r2)
 	}
 	double s = sqrt(n1 * n2);
 	if (s < geometryEpsilon) throw std::logic_error("Invalid plane or line");
-	if (abs(s) < abs(c))
+	if (std::abs(s) < std::abs(c))
 		return M_PI * sign(c / s) / 2;
 	else
 		return asin(c / s);
@@ -901,7 +888,7 @@ double math::getAngle(const TLine3D& r1, const TLine3D& r2)
 	}
 	double s = sqrt(n1 * n2);
 	if (s < geometryEpsilon) throw std::logic_error("Invalid line(s)");
-	if (abs(s) < abs(c))
+	if (std::abs(s) < std::abs(c))
 		return (c / s < 0) ? M_PI : 0;
 	else
 		return acos(c / s);
@@ -921,8 +908,8 @@ void createFromPoseAndAxis(const TPose3D& p, TLine3D& r, size_t axis)
 	p.getHomogeneousMatrix(m);
 	for (size_t i = 0; i < 3; i++)
 	{
-		r.pBase[i] = m.get_unsafe(i, 3);
-		r.director[i] = m.get_unsafe(i, axis);
+		r.pBase[i] = m(i, 3);
+		r.director[i] = m(i, axis);
 	}
 }
 // End of auxiliary method
@@ -949,10 +936,9 @@ void math::createFromPoseAndVector(
 	p.getHomogeneousMatrix(m);
 	for (size_t i = 0; i < 3; i++)
 	{
-		r.pBase[i] = m.get_unsafe(i, 3);
+		r.pBase[i] = m(i, 3);
 		r.director[i] = 0;
-		for (size_t j = 0; j < 3; j++)
-			r.director[i] += m.get_unsafe(i, j) * vector[j];
+		for (size_t j = 0; j < 3; j++) r.director[i] += m(i, j) * vector[j];
 	}
 }
 
@@ -984,7 +970,7 @@ bool math::conformAPlane(const std::vector<TPoint3D>& points)
 {
 	size_t N = points.size();
 	if (N < 3) return false;
-	CMatrixTemplateNumeric<double> mat(N - 1, 3);
+	CMatrixDouble mat(N - 1, 3);
 	const TPoint3D& orig = points[N - 1];
 	for (size_t i = 0; i < N - 1; i++)
 	{
@@ -998,14 +984,14 @@ bool math::conformAPlane(const std::vector<TPoint3D>& points)
 
 bool math::conformAPlane(const std::vector<TPoint3D>& points, TPlane& p)
 {
-	return abs(getRegressionPlane(points, p)) < geometryEpsilon;
+	return std::abs(getRegressionPlane(points, p)) < geometryEpsilon;
 }
 
 bool math::areAligned(const std::vector<TPoint2D>& points)
 {
 	size_t N = points.size();
 	if (N < 2) return false;
-	CMatrixTemplateNumeric<double> mat(N - 1, 2);
+	CMatrixDouble mat(N - 1, 2);
 	const TPoint2D& orig = points[N - 1];
 	for (size_t i = 0; i < N - 1; i++)
 	{
@@ -1020,7 +1006,9 @@ bool math::areAligned(const std::vector<TPoint2D>& points, TLine2D& r)
 {
 	if (!areAligned(points)) return false;
 	const TPoint2D& p0 = points[0];
-	for (size_t i = 1;; i++) try
+	for (size_t i = 1;; i++)
+	{
+		try
 		{
 			r = TLine2D(p0, points[i]);
 			return true;
@@ -1028,13 +1016,14 @@ bool math::areAligned(const std::vector<TPoint2D>& points, TLine2D& r)
 		catch (logic_error&)
 		{
 		}
+	}
 }
 
 bool math::areAligned(const std::vector<TPoint3D>& points)
 {
 	size_t N = points.size();
 	if (N < 2) return false;
-	CMatrixTemplateNumeric<double> mat(N - 1, 3);
+	CMatrixDouble mat(N - 1, 3);
 	const TPoint3D& orig = points[N - 1];
 	for (size_t i = 0; i < N - 1; i++)
 	{
@@ -1070,7 +1059,7 @@ void math::project3D(
 	{
 		newLine.director[i] = 0;
 		for (size_t j = 0; j < 3; j++)
-			newLine.director[i] += mat.get_unsafe(i, j) * line.director[j];
+			newLine.director[i] += mat(i, j) * line.director[j];
 	}
 	newLine.unitarize();
 }
@@ -1084,7 +1073,7 @@ void math::project3D(
 	{
 		newPlane.coefs[i] = 0;
 		for (size_t j = 0; j < 3; j++)
-			newPlane.coefs[i] += mat.get_unsafe(i, j) * plane.coefs[j];
+			newPlane.coefs[i] += mat(i, j) * plane.coefs[j];
 	}
 	// VORSICHT! NO INTENTEN HACER ESTO EN SUS CASAS (nota: comentar sí o sí,
 	// más tarde)
@@ -1261,9 +1250,9 @@ bool math::intersect(const TPolygon2D& p1, const TLine2D& r2, TObject2D& obj)
 	for (size_t i = 1; i <= N; i++)
 	{
 		double cur = projPoly[i].y;
-		if (abs(cur) < geometryEpsilon)
+		if (std::abs(cur) < geometryEpsilon)
 		{
-			if (abs(pre) < geometryEpsilon)
+			if (std::abs(pre) < geometryEpsilon)
 			{
 				pnts.resize(2);
 				pnts[0] = projPoly[i - 1];
@@ -1273,7 +1262,7 @@ bool math::intersect(const TPolygon2D& p1, const TLine2D& r2, TObject2D& obj)
 			else
 				pnts.push_back(projPoly[i]);
 		}
-		else if ((abs(pre) >= geometryEpsilon) && (sign(cur) != sign(pre)))
+		else if ((std::abs(pre) >= geometryEpsilon) && (sign(cur) != sign(pre)))
 		{
 			double a = projPoly[i - 1].x;
 			double c = projPoly[i].x;
@@ -1312,94 +1301,32 @@ struct T2ListsOfSegments
 	vector<TSegment2D> l1;
 	vector<TSegment2D> l2;
 };
+
 struct TCommonRegion
 {
-	unsigned char type;  // 0 -> point, 1-> segment, any other-> empty
-	union {
-		TPoint2D* point;
-		TSegment2D* segment;
-	} data;
-	void destroy()
+	std::shared_ptr<TPoint2D> point;
+	std::shared_ptr<TSegment2D> segment;
+
+	TCommonRegion(const TPoint2D& p) { point = std::make_shared<TPoint2D>(p); }
+	TCommonRegion(const TSegment2D& s)
 	{
-		switch (type)
-		{
-			case 0:
-				delete data.point;
-				break;
-			case 1:
-				delete data.segment;
-				break;
-		}
-		type = 255;
+		segment = std::make_shared<TSegment2D>(s);
 	}
-	TCommonRegion(const TPoint2D& p) : type(0) { data.point = new TPoint2D(p); }
-	TCommonRegion(const TSegment2D& s) : type(1)
-	{
-		data.segment = new TSegment2D(s);
-	}
-	~TCommonRegion() { destroy(); }
-	TCommonRegion& operator=(const TCommonRegion& r)
-	{
-		if (&r == this) return *this;
-		destroy();
-		switch (type = r.type)
-		{
-			case 0:
-				data.point = new TPoint2D(*(r.data.point));
-				break;
-			case 1:
-				data.segment = new TSegment2D(*(r.data.segment));
-				break;
-		}
-		return *this;
-	}
-	TCommonRegion(const TCommonRegion& r) : type(0) { operator=(r); }
 };
+
 struct TTempIntersection
 {
-	unsigned char type;  // 0->two lists of segments, 1-> common region
-	union {
-		T2ListsOfSegments* segms;
-		TCommonRegion* common;
-	} data;
-	void destroy()
+	std::shared_ptr<T2ListsOfSegments> segms;
+	std::shared_ptr<TCommonRegion> common;
+
+	TTempIntersection(const T2ListsOfSegments& s)
 	{
-		switch (type)
-		{
-			case 0:
-				delete data.segms;
-				break;
-			case 1:
-				delete data.common;
-				break;
-		}
-		type = 255;
-	};
-	TTempIntersection(const T2ListsOfSegments& segms) : type(0)
-	{
-		data.segms = new T2ListsOfSegments(segms);
+		segms = std::make_shared<T2ListsOfSegments>(s);
 	}
-	TTempIntersection(const TCommonRegion& common) : type(1)
+	TTempIntersection(const TCommonRegion& c)
 	{
-		data.common = new TCommonRegion(common);
+		common = std::make_shared<TCommonRegion>(c);
 	}
-	~TTempIntersection() { destroy(); }
-	TTempIntersection& operator=(const TTempIntersection& t)
-	{
-		if (&t == this) return *this;
-		destroy();
-		switch (type = t.type)
-		{
-			case 0:
-				data.segms = new T2ListsOfSegments(*(t.data.segms));
-				break;
-			case 1:
-				data.common = new TCommonRegion(*(t.data.common));
-				break;
-		}
-		return *this;
-	}
-	TTempIntersection(const TTempIntersection& t) : type(0) { operator=(t); }
 };
 struct TSegmentWithLine
 {
@@ -1910,11 +1837,11 @@ void math::getRectangleBounds(
 
 double math::distance(const TLine2D& r1, const TLine2D& r2)
 {
-	if (abs(r1.coefs[0] * r2.coefs[1] - r2.coefs[0] * r1.coefs[1]) <
+	if (std::abs(r1.coefs[0] * r2.coefs[1] - r2.coefs[0] * r1.coefs[1]) <
 		geometryEpsilon)
 	{
 		// Lines are parallel
-		size_t i1 = (abs(r1.coefs[0]) < geometryEpsilon) ? 0 : 1;
+		size_t i1 = (std::abs(r1.coefs[0]) < geometryEpsilon) ? 0 : 1;
 		TPoint2D p;
 		p[i1] = 0.0;
 		p[1 - i1] = -r1.coefs[2] / r1.coefs[1 - i1];
@@ -1926,7 +1853,7 @@ double math::distance(const TLine2D& r1, const TLine2D& r2)
 
 double math::distance(const TLine3D& r1, const TLine3D& r2)
 {
-	if (abs(getAngle(r1, r2)) < geometryEpsilon)
+	if (std::abs(getAngle(r1, r2)) < geometryEpsilon)
 		return r1.distance(r2.pBase);  // Lines are parallel
 	else
 	{
@@ -1942,12 +1869,12 @@ double math::distance(const TLine3D& r1, const TLine3D& r2)
 
 double math::distance(const TPlane& p1, const TPlane& p2)
 {
-	if (abs(getAngle(p1, p2)) < geometryEpsilon)
+	if (std::abs(getAngle(p1, p2)) < geometryEpsilon)
 	{
 		// Planes are parallel
 		TPoint3D p(0, 0, 0);
 		for (size_t i = 0; i < 3; i++)
-			if (abs(p1.coefs[i]) >= geometryEpsilon)
+			if (std::abs(p1.coefs[i]) >= geometryEpsilon)
 			{
 				p[i] = -p1.coefs[3] / p1.coefs[i];
 				break;
@@ -1958,52 +1885,49 @@ double math::distance(const TPlane& p1, const TPlane& p2)
 		return 0;  // Planes cross in a line
 }
 
-double math::distance(const TPolygon2D& p1, const TPolygon2D& p2)
+double math::distance(
+	[[maybe_unused]] const TPolygon2D& p1,
+	[[maybe_unused]] const TPolygon2D& p2)
 {
-	MRPT_UNUSED_PARAM(p1);
-	MRPT_UNUSED_PARAM(p2);
 	THROW_EXCEPTION("TO DO:distance(TPolygon2D,TPolygon2D)");
 }
 
-double math::distance(const TPolygon2D& p1, const TSegment2D& s2)
+double math::distance(
+	[[maybe_unused]] const TPolygon2D& p1,
+	[[maybe_unused]] const TSegment2D& s2)
 {
-	MRPT_UNUSED_PARAM(p1);
-	MRPT_UNUSED_PARAM(s2);
 	THROW_EXCEPTION("TO DO:distance(TPolygon2D,TSegment)");
 }
 
-double math::distance(const TPolygon2D& p1, const TLine2D& l2)
+double math::distance(
+	[[maybe_unused]] const TPolygon2D& p1, [[maybe_unused]] const TLine2D& l2)
 {
-	MRPT_UNUSED_PARAM(p1);
-	MRPT_UNUSED_PARAM(l2);
 	THROW_EXCEPTION("TO DO:distance(TPolygon2D,TLine2D)");
 }
 
-double math::distance(const TPolygon3D& p1, const TPolygon3D& p2)
+double math::distance(
+	[[maybe_unused]] const TPolygon3D& p1,
+	[[maybe_unused]] const TPolygon3D& p2)
 {
-	MRPT_UNUSED_PARAM(p1);
-	MRPT_UNUSED_PARAM(p2);
 	THROW_EXCEPTION("TO DO:distance(TPolygon3D,TPolygon3D");
 }
 
-double math::distance(const TPolygon3D& p1, const TSegment3D& s2)
+double math::distance(
+	[[maybe_unused]] const TPolygon3D& p1,
+	[[maybe_unused]] const TSegment3D& s2)
 {
-	MRPT_UNUSED_PARAM(p1);
-	MRPT_UNUSED_PARAM(s2);
 	THROW_EXCEPTION("TO DO:distance(TPolygon3D,TSegment3D");
 }
 
-double math::distance(const TPolygon3D& p1, const TLine3D& l2)
+double math::distance(
+	[[maybe_unused]] const TPolygon3D& p1, [[maybe_unused]] const TLine3D& l2)
 {
-	MRPT_UNUSED_PARAM(p1);
-	MRPT_UNUSED_PARAM(l2);
 	THROW_EXCEPTION("TO DO:distance(TPolygon3D,TLine3D");
 }
 
-double math::distance(const TPolygon3D& po, const TPlane& pl)
+double math::distance(
+	[[maybe_unused]] const TPolygon3D& po, [[maybe_unused]] const TPlane& pl)
 {
-	MRPT_UNUSED_PARAM(po);
-	MRPT_UNUSED_PARAM(pl);
 	THROW_EXCEPTION("TO DO:distance(TPolygon3D,TPlane");
 }
 
@@ -2032,8 +1956,8 @@ void createPlaneFromPoseAndAxis(const TPose3D& pose, TPlane& plane, size_t axis)
 	pose.getHomogeneousMatrix(m);
 	for (size_t i = 0; i < 3; i++)
 	{
-		plane.coefs[i] = m.get_unsafe(i, axis);
-		plane.coefs[3] -= plane.coefs[i] * m.get_unsafe(i, 3);
+		plane.coefs[i] = m(i, axis);
+		plane.coefs[3] -= plane.coefs[i] * m(i, 3);
 	}
 }
 
@@ -2061,62 +1985,55 @@ void math::createPlaneFromPoseAndNormal(
 	for (size_t i = 0; i < 3; i++)
 	{
 		plane.coefs[i] = 0;
-		for (size_t j = 0; j < 3; j++)
-			plane.coefs[i] += normal[j] * m.get_unsafe(i, j);
-		plane.coefs[3] -= plane.coefs[i] * m.get_unsafe(i, 3);
+		for (size_t j = 0; j < 3; j++) plane.coefs[i] += normal[j] * m(i, j);
+		plane.coefs[3] -= plane.coefs[i] * m(i, 3);
 	}
 }
 
-void math::generateAxisBaseFromDirectionAndAxis(
-	const double (&vec)[3], char coord, CMatrixDouble44& matrix)
+CMatrixDouble44 math::generateAxisBaseFromDirectionAndAxis(
+	const TVector3D& vec, uint8_t coord)
 {
+	CMatrixDouble44 m;
 	// Assumes vector is unitary.
 	// coord: 0=x, 1=y, 2=z.
-	char coord1 = (coord + 1) % 3;
-	char coord2 = (coord + 2) % 3;
-	matrix.setZero();
-	matrix(3, 3) = 1.0;
-	for (size_t i = 0; i < 3; i++) matrix.set_unsafe(i, coord, vec[i]);
-	matrix.set_unsafe(0, coord1, 0);
+	const uint8_t coord1 = (coord + 1) % 3;
+	const uint8_t coord2 = (coord + 2) % 3;
+	m.setZero();
+	m(3, 3) = 1.0;
+	for (size_t i = 0; i < 3; i++) m(i, coord) = vec[i];
+	m(0, coord1) = 0;
 	double h = hypot(vec[1], vec[2]);
 	if (h < geometryEpsilon)
 	{
-		matrix.set_unsafe(1, coord1, 1);
-		matrix.set_unsafe(2, coord1, 0);
+		m(1, coord1) = 1;
+		m(2, coord1) = 0;
 	}
 	else
 	{
-		matrix.set_unsafe(1, coord1, -vec[2] / h);
-		matrix.set_unsafe(2, coord1, vec[1] / h);
+		m(1, coord1) = -vec[2] / h;
+		m(2, coord1) = vec[1] / h;
 	}
-	matrix.set_unsafe(
-		0, coord2,
-		matrix.get_unsafe(1, coord) * matrix.get_unsafe(2, coord1) -
-			matrix.get_unsafe(2, coord) * matrix.get_unsafe(1, coord1));
-	matrix.set_unsafe(
-		1, coord2,
-		matrix.get_unsafe(2, coord) * matrix.get_unsafe(0, coord1) -
-			matrix.get_unsafe(0, coord) * matrix.get_unsafe(2, coord1));
-	matrix.set_unsafe(
-		2, coord2,
-		matrix.get_unsafe(0, coord) * matrix.get_unsafe(1, coord1) -
-			matrix.get_unsafe(1, coord) * matrix.get_unsafe(0, coord1));
+	m(0, coord2) = m(1, coord) * m(2, coord1) - m(2, coord) * m(1, coord1);
+	m(1, coord2) = m(2, coord) * m(0, coord1) - m(0, coord) * m(2, coord1);
+	m(2, coord2) = m(0, coord) * m(1, coord1) - m(1, coord) * m(0, coord1);
+	return m;
 }
 
 double math::getRegressionLine(const vector<TPoint2D>& points, TLine2D& line)
 {
-	CArrayDouble<2> means;
-	CMatrixTemplateNumeric<double> covars(2, 2), eigenVal(2, 2), eigenVec(2, 2);
+	CVectorFixedDouble<2> means;
+	CMatrixDouble22 covars;
 	covariancesAndMean(points, covars, means);
-	covars.eigenVectors(eigenVec, eigenVal);
-	size_t selected =
-		(eigenVal.get_unsafe(0, 0) >= eigenVal.get_unsafe(1, 1)) ? 0 : 1;
-	line.coefs[0] = -eigenVec.get_unsafe(1, selected);
-	line.coefs[1] = eigenVec.get_unsafe(0, selected);
+
+	std::vector<double> eigenVals;
+	CMatrixDouble22 eigenVecs;
+	covars.eig_symmetric(eigenVecs, eigenVals);
+
+	// size_t selected = (eigenVal[0] >= eigenVal[1]) ? 0 : 1;
+	line.coefs[0] = -eigenVecs(1, 1);  // 1: largest eigenVal
+	line.coefs[1] = eigenVecs(0, 1);
 	line.coefs[2] = -line.coefs[0] * means[0] - line.coefs[1] * means[1];
-	return sqrt(
-		eigenVal.get_unsafe(1 - selected, 1 - selected) /
-		eigenVal.get_unsafe(selected, selected));
+	return std::sqrt(eigenVals[0] / eigenVals[1]);
 }
 
 template <class T>
@@ -2125,56 +2042,49 @@ inline size_t getIndexOfMin(const T& e1, const T& e2, const T& e3)
 	return (e1 < e2) ? ((e1 < e3) ? 0 : 2) : ((e2 < e3) ? 1 : 2);
 }
 
-template <class T>
-inline size_t getIndexOfMax(const T& e1, const T& e2, const T& e3)
-{
-	return (e1 > e2) ? ((e1 > e3) ? 0 : 2) : ((e2 > e3) ? 1 : 2);
-}
-
 double math::getRegressionLine(const vector<TPoint3D>& points, TLine3D& line)
 {
-	CArrayDouble<3> means;
-	CMatrixTemplateNumeric<double> covars(3, 3), eigenVal(3, 3), eigenVec(3, 3);
+	CVectorFixedDouble<3> means;
+	CMatrixDouble33 covars;
 	covariancesAndMean(points, covars, means);
-	covars.eigenVectors(eigenVec, eigenVal);
-	size_t selected = getIndexOfMax(
-		eigenVal.get_unsafe(0, 0), eigenVal.get_unsafe(1, 1),
-		eigenVal.get_unsafe(2, 2));
+
+	std::vector<double> eigenVal;
+	CMatrixDouble33 eigenVec;
+	covars.eig_symmetric(eigenVec, eigenVal);
+
+	const size_t selected = 2;  // sorted: max eigenvalue
 	for (size_t i = 0; i < 3; i++)
 	{
 		line.pBase[i] = means[i];
-		line.director[i] = eigenVec.get_unsafe(i, selected);
+		line.director[i] = eigenVec(i, selected);
 	}
 	size_t i1 = (selected + 1) % 3, i2 = (selected + 2) % 3;
-	return sqrt(
-		(eigenVal.get_unsafe(i1, i1) + eigenVal.get_unsafe(i2, i2)) /
-		eigenVal.get_unsafe(selected, selected));
+	return std::sqrt((eigenVal[i1] + eigenVal[i2]) / eigenVal[selected]);
 }
 
 double math::getRegressionPlane(const vector<TPoint3D>& points, TPlane& plane)
 {
 	vector<double> means;
-	CMatrixDouble33 covars, eigenVal, eigenVec;
+	CMatrixDouble33 covars;
 	covariancesAndMean(points, covars, means);
 
-	covars.eigenVectors(eigenVec, eigenVal);
+	std::vector<double> eigenVal;
+	CMatrixDouble33 eigenVec;
+	covars.eig_symmetric(eigenVec, eigenVal);
+
 	for (size_t i = 0; i < 3; ++i)
-		if (eigenVal.get_unsafe(i, i) < 0 &&
-			fabs(eigenVal.get_unsafe(i, i)) < geometryEpsilon)
-			eigenVal.set_unsafe(i, i, 0);
-	size_t selected = getIndexOfMin(
-		eigenVal.get_unsafe(0, 0), eigenVal.get_unsafe(1, 1),
-		eigenVal.get_unsafe(2, 2));
+		if (eigenVal[i] < 0 && std::abs(eigenVal[i]) < geometryEpsilon)
+			eigenVal[i] = 0;
+
+	const size_t selected = 0;  // sorted: minimum eigenVal
 	plane.coefs[3] = 0;
 	for (size_t i = 0; i < 3; i++)
 	{
-		plane.coefs[i] = eigenVec.get_unsafe(i, selected);
+		plane.coefs[i] = eigenVec(i, selected);
 		plane.coefs[3] -= plane.coefs[i] * means[i];
 	}
 	size_t i1 = (selected + 1) % 3, i2 = (selected + 2) % 3;
-	return sqrt(
-		eigenVal.get_unsafe(selected, selected) /
-		(eigenVal.get_unsafe(i1, i1) + eigenVal.get_unsafe(i2, i2)));
+	return std::sqrt(eigenVal[selected] / (eigenVal[i1] + eigenVal[i2]));
 }
 
 void math::assemblePolygons(
@@ -2531,7 +2441,7 @@ void math::getAngleBisector(const TLine2D& l1, const TLine2D& l2, TLine2D& bis)
 		bis.coefs[0] = l1.coefs[0] / mod1;
 		bis.coefs[1] = l1.coefs[1] / mod1;
 		bool sameSign;
-		if (abs(bis.coefs[0]) < geometryEpsilon)
+		if (std::abs(bis.coefs[0]) < geometryEpsilon)
 			sameSign = (l1.coefs[1] * l2.coefs[1]) > 0;
 		else
 			sameSign = (l1.coefs[0] * l2.coefs[0]) > 0;
@@ -2587,4 +2497,46 @@ bool math::traceRay(
 			dist = nDist;
 		}
 	return res;
+}
+
+CMatrixDouble33 mrpt::math::generateAxisBaseFromDirection(
+	double dx, double dy, double dz)
+{
+	MRPT_START
+
+	if (std::abs(dx) < 1e-10 && std::abs(dy) < 1e-10 && std::abs(dz) < 1e-10)
+		THROW_EXCEPTION("Invalid input: Direction vector is (0,0,0);");
+
+	CMatrixDouble33 P;
+
+	// 1st vector:
+	double n_xy = square(dx) + square(dy);
+	double n = sqrt(n_xy + square(dz));
+	n_xy = sqrt(n_xy);
+	P(0, 0) = dx / n;
+	P(1, 0) = dy / n;
+	P(2, 0) = dz / n;
+
+	// 2nd perpendicular vector:
+	if (fabs(dx) > 1e-4 || fabs(dy) > 1e-4)
+	{
+		P(0, 1) = -dy / n_xy;
+		P(1, 1) = dx / n_xy;
+		P(2, 1) = 0;
+	}
+	else
+	{
+		// Any vector in the XY plane will work:
+		P(0, 1) = 1;
+		P(1, 1) = 0;
+		P(2, 1) = 0;
+	}
+
+	// 3rd perpendicular vector: cross product of the two last vectors:
+	Eigen::Vector3d c2;
+	crossProduct3D(P.col(0), P.col(1), c2);
+	P.col(2) = c2;
+
+	return P;
+	MRPT_END
 }

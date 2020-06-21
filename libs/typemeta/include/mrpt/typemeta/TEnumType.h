@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -51,7 +51,7 @@ struct bimap
 
 /** Only specializations of this class are defined for each enum type of
  * interest
- * \sa TEnumType \ingroup mrpt_io_grp
+ * \sa TEnumType \ingroup mrpt_typemeta_grp
  */
 template <typename ENUMTYPE>
 struct TEnumTypeFiller
@@ -89,7 +89,7 @@ struct TEnumTypeFiller
 	m_map.insert(_CLASS::_VALUE, #_VALUE)
 
 /** A helper class that can convert an enum value into its textual
- * representation, and viceversa. \ingroup mrpt_typename_grp */
+ * representation, and viceversa. \ingroup mrpt_typemeta_grp */
 template <typename ENUMTYPE>
 struct TEnumType
 {

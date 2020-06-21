@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -65,12 +65,6 @@ CSickLaserSerial::~CSickLaserSerial()
 		{
 		}
 	}
-
-	if (m_mySerialPort)
-	{
-		delete m_mySerialPort;
-		m_mySerialPort = nullptr;
-	}
 }
 
 /*-------------------------------------------------------------
@@ -96,7 +90,14 @@ void CSickLaserSerial::doProcessSimple(
 	m_state = ssWorking;
 
 	// Wait for a scan:
-	if (!waitContinuousSampleFrame(ranges, LMS_stat, is_mm_mode)) return;
+	if (!waitContinuousSampleFrame(ranges, LMS_stat, is_mm_mode))
+	{
+		if (!internal_notifyNoScanReceived())
+		{
+			hardwareError = true;
+		}
+		return;
+	}
 
 	// Yes, we have a new scan:
 
@@ -122,7 +123,7 @@ void CSickLaserSerial::doProcessSimple(
 	{
 		outObservation.setScanRange(i, ranges[i]);
 		outObservation.setScanRangeValidity(
-			i, (outObservation.scan[i] <= outObservation.maxRange));
+			i, (outObservation.getScanRange(i) <= outObservation.maxRange));
 	}
 
 	// Do filter:
@@ -132,6 +133,7 @@ void CSickLaserSerial::doProcessSimple(
 	C2DRangeFinderAbstract::processPreview(outObservation);
 
 	outThereIsObservation = true;
+	internal_notifyGoodScanNow();
 }
 
 /*-------------------------------------------------------------
@@ -199,8 +201,8 @@ bool CSickLaserSerial::tryToOpenComms(std::string* err_msg)
 			if (!m_com_port.empty())
 			{
 				// Create the port myself:
-				m_mySerialPort = new CSerialPort();
-				m_stream = m_mySerialPort;
+				m_mySerialPort = std::make_shared<CSerialPort>();
+				m_stream = std::shared_ptr<mrpt::io::CStream>(m_mySerialPort);
 			}
 			else
 				throw std::logic_error(
@@ -211,7 +213,7 @@ bool CSickLaserSerial::tryToOpenComms(std::string* err_msg)
 		// We assure now we have a stream... try to open it, if it's not done
 		// yet.
 		bool just_open = false;
-		auto* COM = dynamic_cast<CSerialPort*>(m_stream);
+		auto* COM = dynamic_cast<CSerialPort*>(m_stream.get());
 		if (COM != nullptr)
 		{
 			if (!COM->isOpen())
@@ -274,7 +276,7 @@ bool CSickLaserSerial::waitContinuousSampleFrame(
 	vector<float>& out_ranges_meters, unsigned char& LMS_status,
 	bool& is_mm_mode)
 {
-	auto* COM = dynamic_cast<CSerialPort*>(m_stream);
+	auto* COM = dynamic_cast<CSerialPort*>(m_stream.get());
 	ASSERTMSG_(COM != nullptr, "No I/O channel bound to this object");
 
 	size_t nRead, nBytesToRead;
@@ -402,7 +404,7 @@ bool CSickLaserSerial::LMS_setupSerialComms()
 		m_com_baudRate == 9600 || m_com_baudRate == 38400 ||
 		m_com_baudRate == 500000);
 
-	auto* COM = dynamic_cast<CSerialPort*>(m_stream);
+	auto* COM = dynamic_cast<CSerialPort*>(m_stream.get());
 	if (COM == nullptr) return true;
 
 	int detected_rate = 0;
@@ -530,7 +532,7 @@ bool CSickLaserSerial::LMS_statusQuery()
 // Returns false if timeout
 bool CSickLaserSerial::LMS_waitACK(uint16_t timeout_ms)
 {
-	auto* COM = dynamic_cast<CSerialPort*>(m_stream);
+	auto* COM = dynamic_cast<CSerialPort*>(m_stream.get());
 	ASSERT_(COM);
 
 	uint8_t b = 0;
@@ -546,7 +548,7 @@ bool CSickLaserSerial::LMS_waitACK(uint16_t timeout_ms)
 	} while (tictac.Tac() < timeout_ms * 1e-3);
 
 	if (b == 0x15)
-		RET_ERROR(format("NACK received."))
+		RET_ERROR("NACK received.")
 	else if (b != 0)
 		RET_ERROR(format("Unexpected code received: 0x%02X", b))
 	else
@@ -556,7 +558,7 @@ bool CSickLaserSerial::LMS_waitACK(uint16_t timeout_ms)
 // Returns false if timeout
 bool CSickLaserSerial::LMS_waitIncomingFrame(uint16_t timeout)
 {
-	auto* COM = dynamic_cast<CSerialPort*>(m_stream);
+	auto* COM = dynamic_cast<CSerialPort*>(m_stream.get());
 	ASSERT_(COM);
 
 	uint8_t b;
@@ -627,7 +629,7 @@ bool CSickLaserSerial::LMS_waitIncomingFrame(uint16_t timeout)
 
 bool CSickLaserSerial::LMS_sendMeasuringMode_cm_mm()
 {
-	auto* COM = dynamic_cast<CSerialPort*>(m_stream);
+	auto* COM = dynamic_cast<CSerialPort*>(m_stream.get());
 	ASSERT_(COM);
 
 	// **************************
@@ -730,7 +732,7 @@ bool CSickLaserSerial::LMS_startContinuousMode()
 	ASSERT_(m_scans_FOV == 100 || m_scans_FOV == 180);
 	ASSERT_(m_scans_res == 25 || m_scans_res == 50 || m_scans_res == 100);
 
-	auto* COM = dynamic_cast<CSerialPort*>(m_stream);
+	auto* COM = dynamic_cast<CSerialPort*>(m_stream.get());
 	ASSERT_(COM);
 
 	uint8_t cmd[40];
@@ -761,7 +763,7 @@ bool CSickLaserSerial::LMS_startContinuousMode()
 
 bool CSickLaserSerial::LMS_endContinuousMode()
 {
-	auto* COM = dynamic_cast<CSerialPort*>(m_stream);
+	auto* COM = dynamic_cast<CSerialPort*>(m_stream.get());
 	ASSERT_(COM);
 
 	uint8_t cmd[40];
@@ -780,7 +782,7 @@ bool CSickLaserSerial::SendCommandToSICK(
 	uint8_t cmd_full[1024];
 	ASSERT_(sizeof(cmd_full) > cmd_len + 4U + 2U);
 
-	auto* COM = dynamic_cast<CSerialPort*>(m_stream);
+	auto* COM = dynamic_cast<CSerialPort*>(m_stream.get());
 	ASSERT_(COM);
 
 	// Create header

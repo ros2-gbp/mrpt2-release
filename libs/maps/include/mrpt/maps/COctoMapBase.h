@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -72,10 +72,11 @@ class COctoMapBase : public mrpt::maps::CMetricMap
 		/** Initilization of default parameters */
 		TInsertionOptions(myself_t& parent);
 
-		TInsertionOptions();  //!< Especial constructor, not attached to a real
-		//! COctoMap object: used only in limited
-		//! situations, since get*() methods don't work,
-		//! etc.
+		/** Special constructor, not attached to a real COctoMap object: used
+		 * only in limited situations, since get*() methods don't work, etc. */
+		TInsertionOptions();
+		TInsertionOptions(const TInsertionOptions& o) { this->operator=(o); }
+
 		TInsertionOptions& operator=(const TInsertionOptions& o)
 		{
 			// Copy all but the m_parent pointer!
@@ -372,7 +373,7 @@ class COctoMapBase : public mrpt::maps::CMetricMap
 	 */
 	template <class octomap_point3d, class octomap_pointcloud>
 	bool internal_build_PointCloud_for_observation(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D* robotPose, octomap_point3d& sensorPt,
 		octomap_pointcloud& scan) const;
 
@@ -383,7 +384,7 @@ class COctoMapBase : public mrpt::maps::CMetricMap
    private:
 	// See docs in base class
 	double internal_computeObservationLikelihood(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D& takenFrom) override;
 
 };  // End of class def.

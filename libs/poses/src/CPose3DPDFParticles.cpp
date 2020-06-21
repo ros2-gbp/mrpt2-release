@@ -2,18 +2,20 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "poses-precomp.h"  // Precompiled headers
 
+#include <mrpt/math/TPose3D.h>
 #include <mrpt/math/wrap2pi.h>
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/poses/CPose3DPDFGaussian.h>
 #include <mrpt/poses/CPose3DPDFParticles.h>
 #include <mrpt/poses/SO_SE_average.h>
+#include <mrpt/random.h>
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/os.h>
 
@@ -65,17 +67,20 @@ void CPose3DPDFParticles::getMean(CPose3D& p) const
 	MRPT_END
 }
 
-void CPose3DPDFParticles::getCovarianceAndMean(
-	CMatrixDouble66& cov, CPose3D& mean) const
+std::tuple<CMatrixDouble66, CPose3D> CPose3DPDFParticles::getCovarianceAndMean()
+	const
 {
 	MRPT_START
+
+	CMatrixDouble66 cov;
+	CPose3D mean;
 
 	getMean(mean);  // First! the mean value:
 
 	// Now the covariance:
-	cov.zeros();
-	CVectorDouble vars;
-	vars.assign(6, 0.0);  // The diagonal of the final covariance matrix
+	cov.setZero();
+	CVectorFixedDouble<6> vars;
+	vars.setZero();  // The diagonal of the final covariance matrix
 
 	// Elements off the diagonal of the covariance matrix:
 	double std_xy = 0, std_xz = 0, std_xya = 0, std_xp = 0, std_xr = 0;
@@ -92,8 +97,8 @@ void CPose3DPDFParticles::getCovarianceAndMean(
 	if (mean_pitch < 0) mean_pitch += M_2PI;
 	if (mean_roll < 0) mean_roll += M_2PI;
 
-	// Enought information to estimate the covariance?
-	if (m_particles.size() < 2) return;
+	// enough information to estimate the covariance?
+	if (m_particles.size() < 2) return {cov, mean};
 
 	// Sum all weight values:
 	double W = 0;
@@ -171,6 +176,7 @@ void CPose3DPDFParticles::getCovarianceAndMean(
 
 	cov(5, 4) = cov(4, 5) = std_pr;
 
+	return {cov, mean};
 	MRPT_END
 }
 
@@ -244,29 +250,26 @@ void CPose3DPDFParticles::changeCoordinatesReference(
 		p.d = (newReferenceBase + CPose3D(p.d)).asTPose();
 }
 
-void CPose3DPDFParticles::drawSingleSample(CPose3D& outPart) const
+void CPose3DPDFParticles::drawSingleSample([
+	[maybe_unused]] CPose3D& outPart) const
 {
-	MRPT_UNUSED_PARAM(outPart);
 	THROW_EXCEPTION("TO DO!");
 }
 
 void CPose3DPDFParticles::drawManySamples(
-	size_t N, std::vector<CVectorDouble>& outSamples) const
+	[[maybe_unused]] size_t N,
+	[[maybe_unused]] std::vector<CVectorDouble>& outSamples) const
 {
-	MRPT_UNUSED_PARAM(N);
-	MRPT_UNUSED_PARAM(outSamples);
 	THROW_EXCEPTION("TO DO!");
 }
 
-void CPose3DPDFParticles::operator+=(const CPose3D& Ap)
+void CPose3DPDFParticles::operator+=([[maybe_unused]] const CPose3D& Ap)
 {
-	MRPT_UNUSED_PARAM(Ap);
 	THROW_EXCEPTION("TO DO!");
 }
 
-void CPose3DPDFParticles::append(CPose3DPDFParticles& o)
+void CPose3DPDFParticles::append([[maybe_unused]] CPose3DPDFParticles& o)
 {
-	MRPT_UNUSED_PARAM(o);
 	THROW_EXCEPTION("TO DO!");
 }
 
@@ -299,10 +302,9 @@ TPose3D CPose3DPDFParticles::getMostLikelyParticle() const
 }
 
 void CPose3DPDFParticles::bayesianFusion(
-	const CPose3DPDF& p1, const CPose3DPDF& p2)
+	[[maybe_unused]] const CPose3DPDF& p1,
+	[[maybe_unused]] const CPose3DPDF& p2)
 {
-	MRPT_UNUSED_PARAM(p1);
-	MRPT_UNUSED_PARAM(p2);
 	THROW_EXCEPTION("Not implemented yet!");
 }
 
@@ -316,4 +318,26 @@ void CPose3DPDFParticles::resetDeterministic(
 		p.d = location;
 		p.log_w = 0;
 	}
+}
+
+void CPose3DPDFParticles::resetUniform(
+	const mrpt::math::TPose3D& cmin, const mrpt::math::TPose3D& cmax,
+	const int particlesCount)
+{
+	MRPT_START
+	if (particlesCount > 0) m_particles.resize(particlesCount);
+
+	auto& rnd = mrpt::random::getRandomGenerator();
+
+	for (auto& p : m_particles)
+	{
+		p.d.x = rnd.drawUniform(cmin.x, cmax.x);
+		p.d.y = rnd.drawUniform(cmin.y, cmax.y);
+		p.d.z = rnd.drawUniform(cmin.z, cmax.z);
+		p.d.yaw = rnd.drawUniform(cmin.yaw, cmax.yaw);
+		p.d.pitch = rnd.drawUniform(cmin.pitch, cmax.pitch);
+		p.d.roll = rnd.drawUniform(cmin.roll, cmax.roll);
+		p.log_w = 0;
+	}
+	MRPT_END
 }

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -66,13 +66,12 @@ class CParticleFilterCapable
 	 * \sa prepareFastDrawSample
 	 */
 	static double defaultEvaluator(
-		const bayes::CParticleFilter::TParticleFilterOptions& PF_options,
-		const CParticleFilterCapable* obj, size_t index, const void* action,
-		const void* observation)
+		[[maybe_unused]] const bayes::CParticleFilter::TParticleFilterOptions&
+			PF_options,
+		[[maybe_unused]] const CParticleFilterCapable* obj, size_t index,
+		[[maybe_unused]] const void* action,
+		[[maybe_unused]] const void* observation)
 	{
-		MRPT_UNUSED_PARAM(PF_options);
-		MRPT_UNUSED_PARAM(action);
-		MRPT_UNUSED_PARAM(observation);
 		return obj->getW(index);
 	}
 

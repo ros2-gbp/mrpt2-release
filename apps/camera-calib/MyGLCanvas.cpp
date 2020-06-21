@@ -2,14 +2,12 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "MyGLCanvas.h"
-
-//#include "mono_slamMain.h"
 
 using namespace std;
 
@@ -30,13 +28,6 @@ void CMyGLCanvas::OnRenderError(const wxString& str) {}
 void CMyGLCanvas::OnPreRender()
 {
 	// Do we have to update the scene??
-	/*	SYNCH::std::lock_guard<std::mutex>   lock(critSec_UpdateScene );
-		if (newOpenGLScene)
-		{
-			if (m_openGLScene) delete m_openGLScene;
-			m_openGLScene = newOpenGLScene;
-					newOpenGLScene = nullptr;
-		}*/
 }
 
 void CMyGLCanvas::OnPostRenderSwapBuffers(double At, wxPaintDC& dc) {}

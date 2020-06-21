@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)               |
    |                          https://www.mrpt.org/                            |
    |                                                                           |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file        |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file        |
    | See: https://www.mrpt.org/Authors - All rights reserved.                  |
    | Released under BSD License. See details in https://www.mrpt.org/License   |
    +---------------------------------------------------------------------------+
@@ -60,19 +60,6 @@ void CFeatureExtraction::detectFeatures(
 
 		case featFAST:
 			extractFeaturesFAST(img, feats, init_ID, nDesiredFeatures);
-			break;
-
-		case featFASTER9:
-			extractFeaturesFASTER_N(
-				9, img, feats, init_ID, nDesiredFeatures, ROI);
-			break;
-		case featFASTER10:
-			extractFeaturesFASTER_N(
-				10, img, feats, init_ID, nDesiredFeatures, ROI);
-			break;
-		case featFASTER12:
-			extractFeaturesFASTER_N(
-				12, img, feats, init_ID, nDesiredFeatures, ROI);
 			break;
 
 		case featORB:
@@ -156,8 +143,7 @@ void CFeatureExtraction::computeDescriptors(
 
 void CFeatureExtraction::TOptions::dumpToTextStream(std::ostream& out) const
 {
-	out << mrpt::format(
-		"\n----------- [CFeatureExtraction::TOptions] ------------ \n\n");
+	out << "\n----------- [CFeatureExtraction::TOptions] ------------ \n\n";
 
 	LOADABLEOPTS_DUMP_VAR(featsType, int)
 	LOADABLEOPTS_DUMP_VAR(patchSize, int)
@@ -226,7 +212,7 @@ void CFeatureExtraction::TOptions::dumpToTextStream(std::ostream& out) const
 	LOADABLEOPTS_DUMP_VAR(LATCHOptions.half_ssd_size, int)
 	LOADABLEOPTS_DUMP_VAR(LATCHOptions.rotationInvariance, bool)
 
-	out << mrpt::format("\n");
+	out << "\n";
 }
 
 /*---------------------------------------------------------------
@@ -265,7 +251,7 @@ void CFeatureExtraction::TOptions::loadFromConfigFile(
 
 	MRPT_LOAD_CONFIG_VAR(FASTOptions.threshold, int, iniFile, section)
 	MRPT_LOAD_CONFIG_VAR(FASTOptions.nonmax_suppression, bool, iniFile, section)
-	MRPT_LOAD_CONFIG_VAR(FASTOptions.min_distance, float, iniFile, section)
+	MRPT_LOAD_CONFIG_VAR(FASTOptions.min_distance, int, iniFile, section)
 	MRPT_LOAD_CONFIG_VAR(FASTOptions.use_KLT_response, bool, iniFile, section)
 
 	MRPT_LOAD_CONFIG_VAR(ORBOptions.extract_patch, bool, iniFile, section)

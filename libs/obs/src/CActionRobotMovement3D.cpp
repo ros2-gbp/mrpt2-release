@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -20,20 +20,6 @@ using namespace mrpt::poses;
 using namespace mrpt::random;
 
 IMPLEMENTS_SERIALIZABLE(CActionRobotMovement3D, CAction, mrpt::obs)
-
-/*---------------------------------------------------------------
-						Constructor
-  ---------------------------------------------------------------*/
-CActionRobotMovement3D::CActionRobotMovement3D()
-	: poseChange(),
-	  rawOdometryIncrementReading(),
-
-	  motionModelConfiguration(),
-	  hasVelocities(6, false),
-	  velocities(6)
-{
-	velocities.assign(.0);
-}
 
 uint8_t CActionRobotMovement3D::serializeGetVersion() const { return 1; }
 void CActionRobotMovement3D::serializeTo(
@@ -86,27 +72,6 @@ void CActionRobotMovement3D::computeFromOdometry(
 }
 
 /*---------------------------------------------------------------
-						TMotionModelOptions
- ---------------------------------------------------------------*/
-CActionRobotMovement3D::TMotionModelOptions::TMotionModelOptions()
-	: mm6DOFModel()
-{
-	mm6DOFModel.nParticlesCount = 300;
-	mm6DOFModel.a1 = 0.05f;
-	mm6DOFModel.a2 = 0.05f;
-	mm6DOFModel.a3 = 0.05f;
-	mm6DOFModel.a4 = 0.05f;
-	mm6DOFModel.a5 = 0.05f;
-	mm6DOFModel.a6 = 0.05f;
-	mm6DOFModel.a7 = 0.05f;
-	mm6DOFModel.a8 = 0.05f;
-	mm6DOFModel.a9 = 0.05f;
-	mm6DOFModel.a10 = 0.05f;
-	mm6DOFModel.additional_std_XYZ = 0.001f;
-	mm6DOFModel.additional_std_angle = DEG2RAD(0.05f);
-}
-
-/*---------------------------------------------------------------
 				computeFromOdometry_model6DOF
 	---------------------------------------------------------------*/
 void CActionRobotMovement3D::computeFromOdometry_model6DOF(
@@ -118,7 +83,7 @@ void CActionRobotMovement3D::computeFromOdometry_model6DOF(
 	const mrpt::math::TPose3D nullPose(0, 0, 0, 0, 0, 0);
 
 	mrpt::poses::CPose3DPDF::Ptr poseChangeTemp =
-		mrpt::make_aligned_shared<CPose3DPDFParticles>();
+		std::make_shared<CPose3DPDFParticles>();
 	aux = dynamic_cast<CPose3DPDFParticles*>(poseChangeTemp.get());
 
 	// Set the number of particles:
@@ -162,9 +127,16 @@ void CActionRobotMovement3D::computeFromOdometry_model6DOF(
 		 Here sample() - sampling from zero mean Gaussian distribution
 
 		Calculate the spherical coordinates:
+		// Original:
 				x = trans_draw * sin( pitch1_draw ) * cos ( yaw1_draw )
 				y = trans_draw * sin( pitch1_draw ) * sin ( yaw1_draw )
 				z = trans_draw * cos( pitch1_draw )
+
+		// Corrected (?) by JLBC (Jun 2019)
+				x = trans_draw * cos( pitch1_draw ) * cos ( yaw1_draw )
+				y = trans_draw * cos( pitch1_draw ) * sin ( yaw1_draw )
+				z = -trans_draw * sin( pitch1_draw )
+
 		 roll = roll_draw
 		pitch = pitch1_draw + pitch2_draw
 			yaw = yaw1_draw + yaw2_draw
@@ -173,76 +145,77 @@ void CActionRobotMovement3D::computeFromOdometry_model6DOF(
 	*/
 
 	// The increments in odometry:
-	float Ayaw1 = (odometryIncrement.y() != 0 || odometryIncrement.x() != 0)
-					  ? atan2(odometryIncrement.y(), odometryIncrement.x())
-					  : 0;
+	double Ayaw1 = (odometryIncrement.y() != 0 || odometryIncrement.x() != 0)
+					   ? atan2(odometryIncrement.y(), odometryIncrement.x())
+					   : 0;
 
-	float Atrans = odometryIncrement.norm();
+	double Atrans = odometryIncrement.norm();
 
-	float Apitch1 = (odometryIncrement.y() != 0 || odometryIncrement.x() != 0 ||
-					 odometryIncrement.z() != 0)
-						? atan2(odometryIncrement.z(), odometryIncrement.norm())
-						: 0;
+	double Apitch1 =
+		(odometryIncrement.y() != 0 || odometryIncrement.x() != 0 ||
+		 odometryIncrement.z() != 0)
+			? atan2(odometryIncrement.z(), odometryIncrement.norm())
+			: 0;
 
-	float Aroll = odometryIncrement.roll();
-	float Apitch2 = odometryIncrement.pitch();
-	float Ayaw2 = odometryIncrement.yaw();
+	double Aroll = odometryIncrement.roll();
+	double Apitch2 = odometryIncrement.pitch();
+	double Ayaw2 = odometryIncrement.yaw();
+
+	const auto stdxyz = motionModelConfiguration.mm6DOFModel.additional_std_XYZ;
+	auto& rnd = mrpt::random::getRandomGenerator();
 
 	// Draw samples:
 	for (size_t i = 0; i < o.mm6DOFModel.nParticlesCount; i++)
 	{
-		float Ayaw1_draw =
+		auto& ith_part = aux->m_particles[i].d;
+		double Ayaw1_draw =
 			Ayaw1 + (o.mm6DOFModel.a1 * Ayaw1 + o.mm6DOFModel.a2 * Atrans) *
-						getRandomGenerator().drawGaussian1D_normalized();
-		float Apitch1_draw =
+						rnd.drawGaussian1D_normalized();
+		double Apitch1_draw =
 			Apitch1 + (o.mm6DOFModel.a3 * odometryIncrement.z()) *
-						  getRandomGenerator().drawGaussian1D_normalized();
-		float Atrans_draw =
+						  rnd.drawGaussian1D_normalized();
+		double Atrans_draw =
 			Atrans + (o.mm6DOFModel.a4 * Atrans + o.mm6DOFModel.a5 * Ayaw2 +
 					  o.mm6DOFModel.a6 * (Aroll + Apitch2)) *
-						 getRandomGenerator().drawGaussian1D_normalized();
+						 rnd.drawGaussian1D_normalized();
 
-		float Aroll_draw =
-			Aroll + (o.mm6DOFModel.a7 * Aroll) *
-						getRandomGenerator().drawGaussian1D_normalized();
-		float Apitch2_draw =
-			Apitch2 + (o.mm6DOFModel.a8 * Apitch2) *
-						  getRandomGenerator().drawGaussian1D_normalized();
-		float Ayaw2_draw =
+		double Aroll_draw = Aroll + (o.mm6DOFModel.a7 * Aroll) *
+										rnd.drawGaussian1D_normalized();
+		double Apitch2_draw = Apitch2 + (o.mm6DOFModel.a8 * Apitch2) *
+											rnd.drawGaussian1D_normalized();
+		double Ayaw2_draw =
 			Ayaw2 + (o.mm6DOFModel.a9 * Ayaw2 + o.mm6DOFModel.a10 * Atrans) *
-						getRandomGenerator().drawGaussian1D_normalized();
+						rnd.drawGaussian1D_normalized();
 
 		// Output:
-		aux->m_particles[i].d.x =
-			Atrans_draw * sin(Apitch1_draw) * cos(Ayaw1_draw) +
-			motionModelConfiguration.mm6DOFModel.additional_std_XYZ *
-				getRandomGenerator().drawGaussian1D_normalized();
-		aux->m_particles[i].d.y =
-			Atrans_draw * sin(Apitch1_draw) * sin(Ayaw1_draw) +
-			motionModelConfiguration.mm6DOFModel.additional_std_XYZ *
-				getRandomGenerator().drawGaussian1D_normalized();
-		aux->m_particles[i].d.z =
-			Atrans_draw * cos(Apitch1_draw) +
-			motionModelConfiguration.mm6DOFModel.additional_std_XYZ *
-				getRandomGenerator().drawGaussian1D_normalized();
+		ith_part.x = Atrans_draw * cos(Apitch1_draw) * cos(Ayaw1_draw) +
+					 stdxyz * rnd.drawGaussian1D_normalized();
+		ith_part.y = Atrans_draw * cos(Apitch1_draw) * sin(Ayaw1_draw) +
+					 stdxyz * rnd.drawGaussian1D_normalized();
+		ith_part.z = -Atrans_draw * sin(Apitch1_draw) +
+					 stdxyz * rnd.drawGaussian1D_normalized();
 
-		double new_yaw =
+		ith_part.yaw =
 			Ayaw1_draw + Ayaw2_draw +
 			motionModelConfiguration.mm6DOFModel.additional_std_angle *
-				getRandomGenerator().drawGaussian1D_normalized();
-		double new_pitch =
+				rnd.drawGaussian1D_normalized();
+		ith_part.pitch =
 			Apitch1_draw + Apitch2_draw +
 			motionModelConfiguration.mm6DOFModel.additional_std_angle *
-				getRandomGenerator().drawGaussian1D_normalized();
-		double new_roll =
+				rnd.drawGaussian1D_normalized();
+		ith_part.roll =
 			Aroll_draw +
 			motionModelConfiguration.mm6DOFModel.additional_std_angle *
-				getRandomGenerator().drawGaussian1D_normalized();
-
-		aux->m_particles[i].d.yaw = new_yaw;
-		aux->m_particles[i].d.pitch = new_pitch;
-		aux->m_particles[i].d.roll = new_roll;
+				rnd.drawGaussian1D_normalized();
 	}
 
 	poseChange.copyFrom(*poseChangeTemp);
+}
+
+void CActionRobotMovement3D::getDescriptionAsText(std::ostream& o) const
+{
+	CAction::getDescriptionAsText(o);
+
+	o << "Robot Movement (as a gaussian pose change):\n";
+	o << poseChange << "\n";
 }

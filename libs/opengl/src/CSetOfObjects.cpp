@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,16 +11,14 @@
 
 #include <mrpt/opengl/CSetOfObjects.h>
 #include <mrpt/opengl/CTexturedPlane.h>
-#include <mrpt/opengl/gl_utils.h>
 #include <mrpt/serialization/CArchive.h>
 
+#include <mrpt/opengl/opengl_api.h>
 #include <algorithm>
-#include "opengl_internals.h"
 
 using namespace mrpt;
 using namespace mrpt::opengl;
 using namespace mrpt::poses;
-
 using namespace mrpt::math;
 using namespace std;
 
@@ -29,22 +27,22 @@ using namespace mrpt::serialization::metaprogramming;
 
 IMPLEMENTS_SERIALIZABLE(CSetOfObjects, CRenderizable, mrpt::opengl)
 
-/*---------------------------------------------------------------
-							render
-  ---------------------------------------------------------------*/
-void CSetOfObjects::clear()
+void CSetOfObjects::clear() { m_objects.clear(); }
+
+void CSetOfObjects::renderUpdateBuffers() const
 {
-	m_objects.clear();  // clear the list and delete objects (if there are no
-	// more copies out there!)
+	// Do nothing:
 }
 
-/*---------------------------------------------------------------
-							render
-  ---------------------------------------------------------------*/
-void CSetOfObjects::render() const
+void CSetOfObjects::render(const RenderContext& rc) const
 {
-	// Render all the objects:
-	mrpt::opengl::gl_utils::renderSetOfObjects(m_objects);
+	// Do nothing: the enqueForRenderRecursive() does the actual job.
+}
+
+void CSetOfObjects::enqueForRenderRecursive(
+	const mrpt::opengl::TRenderMatrices& state, RenderQueue& rq) const
+{
+	mrpt::opengl::enqueForRendering(m_objects, state, rq);
 }
 
 uint8_t CSetOfObjects::serializeGetVersion() const { return 0; }
@@ -83,25 +81,6 @@ void CSetOfObjects::serializeFrom(
 	};
 }
 
-/*---------------------------------------------------------------
-					initializeAllTextures
-  ---------------------------------------------------------------*/
-void CSetOfObjects::initializeAllTextures()
-{
-#if MRPT_HAS_OPENGL_GLUT
-	CListOpenGLObjects::iterator it;
-	for (it = m_objects.begin(); it != m_objects.end(); ++it++)
-	{
-		if (IS_DERIVED(*it, CTexturedObject))
-			dynamic_cast<CTexturedObject*>(it->get())->loadTextureInOpenGL();
-		else if (IS_CLASS(*it, CSetOfObjects))
-			dynamic_cast<CSetOfObjects*>(it->get())->initializeAllTextures();
-	}
-#endif
-}
-
-CSetOfObjects::CSetOfObjects() = default;
-CSetOfObjects::~CSetOfObjects() { clear(); }
 void CSetOfObjects::insert(const CRenderizable::Ptr& newObject)
 {
 	ASSERTMSG_(

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,7 +10,7 @@
 #include "opengl-precomp.h"  // Precompiled header
 
 #include <mrpt/opengl/CFBORender.h>
-#include "opengl_internals.h"
+#include <mrpt/opengl/opengl_api.h>
 
 using namespace std;
 using namespace mrpt;
@@ -153,7 +153,8 @@ CCamera& CFBORender::getCamera(const COpenGLScene& scene)
 		Render the scene and get the rendered rgb image. This
 		function resizes the image buffer if it is necessary
  ---------------------------------------------------------------*/
-void CFBORender::getFrame(const COpenGLScene& scene, CImage& buffer)
+void CFBORender::getFrame(
+	[[maybe_unused]] const COpenGLScene& scene, [[maybe_unused]] CImage& buffer)
 {
 #if MRPT_HAS_OPENCV && MRPT_HAS_OPENGL_GLUT
 
@@ -172,9 +173,6 @@ void CFBORender::getFrame(const COpenGLScene& scene, CImage& buffer)
 	;
 
 	MRPT_END
-#else
-	MRPT_UNUSED_PARAM(scene);
-	MRPT_UNUSED_PARAM(buffer);
 #endif
 }
 
@@ -182,7 +180,8 @@ void CFBORender::getFrame(const COpenGLScene& scene, CImage& buffer)
 		Render the scene and get the rendered rgb image. This
 		function does not resize the image buffer.
  ---------------------------------------------------------------*/
-void CFBORender::getFrame2(const COpenGLScene& scene, CImage& buffer)
+void CFBORender::getFrame2(
+	[[maybe_unused]] const COpenGLScene& scene, [[maybe_unused]] CImage& buffer)
 {
 #if MRPT_HAS_OPENGL_GLUT
 
@@ -204,10 +203,6 @@ void CFBORender::getFrame2(const COpenGLScene& scene, CImage& buffer)
 	// ---------------------------
 	scene.render();
 
-	// If any, draw the 2D text messages:
-	// ----------------------------------
-	render_text_messages(m_width, m_height);
-
 	// TODO NOTE: This should fail if the image has padding bytes. See
 	// glPixelStore() etc.
 	glReadPixels(
@@ -219,16 +214,14 @@ void CFBORender::getFrame2(const COpenGLScene& scene, CImage& buffer)
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
 	MRPT_END
-#else
-	MRPT_UNUSED_PARAM(scene);
-	MRPT_UNUSED_PARAM(buffer);
 #endif
 }
 
 /*---------------------------------------------------------------
 					Resize the image size
  ---------------------------------------------------------------*/
-void CFBORender::resize(unsigned int width, unsigned int height)
+void CFBORender::resize(
+	[[maybe_unused]] unsigned int width, [[maybe_unused]] unsigned int height)
 {
 #if MRPT_HAS_OPENCV && MRPT_HAS_OPENGL_GLUT
 
@@ -268,16 +261,13 @@ void CFBORender::resize(unsigned int width, unsigned int height)
 
 //#else
 //	THROW_EXCEPTION("MRPT compiled without OpenCV and/or OpenGL support!!");
-#else
-	MRPT_UNUSED_PARAM(width);
-	MRPT_UNUSED_PARAM(height);
 #endif
 }
 
 /*---------------------------------------------------------------
 		Provide information on Framebuffer object extension
  ---------------------------------------------------------------*/
-int CFBORender::isExtensionSupported(const char* extension)
+int CFBORender::isExtensionSupported([[maybe_unused]] const char* extension)
 {
 #if MRPT_HAS_OPENGL_GLUT
 
@@ -303,8 +293,6 @@ int CFBORender::isExtensionSupported(const char* extension)
 	}
 
 	MRPT_END
-#else
-	MRPT_UNUSED_PARAM(extension);
 #endif
 
 	return 0;

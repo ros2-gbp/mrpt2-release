@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -288,15 +288,26 @@ class CDynamicGrid3D
 		if (cidx == INVALID_VOXEL_IDX) return nullptr;
 		return &m_map[cidx];
 	}
-
-	/** Returns a pointer to the contents of a voxel given by its voxel indexes,
-	 * or nullptr if it is out of the map extensions.
-	 */
 	inline const T* cellByIndex(
 		unsigned int cx, unsigned int cy, unsigned int cz) const
 	{
 		const size_t cidx = cellAbsIndexFromCXCYCZ(cx, cy, cz);
 		if (cidx == INVALID_VOXEL_IDX) return nullptr;
+		return &m_map[cidx];
+	}
+
+	/** Returns a pointer to the contents of a voxel given by its absolute voxel
+	 *  index, or nullptr if it is out of range.
+	 */
+	inline const T* cellByIndex(size_t cidx) const
+	{
+		if (cidx > m_map.size()) return nullptr;
+		return &m_map[cidx];
+	}
+	/// \overload
+	inline T* cellByIndex(size_t cidx)
+	{
+		if (cidx > m_map.size()) return nullptr;
 		return &m_map[cidx];
 	}
 
@@ -361,9 +372,9 @@ class CDynamicGrid3D
 	{
 		out << m_x_min << m_x_max << m_y_min << m_y_max << m_z_min << m_z_max;
 		out << m_resolution_xy << m_resolution_z;
-		out << static_cast<uint32_t>(m_size_x)
-			<< static_cast<uint32_t>(m_size_y)
-			<< static_cast<uint32_t>(m_size_z);
+		out.template WriteAs<uint32_t>(m_size_x)
+			.template WriteAs<uint32_t>(m_size_y)
+			.template WriteAs<uint32_t>(m_size_z);
 	}
 	/** Serialization of all parameters, except the contents of each voxel
 	 * (responsability of the derived class) */
@@ -373,12 +384,10 @@ class CDynamicGrid3D
 		in >> m_x_min >> m_x_max >> m_y_min >> m_y_max >> m_z_min >> m_z_max;
 		in >> m_resolution_xy >> m_resolution_z;
 
-		uint32_t nX, nY, nZ;
-		in >> nX >> nY >> nZ;
-		m_size_x = nX;
-		m_size_y = nY;
-		m_size_z = nZ;
-		m_map.resize(nX * nY * nZ);
+		m_size_x = in.template ReadAs<uint32_t>();
+		m_size_y = in.template ReadAs<uint32_t>();
+		m_size_z = in.template ReadAs<uint32_t>();
+		m_map.resize(m_size_x * m_size_y * m_size_z);
 	}
 
 };  // end of CDynamicGrid3D<>

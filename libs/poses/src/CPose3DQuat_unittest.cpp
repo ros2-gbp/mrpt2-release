@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -13,10 +13,10 @@
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/poses/CPose3DQuat.h>
 #include <mrpt/random.h>
+#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::poses;
-
 using namespace mrpt::math;
 using namespace std;
 
@@ -49,7 +49,7 @@ class Pose3DQuatTests : public ::testing::Test
 
 		EXPECT_NEAR(
 			0,
-			(p1_c_p2.getAsVectorVal() - p_q1_c_q2.getAsVectorVal())
+			(p1_c_p2.asVectorVal() - p_q1_c_q2.asVectorVal())
 				.array()
 				.abs()
 				.sum(),
@@ -59,7 +59,7 @@ class Pose3DQuatTests : public ::testing::Test
 
 		EXPECT_NEAR(
 			0,
-			(p1_i_p2.getAsVectorVal() - p_q1_i_q2.getAsVectorVal())
+			(p1_i_p2.asVectorVal() - p_q1_i_q2.asVectorVal())
 				.array()
 				.abs()
 				.sum(),
@@ -73,10 +73,7 @@ class Pose3DQuatTests : public ::testing::Test
 			CPose3DQuat A = C + q2;
 			EXPECT_NEAR(
 				0,
-				(A.getAsVectorVal() - q1_c_q2.getAsVectorVal())
-					.array()
-					.abs()
-					.sum(),
+				(A.asVectorVal() - q1_c_q2.asVectorVal()).array().abs().sum(),
 				1e-6);
 		}
 		// Test + operator: trg same var
@@ -85,10 +82,7 @@ class Pose3DQuatTests : public ::testing::Test
 			A = A + q2;
 			EXPECT_NEAR(
 				0,
-				(A.getAsVectorVal() - q1_c_q2.getAsVectorVal())
-					.array()
-					.abs()
-					.sum(),
+				(A.asVectorVal() - q1_c_q2.asVectorVal()).array().abs().sum(),
 				1e-6);
 		}
 		// Test =+ operator
@@ -97,10 +91,7 @@ class Pose3DQuatTests : public ::testing::Test
 			A += q2;
 			EXPECT_NEAR(
 				0,
-				(A.getAsVectorVal() - q1_c_q2.getAsVectorVal())
-					.array()
-					.abs()
-					.sum(),
+				(A.asVectorVal() - q1_c_q2.asVectorVal()).array().abs().sum(),
 				1e-6);
 		}
 	}
@@ -118,7 +109,7 @@ class Pose3DQuatTests : public ::testing::Test
 
 		EXPECT_NEAR(
 			0,
-			(p1_plus_p.getAsVectorVal() - q1_plus_p.getAsVectorVal())
+			(p1_plus_p.asVectorVal() - q1_plus_p.asVectorVal())
 				.array()
 				.abs()
 				.sum(),
@@ -131,9 +122,9 @@ class Pose3DQuatTests : public ::testing::Test
 	}
 
 	static void func_compose_point(
-		const CArrayDouble<7 + 3>& x, const double& dummy, CArrayDouble<3>& Y)
+		const CVectorFixedDouble<7 + 3>& x,
+		[[maybe_unused]] const double& dummy, CVectorFixedDouble<3>& Y)
 	{
-		MRPT_UNUSED_PARAM(dummy);
 		CPose3DQuat q(
 			x[0], x[1], x[2], CQuaternionDouble(x[3], x[4], x[5], x[6]));
 		q.quat().normalize();
@@ -149,57 +140,63 @@ class Pose3DQuatTests : public ::testing::Test
 		const CPose3DQuat q1(CPose3D(x1, y1, z1, yaw1, pitch1, roll1));
 		const CPoint3D p(x, y, z);
 
-		CMatrixFixedNumeric<double, 3, 3> df_dpoint(UNINITIALIZED_MATRIX);
-		CMatrixFixedNumeric<double, 3, 7> df_dpose(UNINITIALIZED_MATRIX);
+		CMatrixFixed<double, 3, 3> df_dpoint(UNINITIALIZED_MATRIX);
+		CMatrixFixed<double, 3, 7> df_dpose(UNINITIALIZED_MATRIX);
 
 		TPoint3D l;
 		q1.composePoint(x, y, z, l.x, l.y, l.z, &df_dpoint, &df_dpose);
 
 		// Numerical approximation:
-		CMatrixFixedNumeric<double, 3, 3> num_df_dpoint(UNINITIALIZED_MATRIX);
-		CMatrixFixedNumeric<double, 3, 7> num_df_dpose(UNINITIALIZED_MATRIX);
+		CMatrixFixed<double, 3, 3> num_df_dpoint(UNINITIALIZED_MATRIX);
+		CMatrixFixed<double, 3, 7> num_df_dpose(UNINITIALIZED_MATRIX);
 		{
-			CArrayDouble<7 + 3> x_mean;
+			CVectorFixedDouble<7 + 3> x_mean;
 			for (int i = 0; i < 7; i++) x_mean[i] = q1[i];
 			x_mean[7 + 0] = x;
 			x_mean[7 + 1] = y;
 			x_mean[7 + 2] = z;
 
 			double DUMMY = 0;
-			CArrayDouble<7 + 3> x_incrs;
-			x_incrs.assign(1e-7);
+			CVectorFixedDouble<7 + 3> x_incrs;
+			x_incrs.fill(1e-7);
 			CMatrixDouble numJacobs;
 			mrpt::math::estimateJacobian(
 				x_mean,
 				std::function<void(
-					const CArrayDouble<7 + 3>& x, const double& dummy,
-					CArrayDouble<3>& Y)>(&func_compose_point),
+					const CVectorFixedDouble<7 + 3>& x, const double& dummy,
+					CVectorFixedDouble<3>& Y)>(&func_compose_point),
 				x_incrs, DUMMY, numJacobs);
 
-			numJacobs.extractMatrix(0, 0, num_df_dpose);
-			numJacobs.extractMatrix(0, 7, num_df_dpoint);
+			num_df_dpose = numJacobs.asEigen().block<3, 7>(0, 0);
+			num_df_dpoint = numJacobs.asEigen().block<3, 3>(0, 7);
 		}
 
 		// Compare:
-		EXPECT_NEAR(0, (df_dpoint - num_df_dpoint).array().abs().sum(), 3e-3)
+		EXPECT_NEAR(
+			0,
+			(df_dpoint.asEigen() - num_df_dpoint.asEigen()).array().abs().sum(),
+			3e-3)
 			<< "q1: " << q1 << endl
 			<< "p:  " << p << endl
 			<< "Numeric approximation of df_dpoint: " << endl
-			<< num_df_dpoint << endl
+			<< num_df_dpoint.asEigen() << endl
 			<< "Implemented method: " << endl
 			<< df_dpoint << endl
 			<< "Error: " << endl
-			<< df_dpoint - num_df_dpoint << endl;
+			<< df_dpoint.asEigen() - num_df_dpoint.asEigen() << endl;
 
-		EXPECT_NEAR(0, (df_dpose - num_df_dpose).array().abs().sum(), 3e-3)
+		EXPECT_NEAR(
+			0,
+			(df_dpose.asEigen() - num_df_dpose.asEigen()).array().abs().sum(),
+			3e-3)
 			<< "q1: " << q1 << endl
 			<< "p:  " << p << endl
 			<< "Numeric approximation of df_dpose: " << endl
-			<< num_df_dpose << endl
+			<< num_df_dpose.asEigen() << endl
 			<< "Implemented method: " << endl
-			<< df_dpose << endl
+			<< df_dpose.asEigen() << endl
 			<< "Error: " << endl
-			<< df_dpose - num_df_dpose << endl;
+			<< df_dpose.asEigen() - num_df_dpose.asEigen() << endl;
 	}
 
 	void test_invComposePoint(
@@ -217,7 +214,7 @@ class Pose3DQuatTests : public ::testing::Test
 
 		EXPECT_NEAR(
 			0,
-			(p_minus_p1.getAsVectorVal() - p_minus_q1.getAsVectorVal())
+			(p_minus_p1.asVectorVal() - p_minus_q1.asVectorVal())
 				.array()
 				.abs()
 				.sum(),
@@ -226,17 +223,16 @@ class Pose3DQuatTests : public ::testing::Test
 			<< "p_minus_q1: " << p_minus_q1 << endl;
 
 		EXPECT_NEAR(
-			0,
-			(p_rec.getAsVectorVal() - p.getAsVectorVal()).array().abs().sum(),
+			0, (p_rec.asVectorVal() - p.asVectorVal()).array().abs().sum(),
 			1e-5)
 			<< "p_rec: " << p_rec << endl
 			<< "p: " << p << endl;
 	}
 
 	static void func_inv_compose_point(
-		const CArrayDouble<7 + 3>& x, const double& dummy, CArrayDouble<3>& Y)
+		const CVectorFixedDouble<7 + 3>& x,
+		[[maybe_unused]] const double& dummy, CVectorFixedDouble<3>& Y)
 	{
-		MRPT_UNUSED_PARAM(dummy);
 		CPose3DQuat q(
 			x[0], x[1], x[2], CQuaternionDouble(x[3], x[4], x[5], x[6]));
 		q.quat().normalize();
@@ -254,8 +250,8 @@ class Pose3DQuatTests : public ::testing::Test
 		const CPose3DQuat q1(CPose3D(x1, y1, z1, yaw1, pitch1, roll1));
 		const CPoint3D p(x, y, z);
 
-		CMatrixFixedNumeric<double, 3, 3> df_dpoint(UNINITIALIZED_MATRIX);
-		CMatrixFixedNumeric<double, 3, 7> df_dpose(UNINITIALIZED_MATRIX);
+		CMatrixFixed<double, 3, 3> df_dpoint(UNINITIALIZED_MATRIX);
+		CMatrixFixed<double, 3, 7> df_dpose(UNINITIALIZED_MATRIX);
 
 		TPoint3D l;
 		q1.inverseComposePoint(x, y, z, l.x, l.y, l.z, &df_dpoint, &df_dpose);
@@ -285,54 +281,60 @@ class Pose3DQuatTests : public ::testing::Test
 		EXPECT_NEAR(theorical.z, l.z, 1e-5);
 
 		// Numerical approximation:
-		CMatrixFixedNumeric<double, 3, 3> num_df_dpoint(UNINITIALIZED_MATRIX);
-		CMatrixFixedNumeric<double, 3, 7> num_df_dpose(UNINITIALIZED_MATRIX);
+		CMatrixFixed<double, 3, 3> num_df_dpoint(UNINITIALIZED_MATRIX);
+		CMatrixFixed<double, 3, 7> num_df_dpose(UNINITIALIZED_MATRIX);
 		{
-			CArrayDouble<7 + 3> x_mean;
+			CVectorFixedDouble<7 + 3> x_mean;
 			for (int i = 0; i < 7; i++) x_mean[i] = q1[i];
 			x_mean[7 + 0] = x;
 			x_mean[7 + 1] = y;
 			x_mean[7 + 2] = z;
 
 			double DUMMY = 0;
-			CArrayDouble<7 + 3> x_incrs;
-			x_incrs.assign(1e-7);
+			CVectorFixedDouble<7 + 3> x_incrs;
+			x_incrs.fill(1e-7);
 			CMatrixDouble numJacobs;
 			mrpt::math::estimateJacobian(
 				x_mean,
 				std::function<void(
-					const CArrayDouble<7 + 3>& x, const double& dummy,
-					CArrayDouble<3>& Y)>(&func_inv_compose_point),
+					const CVectorFixedDouble<7 + 3>& x, const double& dummy,
+					CVectorFixedDouble<3>& Y)>(&func_inv_compose_point),
 				x_incrs, DUMMY, numJacobs);
 
-			numJacobs.extractMatrix(0, 0, num_df_dpose);
-			numJacobs.extractMatrix(0, 7, num_df_dpoint);
+			num_df_dpose = numJacobs.block<3, 7>(0, 0);
+			num_df_dpoint = numJacobs.block<3, 3>(0, 7);
 		}
 
 		// Compare:
-		EXPECT_NEAR(0, (df_dpoint - num_df_dpoint).array().abs().sum(), 3e-3)
+		EXPECT_NEAR(
+			0,
+			(df_dpoint.asEigen() - num_df_dpoint.asEigen()).array().abs().sum(),
+			3e-3)
 			<< "q1: " << q1 << endl
 			<< "from pose: " << CPose3D(x1, y1, z1, yaw1, pitch1, roll1) << endl
 			<< "p:  " << p << endl
 			<< "local:  " << l << endl
 			<< "Numeric approximation of df_dpoint: " << endl
-			<< num_df_dpoint << endl
+			<< num_df_dpoint.asEigen() << endl
 			<< "Implemented method: " << endl
-			<< df_dpoint << endl
+			<< df_dpoint.asEigen() << endl
 			<< "Error: " << endl
 			<< df_dpoint - num_df_dpoint << endl;
 
-		EXPECT_NEAR(0, (df_dpose - num_df_dpose).array().abs().sum(), 3e-3)
+		EXPECT_NEAR(
+			0,
+			(df_dpose.asEigen() - num_df_dpose.asEigen()).array().abs().sum(),
+			3e-3)
 			<< "q1: " << q1 << endl
 			<< "from pose: " << CPose3D(x1, y1, z1, yaw1, pitch1, roll1) << endl
 			<< "p:  " << p << endl
 			<< "local:  " << l << endl
 			<< "Numeric approximation of df_dpose: " << endl
-			<< num_df_dpose << endl
+			<< num_df_dpose.asEigen() << endl
 			<< "Implemented method: " << endl
-			<< df_dpose << endl
+			<< df_dpose.asEigen() << endl
 			<< "Error: " << endl
-			<< df_dpose - num_df_dpose << endl;
+			<< df_dpose.asEigen() - num_df_dpose.asEigen() << endl;
 	}
 
 	void test_fromYPRAndBack(
@@ -357,8 +359,7 @@ class Pose3DQuatTests : public ::testing::Test
 			<< q1.getHomogeneousMatrixVal<CMatrixDouble44>() << endl;
 
 		EXPECT_NEAR(
-			0, (p1.getAsVectorVal() - p1r.getAsVectorVal()).array().abs().sum(),
-			1e-5)
+			0, (p1.asVectorVal() - p1r.asVectorVal()).array().abs().sum(), 1e-5)
 			<< "p1: " << p1 << endl
 			<< "q1: " << q1 << endl
 			<< "p1r: " << p1r << endl;
@@ -457,7 +458,7 @@ class Pose3DQuatTests : public ::testing::Test
 		{
 			CPose3DQuat q = mrpt::poses::CPose3DQuat(p1);
 
-			float gx = x, gy = y, gz = z;
+			double gx = x, gy = y, gz = z;
 
 			double dist, yaw, pitch;
 			p1.sphericalCoordinates(TPoint3D(gx, gy, gz), dist, yaw, pitch);
@@ -475,9 +476,9 @@ class Pose3DQuatTests : public ::testing::Test
 	}
 
 	static void func_spherical_coords(
-		const CArrayDouble<7 + 3>& x, const double& dummy, CArrayDouble<3>& Y)
+		const CVectorFixedDouble<7 + 3>& x,
+		[[maybe_unused]] const double& dummy, CVectorFixedDouble<3>& Y)
 	{
-		MRPT_UNUSED_PARAM(dummy);
 		CPose3DQuat q(
 			x[0], x[1], x[2], CQuaternionDouble(x[3], x[4], x[5], x[6]));
 		q.quat().normalize();
@@ -492,63 +493,69 @@ class Pose3DQuatTests : public ::testing::Test
 		const CPose3DQuat q1(CPose3D(x1, y1, z1, yaw1, pitch1, roll1));
 		const TPoint3D p(x, y, z);
 
-		CMatrixFixedNumeric<double, 3, 3> df_dpoint(UNINITIALIZED_MATRIX);
-		CMatrixFixedNumeric<double, 3, 7> df_dpose(UNINITIALIZED_MATRIX);
+		CMatrixFixed<double, 3, 3> df_dpoint(UNINITIALIZED_MATRIX);
+		CMatrixFixed<double, 3, 7> df_dpose(UNINITIALIZED_MATRIX);
 
 		double hr, hy, hp;
 		q1.sphericalCoordinates(p, hr, hy, hp, &df_dpoint, &df_dpose);
 
 		// Numerical approximation:
-		CMatrixFixedNumeric<double, 3, 3> num_df_dpoint(UNINITIALIZED_MATRIX);
-		CMatrixFixedNumeric<double, 3, 7> num_df_dpose(UNINITIALIZED_MATRIX);
+		CMatrixFixed<double, 3, 3> num_df_dpoint(UNINITIALIZED_MATRIX);
+		CMatrixFixed<double, 3, 7> num_df_dpose(UNINITIALIZED_MATRIX);
 		{
-			CArrayDouble<7 + 3> x_mean;
+			CVectorFixedDouble<7 + 3> x_mean;
 			for (int i = 0; i < 7; i++) x_mean[i] = q1[i];
 			x_mean[7 + 0] = x;
 			x_mean[7 + 1] = y;
 			x_mean[7 + 2] = z;
 
 			double DUMMY = 0;
-			CArrayDouble<7 + 3> x_incrs;
-			x_incrs.assign(1e-7);
+			CVectorFixedDouble<7 + 3> x_incrs;
+			x_incrs.fill(1e-7);
 			CMatrixDouble numJacobs;
 			mrpt::math::estimateJacobian(
 				x_mean,
 				std::function<void(
-					const CArrayDouble<7 + 3>& x, const double& dummy,
-					CArrayDouble<3>& Y)>(&func_spherical_coords),
+					const CVectorFixedDouble<7 + 3>& x, const double& dummy,
+					CVectorFixedDouble<3>& Y)>(&func_spherical_coords),
 				x_incrs, DUMMY, numJacobs);
 
-			numJacobs.extractMatrix(0, 0, num_df_dpose);
-			numJacobs.extractMatrix(0, 7, num_df_dpoint);
+			num_df_dpose = numJacobs.block<3, 7>(0, 0);
+			num_df_dpoint = numJacobs.block<3, 3>(0, 7);
 		}
 
 		// Compare:
-		EXPECT_NEAR(0, (df_dpoint - num_df_dpoint).array().abs().sum(), 3e-3)
+		EXPECT_NEAR(
+			0,
+			(df_dpoint.asEigen() - num_df_dpoint.asEigen()).array().abs().sum(),
+			3e-3)
 			<< "q1: " << q1 << endl
 			<< "p:  " << p << endl
 			<< "Numeric approximation of df_dpoint: " << endl
-			<< num_df_dpoint << endl
+			<< num_df_dpoint.asEigen() << endl
 			<< "Implemented method: " << endl
-			<< df_dpoint << endl
+			<< df_dpoint.asEigen() << endl
 			<< "Error: " << endl
-			<< df_dpoint - num_df_dpoint << endl;
+			<< df_dpoint.asEigen() - num_df_dpoint.asEigen() << endl;
 
-		EXPECT_NEAR(0, (df_dpose - num_df_dpose).array().abs().sum(), 3e-3)
+		EXPECT_NEAR(
+			0,
+			(df_dpose.asEigen() - num_df_dpose.asEigen()).array().abs().sum(),
+			3e-3)
 			<< "q1: " << q1 << endl
 			<< "p:  " << p << endl
 			<< "Numeric approximation of df_dpose: " << endl
-			<< num_df_dpose << endl
+			<< num_df_dpose.asEigen() << endl
 			<< "Implemented method: " << endl
-			<< df_dpose << endl
+			<< df_dpose.asEigen() << endl
 			<< "Error: " << endl
-			<< df_dpose - num_df_dpose << endl;
+			<< df_dpose.asEigen() - num_df_dpose.asEigen() << endl;
 	}
 
 	static void func_normalizeJacob(
-		const CArrayDouble<4>& x, const double& dummy, CArrayDouble<4>& Y)
+		const CVectorFixedDouble<4>& x, [[maybe_unused]] const double& dummy,
+		CVectorFixedDouble<4>& Y)
 	{
-		MRPT_UNUSED_PARAM(dummy);
 		CQuaternionDouble q;
 		for (int i = 0; i < 4; i++) q[i] = x[i];
 		q.normalize();
@@ -561,206 +568,278 @@ class Pose3DQuatTests : public ::testing::Test
 		CQuaternionDouble q1;
 		pp.getAsQuaternion(q1);
 
-		CMatrixFixedNumeric<double, 4, 4> df_dpose(UNINITIALIZED_MATRIX);
+		CMatrixFixed<double, 4, 4> df_dpose(UNINITIALIZED_MATRIX);
 		q1.normalizationJacobian(df_dpose);
 
 		// Numerical approximation:
-		CMatrixFixedNumeric<double, 4, 4> num_df_dpose(UNINITIALIZED_MATRIX);
+		CMatrixFixed<double, 4, 4> num_df_dpose(UNINITIALIZED_MATRIX);
 		{
-			CArrayDouble<4> x_mean;
+			CVectorFixedDouble<4> x_mean;
 			for (int i = 0; i < 4; i++) x_mean[i] = q1[i];
 
 			double DUMMY = 0;
-			CArrayDouble<4> x_incrs;
-			x_incrs.assign(1e-5);
+			CVectorFixedDouble<4> x_incrs;
+			x_incrs.fill(1e-5);
 			CMatrixDouble numJacobs;
 			mrpt::math::estimateJacobian(
 				x_mean,
 				std::function<void(
-					const CArrayDouble<4>& x, const double& dummy,
-					CArrayDouble<4>& Y)>(&func_normalizeJacob),
+					const CVectorFixedDouble<4>& x, const double& dummy,
+					CVectorFixedDouble<4>& Y)>(&func_normalizeJacob),
 				x_incrs, DUMMY, numJacobs);
 
-			numJacobs.extractMatrix(0, 0, num_df_dpose);
+			num_df_dpose = numJacobs.block<4, 4>(0, 0);
 		}
 
 		// Compare:
-		EXPECT_NEAR(0, (df_dpose - num_df_dpose).array().abs().sum(), 3e-3)
+		EXPECT_NEAR(
+			0,
+			(df_dpose.asEigen() - num_df_dpose.asEigen()).array().abs().sum(),
+			3e-3)
 			<< "q1: " << q1 << endl
 			<< "Numeric approximation of df_dpose: " << endl
-			<< num_df_dpose << endl
+			<< num_df_dpose.asEigen() << endl
 			<< "Implemented method: " << endl
-			<< df_dpose << endl
+			<< df_dpose.asEigen() << endl
 			<< "Error: " << endl
-			<< df_dpose - num_df_dpose << endl;
+			<< df_dpose.asEigen() - num_df_dpose.asEigen() << endl;
 	}
 };
 
+// Check yaw-pitch-roll [rad] vs its [qx,qy,qz,qw] representation:
+static void quat_vs_YPR(
+	double yaw, double pitch, double roll, double qx, double qy, double qz,
+	double qw, const std::string& sRotMat)
+{
+	const double eps = 1e-4;
+
+	// First, test Yaw-pitch-roll to Rot matrix:
+	const mrpt::poses::CPose3D p(0, 0, 0, yaw, pitch, roll);
+	mrpt::math::CMatrixDouble33 R_gt;
+	std::stringstream sErr;
+	if (!R_gt.fromMatlabStringFormat(sRotMat, sErr))
+		GTEST_FAIL() << "Incorrect R_gt matrix: '" << sRotMat
+					 << "'. Error: " << sErr.str() << "\n";
+	EXPECT_EQ(R_gt.cols(), 3) << " for: sRotMat='" << sRotMat << "'\n";
+	EXPECT_EQ(R_gt.rows(), 3) << " for: sRotMat='" << sRotMat << "'\n";
+
+	EXPECT_NEAR(
+		0,
+		(R_gt.asEigen() - p.getRotationMatrix().asEigen())
+			.array()
+			.abs()
+			.maxCoeff(),
+		eps)
+		<< "R_gt=\n"
+		<< R_gt << "\np.R=\n"
+		<< p.getRotationMatrix() << std::endl;
+
+	// Convert to quat:
+	const auto q_gt = mrpt::math::CQuaternionDouble(qw, qx, qy, qz);
+	mrpt::math::CQuaternionDouble q;
+	p.getAsQuaternion(q);
+
+	if (std::abs(q.w() - q_gt.w()) > eps || std::abs(q.x() - q_gt.x()) > eps ||
+		std::abs(q.y() - q_gt.y()) > eps || std::abs(q.z() - q_gt.z()) > eps)
+	{
+		GTEST_FAIL() << "q = " << q.asString()
+					 << "\nExpected = " << q_gt.asString() << "\n";
+	}
+
+	auto R = q.rotationMatrix<mrpt::math::CMatrixDouble33>();
+	EXPECT_NEAR(
+		0,
+		(R.asEigen() - p.getRotationMatrix().asEigen())
+			.array()
+			.abs()
+			.maxCoeff(),
+		eps)
+		<< "q.R=\n"
+		<< R << "\np.R=" << p.getRotationMatrix() << std::endl;
+}
+
+// Check yaw-pitch-roll vs its [qx,qy,qz,qw] representation:
+TEST(QuatTests, Quat_vs_YPR)
+{
+	// Ground truth values obtained from:
+	// https://www.andre-gaschler.com/rotationconverter/
+	// Using: ZYX Euler angles convention
+
+	quat_vs_YPR(
+		0.0_deg, 0.0_deg, 0.0_deg,  // Input Yaw-pitch-roll
+		0, 0, 0, 1,  // Expected quaternion
+		"[  1.0000000  0.0000000  0.0000000; "
+		"   0.0000000  1.0000000  0.0000000; "
+		"   0.0000000  0.0000000  1.0000000 ]");
+	quat_vs_YPR(
+		90.0_deg, 0.0_deg, 0.0_deg,  // Input Yaw-pitch-roll
+		0, 0, 0.7071068, 0.7071068,  // Expected quaternion
+		"[  0.0000000 -1.0000000  0.0000000;"
+		"   1.0000000  0.0000000  0.0000000;"
+		"   0.0000000  0.0000000  1.0000000 ]");
+	quat_vs_YPR(
+		30.0_deg, 10.0_deg, 60.0_deg,  // Input Yaw-pitch-roll
+		0.4615897, 0.2018243, 0.1811979, 0.8446119,  // Expected quaternion
+		"[  0.8528686 -0.1197639  0.5082046;"
+		"   0.4924039  0.5082046 -0.7065880;"
+		"  -0.1736482  0.8528686  0.4924039 ]");
+	quat_vs_YPR(
+		-10.0_deg, -20.0_deg, -30.0_deg,  // Input Yaw-pitch-roll
+		-0.2685358, -0.1448781, -0.1276794, 0.9437144,  // Expected quaternion
+		"[  0.9254166  0.3187958 -0.2048741;"
+		"  -0.1631759  0.8231729  0.5438381;"
+		"   0.3420202 -0.4698463  0.8137977 ]");
+	quat_vs_YPR(
+		-179.9995949_deg, -90.0_deg, 0.0_deg,  // Input Yaw-pitch-roll
+		0.7071068, 0, 0.7071068, -0.000005,  // Expected quaternion
+		"[  0.0000000  0.0000071  1.0000000;"
+		"  -0.0000071 -1.0000000  0.0000071;"
+		"   1.0000000 -0.0000071  0.0000000 ]");
+}
+
 TEST_F(Pose3DQuatTests, FromYPRAndBack)
 {
-	test_fromYPRAndBack(1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0));
-	test_fromYPRAndBack(1.0, 2.0, 3.0, DEG2RAD(90), DEG2RAD(0), DEG2RAD(0));
-	test_fromYPRAndBack(1.0, 2.0, 3.0, DEG2RAD(-30), DEG2RAD(10), DEG2RAD(60));
-	test_fromYPRAndBack(1.0, 2.0, 3.0, DEG2RAD(179), DEG2RAD(0), DEG2RAD(60));
-	test_fromYPRAndBack(1.0, 2.0, 3.0, DEG2RAD(-179), DEG2RAD(0), DEG2RAD(60));
-	test_fromYPRAndBack(1.0, 2.0, 3.0, DEG2RAD(30), DEG2RAD(89), DEG2RAD(0));
-	test_fromYPRAndBack(1.0, 2.0, 3.0, DEG2RAD(30), DEG2RAD(-89), DEG2RAD(0));
+	test_fromYPRAndBack(1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 0.0_deg);
+	test_fromYPRAndBack(1.0, 2.0, 3.0, 90.0_deg, 0.0_deg, 0.0_deg);
+	test_fromYPRAndBack(1.0, 2.0, 3.0, -30.0_deg, 10.0_deg, 60.0_deg);
+	test_fromYPRAndBack(1.0, 2.0, 3.0, 179.0_deg, 0.0_deg, 60.0_deg);
+	test_fromYPRAndBack(1.0, 2.0, 3.0, -179.0_deg, 0.0_deg, 60.0_deg);
+	test_fromYPRAndBack(1.0, 2.0, 3.0, 30.0_deg, 89.0_deg, 0.0_deg);
+	test_fromYPRAndBack(1.0, 2.0, 3.0, 30.0_deg, -89.0_deg, 0.0_deg);
 }
 
 TEST_F(Pose3DQuatTests, UnaryInverse)
 {
-	test_unaryInverse(1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0));
-	test_unaryInverse(1.0, 2.0, 3.0, DEG2RAD(90), DEG2RAD(0), DEG2RAD(0));
-	test_unaryInverse(1.0, 2.0, 3.0, DEG2RAD(-30), DEG2RAD(10), DEG2RAD(60));
-	test_unaryInverse(1.0, 2.0, 3.0, DEG2RAD(179), DEG2RAD(0), DEG2RAD(60));
-	test_unaryInverse(1.0, 2.0, 3.0, DEG2RAD(-179), DEG2RAD(0), DEG2RAD(60));
-	test_unaryInverse(1.0, 2.0, 3.0, DEG2RAD(30), DEG2RAD(89), DEG2RAD(0));
-	test_unaryInverse(1.0, 2.0, 3.0, DEG2RAD(30), DEG2RAD(-89), DEG2RAD(0));
+	test_unaryInverse(1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 0.0_deg);
+	test_unaryInverse(1.0, 2.0, 3.0, 90.0_deg, 0.0_deg, 0.0_deg);
+	test_unaryInverse(1.0, 2.0, 3.0, -30.0_deg, 10.0_deg, 60.0_deg);
+	test_unaryInverse(1.0, 2.0, 3.0, 179.0_deg, 0.0_deg, 60.0_deg);
+	test_unaryInverse(1.0, 2.0, 3.0, -179.0_deg, 0.0_deg, 60.0_deg);
+	test_unaryInverse(1.0, 2.0, 3.0, 30.0_deg, 89.0_deg, 0.0_deg);
+	test_unaryInverse(1.0, 2.0, 3.0, 30.0_deg, -89.0_deg, 0.0_deg);
 }
 
 TEST_F(Pose3DQuatTests, CopyOperator)
 {
-	test_copy(1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0));
-	test_copy(1.0, 2.0, 3.0, DEG2RAD(90), DEG2RAD(0), DEG2RAD(0));
-	test_copy(1.0, 2.0, 3.0, DEG2RAD(-30), DEG2RAD(10), DEG2RAD(60));
-	test_copy(1.0, 2.0, 3.0, DEG2RAD(30), DEG2RAD(-89), DEG2RAD(0));
+	test_copy(1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 0.0_deg);
+	test_copy(1.0, 2.0, 3.0, 90.0_deg, 0.0_deg, 0.0_deg);
+	test_copy(1.0, 2.0, 3.0, -30.0_deg, 10.0_deg, 60.0_deg);
+	test_copy(1.0, 2.0, 3.0, 30.0_deg, -89.0_deg, 0.0_deg);
 }
 
 TEST_F(Pose3DQuatTests, Compose)
 {
 	test_compose(
-		1.0, 2.0, 3.0, DEG2RAD(-30), DEG2RAD(10), DEG2RAD(60), 2.0, -5.0, 8.0,
-		DEG2RAD(40), DEG2RAD(-5), DEG2RAD(25));
+		1.0, 2.0, 3.0, -30.0_deg, 10.0_deg, 60.0_deg, 2.0, -5.0, 8.0, 40.0_deg,
+		-5.0_deg, 25.0_deg);
 
 	test_compose(
-		25.0, 2.0, 3.0, DEG2RAD(-30), DEG2RAD(90), DEG2RAD(0), -10.0, 4.0, -8.0,
-		DEG2RAD(20), DEG2RAD(9), DEG2RAD(0));
+		25.0, 2.0, 3.0, -30.0_deg, 90.0_deg, 0.0_deg, -10.0, 4.0, -8.0,
+		20.0_deg, 9.0_deg, 0.0_deg);
 }
 
 TEST_F(Pose3DQuatTests, ComposeWithPoint)
 {
+	test_composePoint(1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 0.0_deg, 10, 11, 12);
+	test_composePoint(1.0, 2.0, 3.0, 10.0_deg, 0.0_deg, 0.0_deg, 10, 11, 12);
+	test_composePoint(1.0, 2.0, 3.0, 0.0_deg, 10.0_deg, 0.0_deg, 10, 11, 12);
+	test_composePoint(1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 10.0_deg, 10, 11, 12);
 	test_composePoint(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, -30.0_deg, 10.0_deg, 60.0_deg, 10.0, 20.0, 30.0);
 	test_composePoint(
-		1.0, 2.0, 3.0, DEG2RAD(10), DEG2RAD(0), DEG2RAD(0), 10, 11, 12);
-	test_composePoint(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(10), DEG2RAD(0), 10, 11, 12);
-	test_composePoint(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(10), 10, 11, 12);
-	test_composePoint(
-		1.0, 2.0, 3.0, DEG2RAD(-30), DEG2RAD(10), DEG2RAD(60), 10.0, 20.0,
-		30.0);
-	test_composePoint(
-		1.0, 2.0, 3.0, DEG2RAD(10), DEG2RAD(-50), DEG2RAD(-40), -5.0, -15.0,
-		8.0);
+		1.0, 2.0, 3.0, 10.0_deg, -50.0_deg, -40.0_deg, -5.0, -15.0, 8.0);
 }
 
 TEST_F(Pose3DQuatTests, ComposeWithPointJacob)
 {
 	test_composePointJacob(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 0.0_deg, 10, 11, 12);
 	test_composePointJacob(
-		1.0, 2.0, 3.0, DEG2RAD(10), DEG2RAD(0), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, 10.0_deg, 0.0_deg, 0.0_deg, 10, 11, 12);
 	test_composePointJacob(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(10), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, 0.0_deg, 10.0_deg, 0.0_deg, 10, 11, 12);
 	test_composePointJacob(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(10), 10, 11, 12);
+		1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 10.0_deg, 10, 11, 12);
 	test_composePointJacob(
-		1.0, 2.0, 3.0, DEG2RAD(-30), DEG2RAD(10), DEG2RAD(60), 10.0, 20.0,
-		30.0);
+		1.0, 2.0, 3.0, -30.0_deg, 10.0_deg, 60.0_deg, 10.0, 20.0, 30.0);
 	test_composePointJacob(
-		1.0, 2.0, 3.0, DEG2RAD(10), DEG2RAD(-50), DEG2RAD(-40), -5.0, -15.0,
-		8.0);
+		1.0, 2.0, 3.0, 10.0_deg, -50.0_deg, -40.0_deg, -5.0, -15.0, 8.0);
 }
 
 TEST_F(Pose3DQuatTests, InvComposeWithPoint)
 {
+	test_invComposePoint(1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 0.0_deg, 10, 11, 12);
+	test_invComposePoint(1.0, 2.0, 3.0, 10.0_deg, 0.0_deg, 0.0_deg, 10, 11, 12);
+	test_invComposePoint(1.0, 2.0, 3.0, 0.0_deg, 10.0_deg, 0.0_deg, 10, 11, 12);
+	test_invComposePoint(1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 10.0_deg, 10, 11, 12);
 	test_invComposePoint(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, -30.0_deg, 10.0_deg, 60.0_deg, 10.0, 20.0, 30.0);
 	test_invComposePoint(
-		1.0, 2.0, 3.0, DEG2RAD(10), DEG2RAD(0), DEG2RAD(0), 10, 11, 12);
-	test_invComposePoint(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(10), DEG2RAD(0), 10, 11, 12);
-	test_invComposePoint(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(10), 10, 11, 12);
-	test_invComposePoint(
-		1.0, 2.0, 3.0, DEG2RAD(-30), DEG2RAD(10), DEG2RAD(60), 10.0, 20.0,
-		30.0);
-	test_invComposePoint(
-		1.0, 2.0, 3.0, DEG2RAD(10), DEG2RAD(-50), DEG2RAD(-40), -5.0, -15.0,
-		8.0);
+		1.0, 2.0, 3.0, 10.0_deg, -50.0_deg, -40.0_deg, -5.0, -15.0, 8.0);
 }
 
 TEST_F(Pose3DQuatTests, InvComposeWithPointJacob)
 {
+	test_invComposePointJacob(0, 0, 0, 0.0_deg, 0.0_deg, 0.0_deg, 0, 0, 0);
+	test_invComposePointJacob(0, 0, 0, 0.0_deg, 0.0_deg, 0.0_deg, 1, 2, 3);
 	test_invComposePointJacob(
-		0, 0, 0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0, 0, 0);
+		1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 0.0_deg, 0, 0, 0);
 	test_invComposePointJacob(
-		0, 0, 0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 1, 2, 3);
+		1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 0.0_deg, 10, 11, 12);
 	test_invComposePointJacob(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0, 0, 0);
+		1.0, 2.0, 3.0, 10.0_deg, 0.0_deg, 0.0_deg, 10, 11, 12);
 	test_invComposePointJacob(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, 0.0_deg, 10.0_deg, 0.0_deg, 10, 11, 12);
 	test_invComposePointJacob(
-		1.0, 2.0, 3.0, DEG2RAD(10), DEG2RAD(0), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 10.0_deg, 10, 11, 12);
 	test_invComposePointJacob(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(10), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, -30.0_deg, 10.0_deg, 60.0_deg, 10.0, 20.0, 30.0);
 	test_invComposePointJacob(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(10), 10, 11, 12);
-	test_invComposePointJacob(
-		1.0, 2.0, 3.0, DEG2RAD(-30), DEG2RAD(10), DEG2RAD(60), 10.0, 20.0,
-		30.0);
-	test_invComposePointJacob(
-		1.0, 2.0, 3.0, DEG2RAD(10), DEG2RAD(-50), DEG2RAD(-40), -5.0, -15.0,
-		8.0);
+		1.0, 2.0, 3.0, 10.0_deg, -50.0_deg, -40.0_deg, -5.0, -15.0, 8.0);
 }
 
 TEST_F(Pose3DQuatTests, ComposeInvComposePoint)
 {
 	test_composeAndInvComposePoint(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 0.0_deg, 10, 11, 12);
 	test_composeAndInvComposePoint(
-		1.0, 2.0, 3.0, DEG2RAD(10), DEG2RAD(0), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, 10.0_deg, 0.0_deg, 0.0_deg, 10, 11, 12);
 	test_composeAndInvComposePoint(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(10), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, 0.0_deg, 10.0_deg, 0.0_deg, 10, 11, 12);
 	test_composeAndInvComposePoint(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(10), 10, 11, 12);
+		1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 10.0_deg, 10, 11, 12);
 	test_composeAndInvComposePoint(
-		1.0, 2.0, 3.0, DEG2RAD(-30), DEG2RAD(10), DEG2RAD(60), 10.0, 20.0,
-		30.0);
+		1.0, 2.0, 3.0, -30.0_deg, 10.0_deg, 60.0_deg, 10.0, 20.0, 30.0);
 	test_composeAndInvComposePoint(
-		1.0, 2.0, 3.0, DEG2RAD(10), DEG2RAD(-50), DEG2RAD(-40), -5.0, -15.0,
-		8.0);
+		1.0, 2.0, 3.0, 10.0_deg, -50.0_deg, -40.0_deg, -5.0, -15.0, 8.0);
 }
 
 TEST_F(Pose3DQuatTests, ComposePoint_vs_CPose3D)
 {
 	test_composePoint_vs_CPose3D(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 0.0_deg, 10, 11, 12);
 	test_composePoint_vs_CPose3D(
-		1.0, 2.0, 3.0, DEG2RAD(10), DEG2RAD(0), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, 10.0_deg, 0.0_deg, 0.0_deg, 10, 11, 12);
 	test_composePoint_vs_CPose3D(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(10), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, 0.0_deg, 10.0_deg, 0.0_deg, 10, 11, 12);
 	test_composePoint_vs_CPose3D(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(10), 10, 11, 12);
+		1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 10.0_deg, 10, 11, 12);
 	test_composePoint_vs_CPose3D(
-		1.0, 2.0, 3.0, DEG2RAD(-30), DEG2RAD(10), DEG2RAD(60), 10.0, 20.0,
-		30.0);
+		1.0, 2.0, 3.0, -30.0_deg, 10.0_deg, 60.0_deg, 10.0, 20.0, 30.0);
 	test_composePoint_vs_CPose3D(
-		1.0, 2.0, 3.0, DEG2RAD(10), DEG2RAD(-50), DEG2RAD(-40), -5.0, -15.0,
-		8.0);
+		1.0, 2.0, 3.0, 10.0_deg, -50.0_deg, -40.0_deg, -5.0, -15.0, 8.0);
 }
 
 TEST_F(Pose3DQuatTests, InvComposePoint_vs_CPose3D)
 {
 	test_invComposePoint_vs_CPose3D(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 0.0_deg, 10, 11, 12);
 	test_invComposePoint_vs_CPose3D(
-		1.0, 2.0, 3.0, DEG2RAD(10), DEG2RAD(0), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, 10.0_deg, 0.0_deg, 0.0_deg, 10, 11, 12);
 	test_invComposePoint_vs_CPose3D(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(10), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, 0.0_deg, 10.0_deg, 0.0_deg, 10, 11, 12);
 	test_invComposePoint_vs_CPose3D(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(10), 10, 11, 12);
+		1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 10.0_deg, 10, 11, 12);
 
 	for (size_t i = 0; i < 10; i++)
 	{
@@ -773,28 +852,22 @@ TEST_F(Pose3DQuatTests, InvComposePoint_vs_CPose3D)
 
 TEST_F(Pose3DQuatTests, SphericalCoordsJacobian)
 {
+	test_sphericalCoords(1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 0.0_deg, 10, 11, 12);
+	test_sphericalCoords(1.0, 2.0, 3.0, 10.0_deg, 0.0_deg, 0.0_deg, 10, 11, 12);
+	test_sphericalCoords(1.0, 2.0, 3.0, 0.0_deg, 10.0_deg, 0.0_deg, 10, 11, 12);
+	test_sphericalCoords(1.0, 2.0, 3.0, 0.0_deg, 0.0_deg, 10.0_deg, 10, 11, 12);
 	test_sphericalCoords(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 10, 11, 12);
+		1.0, 2.0, 3.0, -30.0_deg, 10.0_deg, 60.0_deg, 10.0, 20.0, 30.0);
 	test_sphericalCoords(
-		1.0, 2.0, 3.0, DEG2RAD(10), DEG2RAD(0), DEG2RAD(0), 10, 11, 12);
-	test_sphericalCoords(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(10), DEG2RAD(0), 10, 11, 12);
-	test_sphericalCoords(
-		1.0, 2.0, 3.0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(10), 10, 11, 12);
-	test_sphericalCoords(
-		1.0, 2.0, 3.0, DEG2RAD(-30), DEG2RAD(10), DEG2RAD(60), 10.0, 20.0,
-		30.0);
-	test_sphericalCoords(
-		1.0, 2.0, 3.0, DEG2RAD(10), DEG2RAD(-50), DEG2RAD(-40), -5.0, -15.0,
-		8.0);
+		1.0, 2.0, 3.0, 10.0_deg, -50.0_deg, -40.0_deg, -5.0, -15.0, 8.0);
 }
 
 TEST_F(Pose3DQuatTests, NormalizationJacobian)
 {
-	test_normalizeJacob(DEG2RAD(0), DEG2RAD(0), DEG2RAD(0));
-	test_normalizeJacob(DEG2RAD(10), DEG2RAD(0), DEG2RAD(0));
-	test_normalizeJacob(DEG2RAD(0), DEG2RAD(10), DEG2RAD(0));
-	test_normalizeJacob(DEG2RAD(0), DEG2RAD(0), DEG2RAD(10));
-	test_normalizeJacob(DEG2RAD(-30), DEG2RAD(10), DEG2RAD(60));
-	test_normalizeJacob(DEG2RAD(10), DEG2RAD(-50), DEG2RAD(-40));
+	test_normalizeJacob(0.0_deg, 0.0_deg, 0.0_deg);
+	test_normalizeJacob(10.0_deg, 0.0_deg, 0.0_deg);
+	test_normalizeJacob(0.0_deg, 10.0_deg, 0.0_deg);
+	test_normalizeJacob(0.0_deg, 0.0_deg, 10.0_deg);
+	test_normalizeJacob(-30.0_deg, 10.0_deg, 60.0_deg);
+	test_normalizeJacob(10.0_deg, -50.0_deg, -40.0_deg);
 }

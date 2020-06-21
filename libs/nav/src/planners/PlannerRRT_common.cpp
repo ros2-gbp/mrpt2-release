@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -128,9 +128,8 @@ void PlannerTPS_VirtualBase::internal_loadConfig_PTG(
 		// Generate it:
 		const std::string sPTGName =
 			ini.read_string(sSect, format("PTG%u_Type", n), "", true);
-		m_PTGs.push_back(CParameterizedTrajectoryGenerator::Ptr(
-			CParameterizedTrajectoryGenerator::CreatePTG(
-				sPTGName, ini, sSect, format("PTG%u_", n))));
+		m_PTGs.push_back(CParameterizedTrajectoryGenerator::CreatePTG(
+			sPTGName, ini, sSect, format("PTG%u_", n)));
 	}
 }
 

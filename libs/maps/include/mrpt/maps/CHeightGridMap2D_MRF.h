@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -33,7 +33,7 @@ namespace mrpt::maps
 class CHeightGridMap2D_MRF : public CRandomFieldGridMap2D,
 							 public CHeightGridMap2D_Base
 {
-	DEFINE_SERIALIZABLE(CHeightGridMap2D_MRF)
+	DEFINE_SERIALIZABLE(CHeightGridMap2D_MRF, mrpt::maps)
    public:
 	/** Constructor */
 	CHeightGridMap2D_MRF(
@@ -90,10 +90,10 @@ class CHeightGridMap2D_MRF : public CRandomFieldGridMap2D,
 	// See docs in base class
 	void internal_clear() override;
 	bool internal_insertObservation(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D* robotPose = nullptr) override;
 	double internal_computeObservationLikelihood(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D& takenFrom) override;
 
 	MAP_DEFINITION_START(CHeightGridMap2D_MRF)

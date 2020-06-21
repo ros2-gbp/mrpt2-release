@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -83,7 +83,7 @@ class CFixedIntervalsNRD
 	using pose_t = typename GRAPH_T::constraint_t::type_value;
 	using global_pose_t = typename GRAPH_T::global_pose_t;
 
-	using inf_mat_t = mrpt::math::CMatrixFixedNumeric<
+	using inf_mat_t = mrpt::math::CMatrixFixed<
 		double, constraint_t::state_length, constraint_t::state_length>;
 	/**\brief Node Registration Decider */
 	using parent_t =

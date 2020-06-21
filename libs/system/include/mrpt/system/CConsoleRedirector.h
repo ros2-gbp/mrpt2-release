@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -19,7 +19,7 @@ namespace mrpt::system
  * std::cerr) will be redirected to a text file, and optionally also shown on
  * the console.
  *  Based on code from http://www.devmaster.net/forums/showthread.php?t=7037
- * \ingroup mrpt_base_grp
+ * \ingroup mrpt_system_grp
  */
 class CConsoleRedirector : public std::streambuf
 {
@@ -27,11 +27,12 @@ class CConsoleRedirector : public std::streambuf
 	/** The text output file stream. */
 	std::ofstream m_of;
 	/** The "old" std::cout */
-	std::streambuf* sbOld;
+	std::streambuf* sbOld = nullptr;
 	/** The "old" std::cout */
-	std::streambuf* sbOld_cerr;
+	std::streambuf* sbOld_cerr = nullptr;
 	bool m_also_to_console;
 	std::mutex m_cs;
+	std::vector<char> m_buf;
 
    public:
 	/** Constructor
@@ -48,11 +49,7 @@ class CConsoleRedirector : public std::streambuf
 	CConsoleRedirector(
 		const std::string& out_file, bool also_to_console = true,
 		bool also_cerr = true, bool append_file = false, int bufferSize = 1000)
-		: m_of(),
-		  sbOld(nullptr),
-		  sbOld_cerr(nullptr),
-		  m_also_to_console(also_to_console),
-		  m_cs()
+		: m_also_to_console(also_to_console)
 	{
 		// Open the file:
 		std::ios_base::openmode openMode =
@@ -64,8 +61,8 @@ class CConsoleRedirector : public std::streambuf
 
 		if (bufferSize)
 		{
-			char* ptr = new char[bufferSize];
-			setp(ptr, ptr + bufferSize);
+			m_buf.resize(bufferSize);
+			setp(m_buf.data(), m_buf.data() + bufferSize);
 		}
 		else
 			setp(nullptr, nullptr);
@@ -87,7 +84,6 @@ class CConsoleRedirector : public std::streambuf
 		// Restore normal output:
 		std::cout.rdbuf(sbOld);
 		if (sbOld_cerr != nullptr) std::cerr.rdbuf(sbOld_cerr);
-		if (pbase()) delete[] pbase();
 	}
 
 	void flush() { sync(); }

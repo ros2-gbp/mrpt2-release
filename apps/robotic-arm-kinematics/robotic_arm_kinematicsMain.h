@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -37,14 +37,19 @@ class robotic_arm_kinematicsFrame : public wxFrame
 	robotic_arm_kinematicsFrame(wxWindow* parent, wxWindowID id = -1);
 	~robotic_arm_kinematicsFrame() override;
 
-	void OnSliderDOFScroll(wxScrollEvent& event);
+	void OnSliderDOFScroll(wxScrollEvent&);
+	void OnSliderDOFScrollBis(wxCommandEvent&)
+	{
+		wxScrollEvent e;
+		OnSliderDOFScroll(e);
+	}
 
    private:
 	//(*Handlers(robotic_arm_kinematicsFrame)
 	void OnQuit(wxCommandEvent& event);
 	void OnAbout(wxCommandEvent& event);
 	void OnlistLinksSelect(wxCommandEvent& event);
-	void OnSliderScroll(wxScrollEvent& event);
+	void OnSliderScroll(wxCommandEvent& event);
 	void OnButtonSaveFromEdit(wxCommandEvent& event);
 	void OnbtnClearClick(wxCommandEvent& event);
 	void OnbtnAddLinkClick(wxCommandEvent& event);
@@ -156,11 +161,11 @@ class robotic_arm_kinematicsFrame : public wxFrame
    protected:
 	mrpt::kinematics::CKinematicChain m_robot;
 
-	std::vector<PanelDOF*> m_dof_panels;
+	std::vector<std::unique_ptr<PanelDOF>> m_dof_panels;
 
 	mrpt::opengl::CSetOfObjects::Ptr m_gl_robot;
 
-	mrpt::aligned_std_vector<mrpt::poses::CPose3D> m_all_poses;
+	std::vector<mrpt::poses::CPose3D> m_all_poses;
 
 	/** Regenerate the left list from m_robot */
 	void UpdateListLinks();

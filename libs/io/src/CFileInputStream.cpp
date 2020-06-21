@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -76,10 +76,9 @@ size_t CFileInputStream::Read(void* Buffer, size_t Count)
 							Write
 			Writes a block of bytes to the stream.
  ---------------------------------------------------------------*/
-size_t CFileInputStream::Write(const void* Buffer, size_t Count)
+size_t CFileInputStream::Write(
+	[[maybe_unused]] const void* Buffer, [[maybe_unused]] size_t Count)
 {
-	MRPT_UNUSED_PARAM(Buffer);
-	MRPT_UNUSED_PARAM(Count);
 	THROW_EXCEPTION("Trying to write to a read file stream.");
 }
 

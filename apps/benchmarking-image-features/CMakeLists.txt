@@ -2,9 +2,9 @@ include(../../cmakemodules/AssureCMakeRootFile.cmake)
 
 project(benchmarkingImageFeatures_GUI)
 
-
-
-if(CMAKE_MRPT_HAS_Qt5 AND CMAKE_MRPT_HAS_OPENCV AND NOT "${MRPT_OPENCV_VERSION}" VERSION_LESS "3.2")
+if(CMAKE_MRPT_HAS_Qt5 AND CMAKE_MRPT_HAS_OPENCV AND NOT "${MRPT_OPENCV_VERSION}" VERSION_LESS "3.2"
+	AND NOT WIN32 # added JLBC (may 2019): the app uses gcc-only headers dirent.h (!)
+)
         set(CPP_FILES src/main.cpp
             src/mainwindow.cpp
             src/my_qlabel.cpp
@@ -36,12 +36,12 @@ if(CMAKE_MRPT_HAS_Qt5 AND CMAKE_MRPT_HAS_OPENCV AND NOT "${MRPT_OPENCV_VERSION}"
         # Add the required libraries for linking:
         qt5_use_modules(${PROJECT_NAME} Widgets OpenGL)
 
-        target_link_libraries(${PROJECT_NAME} ${MRPT_LINKER_LIBS} ${OpenCV_LIBS})
+        target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
 
         # Dependencies on MRPT libraries:
         #  Just mention the top-level dependency, the rest will be detected automatically,
         #  and all the needed #include<> dirs added (see the script DeclareAppDependencies.cmake for further details)
-        DeclareAppDependencies(${PROJECT_NAME} mrpt-gui mrpt-vision)
+        DeclareAppDependencies(${PROJECT_NAME} mrpt::gui mrpt::vision)
         DeclareAppForInstall(${PROJECT_NAME})
 
 endif()

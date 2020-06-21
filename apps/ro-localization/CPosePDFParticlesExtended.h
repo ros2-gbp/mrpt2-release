@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -15,7 +15,7 @@
 #include <mrpt/bayes/CProbabilityParticle.h>
 #include <mrpt/maps/CMultiMetricMap.h>
 #include <mrpt/maps/COccupancyGridMap2D.h>
-#include <mrpt/math/CMatrixFixedNumeric.h>
+#include <mrpt/math/CMatrixFixed.h>
 #include <mrpt/obs/CSensoryFrame.h>
 #include <mrpt/poses/CPosePDF.h>
 
@@ -47,7 +47,7 @@ class CPosePDFParticlesExtended
 		  CPosePDFParticlesExtended,
 		  mrpt::bayes::CParticleFilterData<TExtendedCPose2D>::CParticleList>
 {
-	DEFINE_SERIALIZABLE(CPosePDFParticlesExtended)
+	DEFINE_SERIALIZABLE(CPosePDFParticlesExtended, mrpt::poses)
 
    public:
 	/** The struct for passing extra simulation parameters to the prediction
@@ -166,8 +166,7 @@ class CPosePDFParticlesExtended
 	/** Returns an estimate of the pose covariance matrix (3x3 cov.matrix  for
 	 * x,y,phi variables)
 	 */
-	void getCovarianceAndMean(
-		mrpt::math::CMatrixDouble33& C, CPose2D& p) const override;
+	std::tuple<cov_mat_t, type_value> getCovarianceAndMean() const override;
 
 	/** Returns the pose of the i'th particle.
 	 */
@@ -273,7 +272,7 @@ class CPosePDFParticlesExtended
 
 	void bayesianFusion(
 		mrpt::poses::CPosePDF& p1, mrpt::poses::CPosePDF& p2,
-		const double& minMahalanobisDistToDrop = 0)
+		double minMahalanobisDistToDrop = 0)
 	{
 		THROW_EXCEPTION("Not implemented");
 	}

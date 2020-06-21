@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -127,7 +127,7 @@ void CMultiMetricMapPDF::clear(
 			// approximation (with loss of uncertainty).
 			mrpt::poses::CPose3D kf_pose;
 			bool kf_pose_set = false;
-			if (IS_CLASS(keyframe_pose, CPose3DPDFParticles))
+			if (IS_CLASS(*keyframe_pose, CPose3DPDFParticles))
 			{
 				const auto pdf_parts = dynamic_cast<const CPose3DPDFParticles*>(
 					keyframe_pose.get());
@@ -145,7 +145,7 @@ void CMultiMetricMapPDF::clear(
 			p.d->robotPath[i] = kf_pose.asTPose();
 			for (const auto& obs : *sfkeyframe_sf)
 			{
-				p.d->mapTillNow.insertObservation(&(*obs), &kf_pose);
+				p.d->mapTillNow.insertObservation(*obs, &kf_pose);
 			}
 		}
 	}
@@ -403,8 +403,7 @@ bool CMultiMetricMapPDF::insertObservation(CSensoryFrame& sf)
 	const size_t M = particlesCount();
 
 	// Insert into SFs:
-	CPose3DPDFParticles::Ptr posePDF =
-		mrpt::make_aligned_shared<CPose3DPDFParticles>();
+	CPose3DPDFParticles::Ptr posePDF = std::make_shared<CPose3DPDFParticles>();
 	getEstimatedPosePDF(*posePDF);
 
 	// Insert it into the SFs and the SF2robotPath list:
@@ -493,7 +492,7 @@ double CMultiMetricMapPDF::getCurrentJointEntropy()
 		max_y = max(max_y, grid->getYMax());
 	}
 
-	// Asure all maps have the same dimensions:
+	// Ensure all maps have the same dimensions:
 	for (auto& p : m_particles)
 	{
 		auto grid = p.d->mapTillNow.mapByClass<COccupancyGridMap2D>(0);
@@ -596,9 +595,8 @@ void CMultiMetricMapPDF::saveCurrentPathEstimationToTextFile(
 void CMultiMetricMapPDF::TPredictionParams::dumpToTextStream(
 	std::ostream& out) const
 {
-	out << mrpt::format(
-		"\n----------- [CMultiMetricMapPDF::TPredictionParams] ------------ "
-		"\n\n");
+	out << "\n----------- [CMultiMetricMapPDF::TPredictionParams] ------------ "
+		   "\n\n";
 
 	out << mrpt::format(
 		"pfOptimalProposal_mapSelection          = %i\n",
@@ -609,7 +607,7 @@ void CMultiMetricMapPDF::TPredictionParams::dumpToTextStream(
 
 	KLD_params.dumpToTextStream(out);
 	icp_params.dumpToTextStream(out);
-	out << mrpt::format("\n");
+	out << "\n";
 }
 
 /*---------------------------------------------------------------

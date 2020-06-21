@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -43,9 +43,12 @@ namespace mrpt::opengl
 class CEllipsoidInverseDepth2D : public CGeneralizedEllipsoidTemplate<2>
 {
 	using BASE = CGeneralizedEllipsoidTemplate<2>;
-	DEFINE_SERIALIZABLE(CEllipsoidInverseDepth2D)
+	DEFINE_SERIALIZABLE(CEllipsoidInverseDepth2D, mrpt::opengl)
 
    public:
+	CEllipsoidInverseDepth2D() = default;
+	virtual ~CEllipsoidInverseDepth2D() override = default;
+
 	/** The maximum range to be used as a correction when a point of the
 	 * ellipsoid falls in the negative ranges (default: 1e6) */
 	void setUnderflowMaxRange(const double maxRange)
@@ -66,13 +69,6 @@ class CEllipsoidInverseDepth2D : public CGeneralizedEllipsoidTemplate<2>
 
    private:
 	double m_underflowMaxRange{1e6};
-
-   public:
-	/** Constructor
-	 */
-	CEllipsoidInverseDepth2D() = default;
-	/** Private, virtual destructor: only can be deleted from smart pointers */
-	~CEllipsoidInverseDepth2D() override = default;
 };
 
 }  // namespace mrpt::opengl

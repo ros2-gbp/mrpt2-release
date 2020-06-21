@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -59,13 +59,11 @@ class CTopLCDetectorBase
 	 * returns false.
 	 */
 	virtual bool computeSSOBetweenObservations(
-		const THypothesisID& hypID, const TPoseID& poseID1,
-		const TPoseID& poseID2, double& out_SSO)
+		[[maybe_unused]] const THypothesisID& hypID,
+		[[maybe_unused]] const TPoseID& poseID1,
+		[[maybe_unused]] const TPoseID& poseID2,
+		[[maybe_unused]] double& out_SSO)
 	{
-		MRPT_UNUSED_PARAM(hypID);
-		MRPT_UNUSED_PARAM(poseID1);
-		MRPT_UNUSED_PARAM(poseID2);
-		MRPT_UNUSED_PARAM(out_SSO);
 		return false;
 	}
 
@@ -74,10 +72,9 @@ class CTopLCDetectorBase
 	 *  This should be independent of hypothesis IDs.
 	 */
 	virtual void OnNewPose(
-		const TPoseID& poseID, const mrpt::obs::CSensoryFrame* SF)
+		[[maybe_unused]] const TPoseID& poseID,
+		[[maybe_unused]] const mrpt::obs::CSensoryFrame* SF)
 	{
-		MRPT_UNUSED_PARAM(poseID);
-		MRPT_UNUSED_PARAM(SF);
 	}
 	using Ptr = std::shared_ptr<CTopLCDetectorBase>;
 

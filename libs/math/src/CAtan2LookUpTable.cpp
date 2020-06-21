@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -53,15 +53,6 @@ void CAtan2LookUpTable::resize(
 			if (cp) *cp = ::atan2(y, x);
 		}
 	}
-}
-
-bool CAtan2LookUpTable::atan2(double y, double x, double& out_atan2) const
-	noexcept
-{
-	const double* cp = m_grid.cellByPos(x, y);
-	if (!cp) return false;
-	out_atan2 = *cp;
-	return true;
 }
 
 CAtan2LookUpTableMultiRes::CAtan2LookUpTableMultiRes(

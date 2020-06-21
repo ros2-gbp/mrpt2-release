@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -82,6 +82,7 @@ class ts_hash_map
 			  m_idx_inner(idx_inner)
 		{
 		}
+		const_iterator(const const_iterator& o) { *this = o; }
 		const_iterator& operator=(const const_iterator& o)
 		{
 			m_vec = o.m_vec;
@@ -188,9 +189,8 @@ class ts_hash_map
 	}
 
 	bool empty() const { return m_size == 0; }
-	/** Write/read via [i] operator, that creates an element if it didn't exist
-	 * already. */
-	VALUE& operator[](const KEY& key)
+	/** noexcept version of operator[], returns nullptr upon failure */
+	VALUE* find_or_alloc(const KEY& key) noexcept
 	{
 		typename mrpt::uint_select_by_bytecount<NUM_BYTES_HASH_TABLE>::type
 			hash;
@@ -204,12 +204,23 @@ class ts_hash_map
 				m_size++;
 				match_arr[i].used = true;
 				match_arr[i].first = key;
-				return match_arr[i].second;
+				return &match_arr[i].second;
 			}
-			if (match_arr[i].first == key) return match_arr[i].second;
+			if (match_arr[i].first == key) return &match_arr[i].second;
 		}
-		throw std::runtime_error("ts_hash_map: too many hash collisions!");
+		return nullptr;
 	}
+
+	/** Write/read via [i] operator, that creates an element if it didn't exist
+	 * already. */
+	VALUE& operator[](const KEY& key)
+	{
+		VALUE* v = find_or_alloc(key);
+		if (!v)
+			throw std::runtime_error("ts_hash_map: too many hash collisions!");
+		return *v;
+	}
+
 	const_iterator find(const KEY& key) const
 	{
 		typename mrpt::uint_select_by_bytecount<NUM_BYTES_HASH_TABLE>::type

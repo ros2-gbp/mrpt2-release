@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,7 +12,7 @@
 #include <mrpt/config.h>
 
 // SSE2 types:
-#if MRPT_HAS_SSE2
+#if MRPT_ARCH_INTEL_COMPATIBLE
 extern "C"
 {
 #include <emmintrin.h>
@@ -21,10 +21,11 @@ extern "C"
 #endif
 
 // SSE3/SSSE3 types:
-#if MRPT_HAS_SSE3
+#if MRPT_ARCH_INTEL_COMPATIBLE
 extern "C"
 {
 #include <pmmintrin.h>
+#include <tmmintrin.h>
 #if defined(__GNUC__)
 #include <immintrin.h>  // Meta-header
 #endif
@@ -32,14 +33,12 @@ extern "C"
 #endif
 
 // SSE4.1 types:
-#if MRPT_HAS_SSE4_1
 #if defined(__SSE4_2__) || defined(__SSE4_1__)
 #include <smmintrin.h>
 #endif
-#endif
 
 // Helpers:
-#if MRPT_HAS_SSE2
+#if MRPT_ARCH_INTEL_COMPATIBLE
 template <bool ALIGNED>
 __m128i mm_load_si128(__m128i const* ptr);
 

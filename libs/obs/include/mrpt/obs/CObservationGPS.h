@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -66,7 +66,7 @@ namespace mrpt::obs
  */
 class CObservationGPS : public CObservation
 {
-	DEFINE_SERIALIZABLE(CObservationGPS)
+	DEFINE_SERIALIZABLE(CObservationGPS, mrpt::obs)
 
    public:
 	using message_list_t =
@@ -215,50 +215,16 @@ class CObservationGPS : public CObservation
 		const override;  // See base class docs
 	/** @} */
 
-	/** @name Deprecated, backwards compatible (MRPT <1.4.0) data and types
-	 * @{ */
-	/** Deprecated, kept for backwards compatibility */
-	using TUTCTime = gnss::UTC_time;
-	/** Deprecated, kept for backwards compatibility */
-	using TGPSDatum_PZS = gnss::Message_TOPCON_PZS;
-	/** Deprecated, kept for backwards compatibility */
-	using TGPSDatum_SATS = gnss::Message_TOPCON_SATS;
-	/** Deprecated, kept for backwards compatibility */
-	using TGPSDatum_GGA = gnss::Message_NMEA_GGA;
-	/** Deprecated, kept for backwards compatibility */
-	using TGPSDatum_RMC = gnss::Message_NMEA_RMC;
-
-	/** Proxy class for type-based testing existence of data inside
-	 * CObservationGPS::messages */
-	template <mrpt::obs::gnss::gnss_message_type_t MSG_TYPE>
-	struct internal_msg_test_proxy
+	/** true if the corresponding field exists in \a messages. */
+	bool has_GGA_datum() const
 	{
-		internal_msg_test_proxy(message_list_t& msgs_) : msgs(msgs_) {}
-		operator bool(void) const { return msgs.find(MSG_TYPE) != msgs.end(); }
-		internal_msg_test_proxy<MSG_TYPE>& operator=(
-			const internal_msg_test_proxy<MSG_TYPE>&)
-		{
-			return *this;
-		}
-
-	   private:
-		message_list_t& msgs;
-	};
-
-	// Was: bool  has_GGA_datum;
-	/** Evaluates as a bool; true if the corresponding field exists in \a
-	 * messages. */
-	internal_msg_test_proxy<gnss::NMEA_GGA> has_GGA_datum{messages};
-	/** Evaluates as a bool; true if the corresponding field exists in \a
-	 * messages. */
-	internal_msg_test_proxy<gnss::NMEA_RMC> has_RMC_datum{messages};
-	/** Evaluates as a bool; true if the corresponding field exists in \a
-	 * messages. */
-	internal_msg_test_proxy<gnss::TOPCON_PZS> has_PZS_datum{messages};
-	/** Evaluates as a bool; true if the corresponding field exists in \a
-	 * messages. */
-	internal_msg_test_proxy<gnss::TOPCON_SATS> has_SATS_datum{messages};
-	/** @} */
+		return messages.find(gnss::NMEA_GGA) != messages.end();
+	}
+	/** true if the corresponding field exists in \a messages. */
+	bool has_RMC_datum() const
+	{
+		return messages.find(gnss::NMEA_RMC) != messages.end();
+	}
 
 	/** @name Utilities
 	 * @{ */

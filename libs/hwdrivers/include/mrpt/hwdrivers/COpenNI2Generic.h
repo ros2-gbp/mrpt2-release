@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -61,8 +61,9 @@ class COpenNI2Generic
 	 *  \param hardware_error True on hardware/comms error.
 	 *  \param sensor_id The index of the sensor accessed. */
 	void getNextFrameD(
-		mrpt::math::CMatrix& depth_img, mrpt::system::TTimeStamp& timestamp,
-		bool& there_is_obs, bool& hardware_error, unsigned sensor_id = 0);
+		mrpt::math::CMatrix_u16& depth_img_mm,
+		mrpt::system::TTimeStamp& timestamp, bool& there_is_obs,
+		bool& hardware_error, unsigned sensor_id = 0);
 
 	/** The main data retrieving function, to be called after calling
 	 * loadConfig() and initialize().

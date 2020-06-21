@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -54,7 +54,7 @@ namespace expr
  *
  * \note (New in MRPT 1.5.0)
  * \note (`MRPT_EXPR_VERBOSE` new in MRPT 1.5.7)
- * \ingroup mrpt_base_grp
+ * \ingroup mrpt_expr_grp
  */
 // Note: Leave the MRPT_EXPR_EXPORT macro in mrpt-expr, to avoid exporting ALL
 // symbols which would increase the lib size too much.

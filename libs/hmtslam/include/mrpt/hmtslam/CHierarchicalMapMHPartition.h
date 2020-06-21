@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,12 +11,10 @@
 #include <mrpt/hmtslam/CHMHMapArc.h>
 #include <mrpt/hmtslam/CHMHMapNode.h>
 #include <mrpt/hmtslam/CLocalMetricHypothesis.h>
-
 #include <mrpt/opengl/opengl_frwds.h>
 #include <mrpt/poses/CPose3DPDFGaussian.h>
 #include <mrpt/poses/CPose3DPDFSOG.h>
 #include <mrpt/system/COutputLogger.h>
-
 #include <map>
 
 namespace mrpt
@@ -177,7 +175,7 @@ class CHierarchicalMapMHPartition : public mrpt::system::COutputLogger
 
 	/** Draw a number of samples according to the PDF of the coordinates
 	 * transformation between a pair of "Area"'s nodes.
-	 * \exception std::exception If there is not enought information in arcs to
+	 * \exception std::exception If there is not enough information in arcs to
 	 * compute the PDF
 	 * \sa computeGloballyConsistentNodeCoordinates
 	 */
@@ -241,11 +239,7 @@ class CHierarchicalMapMHPartition : public mrpt::system::COutputLogger
 	 * \sa computeCoordinatesTransformationBetweenNodes
 	 */
 	void computeGloballyConsistentNodeCoordinates(
-		std::map<
-			CHMHMapNode::TNodeID, mrpt::poses::CPose3DPDFGaussian,
-			std::less<CHMHMapNode::TNodeID>,
-			Eigen::aligned_allocator<std::pair<
-				const CHMHMapNode::TNodeID, mrpt::poses::CPose3DPDFGaussian>>>&
+		std::map<CHMHMapNode::TNodeID, mrpt::poses::CPose3DPDFGaussian>&
 			nodePoses,
 		const CHMHMapNode::TNodeID& idReferenceNode,
 		const THypothesisID& hypothesisID,
@@ -260,14 +254,14 @@ class CHierarchicalMapMHPartition : public mrpt::system::COutputLogger
 		const CHMHMapNode::TNodeID& idReferenceNode,
 		const THypothesisID& hypothesisID,
 		const unsigned int& numberOfIterationsForOptimalGlobalPoses = 5,
-		const bool& showRobotPoseIDs = true) const;
+		bool showRobotPoseIDs = true) const;
 
 	/** Return a textual description of the whole graph */
 	void dumpAsText(std::vector<std::string>& s) const;
 
 	/** Computes the probability [0,1] of two areas' gridmaps to overlap, via a
 	 * Monte Carlo aproximation.
-	 * \exception std::exception If there is not enought information in arcs,
+	 * \exception std::exception If there is not enough information in arcs,
 	 * etc...
 	 * \param margin_to_substract In meters, the area of each gridmap is
 	 * "eroded" this amount to compensate the area in excess usually found in
@@ -276,7 +270,7 @@ class CHierarchicalMapMHPartition : public mrpt::system::COutputLogger
 	double computeOverlapProbabilityBetweenNodes(
 		const CHMHMapNode::TNodeID& nodeFrom,
 		const CHMHMapNode::TNodeID& nodeTo, const THypothesisID& hypothesisID,
-		const size_t& monteCarloSamples = 100,
+		size_t monteCarloSamples = 100,
 		const float margin_to_substract = 6) const;
 
    protected:

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -41,35 +41,20 @@ CWindowDialog::wxMRPTImageControl::wxMRPTImageControl(
 {
 	this->Create(parent, winID, wxPoint(x, y), wxSize(width, height));
 
-	Connect(
-		wxEVT_PAINT,
-		wxPaintEventHandler(CWindowDialog::wxMRPTImageControl::OnPaint));
-	Connect(
-		wxEVT_MOTION,
-		wxMouseEventHandler(CWindowDialog::wxMRPTImageControl::OnMouseMove));
-	Connect(
-		wxID_ANY, wxEVT_LEFT_DOWN,
-		wxMouseEventHandler(CWindowDialog::wxMRPTImageControl::OnMouseClick));
-
-	Connect(
-		wxID_ANY, wxEVT_CHAR,
-		(wxObjectEventFunction)&CWindowDialog::wxMRPTImageControl::OnChar);
-	Connect(
-		wxEVT_CHAR,
-		(wxObjectEventFunction)&CWindowDialog::wxMRPTImageControl::OnChar);
-
-	//	Connect(wxID_ANY,wxEVT_CHAR,(wxObjectEventFunction)&CWindowDialog::wxMRPTImageControl::OnChar);
-	//	Connect(wxID_ANY,wxEVT_KEY_DOWN,(wxObjectEventFunction)&CWindowDialog::wxMRPTImageControl::OnChar);
+	Bind(wxEVT_PAINT, &CWindowDialog::wxMRPTImageControl::OnPaint, this);
+	Bind(wxEVT_MOTION, &CWindowDialog::wxMRPTImageControl::OnMouseMove, this);
+	Bind(
+		wxEVT_LEFT_DOWN, &CWindowDialog::wxMRPTImageControl::OnMouseClick,
+		this);
+	Bind(
+		wxEVT_CHAR, &CWindowDialog::wxMRPTImageControl::OnChar, this, wxID_ANY);
+	Bind(wxEVT_CHAR, &CWindowDialog::wxMRPTImageControl::OnChar, this);
 }
 
 CWindowDialog::wxMRPTImageControl::~wxMRPTImageControl()
 {
 	std::lock_guard<std::mutex> lock(m_img_cs);
-	if (m_img)
-	{
-		delete m_img;
-		m_img = nullptr;
-	}
+	if (m_img) m_img.reset();
 }
 
 void CWindowDialog::wxMRPTImageControl::OnMouseMove(wxMouseEvent& ev)
@@ -88,13 +73,7 @@ void CWindowDialog::wxMRPTImageControl::OnChar(wxKeyEvent& ev) {}
 void CWindowDialog::wxMRPTImageControl::AssignImage(wxBitmap* img)
 {
 	std::lock_guard<std::mutex> lock(m_img_cs);
-	if (m_img)
-	{
-		delete m_img;
-		m_img = nullptr;
-	}
-
-	m_img = img;
+	m_img.reset(img);
 }
 
 void CWindowDialog::wxMRPTImageControl::OnPaint(wxPaintEvent& ev)
@@ -160,42 +139,20 @@ CWindowDialog::CWindowDialog(
 	SetMenuBar(MenuBar1);
 
 	// Events:
-	Connect(
-		wxID_ANY, wxEVT_CLOSE_WINDOW,
-		(wxObjectEventFunction)&CWindowDialog::OnClose);
-	Connect(
-		ID_MENUITEM1, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&CWindowDialog::OnMenuClose);
-	Connect(
-		ID_MENUITEM2, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&CWindowDialog::OnMenuAbout);
-	Connect(
-		ID_MENUITEM3, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&CWindowDialog::OnMenuSave);
+	Bind(wxEVT_CLOSE_WINDOW, &CWindowDialog::OnClose, this, wxID_ANY);
+	Bind(wxEVT_MENU, &CWindowDialog::OnMenuClose, this, ID_MENUITEM1);
+	Bind(wxEVT_MENU, &CWindowDialog::OnMenuAbout, this, ID_MENUITEM2);
+	Bind(wxEVT_MENU, &CWindowDialog::OnMenuSave, this, ID_MENUITEM3);
 
-	//	Connect(wxID_ANY,wxEVT_CHAR,(wxObjectEventFunction)&CWindowDialog::OnChar);
-	Connect(
-		wxID_ANY, wxEVT_KEY_DOWN,
-		(wxObjectEventFunction)&CWindowDialog::OnChar);
-	// Connect(wxID_ANY,wxEVT_CHAR,(wxObjectEventFunction)&CWindowDialog::OnChar);
-	Connect(wxEVT_CHAR, (wxObjectEventFunction)&CWindowDialog::OnChar);
+	Bind(wxEVT_KEY_DOWN, &CWindowDialog::OnChar, this, wxID_ANY);
+	Bind(wxEVT_CHAR, &CWindowDialog::OnChar, this, wxID_ANY);
 
-	m_image->Connect(
-		wxID_ANY, wxEVT_KEY_DOWN, (wxObjectEventFunction)&CWindowDialog::OnChar,
-		nullptr, this);
-	m_image->Connect(
-		wxEVT_SIZE, (wxObjectEventFunction)&CWindowDialog::OnResize, nullptr,
-		this);
+	m_image->Bind(wxEVT_KEY_DOWN, &CWindowDialog::OnChar, this);
+	m_image->Bind(wxEVT_SIZE, &CWindowDialog::OnResize, this);
 
-	m_image->Connect(
-		wxEVT_LEFT_DOWN, (wxObjectEventFunction)&CWindowDialog::OnMouseDown,
-		nullptr, this);
-	m_image->Connect(
-		wxEVT_RIGHT_DOWN, (wxObjectEventFunction)&CWindowDialog::OnMouseDown,
-		nullptr, this);
-	m_image->Connect(
-		wxEVT_MOTION, (wxObjectEventFunction)&CWindowDialog::OnMouseMove,
-		nullptr, this);
+	m_image->Bind(wxEVT_LEFT_DOWN, &CWindowDialog::OnMouseDown, this);
+	m_image->Bind(wxEVT_RIGHT_DOWN, &CWindowDialog::OnMouseDown, this);
+	m_image->Bind(wxEVT_MOTION, &CWindowDialog::OnMouseMove, this);
 
 	// Increment number of windows:
 	// int winCount =
@@ -374,22 +331,21 @@ CDisplayWindow::CDisplayWindow(
 CDisplayWindow::~CDisplayWindow() { CBaseGUIWindow::destroyWxWindow(); }
 /** Set cursor style to default (cursorIsCross=false) or to a cross
  * (cursorIsCross=true) */
-void CDisplayWindow::setCursorCross(bool cursorIsCross)
+void CDisplayWindow::setCursorCross([[maybe_unused]] bool cursorIsCross)
 {
 #if MRPT_HAS_WXWIDGETS && MRPT_HAS_OPENGL_GLUT
 	const auto* win = (const CWindowDialog*)m_hwnd.get();
 	if (!win) return;
 	win->m_image->SetCursor(
 		*(cursorIsCross ? wxCROSS_CURSOR : wxSTANDARD_CURSOR));
-#else
-	MRPT_UNUSED_PARAM(cursorIsCross);
 #endif
 }
 
 /*---------------------------------------------------------------
 					getLastMousePosition
  ---------------------------------------------------------------*/
-bool CDisplayWindow::getLastMousePosition(int& x, int& y) const
+bool CDisplayWindow::getLastMousePosition(
+	[[maybe_unused]] int& x, [[maybe_unused]] int& y) const
 {
 #if MRPT_HAS_WXWIDGETS && MRPT_HAS_OPENGL_GLUT
 	const auto* win = (const CWindowDialog*)m_hwnd.get();
@@ -398,8 +354,6 @@ bool CDisplayWindow::getLastMousePosition(int& x, int& y) const
 	y = win->m_image->m_last_mouse_point.y;
 	return true;
 #else
-	MRPT_UNUSED_PARAM(x);
-	MRPT_UNUSED_PARAM(y);
 	return false;
 #endif
 }
@@ -407,7 +361,7 @@ bool CDisplayWindow::getLastMousePosition(int& x, int& y) const
 /*---------------------------------------------------------------
 					showImage
  ---------------------------------------------------------------*/
-void CDisplayWindow::showImage(const CImage& img)
+void CDisplayWindow::showImage([[maybe_unused]] const CImage& img)
 {
 #if MRPT_HAS_WXWIDGETS
 	MRPT_START
@@ -424,8 +378,6 @@ void CDisplayWindow::showImage(const CImage& img)
 	WxSubsystem::pushPendingWxRequest(REQ);
 
 	MRPT_END
-#else
-	MRPT_UNUSED_PARAM(img);
 #endif
 }
 
@@ -434,7 +386,7 @@ void CDisplayWindow::showImage(const CImage& img)
  ---------------------------------------------------------------*/
 void CDisplayWindow::showImageAndPoints(
 	const CImage& img, const CVectorFloat& x_, const CVectorFloat& y_,
-	const TColor& color, const bool& showNumbers)
+	const TColor& color, bool showNumbers)
 {
 	std::vector<float> x(x_.size()), y(y_.size());
 	for (size_t i = 0; i < x.size(); i++) x[i] = x_[i];
@@ -443,8 +395,10 @@ void CDisplayWindow::showImageAndPoints(
 }
 
 void CDisplayWindow::showImageAndPoints(
-	const CImage& img, const std::vector<float>& x, const std::vector<float>& y,
-	const TColor& color, const bool& showNumbers)
+	[[maybe_unused]] const CImage& img,
+	[[maybe_unused]] const std::vector<float>& x,
+	[[maybe_unused]] const std::vector<float>& y,
+	[[maybe_unused]] const TColor& color, [[maybe_unused]] bool showNumbers)
 {
 #if MRPT_HAS_WXWIDGETS
 	MRPT_START
@@ -464,12 +418,6 @@ void CDisplayWindow::showImageAndPoints(
 	}  // end-for
 	showImage(imgColor);
 	MRPT_END
-#else
-	MRPT_UNUSED_PARAM(img);
-	MRPT_UNUSED_PARAM(x);
-	MRPT_UNUSED_PARAM(y);
-	MRPT_UNUSED_PARAM(color);
-	MRPT_UNUSED_PARAM(showNumbers);
 #endif
 }
 
@@ -512,9 +460,11 @@ void CDisplayWindow::plot(const CVectorFloat& x, const CVectorFloat& y)
 	{
 		float tpx = (*itx - x[0]) / px + ox;
 		float tpy = (*ity - *itymn) / py + oy;
-		imgColor.drawMark(tpx, tpy, TColor(255, 0, 0), 'x');
+		imgColor.drawMark(round(tpx), round(tpy), TColor(255, 0, 0), 'x');
 		if (itx != x.begin())
-			imgColor.line(tpxA, tpyA, tpx, tpy, TColor(0, 0, 255), 3);
+			imgColor.line(
+				round(tpxA), round(tpyA), round(tpx), round(tpy),
+				TColor(0, 0, 255), 3);
 		tpxA = tpx;
 		tpyA = tpy;
 	}  // end for
@@ -556,14 +506,14 @@ void CDisplayWindow::plot(const CVectorFloat& y)
 	itymn = std::min_element(y.begin(), y.end());
 	float px = y.size() / 520.0f;
 	float py = (*itymx - *itymn) / 400.0f;
-	float tpxA = 0, tpyA = 0;
+	int tpxA = 0, tpyA = 0;
 
 	unsigned int k = 0;
 
 	for (k = 0, ity = y.begin(); ity != y.end(); ++k, ++ity)
 	{
-		float tpx = k / px + ox;
-		float tpy = (*ity - *itymn) / py + oy;
+		auto tpx = round(k / px + ox);
+		auto tpy = round((*ity - *itymn) / py + oy);
 		imgColor.drawMark(tpx, tpy, TColor::red(), 'x');
 		if (k > 0) imgColor.line(tpxA, tpyA, tpx, tpy, TColor::blue(), 3);
 		tpxA = tpx;
@@ -578,7 +528,8 @@ void CDisplayWindow::plot(const CVectorFloat& y)
 /*---------------------------------------------------------------
 					resize
  ---------------------------------------------------------------*/
-void CDisplayWindow::resize(unsigned int width, unsigned int height)
+void CDisplayWindow::resize(
+	[[maybe_unused]] unsigned int width, [[maybe_unused]] unsigned int height)
 {
 #if MRPT_HAS_WXWIDGETS
 	if (!isOpen())
@@ -595,16 +546,13 @@ void CDisplayWindow::resize(unsigned int width, unsigned int height)
 	REQ->x = width;
 	REQ->y = height;
 	WxSubsystem::pushPendingWxRequest(REQ);
-#else
-	MRPT_UNUSED_PARAM(width);
-	MRPT_UNUSED_PARAM(height);
 #endif
 }
 
 /*---------------------------------------------------------------
 					setPos
  ---------------------------------------------------------------*/
-void CDisplayWindow::setPos(int x, int y)
+void CDisplayWindow::setPos([[maybe_unused]] int x, [[maybe_unused]] int y)
 {
 #if MRPT_HAS_WXWIDGETS
 	if (!isOpen())
@@ -621,16 +569,13 @@ void CDisplayWindow::setPos(int x, int y)
 	REQ->x = x;
 	REQ->y = y;
 	WxSubsystem::pushPendingWxRequest(REQ);
-#else
-	MRPT_UNUSED_PARAM(x);
-	MRPT_UNUSED_PARAM(y);
 #endif
 }
 
 /*---------------------------------------------------------------
 					setWindowTitle
  ---------------------------------------------------------------*/
-void CDisplayWindow::setWindowTitle(const std::string& str)
+void CDisplayWindow::setWindowTitle([[maybe_unused]] const std::string& str)
 {
 #if MRPT_HAS_WXWIDGETS
 	if (!isOpen())
@@ -646,7 +591,5 @@ void CDisplayWindow::setWindowTitle(const std::string& str)
 	REQ->OPCODE = 204;
 	REQ->str = str;
 	WxSubsystem::pushPendingWxRequest(REQ);
-#else
-	MRPT_UNUSED_PARAM(str);
 #endif
 }

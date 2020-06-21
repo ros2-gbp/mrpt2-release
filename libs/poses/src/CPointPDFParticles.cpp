@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -15,6 +15,7 @@
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/os.h>
+#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::poses;
@@ -79,16 +80,16 @@ void CPointPDFParticles::getMean(CPoint3D& p) const
 	MRPT_END
 }
 
-/*---------------------------------------------------------------
-						getEstimatedCovariance
- ---------------------------------------------------------------*/
-void CPointPDFParticles::getCovarianceAndMean(
-	CMatrixDouble33& cov, CPoint3D& mean) const
+std::tuple<CMatrixDouble33, CPoint3D> CPointPDFParticles::getCovarianceAndMean()
+	const
 {
 	MRPT_START
 
+	CPoint3D mean;
+	CMatrixDouble33 cov;
+
 	getMean(mean);
-	cov.zeros();
+	cov.setZero();
 
 	size_t i, n = m_particles.size();
 	double var_x = 0, var_y = 0, var_p = 0, var_xy = 0, var_xp = 0, var_yp = 0;
@@ -126,6 +127,7 @@ void CPointPDFParticles::getCovarianceAndMean(
 		cov(1, 2) = cov(2, 1) = var_yp;
 	}
 
+	return {cov, mean};
 	MRPT_END
 }
 
@@ -203,9 +205,9 @@ void CPointPDFParticles::changeCoordinatesReference(
 			m_particle.d->x, m_particle.d->y, m_particle.d->z,  // In
 			pt.x, pt.y, pt.z  // Out
 		);
-		m_particle.d->x = pt.x;
-		m_particle.d->y = pt.y;
-		m_particle.d->z = pt.z;
+		m_particle.d->x = d2f(pt.x);
+		m_particle.d->y = d2f(pt.y);
+		m_particle.d->z = d2f(pt.z);
 	}
 }
 
@@ -217,11 +219,11 @@ double CPointPDFParticles::computeKurtosis()
 	MRPT_START
 
 	// kurtosis = \mu^4 / (\sigma^2) -3
-	CVectorDouble kurts, mu4, m, var;
-	kurts.assign(3, .0);
-	mu4.assign(3, .0);
-	m.assign(3, .0);
-	var.assign(3, .0);
+	Eigen::Vector3d kurts, mu4, m, var;
+	kurts.fill(0);
+	mu4.fill(0);
+	m.fill(0);
+	var.fill(0);
 
 	// Means:
 	for (auto& m_particle : m_particles)
@@ -264,9 +266,9 @@ double CPointPDFParticles::computeKurtosis()
 /*---------------------------------------------------------------
 					drawSingleSample
   ---------------------------------------------------------------*/
-void CPointPDFParticles::drawSingleSample(CPoint3D& outSample) const
+void CPointPDFParticles::drawSingleSample([
+	[maybe_unused]] CPoint3D& outSample) const
 {
-	MRPT_UNUSED_PARAM(outSample);
 	THROW_EXCEPTION("TO DO!");
 }
 
@@ -274,12 +276,10 @@ void CPointPDFParticles::drawSingleSample(CPoint3D& outSample) const
 					bayesianFusion
  ---------------------------------------------------------------*/
 void CPointPDFParticles::bayesianFusion(
-	const CPointPDF& p1_, const CPointPDF& p2_,
-	const double minMahalanobisDistToDrop)
+	[[maybe_unused]] const CPointPDF& p1_,
+	[[maybe_unused]] const CPointPDF& p2_,
+	[[maybe_unused]] const double minMahalanobisDistToDrop)
 {
-	MRPT_UNUSED_PARAM(p1_);
-	MRPT_UNUSED_PARAM(p2_);
-	MRPT_UNUSED_PARAM(minMahalanobisDistToDrop);
 	MRPT_START
 
 	THROW_EXCEPTION("TODO!!!");

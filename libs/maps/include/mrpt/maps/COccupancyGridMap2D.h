@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -54,7 +54,7 @@ class COccupancyGridMap2D
 	: public CMetricMap,
 	  public CLogOddsGridMap2D<OccGridCellTraits::cellType>
 {
-	DEFINE_SERIALIZABLE(COccupancyGridMap2D)
+	DEFINE_SERIALIZABLE(COccupancyGridMap2D, mrpt::maps)
    public:
 	/** The type of the map cells: */
 	using cellType = OccGridCellTraits::cellType;
@@ -109,13 +109,20 @@ class COccupancyGridMap2D
 	bool m_is_empty{true};
 
 	/** See base class */
-	void OnPostSuccesfulInsertObs(const mrpt::obs::CObservation*) override;
+	void OnPostSuccesfulInsertObs(const mrpt::obs::CObservation&) override;
 
 	/** The free-cells threshold used to compute the Voronoi diagram. */
 	float voroni_free_threshold{};
 
 	/** Entropy computation internal function: */
-	static double H(double p);
+	template <typename T>
+	static T H(const T p)
+	{
+		if (p == 0 || p == 1)
+			return 0;
+		else
+			return -p * std::log(p);
+	}
 	/** Internally used to speed-up entropy calculation */
 	static std::vector<float> entropyTable;
 
@@ -140,37 +147,37 @@ class COccupancyGridMap2D
 	 * "computeObservationLikelihood" (This method is the Range-Scan Likelihood
 	 * Consensus for gridmaps, see the ICRA2007 paper by Blanco et al.)  */
 	double computeObservationLikelihood_Consensus(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose2D& takenFrom);
 	/** One of the methods that can be selected for implementing
 	 * "computeObservationLikelihood". TODO: This method is described in....  */
 	double computeObservationLikelihood_ConsensusOWA(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose2D& takenFrom);
 	/** One of the methods that can be selected for implementing
 	 * "computeObservationLikelihood"  */
 	double computeObservationLikelihood_CellsDifference(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose2D& takenFrom);
 	/** One of the methods that can be selected for implementing
 	 * "computeObservationLikelihood" */
 	double computeObservationLikelihood_MI(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose2D& takenFrom);
 	/** One of the methods that can be selected for implementing
 	 * "computeObservationLikelihood" */
 	double computeObservationLikelihood_rayTracing(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose2D& takenFrom);
 	/** One of the methods that can be selected for implementing
 	 * "computeObservationLikelihood".*/
 	double computeObservationLikelihood_likelihoodField_Thrun(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose2D& takenFrom);
 	/** One of the methods that can be selected for implementing
 	 * "computeObservationLikelihood". */
 	double computeObservationLikelihood_likelihoodField_II(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose2D& takenFrom);
 
 	/** Clear the map: It set all cells to their default occupancy value (0.5),
@@ -190,7 +197,7 @@ class COccupancyGridMap2D
 	 * \sa insertionOptions, CObservation::insertObservationInto
 	 */
 	bool internal_insertObservation(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D* robotPose = nullptr) override;
 
    public:
@@ -1114,11 +1121,11 @@ class COccupancyGridMap2D
    private:
 	// See docs in base class
 	double internal_computeObservationLikelihood(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D& takenFrom) override;
 	// See docs in base class
 	bool internal_canComputeObservationLikelihood(
-		const mrpt::obs::CObservation* obs) const override;
+		const mrpt::obs::CObservation& obs) const override;
 
 	/** Returns a byte with the occupancy of the 8 sorrounding cells.
 	 * \param cx The cell index

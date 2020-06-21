@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -25,60 +25,38 @@ using namespace mrpt::serialization;
 
 IMPLEMENTS_SERIALIZABLE(CRawlog, CSerializable, mrpt::obs)
 
-// ctor
-CRawlog::CRawlog() : m_seqOfActObs(), m_commentTexts() {}
-// dtor
-CRawlog::~CRawlog() { clear(); }
 void CRawlog::clear()
 {
 	m_seqOfActObs.clear();
 	m_commentTexts.text.clear();
 }
 
-void CRawlog::addObservations(CSensoryFrame& observations)
+void CRawlog::insert(CSensoryFrame& observations)
 {
 	m_seqOfActObs.push_back(std::dynamic_pointer_cast<CSerializable>(
 		observations.duplicateGetSmartPtr()));
 }
 
-void CRawlog::addActions(CActionCollection& actions)
+void CRawlog::insert(CActionCollection& actions)
 {
 	m_seqOfActObs.push_back(std::dynamic_pointer_cast<CSerializable>(
 		actions.duplicateGetSmartPtr()));
 }
-
-void CRawlog::addActionsMemoryReference(const CActionCollection::Ptr& action)
+void CRawlog::insert(const CSerializable::Ptr& obj)
 {
-	m_seqOfActObs.push_back(action);
-}
-
-void CRawlog::addObservationsMemoryReference(
-	const CSensoryFrame::Ptr& observations)
-{
-	m_seqOfActObs.push_back(observations);
-}
-void CRawlog::addGenericObject(const CSerializable::Ptr& obj)
-{
-	m_seqOfActObs.push_back(obj);
-}
-
-void CRawlog::addObservationMemoryReference(
-	const CObservation::Ptr& observation)
-{
-	if (IS_CLASS(observation, CObservationComment))
+	if (IS_CLASS(*obj, CObservationComment))
 	{
 		CObservationComment::Ptr o =
-			std::dynamic_pointer_cast<CObservationComment>(observation);
+			std::dynamic_pointer_cast<CObservationComment>(obj);
 		m_commentTexts = *o;
 	}
 	else
-		m_seqOfActObs.push_back(observation);
+		m_seqOfActObs.push_back(obj);
 }
 
-void CRawlog::addAction(CAction& action)
+void CRawlog::insert(CAction& action)
 {
-	CActionCollection::Ptr temp =
-		mrpt::make_aligned_shared<CActionCollection>();
+	CActionCollection::Ptr temp = std::make_shared<CActionCollection>();
 	temp->insert(action);
 	m_seqOfActObs.push_back(temp);
 }
@@ -189,8 +167,8 @@ bool CRawlog::loadFromRawLogFile(
 	const std::string& fileName, bool non_obs_objects_are_legal)
 {
 	// Open for read.
-	CFileGZInputStream fi(fileName);
-	if (!fi.fileOpenCorrectly()) return false;
+	CFileGZInputStream fi;
+	if (!fi.open(fileName)) return false;
 	auto fs = archiveFrom(fi);
 
 	clear();  // Clear first
@@ -215,7 +193,7 @@ bool CRawlog::loadFromRawLogFile(
 			else if (newObj->GetRuntimeClass()->derivedFrom(
 						 CLASS_ID(CObservation)))
 			{
-				if (IS_CLASS(newObj, CObservationComment))
+				if (IS_CLASS(*newObj, CObservationComment))
 				{
 					CObservationComment::Ptr o =
 						std::dynamic_pointer_cast<CObservationComment>(newObj);
@@ -383,11 +361,11 @@ bool CRawlog::getActionObservationPairOrObservation(
 		{
 			CSerializable::Ptr obj;
 			inStream >> obj;
-			if (IS_CLASS(obj, CActionCollection))
+			if (IS_CLASS(*obj, CActionCollection))
 			{
 				action = std::dynamic_pointer_cast<CActionCollection>(obj);
 			}
-			else if (IS_DERIVED(obj, CObservation))
+			else if (IS_DERIVED(*obj, CObservation))
 			{
 				observation = std::dynamic_pointer_cast<CObservation>(obj);
 				rawlogEntry++;
@@ -433,9 +411,9 @@ bool CRawlog::getActionObservationPairOrObservation(
 void CRawlog::findObservationsByClassInRange(
 	mrpt::system::TTimeStamp time_start, mrpt::system::TTimeStamp time_end,
 	const mrpt::rtti::TRuntimeClassId* class_type,
-	TListTimeAndObservations& out_found, size_t guess_start_position) const
+	TListTimeAndObservations& out_found,
+	[[maybe_unused]] size_t guess_start_position) const
 {
-	MRPT_UNUSED_PARAM(guess_start_position);
 	MRPT_START
 
 	out_found.clear();

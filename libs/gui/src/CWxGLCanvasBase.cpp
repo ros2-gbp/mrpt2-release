@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -51,10 +51,17 @@ using namespace std;
 
 void CWxGLCanvasBase::OnWindowCreation(wxWindowCreateEvent& ev)
 {
-	if (!m_gl_context) m_gl_context = new wxGLContext(this);
+	if (!m_gl_context) m_gl_context = std::make_unique<wxGLContext>(this);
 }
 
-void CWxGLCanvasBase::swapBuffers() { SwapBuffers(); }
+void CWxGLCanvasBase::swapBuffers()
+{
+	if (m_gl_context)
+	{
+		SetCurrent(*m_gl_context);
+		SwapBuffers();
+	}
+}
 void CWxGLCanvasBase::preRender() { OnPreRender(); }
 void CWxGLCanvasBase::postRender() { OnPostRender(); }
 void CWxGLCanvasBase::renderError(const string& err_msg)
@@ -76,12 +83,12 @@ void CWxGLCanvasBase::OnMouseMove(wxMouseEvent& event)
 {
 	bool leftIsDown = event.LeftIsDown();
 
+	int X = event.GetX();
+	int Y = event.GetY();
+	updateLastPos(X, Y);
+
 	if (leftIsDown || event.RightIsDown())
 	{
-		int X = event.GetX();
-		int Y = event.GetY();
-		updateLastPos(X, Y);
-
 		// Proxy variables to cache the changes:
 		CamaraParams params = cameraParams();
 
@@ -105,7 +112,9 @@ void CWxGLCanvasBase::OnMouseMove(wxMouseEvent& event)
 #if wxCHECK_VERSION(2, 9, 5)
 		wxTheApp->SafeYieldFor(nullptr, wxEVT_CATEGORY_TIMER);
 #endif
-		Refresh(false);
+
+		Refresh();
+		Update();
 	}
 
 	// ensure we have the focus so we get keyboard events:
@@ -123,8 +132,18 @@ void CWxGLCanvasBase::OnMouseWheel(wxMouseEvent& event)
 	this->SetFocus();
 }
 
-static int WX_GL_ATTR_LIST[] = {WX_GL_DOUBLEBUFFER, WX_GL_RGBA,
-								WX_GL_DEPTH_SIZE, 24, 0};
+// clang-format off
+static int WX_GL_ATTR_LIST[] = {
+	WX_GL_DOUBLEBUFFER,    WX_GL_RGBA,
+	WX_GL_DEPTH_SIZE,     24,
+#if wxCHECK_VERSION(3, 0, 3)
+	WX_GL_MAJOR_VERSION,  3,
+	WX_GL_MINOR_VERSION,  1,
+    WX_GL_CORE_PROFILE, // do not allow using opengl 1.x deprecated stuff
+#endif
+	0
+};
+// clang-format on
 
 CWxGLCanvasBase::CWxGLCanvasBase(
 	wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size,
@@ -158,10 +177,6 @@ CWxGLCanvasBase::CWxGLCanvasBase(
 #endif
 }
 
-CWxGLCanvasBase::~CWxGLCanvasBase()
-{
-	if (m_gl_context) delete m_gl_context;
-}
 void CWxGLCanvasBase::OnChar(wxKeyEvent& event) { OnCharCustom(event); }
 void CWxGLCanvasBase::Render()
 {

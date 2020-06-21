@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -36,6 +36,7 @@ namespace mrpt::nav
  * // 2: Distance of end collision-free point to target (Euclidean)
  * // 3: Hysteresis
  * // 4: Clearness to nearest obstacle along path
+ * // 5: Like 2, but without being decimated if path to target is obstructed
  * TARGET_SLOW_APPROACHING_DISTANCE = 0.20   // Start to reduce speed when
  * closer than this to target [m]
  * TOO_CLOSE_OBSTACLE               = 0.02   // Directions with collision-free
@@ -54,7 +55,7 @@ namespace mrpt::nav
  */
 class CHolonomicFullEval : public CAbstractHolonomicReactiveMethod
 {
-	DEFINE_SERIALIZABLE(CHolonomicFullEval)
+	DEFINE_SERIALIZABLE(CHolonomicFullEval, mrpt::nav)
    public:
 	/**  Initialize the parameters of the navigator, from some configuration
 	 * file, or default values if set to nullptr */
@@ -135,18 +136,16 @@ class CHolonomicFullEval : public CAbstractHolonomicReactiveMethod
 	 * a "-1" value will be found. */
 	mrpt::math::CMatrixD m_dirs_scores;
 
+	/** If desired, override in a derived class to manipulate the final
+	 * evaluations of each directions */
 	virtual void postProcessDirectionEvaluations(
 		std::vector<double>& dir_evals, const NavInput& ni,
-		unsigned int trg_idx);  // If desired, override in a derived class to
-	// manipulate the final evaluations of each
-	// directions
+		unsigned int trg_idx);
 
 	struct EvalOutput
 	{
-		unsigned int best_k;
-		double best_eval{.0};
 		std::vector<std::vector<double>> phase_scores;
-		EvalOutput();
+		EvalOutput() {}
 	};
 
 	/** Evals one single target of the potentially many of them in NavInput */
@@ -162,7 +161,7 @@ class CHolonomicFullEval : public CAbstractHolonomicReactiveMethod
  */
 class CLogFileRecord_FullEval : public CHolonomicLogFileRecord
 {
-	DEFINE_SERIALIZABLE(CLogFileRecord_FullEval)
+	DEFINE_SERIALIZABLE(CLogFileRecord_FullEval, mrpt::nav)
    public:
 	CLogFileRecord_FullEval();
 

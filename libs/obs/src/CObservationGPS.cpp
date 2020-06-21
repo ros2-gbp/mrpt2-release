@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -200,9 +200,13 @@ void CObservationGPS::serializeFrom(
 						MRPT_READ_POD(in, PZS_datum.cartesian_vy);
 						MRPT_READ_POD(in, PZS_datum.cartesian_vz);
 						MRPT_READ_POD(in, PZS_datum.hasPosCov);
-						MRPT_READ_POD(in, PZS_datum.pos_covariance);
+						in.ReadBufferFixEndianness(
+							&PZS_datum.pos_covariance(0, 0),
+							PZS_datum.pos_covariance.size());
 						MRPT_READ_POD(in, PZS_datum.hasVelCov);
-						MRPT_READ_POD(in, PZS_datum.vel_covariance);
+						in.ReadBufferFixEndianness(
+							&PZS_datum.vel_covariance(0, 0),
+							PZS_datum.vel_covariance.size());
 						MRPT_READ_POD(in, PZS_datum.hasStats);
 						MRPT_READ_POD(in, PZS_datum.stats_GPS_sats_used);
 						MRPT_READ_POD(in, PZS_datum.stats_GLONASS_sats_used);
@@ -241,7 +245,7 @@ void CObservationGPS::serializeFrom(
 			MRPT_THROW_UNKNOWN_SERIALIZATION_VERSION(version);
 	};
 
-	if (originalReceivedTimestamp == INVALID_TIMESTAMP)
+	if (version < 10 && originalReceivedTimestamp == INVALID_TIMESTAMP)
 		originalReceivedTimestamp = timestamp;
 }
 
@@ -429,7 +433,7 @@ bool TIMECONV_GetUTCTimeFromJulianDate(
 	// Check the input.
 	if (julian_date < 0.0) return false;
 
-	a = (int)(julian_date + 0.5);
+	a = lround(julian_date);
 	b = a + 1537;
 	c = (int)(((double)b - 122.1) / 365.25);
 	d = (int)(365.25 * c);

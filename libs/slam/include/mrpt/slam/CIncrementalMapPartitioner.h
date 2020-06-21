@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -55,7 +55,7 @@ class CIncrementalMapPartitioner : public mrpt::system::COutputLogger,
 								   public mrpt::serialization::CSerializable
 {
 	// This must be added to any CSerializable derived class:
-	DEFINE_SERIALIZABLE(CIncrementalMapPartitioner)
+	DEFINE_SERIALIZABLE(CIncrementalMapPartitioner, mrpt::slam)
 
    public:
 	/** ctor */

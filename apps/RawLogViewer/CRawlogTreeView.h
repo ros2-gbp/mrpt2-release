@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -20,6 +20,7 @@
 #include <wx/textctrl.h>
 
 #include <mrpt/obs/CRawlog.h>
+#include <atomic>
 
 enum TRawlogTreeViewEvent
 {
@@ -39,6 +40,10 @@ using wxRawlogTreeEventFunction = void (*)(
 class CRawlogTreeView : public wxScrolledWindow
 {
    public:
+	/** Set to true to avoid the GUI to be refreshed while changing the rawlog
+	 * in memory */
+	static std::atomic_bool RAWLOG_UNDERGOING_CHANGES;
+
 	/** Constructor
 	 */
 	CRawlogTreeView(
@@ -86,6 +91,8 @@ class CRawlogTreeView : public wxScrolledWindow
 	int GetSelectedItem() const { return m_selectedItem; }
 
    protected:
+	void OnDrawImpl(wxDC& dc);
+
 	/** A reference to the rawlog to be rendered. */
 	mrpt::obs::CRawlog* m_rawlog{nullptr};
 	/** We own this pointer */

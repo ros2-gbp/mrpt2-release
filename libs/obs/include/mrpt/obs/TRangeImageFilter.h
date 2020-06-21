@@ -2,18 +2,18 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #pragma once
 
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 
 namespace mrpt::obs
 {
-/** Used in CObservation3DRangeScan::project3DPointsFromDepthImageInto() */
+/** Used in CObservation3DRangeScan::unprojectInto() */
 struct TRangeImageFilterParams
 {
 	/** Only used if <b>both</b> rangeMask_min and rangeMask_max are present.
@@ -33,12 +33,18 @@ struct TRangeImageFilterParams
 	 * directions.
 	 * If both `rangeMask_min` and `rangeMask_max` are provided, the joint
 	 * filtering operation is determined by `rangeCheckBetween` */
-	const mrpt::math::CMatrix *rangeMask_min{nullptr}, *rangeMask_max{nullptr};
+	const mrpt::math::CMatrixF *rangeMask_min{nullptr}, *rangeMask_max{nullptr};
+
+	/** If enabled, the range pixels of points that do NOT pass the mask filter
+	 * will be marked as invalid ranges (=0) in the source 3D observation
+	 * object. */
+	bool mark_invalid_ranges{false};
+
 	TRangeImageFilterParams() = default;
 };
 
 /** Mainly for internal use within
- * CObservation3DRangeScan::project3DPointsFromDepthImageInto() */
+ * CObservation3DRangeScan::unprojectInto() */
 struct TRangeImageFilter
 {
 	TRangeImageFilterParams fp;

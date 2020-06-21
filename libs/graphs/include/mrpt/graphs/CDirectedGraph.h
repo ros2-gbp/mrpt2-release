@@ -2,14 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
 #include <mrpt/core/aligned_allocator.h>
-#include <mrpt/core/aligned_std_map.h>
 #include <mrpt/core/exceptions.h>
 #include <mrpt/graphs/TNodeID.h>
 #include <mrpt/typemeta/TTypeName.h>
@@ -88,7 +87,7 @@ class CDirectedGraph
 	/** Underlying type for edge_t = TYPE_EDGES + annotations */
 	using edge_underlying_t = TYPE_EDGES;
 	/** The type of the member \a edges */
-	using edges_map_t = mrpt::aligned_std_multimap<TPairNodeIDs, edge_t>;
+	using edges_map_t = std::multimap<TPairNodeIDs, edge_t>;
 	using iterator = typename edges_map_t::iterator;
 	using reverse_iterator = typename edges_map_t::reverse_iterator;
 	using const_iterator = typename edges_map_t::const_iterator;
@@ -123,8 +122,9 @@ class CDirectedGraph
 	inline void insertEdge(
 		TNodeID from_nodeID, TNodeID to_nodeID, const edge_t& edge_value)
 	{
-		alignas(MRPT_MAX_ALIGN_BYTES) typename edges_map_t::value_type entry(
-			std::make_pair(from_nodeID, to_nodeID), edge_value);
+		alignas(MRPT_MAX_STATIC_ALIGN_BYTES)
+			typename edges_map_t::value_type entry(
+				std::make_pair(from_nodeID, to_nodeID), edge_value);
 		edges.insert(entry);
 	}
 
@@ -134,8 +134,9 @@ class CDirectedGraph
 	inline void insertEdgeAtEnd(
 		TNodeID from_nodeID, TNodeID to_nodeID, const edge_t& edge_value)
 	{
-		alignas(MRPT_MAX_ALIGN_BYTES) typename edges_map_t::value_type entry(
-			std::make_pair(from_nodeID, to_nodeID), edge_value);
+		alignas(MRPT_MAX_STATIC_ALIGN_BYTES)
+			typename edges_map_t::value_type entry(
+				std::make_pair(from_nodeID, to_nodeID), edge_value);
 		edges.insert(edges.end(), entry);
 	}
 

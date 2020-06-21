@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -44,7 +44,6 @@ void CObservationOdometry::serializeTo(mrpt::serialization::CArchive& out) const
 void CObservationOdometry::serializeFrom(
 	mrpt::serialization::CArchive& in, uint8_t version)
 {
-	MRPT_UNUSED_PARAM(in);
 	switch (version)
 	{
 		case 0:

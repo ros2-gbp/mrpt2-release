@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -620,43 +620,38 @@ CFormChangeSensorPositions::CFormChangeSensorPositions(
 	FlexGridSizer1->SetSizeHints(this);
 	Center();
 
-	Connect(
-		ID_RADIOBUTTON1, wxEVT_COMMAND_RADIOBUTTON_SELECTED,
-		(wxObjectEventFunction)&CFormChangeSensorPositions::OnrbLoadedSelect);
-	Connect(
-		ID_RADIOBUTTON2, wxEVT_COMMAND_RADIOBUTTON_SELECTED,
-		(wxObjectEventFunction)&CFormChangeSensorPositions::OnrbFileSelect);
-	Connect(
-		ID_BUTTON9, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormChangeSensorPositions::
-			OnbtnPickInputClick);
-	Connect(
-		ID_BUTTON11, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormChangeSensorPositions::OnbtnPickOutClick);
-	Connect(
-		ID_RADIOBOX1, wxEVT_COMMAND_RADIOBOX_SELECTED,
-		(wxObjectEventFunction)&CFormChangeSensorPositions::OnrbApplySelect);
-	Connect(
-		ID_BUTTON3, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormChangeSensorPositions::
-			OnbtnGetCurPoseClick1);
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormChangeSensorPositions::OnbtnOKClick);
-	Connect(
-		ID_BUTTON4, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormChangeSensorPositions::
-			OnbtnGetCurCamModelClick);
-	Connect(
-		ID_BUTTON5, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormChangeSensorPositions::
-			OnbtnApplyCameraParamsClick);
-	Connect(
-		ID_BUTTON2, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormChangeSensorPositions::OnbtnCancelClick);
-	Connect(
-		wxID_ANY, wxEVT_INIT_DIALOG,
-		(wxObjectEventFunction)&CFormChangeSensorPositions::OnInit);
+	Bind(
+		wxEVT_RADIOBUTTON, &CFormChangeSensorPositions::OnrbLoadedSelect, this,
+		ID_RADIOBUTTON1);
+	Bind(
+		wxEVT_RADIOBUTTON, &CFormChangeSensorPositions::OnrbFileSelect, this,
+		ID_RADIOBUTTON2);
+	Bind(
+		wxEVT_BUTTON, &CFormChangeSensorPositions::OnbtnPickInputClick, this,
+		ID_BUTTON9);
+	Bind(
+		wxEVT_BUTTON, &CFormChangeSensorPositions::OnbtnPickOutClick, this,
+		ID_BUTTON11);
+	Bind(
+		wxEVT_RADIOBOX, &CFormChangeSensorPositions::OnrbApplySelect, this,
+		ID_RADIOBOX1);
+	Bind(
+		wxEVT_BUTTON, &CFormChangeSensorPositions::OnbtnGetCurPoseClick1, this,
+		ID_BUTTON3);
+	Bind(
+		wxEVT_BUTTON, &CFormChangeSensorPositions::OnbtnOKClick, this,
+		ID_BUTTON1);
+	Bind(
+		wxEVT_BUTTON, &CFormChangeSensorPositions::OnbtnGetCurCamModelClick,
+		this, ID_BUTTON4);
+	Bind(
+		wxEVT_BUTTON, &CFormChangeSensorPositions::OnbtnApplyCameraParamsClick,
+		this, ID_BUTTON5);
+	Bind(
+		wxEVT_BUTTON, &CFormChangeSensorPositions::OnbtnCancelClick, this,
+		ID_BUTTON2);
+	Bind(
+		wxEVT_INIT_DIALOG, &CFormChangeSensorPositions::OnInit, this, wxID_ANY);
 	//*)
 }
 
@@ -1227,7 +1222,7 @@ void CFormChangeSensorPositions::OnbtnApplyCameraParamsClick(
 
 	// Put the camara data:
 	camIntrinsic.setSize(3, 3);
-	camIntrinsic.zeros();
+	camIntrinsic.setZero();
 	camIntrinsic(2, 2) = 1;
 	camIntrinsic(0, 0) = atof(string(edFX->GetValue().mb_str()).c_str());
 	camIntrinsic(1, 1) = atof(string(edFY->GetValue().mb_str()).c_str());

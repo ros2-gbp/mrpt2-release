@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -213,7 +213,7 @@ void CHMTSLAM::pushObservation(const CObservation::Ptr& obs)
 	}
 
 	// Add a CSensoryFrame with the obs:
-	CSensoryFrame::Ptr sf = mrpt::make_aligned_shared<CSensoryFrame>();
+	CSensoryFrame::Ptr sf = std::make_shared<CSensoryFrame>();
 	sf->insert(
 		obs);  // memory will be freed when deleting the SF in other thread
 
@@ -328,7 +328,7 @@ void CHMTSLAM::TOptions::loadFromConfigFile(
   ---------------------------------------------------------------*/
 void CHMTSLAM::TOptions::dumpToTextStream(std::ostream& out) const
 {
-	out << mrpt::format("\n----------- [CHMTSLAM::TOptions] ------------ \n\n");
+	out << "\n----------- [CHMTSLAM::TOptions] ------------ \n\n";
 
 	LOADABLEOPTS_DUMP_VAR(LOG_OUTPUT_DIR, string);
 	LOADABLEOPTS_DUMP_VAR(LOG_FREQUENCY, int);
@@ -419,8 +419,7 @@ void CHMTSLAM::initializeEmptyMap()
 		m_map.clear();
 
 		// Create a single node for the starting area:
-		CHMHMapNode::Ptr firstArea =
-			mrpt::make_aligned_shared<CHMHMapNode>(&m_map);
+		CHMHMapNode::Ptr firstArea = std::make_shared<CHMHMapNode>(&m_map);
 		firstAreaID = firstArea->getID();
 
 		firstArea->m_hypotheses = LMH_hyps;
@@ -532,10 +531,7 @@ THypothesisID CHMTSLAM::generateHypothesisID() { return m_nextHypID++; }
 /*---------------------------------------------------------------
 						getAs3DScene
   ---------------------------------------------------------------*/
-void CHMTSLAM::getAs3DScene(COpenGLScene& scene3D)
-{
-	MRPT_UNUSED_PARAM(scene3D);
-}
+void CHMTSLAM::getAs3DScene([[maybe_unused]] COpenGLScene& scene3D) {}
 
 /*---------------------------------------------------------------
 						abortedDueToErrors

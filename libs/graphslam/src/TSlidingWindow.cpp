@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -26,7 +26,7 @@ TSlidingWindow::TSlidingWindow(const std::string& name /* = "window" */)
 
 double TSlidingWindow::getMedian()
 {
-	MRPT_START;
+	MRPT_START
 
 	double median_out = 0.0;
 	if (m_measurements_vec.empty())
@@ -52,11 +52,11 @@ double TSlidingWindow::getMedian()
 
 	return median_out;
 
-	MRPT_END;
+	MRPT_END
 }
 double TSlidingWindow::getMean()
 {
-	MRPT_START;
+	MRPT_START
 
 	double mean_out = 0.0;
 
@@ -76,11 +76,11 @@ double TSlidingWindow::getMean()
 
 	return mean_out;
 
-	MRPT_END;
+	MRPT_END
 }
 double TSlidingWindow::getStdDev()
 {
-	MRPT_START;
+	MRPT_START
 
 	double std_dev_out = 0.0;
 
@@ -105,7 +105,7 @@ double TSlidingWindow::getStdDev()
 	}
 
 	return std_dev_out;
-	MRPT_END;
+	MRPT_END
 }
 
 bool TSlidingWindow::evaluateMeasurementInGaussian(double measurement)
@@ -120,12 +120,12 @@ bool TSlidingWindow::evaluateMeasurementInGaussian(double measurement)
 }
 bool TSlidingWindow::evaluateMeasurementAbove(double value)
 {
-	MRPT_START;
+	MRPT_START
 
 	double threshold = this->getMean();
 	return (value > threshold);
 
-	MRPT_END;
+	MRPT_END
 }
 bool TSlidingWindow::evaluateMeasurementBelow(double value)
 {
@@ -134,7 +134,7 @@ bool TSlidingWindow::evaluateMeasurementBelow(double value)
 
 void TSlidingWindow::addNewMeasurement(double measurement)
 {
-	MRPT_START;
+	MRPT_START
 
 	m_is_initialized = true;
 
@@ -154,11 +154,11 @@ void TSlidingWindow::addNewMeasurement(double measurement)
 	m_median_updated = false;
 	m_std_dev_updated = false;
 
-	MRPT_END;
+	MRPT_END
 }
 void TSlidingWindow::resizeWindow(size_t new_size)
 {
-	MRPT_START;
+	MRPT_START
 
 	size_t curr_size = m_measurements_vec.size();
 	if (new_size < curr_size)
@@ -175,32 +175,32 @@ void TSlidingWindow::resizeWindow(size_t new_size)
 
 	m_win_size = new_size;
 
-	MRPT_END;
+	MRPT_END
 }
 void TSlidingWindow::loadFromConfigFile(
 	const mrpt::config::CConfigFileBase& source, const std::string& section)
 {
-	MRPT_START;
+	MRPT_START
 
 	size_t sliding_win_size =
 		source.read_int(section, "sliding_win_size", 10, false);
 	this->resizeWindow(sliding_win_size);
 
-	MRPT_END;
+	MRPT_END
 }
 void TSlidingWindow::dumpToTextStream(std::ostream& out) const
 {
-	MRPT_START;
+	MRPT_START
 
 	out << mrpt::format(
 		"-----------[ %s: Sliding Window Properties ]-----------\n",
 		m_name.c_str());
-	out << mrpt::format("Measurements Vector: \n");
+	out << "Measurements Vector: \n";
 	for (double it : m_measurements_vec)
 	{
 		out << mrpt::format("\t%.2f\n", it);
 	}
-	out << mrpt::format("\n");
+	out << "\n";
 
 	out << mrpt::format("m_name              : %s\n", m_name.c_str());
 	out << mrpt::format("m_mean_cached       : %.2f\n", m_mean_cached);
@@ -216,7 +216,7 @@ void TSlidingWindow::dumpToTextStream(std::ostream& out) const
 	out << mrpt::format(
 		"m_is_initialized    : %s\n", m_is_initialized ? "TRUE" : "FALSE");
 
-	MRPT_END;
+	MRPT_END
 }
 
 size_t TSlidingWindow::getWindowSize() const { return m_win_size; }

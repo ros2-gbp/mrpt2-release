@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -36,11 +36,11 @@ CMemoryStream::CMemoryStream(const void* data, const uint64_t nBytesInData)
 void CMemoryStream::assignMemoryNotOwn(
 	const void* data, const uint64_t nBytesInData)
 {
-	this->Clear();
+	this->clear();
 	m_memory.set(data);
 	m_size = nBytesInData;
 	m_position = 0;
-	m_bytesWritten = 0;
+	m_bytesWritten = nBytesInData;
 	m_read_only = true;
 }
 
@@ -48,8 +48,11 @@ CMemoryStream::~CMemoryStream()
 {
 	if (!m_read_only)
 	{
-		// Free memory buffer:
-		resize(0);
+		// Free buffer:
+		if (m_memory.get()) free(m_memory.get());
+		m_memory = nullptr;
+		m_size = 0;
+		m_position = 0;
 	}
 }
 
@@ -82,13 +85,15 @@ void CMemoryStream::resize(uint64_t newSize)
 
 size_t CMemoryStream::Read(void* Buffer, size_t Count)
 {
-	// Enought bytes?
-	long maxAvail = (((long)m_size)) - ((long)m_position);
-	size_t nToRead = (size_t)min(((long)Count), maxAvail);
+	// enough bytes?
+	long maxAvail = (((long)m_bytesWritten)) - ((long)m_position);
+	size_t nToRead = std::min<size_t>(Count, maxAvail);
 
 	// Copy the memory block:
 	if (nToRead > 0)
-		memcpy(Buffer, ((char*)m_memory.get()) + m_position, nToRead);
+		memcpy(
+			Buffer, reinterpret_cast<char*>(m_memory.get()) + m_position,
+			nToRead);
 
 	// Update cursor position:
 	m_position += nToRead;
@@ -98,7 +103,7 @@ size_t CMemoryStream::Read(void* Buffer, size_t Count)
 size_t CMemoryStream::Write(const void* Buffer, size_t Count)
 {
 	ASSERT_(Buffer != nullptr);
-	// Enought space in current bufer?
+	// enough space in current bufer?
 	size_t requiredSize = m_position + Count;
 
 	if (requiredSize >= m_size)
@@ -108,7 +113,7 @@ size_t CMemoryStream::Write(const void* Buffer, size_t Count)
 	}
 
 	// Copy the memory block:
-	memcpy(((char*)m_memory.get()) + m_position, Buffer, Count);
+	memcpy(reinterpret_cast<char*>(m_memory.get()) + m_position, Buffer, Count);
 
 	// New cursor position:
 	m_position = requiredSize;
@@ -140,7 +145,7 @@ uint64_t CMemoryStream::Seek(int64_t Offset, CStream::TSeekOrigin Origin)
 
 uint64_t CMemoryStream::getTotalBytesCount() const { return m_bytesWritten; }
 uint64_t CMemoryStream::getPosition() const { return m_position; }
-void CMemoryStream::Clear()
+void CMemoryStream::clear()
 {
 	if (!m_read_only)
 	{
@@ -158,7 +163,6 @@ void CMemoryStream::Clear()
 
 void* CMemoryStream::getRawBufferData() { return m_memory.get(); }
 const void* CMemoryStream::getRawBufferData() const { return m_memory.get(); }
-void CMemoryStream::changeSize(uint64_t newSize) { resize(newSize); }
 bool CMemoryStream::saveBufferToFile(const std::string& file_name)
 {
 	try
@@ -184,7 +188,7 @@ bool CMemoryStream::loadBufferFromFile(const std::string& file_name)
 		uint64_t N = fi.getTotalBytesCount();
 
 		// Read into the buffer:
-		Clear();
+		clear();
 		resize(N + 100);
 		uint64_t N_read = fi.Read(m_memory.get(), N);
 

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -13,7 +13,12 @@
 #include "model_search.h"
 #endif
 
+#include <mrpt/core/exceptions.h>  // ASSERT_()
+#include <mrpt/core/round.h>
+#include <algorithm>  // std::max(),...
+#include <cmath>
 #include <limits>
+#include <string>
 
 namespace mrpt::math
 {
@@ -75,11 +80,11 @@ bool ModelSearch::ransacSingleModel(
 			// Update the estimation of maxIter to pick dataset with no outliers
 			// at propability p
 			double f = ninliers / static_cast<double>(nSamples);
-			double p = 1 - pow(f, static_cast<double>(p_kernelSize));
+			double p = 1 - std::pow(f, static_cast<double>(p_kernelSize));
 			const double eps = std::numeric_limits<double>::epsilon();
 			p = std::max(eps, p);  // Avoid division by -Inf
 			p = std::min(1 - eps, p);  // Avoid division by 0.
-			softIterLimit = log(1 - p) / log(p);
+			softIterLimit = mrpt::round(log(1 - p) / log(p));
 		}
 
 		iter++;
@@ -111,12 +116,11 @@ bool ModelSearch::geneticSingleModel(
 	storage.resize(p_populationSize);
 	population.reserve(p_populationSize);
 	sortedPopulation.reserve(p_populationSize);
-	for (typename std::vector<Species>::iterator it = storage.begin();
-		 it != storage.end(); it++)
+	for (auto& d : storage)
 	{
-		pickRandomIndex(sampleCount, p_kernelSize, it->sample);
-		population.push_back(&*it);
-		sortedPopulation.push_back(&*it);
+		pickRandomIndex(sampleCount, p_kernelSize, d.sample);
+		population.push_back(&d);
+		sortedPopulation.push_back(&d);
 	}
 
 	size_t iter = 0;

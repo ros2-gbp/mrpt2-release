@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -166,7 +166,7 @@ int main(int argc, char** argv)
 
 			const double STD_PT3D = 0.10;  // meters
 			const double STD_CAM_XYZ = 0.05;  // meters
-			const double STD_CAM_ANG = DEG2RAD(5);  // degs
+			const double STD_CAM_ANG = 5.0_deg;  // degs
 
 			landmark_points_real.resize(nPts);
 			for (size_t i = 0; i < nPts; i++)
@@ -187,15 +187,14 @@ int main(int argc, char** argv)
 				p.x = x;  // cameraPathEllipRadius1 * cos(ang);
 				p.y = 4 * L2;  // cameraPathEllipRadius2 * sin(ang);
 				p.z = 0;
-				p.yaw = DEG2RAD(-90) -
-						DEG2RAD(30) * x / cameraPathLen;  // wrapToPi(ang+M_PI);
+				p.yaw = -90.0_deg -
+						30.0_deg * x / cameraPathLen;  // wrapToPi(ang+M_PI);
 				p.pitch = 0;
 				p.roll = 0;
 				// Angles above is for +X pointing to the (0,0,0), but we want
 				// instead +Z pointing there, as typical in camera models:
 				frame_poses_real.push_back(
-					CPose3D(p) +
-					CPose3D(0, 0, 0, DEG2RAD(-90), 0, DEG2RAD(-90)));
+					CPose3D(p) + CPose3D(0, 0, 0, -90.0_deg, 0, -90.0_deg));
 			}
 
 			// Simulate the feature observations:
@@ -451,15 +450,14 @@ int main(int argc, char** argv)
 		COpenGLScene::Ptr& scene = win.get3DSceneAndLock();
 
 		{  // Ground plane:
-			CGridPlaneXY::Ptr obj = mrpt::make_aligned_shared<CGridPlaneXY>(
-				-200, 200, -200, 200, 0, 5);
+			auto obj = CGridPlaneXY::Create(-200, 200, -200, 200, 0, 5);
 			obj->setColor(0.7, 0.7, 0.7);
 			scene->insert(obj);
 		}
 
 		if (!landmark_points_real.empty())
 		{  // Feature points: ground truth
-			CPointCloud::Ptr obj = mrpt::make_aligned_shared<CPointCloud>();
+			auto obj = CPointCloud::Create();
 			obj->setPointSize(2);
 			obj->setColor(0, 0, 0);
 			obj->loadFromPointsList(landmark_points_real);
@@ -468,7 +466,7 @@ int main(int argc, char** argv)
 		}
 		if (!landmark_points_noisy.empty())
 		{  // Feature points: noisy
-			CPointCloud::Ptr obj = mrpt::make_aligned_shared<CPointCloud>();
+			auto obj = CPointCloud::Create();
 			obj->setPointSize(4);
 			obj->setColor(0.7, 0.2, 0.2, 0);
 			obj->loadFromPointsList(landmark_points_noisy);
@@ -477,7 +475,7 @@ int main(int argc, char** argv)
 		}
 
 		{  // Feature points: estimated
-			CPointCloud::Ptr obj = mrpt::make_aligned_shared<CPointCloud>();
+			auto obj = CPointCloud::Create();
 			obj->setPointSize(3);
 			obj->setColor(0, 0, 1, 1.0);
 			obj->loadFromPointsList(landmark_points);
@@ -522,8 +520,7 @@ int main(int argc, char** argv)
 mrpt::opengl::CSetOfObjects::Ptr framePosesVecVisualize(
 	const TFramePosesVec& poses, const double len, const double lineWidth)
 {
-	mrpt::opengl::CSetOfObjects::Ptr obj =
-		mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+	auto obj = mrpt::opengl::CSetOfObjects::Create();
 
 	for (size_t i = 0; i < poses.size(); i++)
 	{

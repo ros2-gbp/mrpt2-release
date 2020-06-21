@@ -2,13 +2,15 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include <mrpt/gui/CDisplayWindow3D.h>
 #include <mrpt/img/TColor.h>
+#include <mrpt/math/TLine3D.h>
+#include <mrpt/math/TObject3D.h>
 #include <mrpt/math/geometry.h>
 #include <mrpt/opengl/CAxis.h>
 #include <mrpt/opengl/CBox.h>
@@ -63,8 +65,7 @@ void TestDisplay3D()
 	// And another transparent viewport just to show 3D text:
 	if (false)
 	{
-		mrpt::opengl::CText::Ptr txt1 =
-			mrpt::make_aligned_shared<mrpt::opengl::CText>();
+		mrpt::opengl::CText::Ptr txt1 = mrpt::opengl::CText::Create();
 		COpenGLViewport::Ptr vi = theScene->createViewport("flat_viewport");
 		vi->setViewportPosition(0, 0, 0.3, 0.3);
 		vi->setTransparent(true);
@@ -81,14 +82,13 @@ void TestDisplay3D()
 	// ------------------------------------------------------
 	{
 		opengl::CGridPlaneXY::Ptr obj =
-			mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
-				-20, 20, -20, 20, 0, 1);
-		obj->setColor(0.8, 0.8, 0.8);
+			opengl::CGridPlaneXY::Create(-20, 20, -20, 20, 0, 1);
+		obj->setColor(0.8f, 0.8f, 0.8f);
 		theScene->insert(obj);
 	}
 
 	{
-		opengl::CAxis::Ptr obj = mrpt::make_aligned_shared<opengl::CAxis>();
+		opengl::CAxis::Ptr obj = opengl::CAxis::Create();
 		obj->setFrequency(5);
 		obj->enableTickMarks();
 		obj->setAxisLimits(-10, -10, -10, 10, 10, 10);
@@ -96,7 +96,7 @@ void TestDisplay3D()
 	}
 
 	{
-		opengl::CBox::Ptr obj = mrpt::make_aligned_shared<opengl::CBox>();
+		opengl::CBox::Ptr obj = opengl::CBox::Create();
 		obj->setWireframe(false);
 		obj->setColor(1, 0, 0);
 		obj->setLineWidth(3.0);
@@ -105,24 +105,24 @@ void TestDisplay3D()
 	}
 
 	{
-		opengl::CSphere::Ptr obj = mrpt::make_aligned_shared<opengl::CSphere>();
+		opengl::CSphere::Ptr obj = opengl::CSphere::Create();
 		obj->setColor(0, 0, 1);
-		obj->setRadius(0.3);
+		obj->setRadius(0.3f);
 		obj->setLocation(0, 0, 1);
 		obj->setName("ball_1");
 		theScene->insert(obj);
 	}
 	{
-		opengl::CSphere::Ptr obj = mrpt::make_aligned_shared<opengl::CSphere>();
+		opengl::CSphere::Ptr obj = opengl::CSphere::Create();
 		obj->setColor(1, 0, 0);
-		obj->setRadius(0.3);
+		obj->setRadius(0.3f);
 		obj->setLocation(-1, -1, 1);
 		obj->setName("ball_2");
 		theScene->insert(obj);
 	}
 
 	{
-		opengl::CSphere::Ptr obj = mrpt::make_aligned_shared<opengl::CSphere>();
+		opengl::CSphere::Ptr obj = opengl::CSphere::Create();
 		obj->setColor(0, 1, 0);
 		obj->setRadius(0.5);
 		obj->setLocation(0, 0, 0);
@@ -134,9 +134,9 @@ void TestDisplay3D()
 	win.unlockAccess3DScene();
 
 	// Texts:
-	win.addTextMessage(
-		0.01, 0.85, "This is a 2D message", TColorf(1, 1, 1), "sans", 11,
-		mrpt::opengl::NICE, 0);
+	mrpt::opengl::TFontParams fp;
+	fp.color = TColorf(1, 1, 1);
+	win.addTextMessage(0.01, 0.85, "This is a 2D message", 0 /*id*/, fp);
 
 	win.setCameraElevationDeg(25.0f);
 	// win.setCameraProjective(false);
@@ -177,9 +177,10 @@ void TestDisplay3D()
 			R2 * cos(W2 * t) * sin(Q2 * t), R2 * sin(W2 * t),
 			R2 * cos(W2 * t) * cos(Q2 * t));
 
-		win.addTextMessage(
-			0.01, 0.85, "This is a 2D message", TColorf(1, 0, 0), "sans", 8,
-			mrpt::opengl::NICE, 0);
+		mrpt::opengl::TFontParams fp2;
+		fp2.color = TColorf(.8f, .8f, .8f);
+		fp2.vfont_name = "sans";
+		fp2.vfont_scale = 14;
 
 		win.addTextMessage(
 			0.02, 0.02,  // X,Y<=1 means coordinates are factors over the entire
@@ -187,11 +188,7 @@ void TestDisplay3D()
 			format(
 				"ball#1 pos: %.02f %.02f %.02f ", obj1->getPoseX(),
 				obj1->getPoseY(), obj1->getPoseZ()),
-			TColorf(.8, .8, .8), "sans", 14,  // font name & size
-			mrpt::opengl::FILL,
-			10  // An arbitrary ID to always overwrite the same, previous 2D
-			// text message
-		);
+			10 /*id*/, fp2);
 
 		win.addTextMessage(
 			5, -15,  // |X|,|Y|>1 means absolute coordinates, negative means
@@ -200,11 +197,7 @@ void TestDisplay3D()
 				"Time: %s",
 				mrpt::system::dateTimeLocalToString(mrpt::system::now())
 					.c_str()),
-			TColorf(1, 1, 1), "mono", 9,  // font name & size
-			mrpt::opengl::NICE,
-			20  // An arbitrary ID to always overwrite the same, previous 2D
-			// text message
-		);
+			20 /* id */, fp2);
 
 		// Show management of (x,y) mouse coordinates and 3D rays:
 		// ------------------------------------------------------------

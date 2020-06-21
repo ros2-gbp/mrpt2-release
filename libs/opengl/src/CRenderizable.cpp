@@ -2,16 +2,17 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "opengl-precomp.h"  // Precompiled header
 
+#include <mrpt/math/TPose3D.h>
 #include <mrpt/math/utils.h>
 #include <mrpt/opengl/CRenderizable.h>  // Include these before windows.h!!
-#include <mrpt/opengl/gl_utils.h>
+#include <mrpt/opengl/CText.h>
 #include <mrpt/poses/CPoint2D.h>
 #include <mrpt/poses/CPoint3D.h>
 #include <mrpt/poses/CPose3D.h>
@@ -19,33 +20,13 @@
 
 #include <mutex>
 
-#include "opengl_internals.h"
+#include <mrpt/opengl/opengl_api.h>
 
 using namespace std;
 using namespace mrpt;
 using namespace mrpt::opengl;
 
 IMPLEMENTS_VIRTUAL_SERIALIZABLE(CRenderizable, CSerializable, mrpt::opengl)
-
-#define MAX_GL_TEXTURE_IDS 0x10000
-#define MAX_GL_TEXTURE_IDS_MASK 0x0FFFF
-
-struct TOpenGLNameBooker
-{
-   private:
-	TOpenGLNameBooker() : freeTextureNames(MAX_GL_TEXTURE_IDS, false) {}
-
-   public:
-	std::vector<bool> freeTextureNames;
-	unsigned int next_free_texture{1};
-	std::recursive_mutex cs;
-
-	static TOpenGLNameBooker& instance()
-	{
-		static TOpenGLNameBooker dat;
-		return dat;
-	}
-};
 
 // Default constructor:
 CRenderizable::CRenderizable()
@@ -59,46 +40,6 @@ CRenderizable::CRenderizable()
 
 // Destructor:
 CRenderizable::~CRenderizable() = default;
-/** Returns the lowest, free texture name.
- */
-unsigned int CRenderizable::getNewTextureNumber()
-{
-	MRPT_START
-
-	TOpenGLNameBooker& booker = TOpenGLNameBooker::instance();
-
-	std::lock_guard<std::recursive_mutex> lock(booker.cs);
-
-	unsigned int ret = booker.next_free_texture;
-	unsigned int tries = 0;
-	while (ret != 0 && booker.freeTextureNames[ret])
-	{
-		ret++;
-		ret = ret % MAX_GL_TEXTURE_IDS_MASK;
-
-		if (++tries >= MAX_GL_TEXTURE_IDS)
-			THROW_EXCEPTION_FMT(
-				"Maximum number of textures (%u) excedeed! (are you deleting "
-				"them?)",
-				(unsigned int)MAX_GL_TEXTURE_IDS);
-	}
-
-	booker.freeTextureNames[ret] = true;  // mark as used.
-	booker.next_free_texture = ret + 1;
-	return ret;
-	MRPT_END
-}
-
-void CRenderizable::releaseTextureName(unsigned int i)
-{
-	TOpenGLNameBooker& booker = TOpenGLNameBooker::instance();
-	std::lock_guard<std::recursive_mutex> lock(booker.cs);
-	booker.freeTextureNames[i] = false;
-	if (i < booker.next_free_texture)
-		booker.next_free_texture = i;  // try to reuse texture numbers.
-	// "glDeleteTextures" seems not to be neeeded, since we do the reservation
-	// of texture names by our own.
-}
 
 void CRenderizable::writeToStreamRender(
 	mrpt::serialization::CArchive& out) const
@@ -113,8 +54,8 @@ void CRenderizable::writeToStreamRender(
 	// (float)(m_color.B) << (float)(m_color.A);
 	// ...
 
-	const uint8_t serialization_version =
-		0;  // can't be >31 (but it would be mad geting to that situation!)
+	// can't be >31 (but it would be mad geting to that situation!)
+	const uint8_t serialization_version = 1;
 
 	const bool all_scales_equal =
 		(m_scale_x == m_scale_y && m_scale_z == m_scale_x);
@@ -152,6 +93,7 @@ void CRenderizable::writeToStreamRender(
 	}
 
 	out << m_show_name << m_visible;
+	out << m_representativePoint;  // v1
 }
 
 void CRenderizable::readFromStreamRender(mrpt::serialization::CArchive& in)
@@ -160,14 +102,16 @@ void CRenderizable::readFromStreamRender(mrpt::serialization::CArchive& in)
 	// See comments in CRenderizable::writeToStreamRender() for the employed
 	// serialization mechanism.
 	//
+	// MRPT 1.9.9 (Aug 2019): Was
+	// union {
+	//  uint8_t magic_signature[2 + 2];
+	//    (the extra 4 bytes will be used only for the old format)
+	//  uint32_t magic_signature_uint32;
+	//    So we can interpret the 4bytes above as a 32bit number cleanly.
+	// };
+	// Get rid of the "old" serialization format to avoid using "union".
 
-	// Read signature:
-	union {
-		uint8_t magic_signature[2 + 2];  // (the extra 4 bytes will be used only
-		// for the old format)
-		uint32_t magic_signature_uint32;  // So we can interpret the 4bytes
-		// above as a 32bit number cleanly.
-	};
+	uint8_t magic_signature[2];
 
 	in >> magic_signature[0] >> magic_signature[1];
 
@@ -185,6 +129,7 @@ void CRenderizable::readFromStreamRender(mrpt::serialization::CArchive& in)
 		switch (serialization_version)
 		{
 			case 0:
+			case 1:
 			{
 				// "m_name"
 				uint16_t nameLen;
@@ -217,6 +162,10 @@ void CRenderizable::readFromStreamRender(mrpt::serialization::CArchive& in)
 				}
 
 				in >> m_show_name >> m_visible;
+				if (serialization_version >= 1)
+					in >> m_representativePoint;
+				else
+					m_representativePoint = mrpt::math::TPoint3Df(0, 0, 0);
 			}
 			break;
 			default:
@@ -230,70 +179,8 @@ void CRenderizable::readFromStreamRender(mrpt::serialization::CArchive& in)
 	else
 	{
 		// OLD FORMAT:
-		// Was: in >> m_name;
-		// We already read 2 bytes from the string uint32_t length:
-		in >> magic_signature[2] >> magic_signature[3];
-		{
-			const uint32_t nameLen =
-				magic_signature_uint32;  // *reinterpret_cast<const
-			// uint32_t*>(&magic_signature[0]);
-			m_name.resize(nameLen);
-			if (nameLen) in.ReadBuffer((void*)(&m_name[0]), m_name.size());
-		}
-
-		float f;
-		float yaw_deg, pitch_deg, roll_deg;
-
-		mrpt::img::TColorf col;
-		in >> col.R >> col.G >> col.B >> col.A;
-		m_color = mrpt::img::TColor(
-			col.R / 255, col.G / 255, col.B / 255,
-			col.A / 255);  // For some stupid reason, colors were saved
-		// multiplied by 255... (facepalm)
-
-		in >> f;
-		m_pose.x(f);
-		in >> f;
-		m_pose.y(f);
-		in >> f;
-		m_pose.z(f);
-		in >> yaw_deg;
-		in >> pitch_deg;
-		in >> f;
-		roll_deg = f;
-		// Version 2: Add scale vars:
-		//  JL: Yes, this is a crappy hack since I forgot to enable versions
-		//  here...what? :-P
-		if (f != 16.0f && f != 17.0f)
-		{
-			// Old version:
-			// "roll_deg" is the actual roll.
-			in >> m_show_name;
-			m_scale_x = m_scale_y = m_scale_z = 1;  // Default values
-		}
-		else
-		{
-			// New version >=v2:
-			in >> roll_deg;
-			in >> m_show_name;
-
-			// Scale data:
-			in >> m_scale_x >> m_scale_y >> m_scale_z;
-
-			if (f == 17.0f)  // version>=v3
-				in >> m_visible;
-			else
-				m_visible = true;  // Default
-		}
-
-		m_pose.setYawPitchRoll(
-			DEG2RAD(yaw_deg), DEG2RAD(pitch_deg), DEG2RAD(roll_deg));
+		THROW_EXCEPTION("Serialized object is too old! Unsupported format.");
 	}
-}
-
-void CRenderizable::checkOpenGLError()
-{
-	mrpt::opengl::gl_utils::checkOpenGLError();
 }
 
 /*--------------------------------------------------------------
@@ -339,13 +226,6 @@ bool CRenderizable::traceRay(const mrpt::poses::CPose3D&, double&) const
 	return false;
 }
 
-CRenderizable::Ptr& mrpt::opengl::operator<<(
-	CRenderizable::Ptr& r, const mrpt::poses::CPose3D& p)
-{
-	r->setPose(p + mrpt::poses::CPose3D(r->getPose()));
-	return r;
-}
-
 CRenderizable& CRenderizable::setColor_u8(const mrpt::img::TColor& c)
 {
 	m_color.R = c.R;
@@ -355,19 +235,12 @@ CRenderizable& CRenderizable::setColor_u8(const mrpt::img::TColor& c)
 	return *this;
 }
 
-/** This method is safe for calling from within ::render() methods \sa
- * renderTextBitmap */
-void CRenderizable::renderTextBitmap(const char* str, void* fontStyle)
+CText& CRenderizable::labelObject() const
 {
-	gl_utils::renderTextBitmap(str, fontStyle);
-}
-
-/** Return the exact width in pixels for a given string, as will be rendered by
- * renderTextBitmap().
- * \sa renderTextBitmap
- */
-int CRenderizable::textBitmapWidth(
-	const std::string& str, mrpt::opengl::TOpenGLFont font)
-{
-	return gl_utils::textBitmapWidth(str, font);
+	if (!m_label_obj)
+	{
+		m_label_obj = std::make_shared<mrpt::opengl::CText>();
+		m_label_obj->setString(m_name);
+	}
+	return *m_label_obj;
 }

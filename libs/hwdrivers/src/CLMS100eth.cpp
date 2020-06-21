@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -41,8 +41,6 @@ CLMS100Eth::CLMS100Eth(string _ip, unsigned int _port)
 CLMS100Eth::~CLMS100Eth()
 {
 	if (m_connected) m_client.close();
-	//    delete m_client;
-	//    delete m_sensorPose;
 }
 
 void CLMS100Eth::initialize()
@@ -242,7 +240,8 @@ bool CLMS100Eth::decodeScan(char* buff, CObservation2DRangeScan& outObservation)
 		switch (++idx)
 		{
 			case 1:
-				if (strncmp(&next[1], "sRA", 3) && strncmp(&next[1], "sSN", 3))
+				if (strncmp(&next[1], "sRA", 3) != 0 &&
+					strncmp(&next[1], "sSN", 3) != 0)
 					return false;
 				break;
 			case 2:
@@ -264,7 +263,7 @@ bool CLMS100Eth::decodeScan(char* buff, CObservation2DRangeScan& outObservation)
 				}
 				break;
 			case 21:
-				if (strcmp(next, "DIST1"))
+				if (strcmp(next, "DIST1") != 0)
 				{
 					THROW_EXCEPTION(
 						"LMS100 is not configured to send distances.");
@@ -351,7 +350,7 @@ void CLMS100Eth::doProcessSimple(
 void CLMS100Eth::doProcess()
 {
 	CObservation2DRangeScan::Ptr obs =
-		mrpt::make_aligned_shared<CObservation2DRangeScan>();
+		std::make_shared<CObservation2DRangeScan>();
 	try
 	{
 		bool isThereObservation, hwError;

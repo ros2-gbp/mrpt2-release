@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -17,27 +17,23 @@
 #include <wx/string.h>
 //*)
 
+#include <mrpt/config/CConfigFileMemory.h>
+#include <mrpt/gui/CMyRedirector.h>
+#include <mrpt/gui/WxUtils.h>
+#include <mrpt/maps/COccupancyGridMap2D.h>
+#include <mrpt/maps/CSimplePointsMap.h>
+#include <mrpt/obs/CObservationVelodyneScan.h>
+#include <mrpt/opengl/CEllipsoid2D.h>
+#include <mrpt/opengl/CGridPlaneXY.h>
+#include <mrpt/opengl/stock_objects.h>
+#include <mrpt/poses/CPosePDFSOG.h>
+#include <mrpt/slam/CICP.h>
 #include <wx/app.h>
 #include <wx/busyinfo.h>
 #include <wx/log.h>
 #include <wx/msgdlg.h>
 #include <wx/progdlg.h>
-
-#include <mrpt/gui/CMyRedirector.h>
 #include "xRawLogViewerMain.h"
-
-// General global variables:
-#include <mrpt/config/CConfigFileMemory.h>
-#include <mrpt/maps/COccupancyGridMap2D.h>
-#include <mrpt/maps/CSimplePointsMap.h>
-#include <mrpt/obs/CObservationVelodyneScan.h>
-#include <mrpt/opengl/CEllipsoid.h>
-#include <mrpt/opengl/CGridPlaneXY.h>
-#include <mrpt/opengl/stock_objects.h>
-#include <mrpt/poses/CPosePDFSOG.h>
-#include <mrpt/slam/CICP.h>
-
-#include <mrpt/gui/WxUtils.h>
 
 using namespace mrpt;
 using namespace mrpt::slam;
@@ -466,27 +462,19 @@ CScanMatching::CScanMatching(wxWindow* parent, wxWindowID)
 	FlexGridSizer1->SetSizeHints(this);
 	Center();
 
-	Connect(
-		ID_BITMAPBUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CScanMatching::OnbtnHelpClick);
-	Connect(
-		ID_RADIOBUTTON1, wxEVT_COMMAND_RADIOBUTTON_SELECTED,
-		(wxObjectEventFunction)&CScanMatching::OChangeSelectedMapType);
-	Connect(
-		ID_RADIOBUTTON2, wxEVT_COMMAND_RADIOBUTTON_SELECTED,
-		(wxObjectEventFunction)&CScanMatching::OChangeSelectedMapType);
-	Connect(
-		ID_NOTEBOOK1, wxEVT_COMMAND_NOTEBOOK_PAGE_CHANGING,
-		(wxObjectEventFunction)&CScanMatching::OnNotebook1PageChanging);
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CScanMatching::OnbtnICPClick);
-	Connect(
-		ID_CHECKBOX1, wxEVT_COMMAND_CHECKBOX_CLICKED,
-		(wxObjectEventFunction)&CScanMatching::OncbAnimateClick);
-	Connect(
-		ID_BUTTON2, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CScanMatching::OnbtnCloseClick);
+	Bind(wxEVT_BUTTON, &CScanMatching::OnbtnHelpClick, this, ID_BITMAPBUTTON1);
+	Bind(
+		wxEVT_RADIOBUTTON, &CScanMatching::OChangeSelectedMapType, this,
+		ID_RADIOBUTTON1);
+	Bind(
+		wxEVT_RADIOBUTTON, &CScanMatching::OChangeSelectedMapType, this,
+		ID_RADIOBUTTON2);
+	Bind(
+		wxEVT_COMMAND_NOTEBOOK_PAGE_CHANGING,
+		&CScanMatching::OnNotebook1PageChanging, this, ID_NOTEBOOK1);
+	Bind(wxEVT_BUTTON, &CScanMatching::OnbtnICPClick, this, ID_BUTTON1);
+	Bind(wxEVT_CHECKBOX, &CScanMatching::OncbAnimateClick, this, ID_CHECKBOX1);
+	Bind(wxEVT_BUTTON, &CScanMatching::OnbtnCloseClick, this, ID_BUTTON2);
 	//*)
 
 	// Initialize 3D view:
@@ -552,21 +540,21 @@ class CMyButtonsDisabler
 static void insert_obs_into_map(
 	const CSerializable::Ptr& obj, mrpt::maps::CMetricMap* theMap)
 {
-	if (IS_CLASS(obj, CSensoryFrame))
+	if (IS_CLASS(*obj, CSensoryFrame))
 	{
 		auto SF = std::dynamic_pointer_cast<CSensoryFrame>(obj);
 		SF->insertObservationsInto(theMap);
 	}
-	else if (IS_DERIVED(obj, CObservation))
+	else if (IS_DERIVED(*obj, CObservation))
 	{
 		CObservationVelodyneScan::Ptr obs_velodyne;
-		if (IS_CLASS(obj, CObservationVelodyneScan))
+		if (IS_CLASS(*obj, CObservationVelodyneScan))
 		{
 			obs_velodyne = mrpt::ptr_cast<CObservationVelodyneScan>::from(obj);
 			obs_velodyne->generatePointCloud();
 		}
 		auto obs_ref = std::dynamic_pointer_cast<CObservation>(obj);
-		theMap->insertObservation(obs_ref.get());
+		theMap->insertObservation(*obs_ref);
 
 		// free mem:
 		if (obs_velodyne) obs_velodyne->point_cloud.clear_deep();
@@ -617,7 +605,6 @@ void CScanMatching::OnbtnICPClick(wxCommandEvent&)
 	CSerializable::Ptr obj_new = rawlog.getAsGeneric(newIndx);
 
 	CPosePDF::Ptr poseEst;
-	float runTime;
 
 	// Load ICP options:
 	// ------------------------------------------
@@ -688,7 +675,7 @@ void CScanMatching::OnbtnICPClick(wxCommandEvent&)
 	refMap->getAs3DObject(m_gl_map_ref);
 	newMapPt.getAs3DObject(m_gl_map_new);
 
-	auto gl_ellipse = mrpt::opengl::CEllipsoid::Create();
+	auto gl_ellipse = mrpt::opengl::CEllipsoid2D::Create();
 	gl_ellipse->setQuantiles(3.0f);
 	gl_ellipse->setColor_u8(0, 0, 0);
 	m_gl_map_new->insert(gl_ellipse);
@@ -696,8 +683,8 @@ void CScanMatching::OnbtnICPClick(wxCommandEvent&)
 	// Align:
 	// --------------------------------------
 	bool isAnimation = cbAnimate->GetValue();
-	int maxSteps = icp.options.maxIterations;
-	int curStep = isAnimation ? 0 : maxSteps;
+	unsigned int maxSteps = icp.options.maxIterations;
+	unsigned int curStep = isAnimation ? 0 : maxSteps;
 	CPose2D estMean;
 	CMatrixDouble33 estCov;
 
@@ -723,17 +710,15 @@ void CScanMatching::OnbtnICPClick(wxCommandEvent&)
 
 			icp.options.maxIterations = curStep;
 
-			poseEst = icp.Align(
-				refMap, (CMetricMap*)&newMapPt, initialEst, &runTime, &icpInfo);
+			poseEst =
+				icp.Align(refMap, (CMetricMap*)&newMapPt, initialEst, icpInfo);
 
 			// Show the final graphs:
 			// --------------------------------------
 			poseEst->getCovarianceAndMean(estCov, estMean);
 
 			m_gl_map_new->setPose(CPose3D(estMean));
-			const mrpt::math::CMatrixFixedNumeric<double, 2, 2> C =
-				estCov.block<2, 2>(0, 0);
-			gl_ellipse->setCovMatrix(C);
+			gl_ellipse->setCovMatrix(estCov.extractMatrix<2, 2>(0, 0));
 
 			m_plot3D->Refresh();
 
@@ -744,7 +729,7 @@ void CScanMatching::OnbtnICPClick(wxCommandEvent&)
 					"EXECUTING %i steps:\n---------------------------\n",
 					curStep);
 			}
-			cout << format("Time:%fms\n", runTime * 1e3f);
+			cout << format("Time:%fms\n", icpInfo.executionTime * 1e3f);
 			cout << format("Iterations executed: %i\n", icpInfo.nIterations);
 			cout << format("Goodness: %.02f%%\n", 100 * icpInfo.goodness);
 			cout << format("Quality: %.04f\n", icpInfo.quality);

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -64,7 +64,7 @@ using TListTimeAndObservations =
  */
 class CRawlog : public mrpt::serialization::CSerializable
 {
-	DEFINE_SERIALIZABLE(CRawlog)
+	DEFINE_SERIALIZABLE(CRawlog, mrpt::obs)
 
    private:
 	using TListObjects = std::vector<mrpt::serialization::CSerializable::Ptr>;
@@ -75,6 +75,9 @@ class CRawlog : public mrpt::serialization::CSerializable
 	CObservationComment m_commentTexts;
 
    public:
+	CRawlog() = default;
+	virtual ~CRawlog() override = default;
+
 	/** Returns the block of comment text for the rawlog */
 	void getCommentText(std::string& t) const;
 	/** Returns the block of comment text for the rawlog */
@@ -97,12 +100,6 @@ class CRawlog : public mrpt::serialization::CSerializable
 		etOther
 	};
 
-	/** Default constructor */
-	CRawlog();
-
-	/** Destructor: */
-	~CRawlog() override;
-
 	/** Clear the sequence of actions/observations. Smart pointers to objects
 	 * previously in the rawlog will remain being valid. */
 	void clear();
@@ -111,45 +108,22 @@ class CRawlog : public mrpt::serialization::CSerializable
 	 * created.
 	 *   The object is duplicated, so the original one can be freed if desired.
 	 */
-	void addAction(CAction& action);
+	void insert(CAction& action);
 
 	/** Add a set of actions to the sequence; the object is duplicated, so the
 	 * original one can be freed if desired.
-	 * \sa addObservations, addActionsMemoryReference
+	 * \sa insert, insert
 	 */
-	void addActions(CActionCollection& action);
+	void insert(CActionCollection& action);
 
 	/** Add a set of observations to the sequence; the object is duplicated, so
 	 * the original one can be free if desired.
-	 * \sa addActions, addObservationsMemoryReference
 	 */
-	void addObservations(CSensoryFrame& observations);
-
-	/** Add a set of actions to the sequence, using a smart pointer to the
-	 * object to add.
-	 * \sa addActions, addObservationsMemoryReference,
-	 * addObservationMemoryReference
-	 */
-	void addActionsMemoryReference(const CActionCollection::Ptr& action);
-
-	/** Add a set of observations to the sequence, using a smart pointer to the
-	 * object to add.
-	 * \sa addObservations, addActionsMemoryReference,
-	 * addObservationMemoryReference
-	 */
-	void addObservationsMemoryReference(const CSensoryFrame::Ptr& observations);
-
-	/** Add a single observation to the sequence, using a smart pointer to the
-	 * object to add.
-	 * \sa addObservations, addActionsMemoryReference
-	 */
-	void addObservationMemoryReference(const CObservation::Ptr& observation);
+	void insert(CSensoryFrame& observations);
 
 	/** Generic add for a smart pointer to a CSerializable object:
-	 * \sa addObservations, addActionsMemoryReference,
-	 * addObservationMemoryReference
 	 */
-	void addGenericObject(const mrpt::serialization::CSerializable::Ptr& obj);
+	void insert(const mrpt::serialization::CSerializable::Ptr& obj);
 
 	/** Load the contents from a file containing one of these possibilities:
 	 *  - A "CRawlog" object.
@@ -226,8 +200,32 @@ class CRawlog : public mrpt::serialization::CSerializable
 	 */
 	CObservation::Ptr getAsObservation(size_t index) const;
 
-	/** A normal iterator, plus the extra method "getType" to determine the type
-	 * of each entry in the sequence. */
+	/** Get the i'th observation as an observation of the given type.
+	 * \exception std::exception If index is out of bounds, or type not
+	 * compatible.
+	 */
+	template <class T>
+	typename T::ConstPtr asObservation(size_t index) const
+	{
+		MRPT_START
+		auto ptr = std::dynamic_pointer_cast<const T>(getAsObservation(index));
+		ASSERTMSG_(ptr, "Could not convert observation to specified class");
+		return ptr;
+		MRPT_END
+	}
+
+	template <class T>
+	typename T::Ptr asObservation(size_t index)
+	{
+		MRPT_START
+		auto ptr = std::dynamic_pointer_cast<T>(getAsObservation(index));
+		ASSERTMSG_(ptr, "Could not convert observation to specified class");
+		return ptr;
+		MRPT_END
+	}
+
+	/** A normal iterator, plus the extra method "getType" to determine the
+	 * type of each entry in the sequence. */
 	class iterator
 	{
 	   protected:

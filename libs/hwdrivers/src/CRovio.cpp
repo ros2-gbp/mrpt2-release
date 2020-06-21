@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -13,6 +13,7 @@
 #include <mrpt/hwdrivers/CFFMPEG_InputStream.h>
 #include <mrpt/hwdrivers/CRovio.h>
 #include <mrpt/io/CMemoryStream.h>
+#include <mrpt/math/TPose2D.h>
 #include <mrpt/obs/CObservationImage.h>
 
 #include <thread>
@@ -233,8 +234,7 @@ void CRovio::thread_video()  // This function takes a frame and waits until
 
 		while (!m_videothread_must_exit)
 		{
-			CObservationImage::Ptr obs =
-				mrpt::make_aligned_shared<CObservationImage>();
+			CObservationImage::Ptr obs = std::make_shared<CObservationImage>();
 
 			if (in_video.retrieveFrame(obs->image))
 			{
@@ -366,9 +366,8 @@ bool CRovio::captureImageAsync(CImage& picture, bool rectified)
 /*-------------------------------------------------
 					 STATE
   -----------------------------------------------*/
-bool CRovio::getRovioState(CRovio::TRovioState& status)
+bool CRovio::getRovioState([[maybe_unused]] CRovio::TRovioState& st)
 {
-	MRPT_UNUSED_PARAM(status);
 	size_t x_pos, /*y_pos, theta_pos,*/ lenght;
 	string x_value, response, errormsg;
 	mrpt::math::TPose2D pose;
@@ -401,9 +400,8 @@ long convertToLong(char* sLong)
 	return strtol(result, &stop, 16);
 }
 
-bool CRovio::getEncoders(CRovio::TEncoders& encoders)  // Revisar esto
+bool CRovio::getEncoders([[maybe_unused]] CRovio::TEncoders& encs)
 {
-	MRPT_UNUSED_PARAM(encoders);
 	string resp, error, field;
 	// string field_name[12]={"Packet length","Not Used","Left Wheel:Dir
 	// Rotation","Left Wheel:Ticks","Right Wheel:Dir Rotation","Right
@@ -455,6 +453,7 @@ bool CRovio::getEncoders(CRovio::TEncoders& encoders)  // Revisar esto
 		else
 			this->encoders.left -= a_enc[7];
 
+		encs = this->encoders;
 		return true;
 	}
 	else

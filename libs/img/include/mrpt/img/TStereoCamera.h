@@ -2,14 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
 #include <mrpt/img/TCamera.h>
-#include <mrpt/math/lightweight_geom_data.h>
+#include <mrpt/math/TPose3DQuat.h>
 
 namespace mrpt::img
 {
@@ -22,7 +22,7 @@ namespace mrpt::img
  */
 class TStereoCamera : public mrpt::serialization::CSerializable
 {
-	DEFINE_SERIALIZABLE(TStereoCamera)
+	DEFINE_SERIALIZABLE(TStereoCamera, mrpt::img)
    public:
 	/** Intrinsic and distortion parameters of the left and right cameras */
 	TCamera leftCamera, rightCamera;

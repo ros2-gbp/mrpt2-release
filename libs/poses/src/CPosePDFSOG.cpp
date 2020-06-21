@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
-#include "poses-precomp.h"  // Precompiled headers
-
+#include "poses-precomp.h"	// Precompiled headers
+//
 #include <mrpt/math/CMatrixD.h>
 #include <mrpt/math/distributions.h>
 #include <mrpt/math/matrix_serialization.h>
@@ -19,7 +19,10 @@
 #include <mrpt/poses/SO_SE_average.h>
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/os.h>
+
+#include <Eigen/Dense>
 #include <iostream>
+
 
 using namespace mrpt;
 using namespace mrpt::poses;
@@ -64,16 +67,15 @@ void CPosePDFSOG::getMean(CPose2D& p) const
 	}
 }
 
-/*---------------------------------------------------------------
-						getEstimatedCovariance
- ---------------------------------------------------------------*/
-void CPosePDFSOG::getCovarianceAndMean(
-	CMatrixDouble33& estCov, CPose2D& estMean2D) const
+std::tuple<CMatrixDouble33, CPose2D> CPosePDFSOG::getCovarianceAndMean() const
 {
-	size_t N = m_modes.size();
+	const size_t N = m_modes.size();
+
+	mrpt::math::CMatrixDouble33 cov;
+	CPose2D estMean2D;
 
 	this->getMean(estMean2D);
-	estCov.zeros();
+	cov.setZero();
 
 	if (N)
 	{
@@ -91,15 +93,16 @@ void CPosePDFSOG::getCovarianceAndMean(
 			estMean_i = CMatrixDouble31(m.mean);
 			estMean_i -= estMeanMat;
 
-			temp.multiply_AAt(estMean_i);
+			temp.matProductOf_AAt(estMean_i);
 			temp += m.cov;
 			temp *= w;
 
-			estCov += temp;
+			cov += temp;
 		}
 
-		if (sumW != 0) estCov *= (1.0 / sumW);
+		if (sumW != 0) cov *= (1.0 / sumW);
 	}
+	return {cov, estMean2D};
 }
 
 uint8_t CPosePDFSOG::serializeGetVersion() const { return 2; }
@@ -108,7 +111,7 @@ void CPosePDFSOG::serializeTo(mrpt::serialization::CArchive& out) const
 	uint32_t N = m_modes.size();
 	out << N;
 
-	for (const auto m : m_modes)
+	for (const auto& m : m_modes)
 	{
 		out << m.log_w << m.mean;
 		mrpt::math::serializeSymmetricMatrixTo(m.cov, out);
@@ -139,7 +142,7 @@ void CPosePDFSOG::serializeFrom(
 				{
 					CMatrixFloat33 mf;
 					mrpt::math::deserializeSymmetricMatrixFrom(mf, in);
-					m.cov = mf.cast<double>();
+					m.cov = mf.cast_double();
 				}
 				else
 				{
@@ -157,7 +160,7 @@ void CPosePDFSOG::copyFrom(const CPosePDF& o)
 {
 	MRPT_START
 
-	if (this == &o) return;  // It may be used sometimes
+	if (this == &o) return;	 // It may be used sometimes
 
 	if (o.GetRuntimeClass() == CLASS_ID(CPosePDFSOG))
 	{
@@ -203,7 +206,7 @@ void CPosePDFSOG::changeCoordinatesReference(const CPose3D& newReferenceBase_)
 	newReferenceBase.getHomogeneousMatrix(HM);
 
 	// Clip the 4x4 matrix
-	CMatrixDouble33 M = HM.block(0, 0, 3, 3).eval();
+	auto M = CMatrixDouble33(HM.block<3, 3>(0, 0));
 
 	// The variance in phi is unmodified:
 	M(0, 2) = 0;
@@ -218,18 +221,18 @@ void CPosePDFSOG::changeCoordinatesReference(const CPose3D& newReferenceBase_)
 		m.mean.composeFrom(newReferenceBase, m.mean);
 
 		// The covariance:
-		// NOTE: The CMatrixDouble33() is NEEDED to create a temporary copy of
-		// (it)->cov
-		M.multiply_HCHt(CMatrixDouble33(m.cov), m.cov);  // * (it)->cov * (~M);
+		// NOTE: the CMatrixDouble33 is NEEDED to create a temporary copy to
+		// allow aliasing
+		m.cov = mrpt::math::multiply_HCHt(M, CMatrixDouble33(m.cov));
 	}
 
-	assureSymmetry();
+	enforceCovSymmetry();
 }
 
 /*---------------------------------------------------------------
 						rotateAllCovariances
  ---------------------------------------------------------------*/
-void CPosePDFSOG::rotateAllCovariances(const double& ang)
+void CPosePDFSOG::rotateAllCovariances(double ang)
 {
 	CMatrixDouble33 rot;
 	rot(0, 0) = rot(1, 1) = cos(ang);
@@ -237,19 +240,17 @@ void CPosePDFSOG::rotateAllCovariances(const double& ang)
 	rot(1, 0) = sin(ang);
 	rot(2, 2) = 1;
 
-	for (auto& m : m_modes) rot.multiply_HCHt(CMatrixDouble33(m.cov), m.cov);
+	for (auto& m : m_modes)
+		m.cov = mrpt::math::multiply_HCHt(rot, CMatrixDouble33(m.cov));
 }
 
 /*---------------------------------------------------------------
 					drawSingleSample
  ---------------------------------------------------------------*/
-void CPosePDFSOG::drawSingleSample(CPose2D& outPart) const
+void CPosePDFSOG::drawSingleSample([[maybe_unused]] CPose2D& outPart) const
 {
 	MRPT_START
-	MRPT_UNUSED_PARAM(outPart);
-
 	THROW_EXCEPTION("Not implemented yet!!");
-
 	MRPT_END
 }
 
@@ -257,11 +258,10 @@ void CPosePDFSOG::drawSingleSample(CPose2D& outPart) const
 					drawManySamples
  ---------------------------------------------------------------*/
 void CPosePDFSOG::drawManySamples(
-	size_t N, std::vector<CVectorDouble>& outSamples) const
+	[[maybe_unused]] size_t N,
+	[[maybe_unused]] std::vector<CVectorDouble>& outSamples) const
 {
 	MRPT_START
-	MRPT_UNUSED_PARAM(N);
-	MRPT_UNUSED_PARAM(outSamples);
 
 	THROW_EXCEPTION("Not implemented yet!!");
 
@@ -273,11 +273,9 @@ void CPosePDFSOG::drawManySamples(
  ---------------------------------------------------------------*/
 void CPosePDFSOG::bayesianFusion(
 	const CPosePDF& p1_, const CPosePDF& p2_,
-	const double minMahalanobisDistToDrop)
+	[[maybe_unused]] const double minMahalanobisDistToDrop)
 {
 	MRPT_START
-
-	MRPT_UNUSED_PARAM(minMahalanobisDistToDrop);
 
 	// p1: CPosePDFSOG, p2: CPosePDFGaussian:
 
@@ -291,16 +289,16 @@ void CPosePDFSOG::bayesianFusion(
 	// to the Gaussian "p2":
 	CPosePDFGaussian auxGaussianProduct, auxSOG_Kernel_i;
 
-	CMatrixDouble33 covInv;
-	p2->cov.inv(covInv);
+	const CMatrixDouble33 covInv = p2->cov.inverse_LLt();
 
 	auto eta = CMatrixDouble31(p2->mean);
 	eta = covInv * eta;
 
 	// Normal distribution canonical form constant:
 	// See: http://www-static.cc.gatech.edu/~wujx/paper/Gaussian.pdf
-	double a = -0.5 * (3 * log(M_2PI) - log(covInv.det()) +
-					   (eta.adjoint() * p2->cov * eta)(0, 0));
+	double a =
+		-0.5 * (3 * log(M_2PI) - log(covInv.det()) +
+				(eta.transpose() * p2->cov.asEigen() * eta.asEigen())(0, 0));
 
 	this->m_modes.clear();
 	for (const auto& m : p1->m_modes)
@@ -322,24 +320,24 @@ void CPosePDFSOG::bayesianFusion(
 		newKernel.mean = auxGaussianProduct.mean;
 		newKernel.cov = auxGaussianProduct.cov;
 
-		CMatrixDouble33 covInv_i;
-		auxSOG_Kernel_i.cov.inv(covInv_i);
+		const CMatrixDouble33 covInv_i = auxSOG_Kernel_i.cov.inverse_LLt();
 
 		auto eta_i = CMatrixDouble31(auxSOG_Kernel_i.mean);
 		eta_i = covInv_i * eta_i;
 
-		CMatrixDouble33 new_covInv_i;
-		newKernel.cov.inv(new_covInv_i);
+		const CMatrixDouble33 new_covInv_i = newKernel.cov.inverse_LLt();
 
 		auto new_eta_i = CMatrixDouble31(newKernel.mean);
 		new_eta_i = new_covInv_i * new_eta_i;
 
 		double a_i =
 			-0.5 * (3 * log(M_2PI) - log(new_covInv_i.det()) +
-					(eta_i.adjoint() * auxSOG_Kernel_i.cov * eta_i)(0, 0));
+					(eta_i.transpose() * auxSOG_Kernel_i.cov.asEigen() *
+					 eta_i.asEigen())(0, 0));
 		double new_a_i =
 			-0.5 * (3 * log(M_2PI) - log(new_covInv_i.det()) +
-					(new_eta_i.adjoint() * newKernel.cov * new_eta_i)(0, 0));
+					(new_eta_i.transpose() * newKernel.cov.asEigen() *
+					 new_eta_i.asEigen())(0, 0));
 
 		// newKernel.w	   = (it)->w * exp( a + a_i - new_a_i );
 		newKernel.log_w = m.log_w + a + a_i - new_a_i;
@@ -452,9 +450,9 @@ double CPosePDFSOG::evaluateNormalizedPDF(const CPose2D& x) const
 }
 
 /*---------------------------------------------------------------
-						assureSymmetry
+						enforceCovSymmetry
  ---------------------------------------------------------------*/
-void CPosePDFSOG::assureSymmetry()
+void CPosePDFSOG::enforceCovSymmetry()
 {
 	// Differences, when they exist, appear in the ~15'th significant
 	//  digit, so... just take one of them arbitrarily!
@@ -487,9 +485,8 @@ void CPosePDFSOG::normalizeWeights()
 						normalizeWeights
  ---------------------------------------------------------------*/
 void CPosePDFSOG::evaluatePDFInArea(
-	const double& x_min, const double& x_max, const double& y_min,
-	const double& y_max, const double& resolutionXY, const double& phi,
-	CMatrixD& outMatrix, bool sumOverAllPhis)
+	double x_min, double x_max, double y_min, double y_max, double resolutionXY,
+	double phi, CMatrixDouble& outMatrix, bool sumOverAllPhis)
 {
 	MRPT_START
 
@@ -525,7 +522,7 @@ void CPosePDFSOG::mergeModes(double max_KLd, bool verbose)
 	normalizeWeights();
 
 	size_t N = m_modes.size();
-	if (N < 2) return;  // Nothing to do
+	if (N < 2) return;	// Nothing to do
 
 	// Method described in:
 	// "Kullback-Leibler Approach to Gaussian Mixture Reduction", A.R. Runnalls.
@@ -534,7 +531,7 @@ void CPosePDFSOG::mergeModes(double max_KLd, bool verbose)
 
 	for (size_t i = 0; i < (N - 1);)
 	{
-		N = m_modes.size();  // It might have changed.
+		N = m_modes.size();	 // It might have changed.
 		double sumW = 0;
 
 		// For getting linear weights:
@@ -558,8 +555,9 @@ void CPosePDFSOG::mergeModes(double max_KLd, bool verbose)
 				const double Wj = exp(m_modes[j].log_w) / sumW;
 				const double Wij_ = 1.0 / (Wi + Wj);
 
-				CMatrixDouble33 Pij = m_modes[i].cov * (Wi * Wij_);
-				Pij.add_Ac(m_modes[j].cov, Wj * Wij_);
+				auto Pij =
+					CMatrixDouble33(m_modes[i].cov.asEigen() * Wi * Wij_);
+				Pij.asEigen() += m_modes[j].cov.asEigen() * Wj * Wij_;
 
 				auto MUij = CMatrixDouble31(m_modes[j].mean);
 				MUij -= MUi;
@@ -567,7 +565,7 @@ void CPosePDFSOG::mergeModes(double max_KLd, bool verbose)
 				mrpt::math::wrapToPiInPlace(MUij(2, 0));
 
 				CMatrixDouble33 AUX;
-				AUX.multiply_AAt(MUij);  // AUX = MUij * MUij^T
+				AUX.matProductOf_AAt(MUij);	 // AUX = MUij * MUij^T
 
 				AUX *= Wi * Wj * Wij_ * Wij_;
 				Pij += AUX;
@@ -668,33 +666,8 @@ void CPosePDFSOG::getMostLikelyCovarianceAndMean(
 	}
 	else
 	{
-		cov.unit(3, 1.0);
-		cov *= 1e20;
+		cov.setIdentity();
+		cov.asEigen() *= 1e20;
 		mean_point = CPose2D(0, 0, 0);
 	}
 }
-
-/*---------------------------------------------------------------
-						getAs3DObject
- ---------------------------------------------------------------*/
-// void  CPosePDFSOG::getAs3DObject( mrpt::opengl::CSetOfObjects::Ptr	&outObj
-// )
-// const
-//{
-//	outObj->clear();
-//
-//	for (const_iterator it=m_modes.begin();it!=m_modes.end();++it)
-//	{
-//		opengl::CEllipsoid::Ptr ellip =
-// mrpt::make_aligned_shared<opengl::CEllipsoid>();
-//
-//		ellip->setPose( CPose3D((it)->mean.x(), (it)->mean.y(),
-//(it)->mean.phi())
-//);
-//		ellip->setCovMatrix((it)->cov);
-//		ellip->setColor(0,0,1,0.6);
-//
-//		outObj->insert(ellip);
-//	}
-//
-//}

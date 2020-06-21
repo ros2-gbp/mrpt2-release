@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixFixedNumeric.h>
+#include <mrpt/math/CMatrixFixed.h>
 #include "gnss_messages_common.h"
 
 namespace mrpt::obs::gnss
@@ -62,7 +62,7 @@ struct Message_TOPCON_PZS : public gnss_message
 	uint8_t stats_GPS_sats_used{0},
 		stats_GLONASS_sats_used{0};  //<! Only if hasStats is true
 	/** [0,100] %, only in modes other than RTK FIXED. */
-	uint8_t stats_rtk_fix_progress;
+	uint8_t stats_rtk_fix_progress{0};
 
 	Message_TOPCON_PZS();
 	/**  Return the geodetic coords as a mrpt::topography::TGeodeticCoords
@@ -82,7 +82,6 @@ struct Message_TOPCON_PZS : public gnss_message
 	void internal_readFromStream(mrpt::serialization::CArchive& in) override;
 
    public:
-	MRPT_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 /** TopCon mmGPS devices: SATS, a generic structure for statistics about tracked

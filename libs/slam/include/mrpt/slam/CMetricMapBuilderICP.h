@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -188,7 +188,7 @@ class CMetricMapBuilderICP : public mrpt::slam::CMetricMapBuilder
 	TDist m_distSinceLastICP;
 	/** Indexed by sensor label. */
 	std::map<std::string, TDist> m_distSinceLastInsertion;
-	bool m_there_has_been_an_odometry;
+	bool m_there_has_been_an_odometry{false};
 
 	void accumulateRobotDisplacementCounters(
 		const mrpt::poses::CPose2D& new_pose);

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -14,6 +14,7 @@
 #include <wx/image.h>
 #include "xRawLogViewerMain.h"
 //*)
+#include <wx/cmdline.h>
 #include <wx/log.h>
 
 #include <clocale>
@@ -25,6 +26,7 @@ std::string global_fileToOpen;
 
 #include <mrpt/config/CConfigFile.h>
 #include <mrpt/system/filesystem.h>
+#include <mrpt/system/os.h>
 
 using namespace mrpt;
 using namespace mrpt::system;
@@ -32,7 +34,7 @@ using namespace mrpt::config;
 using namespace std;
 
 // The configuration file:
-CConfigFile* iniFile = nullptr;
+std::unique_ptr<CConfigFile> iniFile;
 
 bool xRawLogViewerApp::OnInit()
 {
@@ -42,15 +44,33 @@ bool xRawLogViewerApp::OnInit()
 	//  the default wxWidgets settings. (JL @ Sep-2009)
 	wxSetlocale(LC_NUMERIC, wxString(wxT("C")));
 
-	// Process cmd line arguments (for the case of opening a file):
-	if (argc > 1) global_fileToOpen = wxString(wxApp::argv[1]).mb_str();
+	static const wxCmdLineEntryDesc cmdLineDesc[] = {
+#ifdef MRPT_OS_LINUX
+		{wxCMD_LINE_OPTION, wxT_2("l"), wxT_2("load"), wxT_2("load a library"),
+		 wxCMD_LINE_VAL_STRING, 0},
+#endif
+		{wxCMD_LINE_PARAM, nullptr, nullptr, wxT_2("Input File"),
+		 wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
+		{wxCMD_LINE_NONE, nullptr, nullptr, nullptr, wxCMD_LINE_VAL_NONE, 0}};
+
+	wxCmdLineParser parser(cmdLineDesc, argc, argv);
+	parser.Parse(true);
+	wxString libraryPath;
+	if (parser.Found(wxT_2("l"), &libraryPath))
+	{
+		const std::string sLib = std::string(libraryPath.mb_str());
+		std::cout << "Loading plugin libraries: " << sLib << "...\n";
+		mrpt::system::loadPluginModules(sLib);
+	}
+	if (parser.GetParamCount() == 1)
+		global_fileToOpen = parser.GetParam().mb_str();
 
 	// Create the INI file:
 	wxString dataDir = wxStandardPaths::Get().GetUserDataDir();
 	std::string dataDirStr(dataDir.mb_str());
 	mrpt::system::createDirectory(dataDirStr);  // Create dir!
 	std::string iniFileName(dataDirStr + std::string("/config.cfg"));
-	iniFile = new CConfigFile(iniFileName);
+	iniFile = std::make_unique<CConfigFile>(iniFileName);
 
 	// Set numeric locale to "POSIX" to enable a consistent file generation in
 	// all platforms:
@@ -69,10 +89,4 @@ bool xRawLogViewerApp::OnInit()
 	return wxsOK;
 }
 
-int xRawLogViewerApp::OnExit()
-{
-	delete iniFile;
-	iniFile = nullptr;
-
-	return 0;
-}
+int xRawLogViewerApp::OnExit() { return 0; }

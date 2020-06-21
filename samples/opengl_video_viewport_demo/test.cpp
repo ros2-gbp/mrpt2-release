@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -54,8 +54,7 @@ void TestOpenGLVideo()
 	COpenGLViewport::Ptr gl_view_aux;
 	{
 		COpenGLScene::Ptr& theScene = win2.get3DSceneAndLock();
-		theScene->insert(
-			mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>());
+		theScene->insert(mrpt::opengl::CGridPlaneXY::Create());
 
 		// Create small auxiliary viewport
 		gl_view_aux = theScene->createViewport("aux");
@@ -81,7 +80,7 @@ void TestOpenGLVideo()
 		CObservation::Ptr obs = cam->getNextFrame();
 		if (obs)
 		{
-			if (IS_CLASS(obs, CObservationImage))
+			if (IS_CLASS(*obs, CObservationImage))
 			{
 				CObservationImage::Ptr o =
 					std::dynamic_pointer_cast<CObservationImage>(obs);

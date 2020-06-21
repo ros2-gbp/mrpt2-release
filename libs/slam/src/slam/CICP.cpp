@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,6 +10,7 @@
 #include "slam-precomp.h"  // Precompiled headers
 
 #include <mrpt/config/CConfigFileBase.h>  // MRPT_LOAD_*()
+#include <mrpt/math/TPose2D.h>
 #include <mrpt/math/ops_containers.h>
 #include <mrpt/math/wrap2pi.h>
 #include <mrpt/poses/CPose2D.h>
@@ -22,6 +23,7 @@
 #include <mrpt/slam/CICP.h>
 #include <mrpt/system/CTicTac.h>
 #include <mrpt/tfest.h>
+#include <Eigen/Dense>
 
 using namespace mrpt::slam;
 using namespace mrpt::maps;
@@ -33,25 +35,26 @@ using namespace std;
 
 CPosePDF::Ptr CICP::AlignPDF(
 	const mrpt::maps::CMetricMap* m1, const mrpt::maps::CMetricMap* mm2,
-	const CPosePDFGaussian& initialEstimationPDF, float* runningTime,
-	void* info)
+	const CPosePDFGaussian& initialEstimationPDF,
+	mrpt::optional_ref<TMetricMapAlignmentResult> outInfo)
 {
 	MRPT_START
 
 	CTicTac tictac;
-	TReturnInfo outInfo;
+	TReturnInfo outInfoVal;
 	CPosePDF::Ptr resultPDF;
 
-	if (runningTime) tictac.Tic();
+	if (outInfo) tictac.Tic();
 
 	switch (options.ICP_algorithm)
 	{
 		case icpClassic:
 			resultPDF =
-				ICP_Method_Classic(m1, mm2, initialEstimationPDF, outInfo);
+				ICP_Method_Classic(m1, mm2, initialEstimationPDF, outInfoVal);
 			break;
 		case icpLevenbergMarquardt:
-			resultPDF = ICP_Method_LM(m1, mm2, initialEstimationPDF, outInfo);
+			resultPDF =
+				ICP_Method_LM(m1, mm2, initialEstimationPDF, outInfoVal);
 			break;
 		default:
 			THROW_EXCEPTION_FMT(
@@ -59,10 +62,12 @@ CPosePDF::Ptr CICP::AlignPDF(
 				static_cast<int>(options.ICP_algorithm));
 	}  // end switch
 
-	if (runningTime) *runningTime = tictac.Tac();
+	if (outInfo) outInfoVal.executionTime = tictac.Tac();
 
 	// Copy the output info if requested:
-	if (info) *static_cast<TReturnInfo*>(info) = outInfo;
+	if (outInfo)
+		if (auto* o = dynamic_cast<TReturnInfo*>(&outInfo.value().get()); o)
+			*o = outInfoVal;
 
 	return resultPDF;
 
@@ -142,7 +147,7 @@ void CICP::TConfigParams::saveToConfigFile(
 		"Initial threshold distance for two points to be a match");
 	MRPT_SAVE_CONFIG_VAR_COMMENT(
 		ALFA,
-		"The scale factor for thresholds everytime convergence is achieved");
+		"The scale factor for thresholds every time convergence is achieved");
 	MRPT_SAVE_CONFIG_VAR_COMMENT(
 		smallestThresholdDist,
 		"The size for threshold such that iterations will stop, "
@@ -166,7 +171,7 @@ void CICP::TConfigParams::saveToConfigFile(
 	MRPT_SAVE_CONFIG_VAR_COMMENT(corresponding_points_decimation, "");
 }
 
-float CICP::kernel(const float& x2, const float& rho2)
+float CICP::kernel(float x2, float rho2)
 {
 	return options.use_kernel ? (x2 / (x2 + rho2)) : x2;
 }
@@ -208,7 +213,7 @@ CPosePDF::Ptr CICP::ICP_Method_Classic(
 
 	// The gaussian PDF to estimate:
 	// ------------------------------------------------------
-	gaussPdf = mrpt::make_aligned_shared<CPosePDFGaussian>();
+	gaussPdf = std::make_shared<CPosePDFGaussian>();
 
 	// First gross approximation:
 	gaussPdf->mean = grossEst;
@@ -227,7 +232,7 @@ CPosePDF::Ptr CICP::ICP_Method_Classic(
 	matchParams.decimation_other_map_points =
 		options.corresponding_points_decimation;
 
-	// Asure maps are not empty!
+	// Ensure maps are not empty!
 	// ------------------------------------------------------
 	if (!m2->isEmpty())
 	{
@@ -336,8 +341,7 @@ CPosePDF::Ptr CICP::ICP_Method_Classic(
 				// ----------------------------------------------
 				case icpCovFiniteDifferences:
 				{
-					Eigen::Matrix<double, 3, Eigen::Dynamic> D(
-						3, nCorrespondences);
+					CMatrixDouble D(3, nCorrespondences);
 
 					const TPose2D transf = gaussPdf->mean.asTPose();
 
@@ -427,14 +431,15 @@ CPosePDF::Ptr CICP::ICP_Method_Classic(
 					}  // end for each corresp.
 
 					// COV = ( D*D^T + lamba*I )^-1
-					CMatrixDouble33 DDt = D * D.transpose();
+					CMatrixDouble33 DDt;
+					DDt.matProductOf_AAt(D);
 
 					for (i = 0; i < 3; i++)
 						DDt(i, i) += 1e-6;  // Just to make sure the matrix is
 					// not singular, while not changing
 					// its covariance significantly.
 
-					DDt.inv(gaussPdf->cov);
+					gaussPdf->cov = DDt.inverse_LLt();
 				}
 				break;
 				default:
@@ -526,7 +531,7 @@ CPosePDF::Ptr CICP::ICP_Method_Classic(
 		mrpt::tfest::se2_l2_robust(
 			correspondences, options.normalizationStd, params, results);
 
-		SOG = mrpt::make_aligned_shared<CPosePDFSOG>();
+		SOG = std::make_shared<CPosePDFSOG>();
 		*SOG = results.transformation;
 
 		// And return the SOG:
@@ -571,7 +576,7 @@ CPosePDF::Ptr CICP::ICP_Method_LM(
 
 	// Assure the class of the maps:
 	ASSERT_(mm1->GetRuntimeClass()->derivedFrom(CLASS_ID(CPointsMap)));
-	const auto* m1 = static_cast<const CPointsMap*>(mm1);
+	const auto* m1 = dynamic_cast<const CPointsMap*>(mm1);
 
 	// Asserts:
 	// -----------------
@@ -602,11 +607,11 @@ CPosePDF::Ptr CICP::ICP_Method_LM(
 	q = grossEst;
 
 	// For LM inverse
-	CMatrixFixedNumeric<float, 3, 3> C;
-	CMatrixFixedNumeric<float, 3, 3>
+	CMatrixFixed<float, 3, 3> C;
+	CMatrixFixed<float, 3, 3>
 		C_inv;  // This will keep the cov. matrix at the end
 
-	// Asure maps are not empty!
+	// Ensure maps are not empty!
 	// ------------------------------------------------------
 	if (!m2->isEmpty())
 	{
@@ -721,7 +726,7 @@ CPosePDF::Ptr CICP::ICP_Method_LM(
 						((q1 - q2) / ((w1 - w2) * (w3 - w1)));
 					B = ((q1 - q2) + (A * ((w2 * w2) - (w1 * w1)))) / (w1 - w2);
 
-					dJ_dq.get_unsafe(0, i) = (2 * A * *other_x_trans) + B;
+					dJ_dq(0, i) = (2 * A * *other_x_trans) + B;
 
 					// Jacobian: dJ_dy
 					// --------------------------------------
@@ -761,15 +766,14 @@ CPosePDF::Ptr CICP::ICP_Method_LM(
 						((q1 - q2) / ((w1 - w2) * (w3 - w1)));
 					B = ((q1 - q2) + (A * ((w2 * w2) - (w1 * w1)))) / (w1 - w2);
 
-					dJ_dq.get_unsafe(1, i) = (2 * A * *other_y_trans) + B;
+					dJ_dq(1, i) = (2 * A * *other_y_trans) + B;
 
 					// Jacobian: dR_dphi
 					// --------------------------------------
-					dJ_dq.get_unsafe(2, i) =
-						dJ_dq.get_unsafe(0, i) *
+					dJ_dq(2, i) =
+						dJ_dq(0, i) *
 							(-csin * it->other_x - ccos * it->other_y) +
-						dJ_dq.get_unsafe(1, i) *
-							(ccos * it->other_x - csin * it->other_y);
+						dJ_dq(1, i) * (ccos * it->other_x - csin * it->other_y);
 
 				}  // end for each corresp.
 
@@ -777,9 +781,10 @@ CPosePDF::Ptr CICP::ICP_Method_LM(
 
 				// Compute the Hessian matrix H = dJ_dq * dJ_dq^T
 				CMatrixFloat H_(3, 3);
-				H_.multiply_AAt(dJ_dq);
+				H_.matProductOf_AAt(dJ_dq);
 
-				auto H = CMatrixFixedNumeric<float, 3, 3>(H_);
+				CMatrixFixed<float, 3, 3> H;
+				H = H_;
 
 				bool keepIteratingLM = true;
 
@@ -803,15 +808,14 @@ CPosePDF::Ptr CICP::ICP_Method_LM(
 						C(i, i) *=
 							(1 + lambda);  // Levenberg-Maquardt heuristic
 
-					C_inv = C.inv();
+					C_inv = C.inverse_LLt();
 
 					// LM_delta = C_inv * dJ_dq * sq_errors
-					Eigen::VectorXf dJsq, LM_delta;
-					dJ_dq.multiply_Ab(
-						Eigen::Map<Eigen::VectorXf>(
-							&sq_errors[0], sq_errors.size()),
-						dJsq);
-					C_inv.multiply_Ab(dJsq, LM_delta);
+					const Eigen::Vector3f LM_delta =
+						(C_inv.asEigen() * dJ_dq.asEigen() *
+						 Eigen::Map<Eigen::VectorXf>(
+							 &sq_errors[0], sq_errors.size()))
+							.eval();
 
 					q_new.x(q.x() - LM_delta[0]);
 					q_new.y(q.y() - LM_delta[1]);
@@ -906,28 +910,28 @@ CPosePDF::Ptr CICP::ICP_Method_LM(
 
 	}  // end of "if m2 is not empty"
 
-	return CPosePDFGaussian::Create(q, C_inv.cast<double>());
+	return CPosePDFGaussian::Create(q, C_inv.cast_double());
 	MRPT_END
 }
 
 CPose3DPDF::Ptr CICP::Align3DPDF(
 	const mrpt::maps::CMetricMap* m1, const mrpt::maps::CMetricMap* mm2,
-	const CPose3DPDFGaussian& initialEstimationPDF, float* runningTime,
-	void* info)
+	const CPose3DPDFGaussian& initialEstimationPDF,
+	mrpt::optional_ref<TMetricMapAlignmentResult> outInfo)
 {
 	MRPT_START
 
 	static CTicTac tictac;
-	TReturnInfo outInfo;
+	TReturnInfo outInfoVal;
 	CPose3DPDF::Ptr resultPDF;
 
-	if (runningTime) tictac.Tic();
+	if (outInfo) tictac.Tic();
 
 	switch (options.ICP_algorithm)
 	{
 		case icpClassic:
 			resultPDF =
-				ICP3D_Method_Classic(m1, mm2, initialEstimationPDF, outInfo);
+				ICP3D_Method_Classic(m1, mm2, initialEstimationPDF, outInfoVal);
 			break;
 		case icpLevenbergMarquardt:
 			THROW_EXCEPTION("Only icpClassic is implemented for ICP-3D");
@@ -938,16 +942,12 @@ CPose3DPDF::Ptr CICP::Align3DPDF(
 				static_cast<int>(options.ICP_algorithm));
 	}  // end switch
 
-	if (runningTime) *runningTime = tictac.Tac();
+	if (outInfo) outInfoVal.executionTime = tictac.Tac();
 
 	// Copy the output info if requested:
-	if (info)
-	{
-		MRPT_TODO(
-			"Refactor `info` so it is polymorphic and can use dynamic_cast<> "
-			"here");
-		*static_cast<TReturnInfo*>(info) = outInfo;
-	}
+	if (outInfo)
+		if (auto* o = dynamic_cast<TReturnInfo*>(&outInfo.value().get()); o)
+			*o = outInfoVal;
 
 	return resultPDF;
 
@@ -986,7 +986,7 @@ CPose3DPDF::Ptr CICP::ICP3D_Method_Classic(
 
 	// The gaussian PDF to estimate:
 	// ------------------------------------------------------
-	gaussPdf = mrpt::make_aligned_shared<CPose3DPDFGaussian>();
+	gaussPdf = std::make_shared<CPose3DPDFGaussian>();
 
 	// First gross approximation:
 	gaussPdf->mean = grossEst;
@@ -1004,7 +1004,7 @@ CPose3DPDF::Ptr CICP::ICP3D_Method_Classic(
 	matchParams.decimation_other_map_points =
 		options.corresponding_points_decimation;
 
-	// Asure maps are not empty!
+	// Ensure maps are not empty!
 	// ------------------------------------------------------
 	if (!m2->isEmpty())
 	{

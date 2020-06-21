@@ -2,16 +2,18 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #pragma once
 
+#include <mrpt/core/aligned_std_vector.h>
 #include <mrpt/math/geometry.h>
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/vision/chessboard_camera_calib.h>
+#include <Eigen/Dense>
 
 namespace mrpt::vision
 {
@@ -24,12 +26,11 @@ struct lm_stat_t
 
 	// State being optimized:
 	//  N*left_cam_pose + right2left_pose + left_cam_params + right_cam_params
-	mrpt::aligned_std_vector<mrpt::poses::CPose3D>
-		left_cam_poses;  // Poses of the origin of coordinates of the pattern
-	// wrt the left camera
-	mrpt::poses::CPose3D right2left_pose;
-	mrpt::math::CArrayDouble<9> left_cam_params,
-		right_cam_params;  // [fx fy cx cy k1 k2 k3 t1 t2]
+	// Poses of the origin of coordinates of the pattern wrt the left camera
+	std::vector<mrpt::math::TPose3D> left_cam_poses;
+	mrpt::math::TPose3D right2left_pose;
+	/** [fx fy cx cy k1 k2 k3 t1 t2] */
+	mrpt::math::CVectorFixedDouble<9> left_cam_params, right_cam_params;
 
 	// Ctor
 	lm_stat_t(
@@ -40,8 +41,9 @@ struct lm_stat_t
 		  valid_image_pair_indices(_valid_image_pair_indices),
 		  obj_points(_obj_points)
 	{
+		// Initial
 		left_cam_poses.assign(
-			images.size(), mrpt::poses::CPose3D(0, 0, 1, 0, 0, 0));  // Initial
+			images.size(), mrpt::math::TPose3D(0, 0, 1, 0, 0, 0));
 	}
 
 	// Swap:
@@ -75,8 +77,8 @@ double recompute_errors_and_Jacobians(
 	bool use_robust_kernel, double kernel_param);
 void build_linear_system(
 	const TResidualJacobianList& res_jac, const std::vector<size_t>& var_indxs,
-	Eigen::VectorXd& minus_g, Eigen::MatrixXd& H);
+	mrpt::math::CVectorDynamic<double>& minus_g, mrpt::math::CMatrixDouble& H);
 void add_lm_increment(
-	const Eigen::VectorXd& eps, const std::vector<size_t>& var_indxs,
-	lm_stat_t& new_lm_stat);
+	const mrpt::math::CVectorDynamic<double>& eps,
+	const std::vector<size_t>& var_indxs, lm_stat_t& new_lm_stat);
 }  // namespace mrpt::vision

@@ -2,19 +2,17 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "obs-precomp.h"  // Precompiled headers
 
-#include <mrpt/math/lightweight_geom_data.h>
 #include <mrpt/obs/CObservation.h>
+#include <mrpt/poses/CPose3D.h>
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/os.h>
-
-#include <mrpt/poses/CPose3D.h>
 #include <iomanip>
 
 using namespace mrpt::obs;
@@ -45,11 +43,22 @@ void CObservation::getDescriptionAsText(std::ostream& o) const
 {
 	using namespace mrpt::system;  // for the TTimeStamp << op
 
-	o << "Timestamp (UTC): " << mrpt::system::dateTimeToString(timestamp)
-	  << std::endl;
-	o << "  (as time_t): " << std::fixed << std::setprecision(5)
-	  << mrpt::system::timestampTotime_t(timestamp) << std::endl;
-	o << "  (as TTimestamp): " << timestamp << std::endl;
-	o << "Sensor label: '" << sensorLabel << "'" << std::endl;
-	o << std::endl;
+	o << mrpt::format(
+		"Timestamp (UTC): %s\n"
+		"  (as time_t): %.09f\n",
+		mrpt::system::dateTimeToString(timestamp).c_str(),
+		mrpt::Clock::toDouble(timestamp));
+
+	o << "  (as TTimestamp): " << timestamp
+	  << "\n"
+		 "Sensor label: '"
+	  << sensorLabel << "'"
+	  << "\n\n";
+}
+
+std::string CObservation::getDescriptionAsTextValue() const
+{
+	std::stringstream ss;
+	getDescriptionAsText(ss);
+	return ss.str();
 }

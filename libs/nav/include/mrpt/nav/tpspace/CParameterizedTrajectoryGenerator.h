@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -13,6 +13,8 @@
 #include <mrpt/core/round.h>
 #include <mrpt/kinematics/CVehicleVelCmd.h>
 #include <mrpt/math/CPolygon.h>
+#include <mrpt/math/TPose2D.h>
+#include <mrpt/math/TTwist2D.h>
 #include <mrpt/math/wrap2pi.h>
 #include <mrpt/nav/holonomic/ClearanceDiagram.h>
 #include <mrpt/poses/CPose2D.h>
@@ -97,7 +99,7 @@ class CParameterizedTrajectoryGenerator
 	 *
 	 * \exception std::logic_error On invalid or missing parameters.
 	 */
-	static CParameterizedTrajectoryGenerator* CreatePTG(
+	static CParameterizedTrajectoryGenerator::Ptr CreatePTG(
 		const std::string& ptgClassName,
 		const mrpt::config::CConfigFileBase& cfg, const std::string& sSection,
 		const std::string& sKeyPrefix);
@@ -167,13 +169,13 @@ class CParameterizedTrajectoryGenerator
 	struct TNavDynamicState
 	{
 		/** Current vehicle velocity (local frame of reference) */
-		mrpt::math::TTwist2D curVelLocal;
+		mrpt::math::TTwist2D curVelLocal{0, 0, 0};
 		/** Current relative target location */
-		mrpt::math::TPose2D relTarget;
+		mrpt::math::TPose2D relTarget{20.0, .0, .0};
 		/** Desired relative speed [0,1] at target. Default=0 */
 		double targetRelSpeed{0};
 
-		TNavDynamicState();
+		TNavDynamicState() = default;
 		bool operator==(const TNavDynamicState& o) const;
 		inline bool operator!=(const TNavDynamicState& o) const
 		{
@@ -200,9 +202,24 @@ class CParameterizedTrajectoryGenerator
 
 	/** Access path `k` ([0,N-1]=>[-pi,pi] in alpha): pose of the vehicle at
 	 * discrete step `step`.
-	 * \sa getPathStepCount(), getAlphaValuesCount() */
+	 * \sa getPathStepCount(), getAlphaValuesCount(), getPathTwist() */
 	virtual void getPathPose(
 		uint16_t k, uint32_t step, mrpt::math::TPose2D& p) const = 0;
+	/** \overload */
+	virtual mrpt::math::TPose2D getPathPose(uint16_t k, uint32_t step) const
+	{
+		mrpt::math::TPose2D p;
+		getPathPose(k, step, p);
+		return p;
+	}
+
+	/** Gets velocity ("twist") for path `k` ([0,N-1]=>[-pi,pi] in alpha),
+	 * at vehicle discrete step `step`. The default implementation in this base
+	 * class uses numerical differentiation to estimate the twist (vx,vy,omega).
+	 * Velocity is given in "global" coordinates, relative to the starting pose
+	 * of the robot at t=0 for this PTG path.
+	 * \sa getPathStepCount(), getAlphaValuesCount(), getPathPose() */
+	virtual mrpt::math::TTwist2D getPathTwist(uint16_t k, uint32_t step) const;
 
 	/** Access path `k` ([0,N-1]=>[-pi,pi] in alpha): traversed distance at
 	 * discrete step `step`.

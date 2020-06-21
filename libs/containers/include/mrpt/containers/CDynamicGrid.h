@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -268,7 +268,7 @@ class CDynamicGrid
 
 	/** Transform a global (linear) cell index value into its corresponding
 	 * (x,y) cell indexes. */
-	inline void idx2cxcy(const int& idx, int& cx, int& cy) const
+	inline void idx2cxcy(int idx, int& cx, int& cy) const
 	{
 		cx = idx % m_size_x;
 		cy = idx / m_size_x;
@@ -302,7 +302,7 @@ class CDynamicGrid
 		if (m_map.empty()) return;
 		const T* c = &m_map[0];
 		for (size_t cy = 0; cy < m_size_y; cy++)
-			for (size_t cx = 0; cx < m_size_x; cx++) m.set_unsafe(cy, cx, *c++);
+			for (size_t cx = 0; cx < m_size_x; cx++) m(cy, cx) = *c++;
 	}
 
 	/** The user must implement this in order to provide "saveToTextFile" a way
@@ -335,8 +335,8 @@ class CDynamicGrid
 	{
 		out << m_x_min << m_x_max << m_y_min << m_y_max;
 		out << m_resolution;
-		out << static_cast<uint32_t>(m_size_x)
-			<< static_cast<uint32_t>(m_size_y);
+		out.template WriteAs<uint32_t>(m_size_x).template WriteAs<uint32_t>(
+			m_size_y);
 	}
 	template <class STREAM>
 	void dyngridcommon_readFromStream(STREAM& in, bool cast_from_float = false)
@@ -356,11 +356,9 @@ class CDynamicGrid
 			m_y_max = ymax;
 			m_resolution = res;
 		}
-		uint32_t nX, nY;
-		in >> nX >> nY;
-		m_size_x = nX;
-		m_size_y = nY;
-		m_map.resize(nX * nY);
+		m_size_x = in.template ReadAs<uint32_t>();
+		m_size_y = in.template ReadAs<uint32_t>();
+		m_map.resize(m_size_x * m_size_y);
 	}
 
 };  // end of CDynamicGrid<>

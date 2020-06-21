@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -51,7 +51,7 @@ struct TColorManager
 	 *
 	 * \sa checkStdColorsUsed
 	 */
-	bool have_used_standard_colors;
+	bool have_used_standard_colors = false;
 	/**\brief Check if the standard colors have already been used.
 	 *
 	 * \ret True if they have indeed been used.

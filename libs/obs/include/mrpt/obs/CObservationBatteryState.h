@@ -2,12 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
+#include <mrpt/math/CVectorDynamic.h>
 #include <mrpt/obs/CObservation.h>
 #include <mrpt/poses/CPose2D.h>
 #include <mrpt/poses/CPose3D.h>
@@ -29,7 +30,7 @@ namespace mrpt::obs
  */
 class CObservationBatteryState : public CObservation
 {
-	DEFINE_SERIALIZABLE(CObservationBatteryState)
+	DEFINE_SERIALIZABLE(CObservationBatteryState, mrpt::obs)
 
    public:
 	/** Constructor

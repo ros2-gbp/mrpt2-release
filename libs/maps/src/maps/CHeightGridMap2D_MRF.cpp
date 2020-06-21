@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -22,11 +22,10 @@ using namespace mrpt::math;
 
 //  =========== Begin of Map definition ============
 MAP_DEFINITION_REGISTER(
-	"CHeightGridMap2D_MRF,dem_mrf", mrpt::maps::CHeightGridMap2D_MRF)
+	"mrpt::maps::CHeightGridMap2D_MRF,dem_mrf",
+	mrpt::maps::CHeightGridMap2D_MRF)
 
-CHeightGridMap2D_MRF::TMapDefinition::TMapDefinition()
-
-	= default;
+CHeightGridMap2D_MRF::TMapDefinition::TMapDefinition() = default;
 
 void CHeightGridMap2D_MRF::TMapDefinition::loadFromConfigFile_map_specific(
 	const mrpt::config::CConfigFileBase& source,
@@ -114,9 +113,9 @@ bool CHeightGridMap2D_MRF::dem_get_z_by_cell(
 	const size_t cx, const size_t cy, double& z_out) const
 {
 	const TRandomFieldCell* cell = cellByIndex(cx, cy);
-	if (cell && cell->kf_mean)
+	if (cell && cell->kf_mean())
 	{
-		z_out = cell->kf_mean;
+		z_out = cell->kf_mean();
 		return true;
 	}
 	else
@@ -126,9 +125,9 @@ bool CHeightGridMap2D_MRF::dem_get_z(
 	const double x, const double y, double& z_out) const
 {
 	const TRandomFieldCell* cell = cellByPos(x, y);
-	if (cell && cell->kf_mean)
+	if (cell && cell->kf_mean())
 	{
-		z_out = cell->kf_mean;
+		z_out = cell->kf_mean();
 		return true;
 	}
 	else
@@ -143,7 +142,7 @@ void CHeightGridMap2D_MRF::internal_clear()
 }
 
 bool CHeightGridMap2D_MRF::internal_insertObservation(
-	const CObservation* obs, const CPose3D* robotPose)
+	const CObservation& obs, const CPose3D* robotPose)
 {
 	return dem_internal_insertObservation(obs, robotPose);
 }
@@ -152,10 +151,9 @@ bool CHeightGridMap2D_MRF::internal_insertObservation(
 						computeObservationLikelihood
   ---------------------------------------------------------------*/
 double CHeightGridMap2D_MRF::internal_computeObservationLikelihood(
-	const CObservation* obs, const CPose3D& takenFrom)
+	[[maybe_unused]] const CObservation& obs,
+	[[maybe_unused]] const CPose3D& takenFrom)
 {
-	MRPT_UNUSED_PARAM(obs);
-	MRPT_UNUSED_PARAM(takenFrom);
 	THROW_EXCEPTION("Not implemented yet!");
 }
 
@@ -176,7 +174,8 @@ void CHeightGridMap2D_MRF::serializeTo(mrpt::serialization::CArchive& out) const
 #if MRPT_IS_BIG_ENDIAN
 	for (uint32_t i = 0; i < n; i++)
 	{
-		out << m_map[i].kf_mean << m_map[i].dm_mean << m_map[i].dmv_var_mean;
+		out << m_map[i].kf_mean() << m_map[i].dm_mean()
+			<< m_map[i].dmv_var_mean;
 	}
 #else
 	// Little endian: just write all at once:
@@ -220,7 +219,7 @@ void CHeightGridMap2D_MRF::serializeFrom(
 // Read the note in writeToStream()
 #if MRPT_IS_BIG_ENDIAN
 			for (uint32_t i = 0; i < n; i++)
-				in >> m_map[i].kf_mean >> m_map[i].dm_mean >>
+				in >> m_map[i].kf_mean() >> m_map[i].dm_mean() >>
 					m_map[i].dmv_var_mean;
 #else
 			// Little endian: just read all at once:
@@ -267,14 +266,14 @@ CHeightGridMap2D_MRF::TInsertionOptions::TInsertionOptions() = default;
 void CHeightGridMap2D_MRF::TInsertionOptions::dumpToTextStream(
 	std::ostream& out) const
 {
-	out << mrpt::format(
-		"\n----------- [CHeightGridMap2D_MRF::TInsertionOptions] ------------ "
-		"\n\n");
-	out << mrpt::format("[TInsertionOptions.Common] ------------ \n\n");
+	out << "\n----------- [CHeightGridMap2D_MRF::TInsertionOptions] "
+		   "------------ "
+		   "\n\n";
+	out << "[TInsertionOptions.Common] ------------ \n\n";
 	internal_dumpToTextStream_common(
 		out);  // Common params to all random fields maps:
 
-	out << mrpt::format("\n");
+	out << "\n";
 }
 
 /*---------------------------------------------------------------

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,8 +10,8 @@
 #include "maps-precomp.h"  // Precomp header
 
 #include <mrpt/config/CConfigFileBase.h>
-#include <mrpt/core/aligned_std_vector.h>
 #include <mrpt/maps/CPointCloudFilterByDistance.h>
+#include <vector>
 
 using namespace mrpt::maps;
 
@@ -32,7 +32,7 @@ void CPointCloudFilterByDistance::filter(
 	using namespace mrpt::math;
 	using mrpt::square;
 
-	MRPT_START;
+	MRPT_START
 	ASSERT_(pc_timestamp != INVALID_TIMESTAMP);
 	ASSERT_(pc != nullptr);
 
@@ -83,7 +83,7 @@ void CPointCloudFilterByDistance::filter(
 	{
 		// Reference poses of each PC:
 		// Previous: prev_pc.pose
-		mrpt::aligned_std_vector<CPose3D> rel_poses;
+		std::vector<CPose3D> rel_poses;
 		for (int k = 0; k < options.previous_keyframes; ++k)
 		{
 			const CPose3D rel_pose = cur_pc_pose - prev_pc[k]->pose;
@@ -197,7 +197,7 @@ void CPointCloudFilterByDistance::filter(
 		}
 	}
 
-	MRPT_END;
+	MRPT_END
 }
 
 CPointCloudFilterByDistance::TOptions::TOptions()

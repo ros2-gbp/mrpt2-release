@@ -21,12 +21,12 @@ if(BUILD_EXAMPLES)
 		#TODO: Disable build if BUILD_mrpt_xxx is OFF
 
 		# Convert CMAKE_EXAMPLE_DEPS -> CMAKE_EXAMPLE_DEPS_STRIP
-		#          "mrpt-xxx mrpt-yyy" -> "xxx yyy"
+		#          "mrpt::xxx mrpt::yyy" -> "xxx yyy"
 		set(CMAKE_EXAMPLE_DEPS_STRIP "")
 		foreach(DEP ${CMAKE_EXAMPLE_DEPS})
-			# Only for "mrpt-XXX" libs:
-			if (DEP MATCHES "^mrpt-?:*(.*)")
-				string(REGEX REPLACE "mrpt-?:*(.*)" "\\1" STRIP_DEP ${DEP})
+		    # Only for "mrpt::XXX" libs:
+			if (DEP MATCHES "^mrpt::?:*(.*)")
+			    string(REGEX REPLACE "mrpt::?:*(.*)" "\\1" STRIP_DEP ${DEP})
 				list(APPEND CMAKE_EXAMPLE_DEPS_STRIP ${STRIP_DEP})
 			endif()
 		endforeach(DEP)
@@ -50,7 +50,7 @@ if(BUILD_EXAMPLES)
 	set(LIST_EXAMPLES_IN_THIS_DIR
 		core_exceptions_example
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-core)
+	set(CMAKE_EXAMPLE_DEPS mrpt::core)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === Depending on: typemeta ===
@@ -59,14 +59,14 @@ if(BUILD_EXAMPLES)
 		typemeta_StaticString
 		typemeta_TEnumType
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-typemeta)
+	set(CMAKE_EXAMPLE_DEPS mrpt::typemeta)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === Depending on: rtti ===
 	set(LIST_EXAMPLES_IN_THIS_DIR
 		rtti_example1
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-rtti)
+	set(CMAKE_EXAMPLE_DEPS mrpt::rtti)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === Depending on: serialization, io ===
@@ -79,14 +79,7 @@ if(BUILD_EXAMPLES)
 		io_pipes_example
 		io_compress_example
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-serialization mrpt-io mrpt-poses)
-	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
-
-	# === Depending on: db ===
-	set(LIST_EXAMPLES_IN_THIS_DIR
-		db_example
-		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-db mrpt-io mrpt-serialization)
+	set(CMAKE_EXAMPLE_DEPS mrpt::serialization mrpt::io mrpt::poses)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === Depending on: system ===
@@ -98,10 +91,17 @@ if(BUILD_EXAMPLES)
 		system_dirs_files_manipulation
 		system_params_by_name
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-system mrpt-poses mrpt-io)
+	set(CMAKE_EXAMPLE_DEPS mrpt::system mrpt::poses mrpt::io)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
-	# === Depending on: mrpt-math mrpt-random mrpt-gui ===
+	# === Depending on: system+math+gui ===
+	set(LIST_EXAMPLES_IN_THIS_DIR
+		system_control_rate_timer_example
+		)
+	set(CMAKE_EXAMPLE_DEPS mrpt::system mrpt::math mrpt::gui mrpt::tclap)
+	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
+
+	# === Depending on: mrpt::math mrpt::random mrpt::gui ===
 	set(LIST_EXAMPLES_IN_THIS_DIR
 		math_csparse_example
 		math_kmeans_example
@@ -111,20 +111,21 @@ if(BUILD_EXAMPLES)
 		math_spline_interpolation
 		math_leastsquares_example
 		math_ransac_plane3d_example
+		math_ransac_plane3d_example2
 		math_ransac_examples
 		math_model_search_example
 		math_polygon_split
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-math mrpt-random mrpt-gui)
+	set(CMAKE_EXAMPLE_DEPS mrpt::math mrpt::random mrpt::gui mrpt::maps)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	set(LIST_EXAMPLES_IN_THIS_DIR
 		math_polyhedron_intersection_example
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-math mrpt-random mrpt-gui mrpt-maps)
+	set(CMAKE_EXAMPLE_DEPS mrpt::math mrpt::random mrpt::gui mrpt::maps)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
-	# === Depending on: mrpt-poses ===
+	# === Depending on: mrpt::poses ===
 	set(LIST_EXAMPLES_IN_THIS_DIR
 		poses_geometry_3D_example
 		poses_pdfs_example
@@ -133,10 +134,10 @@ if(BUILD_EXAMPLES)
 		poses_sog_merge_example
 		poses_unscented_transform_example
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-poses mrpt-io mrpt-gui)
+	set(CMAKE_EXAMPLE_DEPS mrpt::poses mrpt::io mrpt::gui)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
-	# === Depending on: mrpt-comms ===
+	# === Depending on: mrpt::comms ===
 	set(LIST_EXAMPLES_IN_THIS_DIR
 		comms_http_client
 		comms_nodelets_example
@@ -144,17 +145,16 @@ if(BUILD_EXAMPLES)
 		comms_socket_example
 		comms_ftdi_usb_enumerate_example
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-comms mrpt-serialization mrpt-poses)
+	set(CMAKE_EXAMPLE_DEPS mrpt::comms mrpt::serialization mrpt::poses)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
-	# === Depending on: mrpt-gui, mrpt-img, mrpt-opengl ===
+	# === Depending on: mrpt::gui, mrpt::img, mrpt::opengl, mrpt::maps ===
 	set(LIST_EXAMPLES_IN_THIS_DIR
 		# -------
 		opengl_objects_demo
 		opengl_offscreen_render_example
 		opengl_octree_render_huge_pointcloud
 		opengl_texture_sizes_test
-		opengl_textured_triangles_example
 		# -------
 		img_basic_example
 		img_convolution_fft
@@ -166,42 +166,43 @@ if(BUILD_EXAMPLES)
 		gui_display3D_custom_render
 		gui_fbo_render_example
 		gui_display_plots
+		gui_nanogui_demo
 		gui_text_fonts_example
 		gui_gravity3d_example
 		gui_windows_events
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-gui)
+	set(CMAKE_EXAMPLE_DEPS mrpt::gui mrpt::maps)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
-	# === Depending on: mrpt-gui, mrpt-hwdrivers ===
+	# === Depending on: mrpt::gui, mrpt::hwdrivers ===
 	set(LIST_EXAMPLES_IN_THIS_DIR
 		opengl_video_demo
 		opengl_video_viewport_demo
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-gui mrpt-hwdrivers)
+	set(CMAKE_EXAMPLE_DEPS mrpt::gui mrpt::hwdrivers)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
-	# === Depending on: mrpt-gui, mrpt-maps ===
+	# === Depending on: mrpt::gui, mrpt::maps ===
 	set(LIST_EXAMPLES_IN_THIS_DIR
 		opengl_ray_trace_example
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-gui mrpt-maps)
+	set(CMAKE_EXAMPLE_DEPS mrpt::gui mrpt::maps)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
-	# === Depending on: mrpt-random ===
+	# === Depending on: mrpt::random ===
 	set(LIST_EXAMPLES_IN_THIS_DIR
 		random_examples
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-random mrpt-gui)
+	set(CMAKE_EXAMPLE_DEPS mrpt::random mrpt::gui)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
-	# === Depending on: mrpt-bayes, mrpt-obs, mrpt-gui ===
+	# === Depending on: mrpt::bayes, mrpt::obs, mrpt::gui ===
 	set(LIST_EXAMPLES_IN_THIS_DIR
 		bayes_tracking_example
 		bayes_rejection_sampling_example
 		bayes_resampling_example
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-bayes mrpt-obs mrpt-gui)
+	set(CMAKE_EXAMPLE_DEPS mrpt::bayes mrpt::obs mrpt::gui)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === Depending on: maps ===
@@ -210,7 +211,7 @@ if(BUILD_EXAMPLES)
 		maps_gridmap_likelihood_characterization
 		maps_gridmap_voronoi_example
 	)
-	set(CMAKE_EXAMPLE_DEPS mrpt-maps mrpt-gui)
+    set(CMAKE_EXAMPLE_DEPS mrpt::maps mrpt::gui)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === Depending on: slam ===
@@ -220,7 +221,7 @@ if(BUILD_EXAMPLES)
 		slam_icp3d_simple_example
 		slam_range_only_localization_rej_sampling_example
 	)
-	set(CMAKE_EXAMPLE_DEPS mrpt-slam mrpt-gui)
+    set(CMAKE_EXAMPLE_DEPS mrpt::slam mrpt::gui)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === Depending on: topography ===
@@ -228,7 +229,7 @@ if(BUILD_EXAMPLES)
 		topography_gps_coords_example
 		topography_coordinate_conversion_example
 	)
-	set(CMAKE_EXAMPLE_DEPS mrpt-topography)
+    set(CMAKE_EXAMPLE_DEPS mrpt::topography)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === Depending on: vision ===
@@ -240,7 +241,7 @@ if(BUILD_EXAMPLES)
 		vision_multiple_checkerboards
 		vision_stereo_calib_example
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-vision mrpt-gui)
+	set(CMAKE_EXAMPLE_DEPS mrpt::vision mrpt::gui)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	if(MRPT_ALLOW_LGPLV3)
@@ -248,7 +249,7 @@ if(BUILD_EXAMPLES)
 		set(LIST_EXAMPLES_IN_THIS_DIR
 			vision_bundle_adj_example
 			)
-		set(CMAKE_EXAMPLE_DEPS mrpt-vision-lgpl mrpt-gui)
+		set(CMAKE_EXAMPLE_DEPS mrpt::vision-lgpl mrpt::gui)
 		GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 	endif()
 
@@ -259,7 +260,7 @@ if(BUILD_EXAMPLES)
 		rgbd_dataset2rawlog
 		kitti_dataset2rawlog
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-obs)
+	set(CMAKE_EXAMPLE_DEPS mrpt::obs)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === Depending on: maps, gui ===
@@ -271,7 +272,7 @@ if(BUILD_EXAMPLES)
 		maps_gmrf_map_example
 		maps_ransac_data_association
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-maps mrpt-gui)
+	set(CMAKE_EXAMPLE_DEPS mrpt::maps mrpt::gui)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === Depending on: graphs & gui ===
@@ -279,14 +280,14 @@ if(BUILD_EXAMPLES)
 		graphs_astar_example
 		graphs_dijkstra_example
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-graphs mrpt-gui)
+	set(CMAKE_EXAMPLE_DEPS mrpt::graphs mrpt::gui)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === Depending on: graphslam & gui ===
 	set(LIST_EXAMPLES_IN_THIS_DIR
 		graphslam_example
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-graphslam mrpt-gui)
+	set(CMAKE_EXAMPLE_DEPS mrpt::graphslam mrpt::gui)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === Depending on: gui & hwdrivers ===
@@ -303,7 +304,7 @@ if(BUILD_EXAMPLES)
 		hwdrivers_ntrip_client_example
 		hwdrivers_phidget_proximity_example
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-hwdrivers mrpt-gui)
+	set(CMAKE_EXAMPLE_DEPS mrpt::hwdrivers mrpt::gui)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === Depending on: maps & hwdrivers ===
@@ -315,14 +316,15 @@ if(BUILD_EXAMPLES)
 		hwdrivers_robopeaklidar_example
 		hwdrivers_kinect_to_2d_scan_example
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-hwdrivers mrpt-maps)
+	set(CMAKE_EXAMPLE_DEPS mrpt::hwdrivers mrpt::maps)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === Depending on: slam & hwdrivers ===
 	set(LIST_EXAMPLES_IN_THIS_DIR
 		hwdrivers_kinect_online_offline_example
+		hwdrivers_mynteye_icp
 	)
-	set(CMAKE_EXAMPLE_DEPS mrpt-slam mrpt-hwdrivers)
+    set(CMAKE_EXAMPLE_DEPS mrpt::slam mrpt::hwdrivers)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === HWDRIVERS & VISION ===
@@ -330,14 +332,14 @@ if(BUILD_EXAMPLES)
 		vision_capture_video_build_pyr
 		vision_stereo_rectify
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-vision mrpt-hwdrivers)
+	set(CMAKE_EXAMPLE_DEPS mrpt::vision mrpt::hwdrivers)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === HWDRIVERS & DETECTORS ===
 	set(LIST_EXAMPLES_IN_THIS_DIR
 		detectors_face
 		)
-	set(CMAKE_EXAMPLE_DEPS mrpt-slam mrpt-hwdrivers mrpt-detectors)
+	set(CMAKE_EXAMPLE_DEPS mrpt::slam mrpt::hwdrivers mrpt::detectors)
 	GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 
 	# === OPENNI2 examples ===
@@ -346,7 +348,7 @@ if(BUILD_EXAMPLES)
 			hwdrivers_openni2_driver_demo
 			hwdrivers_openni2_2d_icp_slam
 			)
-		set(CMAKE_EXAMPLE_DEPS mrpt-hwdrivers mrpt-gui mrpt-opengl mrpt-maps)
+		set(CMAKE_EXAMPLE_DEPS mrpt::hwdrivers mrpt::gui mrpt::opengl mrpt::maps)
 		GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 	endif(MRPT_HAS_OPENNI2)
 
@@ -356,7 +358,7 @@ if(BUILD_EXAMPLES)
 			nav_circ_robot_path_planning
 			nav_rrt_planning_example
 			)
-		set(CMAKE_EXAMPLE_DEPS mrpt-nav mrpt-gui)
+		set(CMAKE_EXAMPLE_DEPS mrpt::nav mrpt::gui)
 		GENERATE_CMAKE_FILES_SAMPLES_DIRECTORY()
 	endif()
 

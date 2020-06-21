@@ -2,14 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
 #include <mrpt/config/CLoadableOptions.h>
-#include <mrpt/math/lightweight_geom_data.h>
+#include <mrpt/math/TPoint3D.h>
 #include <mrpt/obs/obs_frwds.h>
 #include <mrpt/serialization/CSerializable.h>
 
@@ -77,7 +77,7 @@ struct TMatchingRatioParams
 class TMapGenericParams : public mrpt::config::CLoadableOptions,
 						  public mrpt::serialization::CSerializable
 {
-	DEFINE_SERIALIZABLE(TMapGenericParams)
+	DEFINE_SERIALIZABLE(TMapGenericParams, mrpt::maps)
    public:
 	/** (Default=true) If false, calling CMetricMap::getAs3DObject() will have
 	 * no effects */

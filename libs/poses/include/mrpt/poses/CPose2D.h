@@ -2,12 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
+#include <mrpt/math/CVectorFixed.h>
 #include <mrpt/poses/CPose.h>
 #include <mrpt/serialization/CSerializable.h>
 
@@ -35,21 +36,22 @@ class CPose3D;
  * \sa CPoseOrPoint,CPoint2D
  * \ingroup poses_grp
  */
-class CPose2D : public CPose<CPose2D>, public mrpt::serialization::CSerializable
+class CPose2D : public CPose<CPose2D, 3>,
+				public mrpt::serialization::CSerializable
 {
    public:
-	DEFINE_SERIALIZABLE(CPose2D)
+	DEFINE_SERIALIZABLE(CPose2D, mrpt::poses)
 	DEFINE_SCHEMA_SERIALIZABLE()
 
    public:
 	/** [x,y] */
-	mrpt::math::CArrayDouble<2> m_coords;
+	mrpt::math::CVectorFixedDouble<2> m_coords;
 
    protected:
 	/** The orientation of the pose, in radians. */
-	double m_phi{0};
+	double m_phi{.0};
 	/** Precomputed cos() & sin() of phi. */
-	mutable double m_cosphi, m_sinphi;
+	mutable double m_cosphi{1.0}, m_sinphi{.0};
 	mutable bool m_cossin_uptodate{false};
 	void update_cached_cos_sin() const;
 
@@ -81,7 +83,7 @@ class CPose2D : public CPose<CPose2D>, public mrpt::serialization::CSerializable
 	 * UNINITIALIZED_POSE as argument */
 	inline CPose2D(TConstructorFlags_Poses) : m_cossin_uptodate(false) {}
 	/** Get the phi angle of the 2D pose (in radians) */
-	inline const double& phi() const { return m_phi; }
+	inline double phi() const { return m_phi; }
 	//! \overload
 	inline double& phi()
 	{
@@ -120,9 +122,7 @@ class CPose2D : public CPose<CPose2D>, public mrpt::serialization::CSerializable
 	}
 
 	/** Returns a 1x3 vector with [x y phi] */
-	void getAsVector(mrpt::math::CVectorDouble& v) const;
-	/// \overload
-	void getAsVector(mrpt::math::CArrayDouble<3>& v) const;
+	void asVector(vector_t& v) const;
 
 	/** Returns the corresponding 4x4 homogeneous transformation matrix for the
 	 * point(translation) or pose (translation+orientation).
@@ -168,6 +168,9 @@ class CPose2D : public CPose<CPose2D>, public mrpt::serialization::CSerializable
 	void composePoint(
 		const mrpt::math::TPoint2D& l, mrpt::math::TPoint2D& g) const;
 
+	/// \overload
+	mrpt::math::TPoint3D composePoint(const mrpt::math::TPoint3D& l) const;
+
 	/** overload \f$ G = P \oplus L \f$ with G and L being 3D points and P this
 	 * 2D pose (the "z" coordinate remains unmodified) */
 	void composePoint(
@@ -182,11 +185,11 @@ class CPose2D : public CPose<CPose2D>, public mrpt::serialization::CSerializable
 	void inverseComposePoint(
 		const double gx, const double gy, double& lx, double& ly) const;
 	/** \overload */
-	inline void inverseComposePoint(
-		const mrpt::math::TPoint2D& g, mrpt::math::TPoint2D& l) const
-	{
-		inverseComposePoint(g.x, g.y, l.x, l.y);
-	}
+	void inverseComposePoint(
+		const mrpt::math::TPoint2D& g, mrpt::math::TPoint2D& l) const;
+	/** \overload */
+	mrpt::math::TPoint2D inverseComposePoint(
+		const mrpt::math::TPoint2D& g) const;
 
 	/** The operator \f$ u' = this \oplus u \f$ is the pose/point compounding
 	 * operator. */
@@ -259,7 +262,14 @@ class CPose2D : public CPose<CPose2D>, public mrpt::serialization::CSerializable
 	 * string */
 	void fromStringRaw(const std::string& s);
 
-	inline const double& operator[](unsigned int i) const
+	static CPose2D FromString(const std::string& s)
+	{
+		CPose2D o;
+		o.fromString(s);
+		return o;
+	}
+
+	inline double operator[](unsigned int i) const
 	{
 		switch (i)
 		{
@@ -326,7 +336,7 @@ class CPose2D : public CPose<CPose2D>, public mrpt::serialization::CSerializable
 	/** The type of the elements */
 	using value_type = double;
 	using reference = double&;
-	using const_reference = const double&;
+	using const_reference = double;
 	using size_type = std::size_t;
 	using difference_type = std::ptrdiff_t;
 

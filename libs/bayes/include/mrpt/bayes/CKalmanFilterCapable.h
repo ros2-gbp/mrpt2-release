@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,18 +12,18 @@
 #include <mrpt/config/CLoadableOptions.h>
 #include <mrpt/containers/stl_containers_utils.h>
 #include <mrpt/containers/stl_containers_utils.h>  // find_in_vector
-#include <mrpt/core/aligned_std_vector.h>
-#include <mrpt/io/CFileOutputStream.h>
-#include <mrpt/math/CArrayNumeric.h>
-#include <mrpt/math/CMatrixFixedNumeric.h>
-#include <mrpt/math/CMatrixTemplateNumeric.h>
+#include <mrpt/io/vector_loadsave.h>
+#include <mrpt/math/CMatrixDynamic.h>
+#include <mrpt/math/CMatrixFixed.h>
+#include <mrpt/math/CVectorFixed.h>
 #include <mrpt/math/num_jacobian.h>
 #include <mrpt/math/utils.h>
 #include <mrpt/system/COutputLogger.h>
 #include <mrpt/system/CTicTac.h>
 #include <mrpt/system/CTimeLogger.h>
-#include <mrpt/system/vector_loadsave.h>
 #include <mrpt/typemeta/TEnumType.h>
+#include <cstring>  // memcpy
+#include <vector>
 
 namespace mrpt
 {
@@ -83,7 +83,7 @@ struct TKF_options : public mrpt::config::CLoadableOptions
 	 * textual form, sending it to a CStream. */
 	void dumpToTextStream(std::ostream& out) const override
 	{
-		out << mrpt::format("\n----------- [TKF_options] ------------ \n\n");
+		out << "\n----------- [TKF_options] ------------ \n\n";
 		out << mrpt::format(
 			"method                                  = %s\n",
 			mrpt::typemeta::TEnumType<TKFMethod>::value2name(method).c_str());
@@ -97,7 +97,7 @@ struct TKF_options : public mrpt::config::CLoadableOptions
 		out << mrpt::format(
 			"enable_profiler                         = %c\n",
 			enable_profiler ? 'Y' : 'N');
-		out << mrpt::format("\n");
+		out << "\n";
 	}
 
 	/** The method to employ (default: kfEKFNaive) */
@@ -221,10 +221,10 @@ template <
 class CKalmanFilterCapable : public mrpt::system::COutputLogger
 {
    public:
-	static inline size_t get_vehicle_size() { return VEH_SIZE; }
-	static inline size_t get_observation_size() { return OBS_SIZE; }
-	static inline size_t get_feature_size() { return FEAT_SIZE; }
-	static inline size_t get_action_size() { return ACT_SIZE; }
+	static constexpr size_t get_vehicle_size() { return VEH_SIZE; }
+	static constexpr size_t get_observation_size() { return OBS_SIZE; }
+	static constexpr size_t get_feature_size() { return FEAT_SIZE; }
+	static constexpr size_t get_action_size() { return ACT_SIZE; }
 	inline size_t getNumberOfLandmarksInTheMap() const
 	{
 		return detail::getNumberOfLandmarksInMap(*this);
@@ -237,36 +237,26 @@ class CKalmanFilterCapable : public mrpt::system::COutputLogger
 		CKalmanFilterCapable<VEH_SIZE, OBS_SIZE, FEAT_SIZE, ACT_SIZE, KFTYPE>;
 
 	// ---------- Many useful typedefs to short the notation a bit... --------
-	using KFVector = Eigen::Matrix<KFTYPE, Eigen::Dynamic, 1>;
-	using KFMatrix = mrpt::math::CMatrixTemplateNumeric<KFTYPE>;
+	using KFVector = mrpt::math::CVectorDynamic<KFTYPE>;
+	using KFMatrix = mrpt::math::CMatrixDynamic<KFTYPE>;
 
-	using KFMatrix_VxV =
-		mrpt::math::CMatrixFixedNumeric<KFTYPE, VEH_SIZE, VEH_SIZE>;
-	using KFMatrix_OxO =
-		mrpt::math::CMatrixFixedNumeric<KFTYPE, OBS_SIZE, OBS_SIZE>;
-	using KFMatrix_FxF =
-		mrpt::math::CMatrixFixedNumeric<KFTYPE, FEAT_SIZE, FEAT_SIZE>;
-	using KFMatrix_AxA =
-		mrpt::math::CMatrixFixedNumeric<KFTYPE, ACT_SIZE, ACT_SIZE>;
+	using KFMatrix_VxV = mrpt::math::CMatrixFixed<KFTYPE, VEH_SIZE, VEH_SIZE>;
+	using KFMatrix_OxO = mrpt::math::CMatrixFixed<KFTYPE, OBS_SIZE, OBS_SIZE>;
+	using KFMatrix_FxF = mrpt::math::CMatrixFixed<KFTYPE, FEAT_SIZE, FEAT_SIZE>;
+	using KFMatrix_AxA = mrpt::math::CMatrixFixed<KFTYPE, ACT_SIZE, ACT_SIZE>;
 
-	using KFMatrix_VxO =
-		mrpt::math::CMatrixFixedNumeric<KFTYPE, VEH_SIZE, OBS_SIZE>;
-	using KFMatrix_VxF =
-		mrpt::math::CMatrixFixedNumeric<KFTYPE, VEH_SIZE, FEAT_SIZE>;
-	using KFMatrix_FxV =
-		mrpt::math::CMatrixFixedNumeric<KFTYPE, FEAT_SIZE, VEH_SIZE>;
-	using KFMatrix_FxO =
-		mrpt::math::CMatrixFixedNumeric<KFTYPE, FEAT_SIZE, OBS_SIZE>;
-	using KFMatrix_OxF =
-		mrpt::math::CMatrixFixedNumeric<KFTYPE, OBS_SIZE, FEAT_SIZE>;
-	using KFMatrix_OxV =
-		mrpt::math::CMatrixFixedNumeric<KFTYPE, OBS_SIZE, VEH_SIZE>;
+	using KFMatrix_VxO = mrpt::math::CMatrixFixed<KFTYPE, VEH_SIZE, OBS_SIZE>;
+	using KFMatrix_VxF = mrpt::math::CMatrixFixed<KFTYPE, VEH_SIZE, FEAT_SIZE>;
+	using KFMatrix_FxV = mrpt::math::CMatrixFixed<KFTYPE, FEAT_SIZE, VEH_SIZE>;
+	using KFMatrix_FxO = mrpt::math::CMatrixFixed<KFTYPE, FEAT_SIZE, OBS_SIZE>;
+	using KFMatrix_OxF = mrpt::math::CMatrixFixed<KFTYPE, OBS_SIZE, FEAT_SIZE>;
+	using KFMatrix_OxV = mrpt::math::CMatrixFixed<KFTYPE, OBS_SIZE, VEH_SIZE>;
 
-	using KFArray_VEH = mrpt::math::CArrayNumeric<KFTYPE, VEH_SIZE>;
-	using KFArray_ACT = mrpt::math::CArrayNumeric<KFTYPE, ACT_SIZE>;
-	using KFArray_OBS = mrpt::math::CArrayNumeric<KFTYPE, OBS_SIZE>;
-	using vector_KFArray_OBS = mrpt::aligned_std_vector<KFArray_OBS>;
-	using KFArray_FEAT = mrpt::math::CArrayNumeric<KFTYPE, FEAT_SIZE>;
+	using KFArray_VEH = mrpt::math::CVectorFixed<KFTYPE, VEH_SIZE>;
+	using KFArray_ACT = mrpt::math::CVectorFixed<KFTYPE, ACT_SIZE>;
+	using KFArray_OBS = mrpt::math::CVectorFixed<KFTYPE, OBS_SIZE>;
+	using vector_KFArray_OBS = std::vector<KFArray_OBS>;
+	using KFArray_FEAT = mrpt::math::CVectorFixed<KFTYPE, FEAT_SIZE>;
 
 	inline size_t getStateVectorLength() const { return m_xkk.size(); }
 	inline KFVector& internal_getXkk() { return m_xkk; }
@@ -278,7 +268,7 @@ class CKalmanFilterCapable : public mrpt::system::COutputLogger
 	inline void getLandmarkMean(size_t idx, KFArray_FEAT& feat) const
 	{
 		ASSERT_(idx < getNumberOfLandmarksInTheMap());
-		::memcpy(
+		std::memcpy(
 			&feat[0], &m_xkk[VEH_SIZE + idx * FEAT_SIZE],
 			FEAT_SIZE * sizeof(m_xkk[0]));
 	}
@@ -288,8 +278,8 @@ class CKalmanFilterCapable : public mrpt::system::COutputLogger
 	 */
 	inline void getLandmarkCov(size_t idx, KFMatrix_FxF& feat_cov) const
 	{
-		m_pkk.extractMatrix(
-			VEH_SIZE + idx * FEAT_SIZE, VEH_SIZE + idx * FEAT_SIZE, feat_cov);
+		feat_cov = m_pkk.blockCopy<FEAT_SIZE, FEAT_SIZE>(
+			VEH_SIZE + idx * FEAT_SIZE, VEH_SIZE + idx * FEAT_SIZE);
 	}
 
    protected:
@@ -335,9 +325,9 @@ class CKalmanFilterCapable : public mrpt::system::COutputLogger
 	 * size of the whole state vector (for non-SLAM problems) or VEH_SIZE (for
 	 * SLAM problems).
 	 */
-	virtual void OnTransitionJacobian(KFMatrix_VxV& out_F) const
+	virtual void OnTransitionJacobian([
+		[maybe_unused]] KFMatrix_VxV& out_F) const
 	{
-		MRPT_UNUSED_PARAM(out_F);
 		m_user_didnt_implement_jacobian = true;
 	}
 
@@ -374,10 +364,9 @@ class CKalmanFilterCapable : public mrpt::system::COutputLogger
 	 * \sa OnGetObservations, OnDataAssociation
 	 */
 	virtual void OnPreComputingPredictions(
-		const vector_KFArray_OBS& in_all_prediction_means,
+		[[maybe_unused]] const vector_KFArray_OBS& in_all_prediction_means,
 		std::vector<size_t>& out_LM_indices_to_predict) const
 	{
-		MRPT_UNUSED_PARAM(in_all_prediction_means);
 		// Default: all of them:
 		const size_t N = this->getNumberOfLandmarksInTheMap();
 		out_LM_indices_to_predict.resize(N);
@@ -446,12 +435,10 @@ class CKalmanFilterCapable : public mrpt::system::COutputLogger
 	 * \f$.
 	 */
 	virtual void OnObservationJacobians(
-		const size_t& idx_landmark_to_predict, KFMatrix_OxV& Hx,
-		KFMatrix_OxF& Hy) const
+		[[maybe_unused]] size_t idx_landmark_to_predict,
+		[[maybe_unused]] KFMatrix_OxV& Hx,
+		[[maybe_unused]] KFMatrix_OxF& Hy) const
 	{
-		MRPT_UNUSED_PARAM(idx_landmark_to_predict);
-		MRPT_UNUSED_PARAM(Hx);
-		MRPT_UNUSED_PARAM(Hy);
 		m_user_didnt_implement_jacobian = true;
 	}
 
@@ -500,13 +487,11 @@ class CKalmanFilterCapable : public mrpt::system::COutputLogger
 	 * method is preferred to allow a greater flexibility.
 	 */
 	virtual void OnInverseObservationModel(
-		const KFArray_OBS& in_z, KFArray_FEAT& out_yn,
-		KFMatrix_FxV& out_dyn_dxv, KFMatrix_FxO& out_dyn_dhn) const
+		[[maybe_unused]] const KFArray_OBS& in_z,
+		[[maybe_unused]] KFArray_FEAT& out_yn,
+		[[maybe_unused]] KFMatrix_FxV& out_dyn_dxv,
+		[[maybe_unused]] KFMatrix_FxO& out_dyn_dhn) const
 	{
-		MRPT_UNUSED_PARAM(in_z);
-		MRPT_UNUSED_PARAM(out_yn);
-		MRPT_UNUSED_PARAM(out_dyn_dxv);
-		MRPT_UNUSED_PARAM(out_dyn_dhn);
 		MRPT_START
 		THROW_EXCEPTION(
 			"Inverse sensor model required but not implemented in derived "
@@ -555,10 +540,9 @@ class CKalmanFilterCapable : public mrpt::system::COutputLogger
 	virtual void OnInverseObservationModel(
 		const KFArray_OBS& in_z, KFArray_FEAT& out_yn,
 		KFMatrix_FxV& out_dyn_dxv, KFMatrix_FxO& out_dyn_dhn,
-		KFMatrix_FxF& out_dyn_dhn_R_dyn_dhnT,
+		[[maybe_unused]] KFMatrix_FxF& out_dyn_dhn_R_dyn_dhnT,
 		bool& out_use_dyn_dhn_jacobian) const
 	{
-		MRPT_UNUSED_PARAM(out_dyn_dhn_R_dyn_dhnT);
 		MRPT_START
 		OnInverseObservationModel(in_z, out_yn, out_dyn_dxv, out_dyn_dhn);
 		out_use_dyn_dhn_jacobian = true;
@@ -576,10 +560,9 @@ class CKalmanFilterCapable : public mrpt::system::COutputLogger
 	 * \sa OnInverseObservationModel
 	 */
 	virtual void OnNewLandmarkAddedToMap(
-		const size_t in_obsIdx, const size_t in_idxNewFeat)
+		[[maybe_unused]] const size_t in_obsIdx,
+		[[maybe_unused]] const size_t in_idxNewFeat)
 	{
-		MRPT_UNUSED_PARAM(in_obsIdx);
-		MRPT_UNUSED_PARAM(in_idxNewFeat);
 		// Do nothing in this base class.
 	}
 
@@ -622,9 +605,9 @@ class CKalmanFilterCapable : public mrpt::system::COutputLogger
 	vector_KFArray_OBS m_all_predictions;
 	std::vector<size_t> m_predictLMidxs;
 	/** The vector of all partial Jacobians dh[i]_dx for each prediction */
-	mrpt::aligned_std_vector<KFMatrix_OxV> m_Hxs;
+	std::vector<KFMatrix_OxV> m_Hxs;
 	/** The vector of all partial Jacobians dh[i]_dy[i] for each prediction */
-	mrpt::aligned_std_vector<KFMatrix_OxF> m_Hys;
+	std::vector<KFMatrix_OxF> m_Hys;
 	KFMatrix m_S;
 	vector_KFArray_OBS m_Z;  // Each entry is one observation:
 	KFMatrix m_K;  // Kalman gain

@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixTemplateNumeric.h>
+#include <mrpt/math/CMatrixDynamic.h>
 #include <mrpt/math/wrap2pi.h>
 
 namespace mrpt::math
@@ -59,7 +59,8 @@ NUMTYPE spline(
  * \sa getRegressionLine, getRegressionPlane
  * \note Implementation in `#include <mrpt/math/interp_fit.hpp>`
  */
-template <typename NUMTYPE, class VECTORLIKE, int NUM_POINTS = Eigen::Dynamic>
+template <
+	typename NUMTYPE, class VECTORLIKE, int NUM_POINTS = -1 /*Eigen::Dynamic*/>
 NUMTYPE leastSquareLinearFit(
 	const NUMTYPE t, const VECTORLIKE& x, const VECTORLIKE& y,
 	bool wrap2pi = false);
@@ -71,10 +72,11 @@ NUMTYPE leastSquareLinearFit(
  * assumed that input "y" values already are in the correct range).
  * \sa spline, getRegressionLine, getRegressionPlane
  * \note Implementation in `#include <mrpt/math/interp_fit.hpp>`
+ * \note Requires `#include <Eigen/Dense>`
  */
 template <
 	class VECTORLIKE1, class VECTORLIKE2, class VECTORLIKE3,
-	int NUM_POINTS = Eigen::Dynamic>
+	int NUM_POINTS = -1 /*Eigen::Dynamic*/>
 void leastSquareLinearFit(
 	const VECTORLIKE1& ts, VECTORLIKE2& outs, const VECTORLIKE3& x,
 	const VECTORLIKE3& y, bool wrap2pi = false);

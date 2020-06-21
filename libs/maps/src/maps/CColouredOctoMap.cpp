@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -42,7 +42,8 @@ using namespace mrpt::math;
 
 //  =========== Begin of Map definition ============
 MAP_DEFINITION_REGISTER(
-	"CColouredOctoMap,colourOctoMap,colorOctoMap", mrpt::maps::CColouredOctoMap)
+	"mrpt::maps::CColouredOctoMap,colourOctoMap,colorOctoMap",
+	mrpt::maps::CColouredOctoMap)
 
 CColouredOctoMap::TMapDefinition::TMapDefinition() = default;
 void CColouredOctoMap::TMapDefinition::loadFromConfigFile_map_specific(
@@ -147,7 +148,7 @@ void CColouredOctoMap::serializeFrom(
 				insertObservation
  ---------------------------------------------------------------*/
 bool CColouredOctoMap::internal_insertObservation(
-	const mrpt::obs::CObservation* obs, const CPose3D* robotPose)
+	const mrpt::obs::CObservation& obs, const CPose3D* robotPose)
 {
 	octomap::point3d sensorPt;
 	octomap::Pointcloud scan;
@@ -161,18 +162,18 @@ bool CColouredOctoMap::internal_insertObservation(
 		/********************************************************************
 				OBSERVATION TYPE: CObservation2DRangeScan
 		********************************************************************/
-		const auto* o = static_cast<const CObservation2DRangeScan*>(obs);
+		const auto& o = dynamic_cast<const CObservation2DRangeScan&>(obs);
 
 		// Build a points-map representation of the points from the scan
 		// (coordinates are wrt the robot base)
 
 		// Sensor_pose = robot_pose (+) sensor_pose_on_robot
 		CPose3D sensorPose(UNINITIALIZED_POSE);
-		sensorPose.composeFrom(robotPose3D, o->sensorPose);
+		sensorPose.composeFrom(robotPose3D, o.sensorPose);
 		sensorPt =
 			octomap::point3d(sensorPose.x(), sensorPose.y(), sensorPose.z());
 
-		const auto* scanPts = o->buildAuxPointsMap<mrpt::maps::CPointsMap>();
+		const auto* scanPts = o.buildAuxPointsMap<mrpt::maps::CPointsMap>();
 		const size_t nPts = scanPts->size();
 
 		// Transform 3D point cloud:
@@ -203,23 +204,22 @@ bool CColouredOctoMap::internal_insertObservation(
 		/********************************************************************
 				OBSERVATION TYPE: CObservation3DRangeScan
 		********************************************************************/
-		const auto* o = static_cast<const CObservation3DRangeScan*>(obs);
+		const auto& o = dynamic_cast<const CObservation3DRangeScan&>(obs);
 
-		o->load();  // Just to make sure the points are loaded from an external
+		o.load();  // Just to make sure the points are loaded from an external
 		// source, if that's the case...
 
 		// Project 3D points & color:
 		mrpt::opengl::CPointCloudColoured::Ptr pts =
-			mrpt::make_aligned_shared<mrpt::opengl::CPointCloudColoured>();
+			mrpt::opengl::CPointCloudColoured::Create();
 		T3DPointsProjectionParams proj_params;
-		proj_params.PROJ3D_USE_LUT = true;
 		proj_params.robotPoseInTheWorld = robotPose;
-		const_cast<CObservation3DRangeScan*>(o)
-			->project3DPointsFromDepthImageInto(*pts, proj_params);
+		const_cast<CObservation3DRangeScan&>(o).unprojectInto(
+			*pts, proj_params);
 
 		// Sensor_pose = robot_pose (+) sensor_pose_on_robot
 		CPose3D sensorPose(UNINITIALIZED_POSE);
-		sensorPose.composeFrom(robotPose3D, o->sensorPose);
+		sensorPose.composeFrom(robotPose3D, o.sensorPose);
 		sensorPt =
 			octomap::point3d(sensorPose.x(), sensorPose.y(), sensorPose.z());
 
@@ -228,8 +228,7 @@ bool CColouredOctoMap::internal_insertObservation(
 
 		for (size_t i = 0; i < sizeRangeScan; i++)
 		{
-			const mrpt::opengl::CPointCloudColoured::TPointColour& pt =
-				pts->getPoint(i);
+			const mrpt::math::TPoint3Df& pt = pts->getPoint3Df(i);
 
 			// Add to this map:
 			if (pt.x != 0 || pt.y != 0 || pt.z != 0)
@@ -253,17 +252,15 @@ bool CColouredOctoMap::internal_insertObservation(
 		}
 
 		// Update color -----------------------
-		const float colF2B = 255.0f;
 		for (size_t i = 0; i < sizeRangeScan; i++)
 		{
-			const mrpt::opengl::CPointCloudColoured::TPointColour& pt =
-				pts->getPoint(i);
+			const auto& pt = pts->getPoint3Df(i);
+			const auto pt_col = pts->getPointColor(i);
 
 			// Add to this map:
 			if (pt.x != 0 || pt.y != 0 || pt.z != 0)
 				this->updateVoxelColour(
-					pt.x, pt.y, pt.z, uint8_t(pt.R * colF2B),
-					uint8_t(pt.G * colF2B), uint8_t(pt.B * colF2B));
+					pt.x, pt.y, pt.z, pt_col.R, pt_col.G, pt_col.B);
 		}
 
 		// TODO: does pruning make sense if we used "lazy_eval"?

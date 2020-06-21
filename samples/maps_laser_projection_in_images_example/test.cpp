@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -114,7 +114,8 @@ void TestLaser2Imgs()
 		CPose3D laserPose;
 		laserScan->getSensorPose(laserPose);
 
-		if (abs(laserPose.yaw()) > DEG2RAD(90)) continue;  // Only front lasers
+		if (std::abs(laserPose.yaw()) > 90.0_deg)
+			continue;  // Only front lasers
 
 		// Get 3D Point relative to the Laser coordinate Frame (P1) (CPoint3D)
 		CPoint3D point;

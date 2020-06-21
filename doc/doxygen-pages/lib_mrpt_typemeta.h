@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)               |
    |                          https://www.mrpt.org/                            |
    |                                                                           |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file        |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file        |
    | See: https://www.mrpt.org/Authors - All rights reserved.                  |
    | Released under BSD License. See details in https://www.mrpt.org/License   |
    +---------------------------------------------------------------------------+
@@ -17,6 +17,8 @@ complex STL compound types.
 <small> <a href="index.html#libs">Back to list of all libraries</a> | <a
 href="modules.html" >See all modules</a> </small> <br>
 
+[TOC]
+
 # Library `mrpt-typemeta`
 <small> [New in MRPT 2.0.0] </small>
 
@@ -25,7 +27,8 @@ in Debian-based systems with:
 
 		sudo apt install libmrpt-typemeta-dev
 
-[TOC]
+See: \ref mrpt_from_cmake
+
 
 ## Example #1: compile-time type/struct/class names to strings
 Use mrpt::typemeta::TTypeName to extract a `constexpr` string with a

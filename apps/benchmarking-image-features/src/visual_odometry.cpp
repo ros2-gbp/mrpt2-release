@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -54,7 +54,7 @@ double VisualOdometry::computeOdomError()
 						(pow((ground_truth_x[i] - ground_truth_x[i + 1]), 2) +
 						 pow((ground_truth_y[i] - ground_truth_y[i + 1]), 2)));
 	}
-	double percentage = abs(error - total) / (double)total * 100.00;
+	double percentage = std::abs(error - total) / (double)total * 100.00;
 
 	// display();
 	return percentage;

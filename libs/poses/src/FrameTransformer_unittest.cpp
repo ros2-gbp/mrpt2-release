@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,6 +11,7 @@
 #include <mrpt/poses/CPose2D.h>
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/poses/FrameTransformer.h>
+#include <Eigen/Dense>
 
 template <int DIM>
 void run_tf_test1(const mrpt::poses::CPose2D& A2B_)
@@ -30,7 +31,7 @@ void run_tf_test1(const mrpt::poses::CPose2D& A2B_)
 		EXPECT_EQ(ret, mrpt::poses::LKUP_GOOD);
 		EXPECT_NEAR(
 			.0,
-			(real_A2B.getAsVectorVal() - A2B_looked_up.getAsVectorVal())
+			(real_A2B.asVectorVal() - A2B_looked_up.asVectorVal())
 				.array()
 				.abs()
 				.sum(),

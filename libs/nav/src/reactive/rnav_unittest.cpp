@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -117,7 +117,11 @@ void run_rnav_test(
 	mrpt::kinematics::CVehicleSimul_DiffDriven robot_simul;
 	MyDummyRobotIF robot2nav_if(robot_simul, grid);
 
-	RNAVCLASS rnav(robot2nav_if, false /*no console output*/);
+	// Use dynamic memory instead of stack-allocated object to prevent stack
+	// overflow on MSVC (!).
+	auto rnav_ptr =
+		std::make_unique<RNAVCLASS>(robot2nav_if, false /*no console output*/);
+	auto& rnav = *rnav_ptr;
 	// Logging:
 	{
 		rnav.enableTimeLog(false);

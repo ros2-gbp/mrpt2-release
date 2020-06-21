@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -60,12 +60,12 @@ DECLARE_OP_FUNCTION(op_export_gps_kml)
 		// return false on any error.
 		bool processOneObservation(CObservation::Ptr& o) override
 		{
-			if (!IS_CLASS(o, CObservationGPS)) return true;
+			if (!IS_CLASS(*o, CObservationGPS)) return true;
 
 			const CObservationGPS* obs =
 				dynamic_cast<CObservationGPS*>(o.get());
 
-			if (!obs->has_GGA_datum) return true;  // Nothing to do...
+			if (!obs->has_GGA_datum()) return true;  // Nothing to do...
 
 			// Insert the new entries:
 			TDataPerGPS& D = m_gps_paths[obs->sensorLabel];
@@ -382,7 +382,7 @@ DECLARE_OP_FUNCTION(op_export_gps_txt)
 		// return false on any error.
 		bool processOneObservation(CObservation::Ptr& o) override
 		{
-			if (!IS_CLASS(o, CObservationGPS)) return true;
+			if (!IS_CLASS(*o, CObservationGPS)) return true;
 
 			const CObservationGPS* obs =
 				dynamic_cast<CObservationGPS*>(o.get());
@@ -431,7 +431,7 @@ DECLARE_OP_FUNCTION(op_export_gps_txt)
 			else
 				f_this = it->second;
 
-			if (obs->has_GGA_datum)
+			if (obs->has_GGA_datum())
 			{
 				const auto& gga =
 					obs->getMsgByClass<mrpt::obs::gnss::Message_NMEA_GGA>();
@@ -465,7 +465,7 @@ DECLARE_OP_FUNCTION(op_export_gps_txt)
 				// GPS itself:
 				TPoint3D cart_pos(0, 0, 0), cart_vel(0, 0, 0);
 				TPoint3D cart_vel_local(0, 0, 0);
-				if (obs->has_PZS_datum)
+				if (obs->messages.count(mrpt::obs::gnss::TOPCON_PZS) != 0)
 				{
 					const auto& pzs = obs->getMsgByClass<
 						mrpt::obs::gnss::Message_TOPCON_PZS>();
@@ -500,12 +500,12 @@ DECLARE_OP_FUNCTION(op_export_gps_txt)
 					DEG2RAD(gga.fields.longitude_degrees),
 					gga.fields.altitude_meters, gga.fields.fix_quality,
 					gga.fields.satellitesUsed,
-					obs->has_RMC_datum
+					obs->has_RMC_datum()
 						? DEG2RAD(obs->getMsgByClass<
 										 mrpt::obs::gnss::Message_NMEA_RMC>()
 									  .fields.speed_knots)
 						: 0.0,
-					obs->has_RMC_datum
+					obs->has_RMC_datum()
 						? DEG2RAD(obs->getMsgByClass<
 										 mrpt::obs::gnss::Message_NMEA_RMC>()
 									  .fields.direction_degrees)
@@ -605,7 +605,7 @@ DECLARE_OP_FUNCTION(op_export_gps_all)
 		// return false on any error.
 		bool processOneObservation(CObservation::Ptr& o) override
 		{
-			if (!IS_CLASS(o, CObservationGPS)) return true;
+			if (!IS_CLASS(*o, CObservationGPS)) return true;
 
 			const CObservationGPS* obs =
 				dynamic_cast<CObservationGPS*>(o.get());

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -66,19 +66,21 @@ PanelDOF::PanelDOF(wxWindow* parent, wxWindowID id)
 	FlexGridSizer1->SetSizeHints(this);
 	//*)
 
-	Connect(
-		ID_SLIDER1,
-		wxEVT_SCROLL_TOP | wxEVT_SCROLL_BOTTOM | wxEVT_SCROLL_LINEUP |
-			wxEVT_SCROLL_LINEDOWN | wxEVT_SCROLL_PAGEUP |
-			wxEVT_SCROLL_PAGEDOWN | wxEVT_SCROLL_THUMBTRACK |
-			wxEVT_SCROLL_THUMBRELEASE | wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnSliderDOFScroll,
-		nullptr, the_win);
-	Connect(
-		ID_SLIDER1, wxEVT_COMMAND_SLIDER_UPDATED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnSliderDOFScroll,
-		nullptr, the_win);
-	// Connect(ID_SLIDER1,wxEVT_SCROLL_CHANGED,(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnSliderScroll);
+	using rakf = robotic_arm_kinematicsFrame;
+
+	Bind(wxEVT_SCROLL_TOP, &rakf::OnSliderDOFScroll, the_win, ID_SLIDER1);
+	Bind(wxEVT_SCROLL_BOTTOM, &rakf::OnSliderDOFScroll, the_win, ID_SLIDER1);
+	Bind(wxEVT_SCROLL_LINEUP, &rakf::OnSliderDOFScroll, the_win, ID_SLIDER1);
+	Bind(wxEVT_SCROLL_LINEDOWN, &rakf::OnSliderDOFScroll, the_win, ID_SLIDER1);
+	Bind(wxEVT_SCROLL_PAGEUP, &rakf::OnSliderDOFScroll, the_win, ID_SLIDER1);
+	Bind(wxEVT_SCROLL_PAGEDOWN, &rakf::OnSliderDOFScroll, the_win, ID_SLIDER1);
+	Bind(
+		wxEVT_SCROLL_THUMBTRACK, &rakf::OnSliderDOFScroll, the_win, ID_SLIDER1);
+	Bind(
+		wxEVT_SCROLL_THUMBRELEASE, &rakf::OnSliderDOFScroll, the_win,
+		ID_SLIDER1);
+	Bind(wxEVT_SCROLL_CHANGED, &rakf::OnSliderDOFScroll, the_win, ID_SLIDER1);
+	Bind(wxEVT_SLIDER, &rakf::OnSliderDOFScrollBis, the_win, ID_SLIDER1);
 }
 
 PanelDOF::~PanelDOF()
@@ -87,7 +89,4 @@ PanelDOF::~PanelDOF()
 	//*)
 }
 
-void PanelDOF::OnSlider1CmdScroll(wxScrollEvent& event)
-{
-	MRPT_UNUSED_PARAM(event);
-}
+void PanelDOF::OnSlider1CmdScroll([[maybe_unused]] wxScrollEvent& event) {}

@@ -2,14 +2,16 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
 #include <mrpt/core/exceptions.h>
-#include <mrpt/math/eigen_frwds.h>
+#include <mrpt/math/CMatrixDynamic.h>
+#include <mrpt/math/CVectorDynamic.h>
+#include <mrpt/math/math_frwds.h>
 #include <cmath>
 #include <cstdarg>
 #include <cstdio>
@@ -72,8 +74,8 @@ bool loadVector(std::istream& f, std::vector<int>& d);
 bool loadVector(std::istream& f, std::vector<double>& d);
 
 void medianFilter(
-	const std::vector<double>& inV, std::vector<double>& outV,
-	const int& winSize, const int& numberOfSigmas = 2);
+	const std::vector<double>& inV, std::vector<double>& outV, int winSize,
+	int numberOfSigmas = 2);
 
 /** Generates an equidistant sequence of numbers given the first one, the last
   one and the desired number of points.
@@ -123,7 +125,8 @@ void normalize(const VEC1& v, VEC2& out_v)
 	total = std::sqrt(total);
 	if (total)
 	{
-		out_v = v * (1.0 / total);
+		out_v = v;
+		out_v *= (1.0 / total);
 	}
 	else
 		out_v.assign(v.size(), 0);
@@ -131,7 +134,7 @@ void normalize(const VEC1& v, VEC2& out_v)
 
 /** Extract a column from a vector of vectors, and store it in another vector.
  *  - Input data can be: std::vector<mrpt::math::CVectorDouble>,
- * std::deque<std::list<double> >, std::list<CArrayDouble<5> >, etc. etc.
+ * std::deque<std::list<double> >, std::list<CVectorFixedDouble<5> >, etc. etc.
  *  - Output is the sequence:  data[0][idx],data[1][idx],data[2][idx], etc..
  *
  *  For the sake of generality, this function does NOT check the limits in
@@ -169,9 +172,8 @@ double factorial(unsigned int n);
  * \ingroup stats_grp
  */
 std::string MATLAB_plotCovariance2D(
-	const CMatrixFloat& cov22, const CVectorFloat& mean, const float& stdCount,
-	const std::string& style = std::string("b"),
-	const size_t& nEllipsePoints = 30);
+	const CMatrixFloat& cov22, const CVectorFloat& mean, float stdCount,
+	const std::string& style = std::string("b"), size_t nEllipsePoints = 30);
 
 /** Generates a string with the MATLAB commands required to plot an confidence
  * interval (ellipse) for a 2D Gaussian ('double' version).
@@ -184,9 +186,8 @@ std::string MATLAB_plotCovariance2D(
  * \ingroup stats_grp
  */
 std::string MATLAB_plotCovariance2D(
-	const CMatrixDouble& cov22, const CVectorDouble& mean,
-	const float& stdCount, const std::string& style = std::string("b"),
-	const size_t& nEllipsePoints = 30);
+	const CMatrixDouble& cov22, const CVectorDouble& mean, float stdCount,
+	const std::string& style = std::string("b"), size_t nEllipsePoints = 30);
 
 /** Assignment operator for initializing a std::vector from a C array (The
  *vector will be automatically set to the correct size).
@@ -197,14 +198,13 @@ std::string MATLAB_plotCovariance2D(
  * \endcode
  * \note This operator performs the appropiate type castings, if required.
  */
-template <typename EIGEN_VECTOR, typename At, size_t N>
-EIGEN_VECTOR& loadVector(EIGEN_VECTOR& v, At (&theArray)[N])
+template <typename VECTOR_T, typename At, size_t N>
+VECTOR_T& loadVector(VECTOR_T& v, At (&theArray)[N])
 {
 	static_assert(N != 0, "N!=0");
-	v.derived().resize(N);
+	v.resize(N);
 	for (size_t i = 0; i < N; i++)
-		(v.derived())[i] =
-			static_cast<typename EIGEN_VECTOR::Scalar>(theArray[i]);
+		v[i] = static_cast<typename VECTOR_T::Scalar>(theArray[i]);
 	return v;
 }
 //! \overload

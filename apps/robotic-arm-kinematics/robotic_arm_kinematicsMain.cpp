@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -569,118 +569,47 @@ robotic_arm_kinematicsFrame::robotic_arm_kinematicsFrame(
 	FlexGridSizer1->SetSizeHints(this);
 	Center();
 
-	Connect(
-		ID_RADIOBOX2, wxEVT_COMMAND_RADIOBOX_SELECTED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::On1stXYZSelect);
-	Connect(
-		ID_SIMPLEHTMLLISTBOX1, wxEVT_COMMAND_LISTBOX_SELECTED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnlistLinksSelect);
-	Connect(
-		ID_BUTTON5, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnbtnAddLinkClick);
-	Connect(
-		ID_BUTTON6, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnbtnClearClick);
-	Connect(
-		ID_BUTTON7, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnbtnDeleteClick);
-	Connect(
-		ID_RADIOBOX1, wxEVT_COMMAND_RADIOBOX_SELECTED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnrbTypeSelect);
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::
-			OnButtonSaveFromEdit);
-	Connect(
-		ID_SLIDER1,
-		wxEVT_SCROLL_TOP | wxEVT_SCROLL_BOTTOM | wxEVT_SCROLL_LINEUP |
-			wxEVT_SCROLL_LINEDOWN | wxEVT_SCROLL_PAGEUP |
-			wxEVT_SCROLL_PAGEDOWN | wxEVT_SCROLL_THUMBTRACK |
-			wxEVT_SCROLL_THUMBRELEASE | wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnSliderScroll);
-	Connect(
-		ID_SLIDER1, wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnSliderScroll);
-	Connect(
-		ID_SLIDER1, wxEVT_COMMAND_SLIDER_UPDATED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnSliderScroll);
-	Connect(
-		ID_BUTTON2, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::
-			OnButtonSaveFromEdit);
-	Connect(
-		ID_SLIDER2,
-		wxEVT_SCROLL_TOP | wxEVT_SCROLL_BOTTOM | wxEVT_SCROLL_LINEUP |
-			wxEVT_SCROLL_LINEDOWN | wxEVT_SCROLL_PAGEUP |
-			wxEVT_SCROLL_PAGEDOWN | wxEVT_SCROLL_THUMBTRACK |
-			wxEVT_SCROLL_THUMBRELEASE | wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnSliderScroll);
-	Connect(
-		ID_SLIDER2, wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnSliderScroll);
-	Connect(
-		ID_SLIDER2, wxEVT_COMMAND_SLIDER_UPDATED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnSliderScroll);
-	Connect(
-		ID_BUTTON3, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::
-			OnButtonSaveFromEdit);
-	Connect(
-		ID_SLIDER3,
-		wxEVT_SCROLL_TOP | wxEVT_SCROLL_BOTTOM | wxEVT_SCROLL_LINEUP |
-			wxEVT_SCROLL_LINEDOWN | wxEVT_SCROLL_PAGEUP |
-			wxEVT_SCROLL_PAGEDOWN | wxEVT_SCROLL_THUMBTRACK |
-			wxEVT_SCROLL_THUMBRELEASE | wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnSliderScroll);
-	Connect(
-		ID_SLIDER3, wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnSliderScroll);
-	Connect(
-		ID_SLIDER3, wxEVT_COMMAND_SLIDER_UPDATED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnSliderScroll);
-	Connect(
-		ID_BUTTON4, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::
-			OnButtonSaveFromEdit);
-	Connect(
-		ID_SLIDER4,
-		wxEVT_SCROLL_TOP | wxEVT_SCROLL_BOTTOM | wxEVT_SCROLL_LINEUP |
-			wxEVT_SCROLL_LINEDOWN | wxEVT_SCROLL_PAGEUP |
-			wxEVT_SCROLL_PAGEDOWN | wxEVT_SCROLL_THUMBTRACK |
-			wxEVT_SCROLL_THUMBRELEASE | wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnSliderScroll);
-	Connect(
-		ID_SLIDER4, wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnSliderScroll);
-	Connect(
-		ID_SLIDER4, wxEVT_COMMAND_SLIDER_UPDATED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnSliderScroll);
-	Connect(
-		ID_LISTBOX1, wxEVT_COMMAND_LISTBOX_SELECTED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnlbXYZsSelect);
-	Connect(
-		ID_MENUITEM3, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnbtnClearClick);
-	Connect(
-		ID_MENUITEM1, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnLoadBinary);
-	Connect(
-		ID_MENUITEM2, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnSaveBinary);
-	Connect(
-		idMenuQuit, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnQuit);
-	Connect(
-		idMenuAbout, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&robotic_arm_kinematicsFrame::OnAbout);
+	using rakf = robotic_arm_kinematicsFrame;
+
+	Bind(wxEVT_RADIOBOX, &rakf::On1stXYZSelect, this, ID_RADIOBOX2);
+	Bind(wxEVT_LISTBOX, &rakf::OnlistLinksSelect, this, ID_SIMPLEHTMLLISTBOX1);
+	Bind(wxEVT_BUTTON, &rakf::OnbtnAddLinkClick, this, ID_BUTTON5);
+	Bind(wxEVT_BUTTON, &rakf::OnbtnClearClick, this, ID_BUTTON6);
+	Bind(wxEVT_BUTTON, &rakf::OnbtnDeleteClick, this, ID_BUTTON7);
+	Bind(wxEVT_RADIOBOX, &rakf::OnrbTypeSelect, this, ID_RADIOBOX1);
+	Bind(wxEVT_BUTTON, &rakf::OnButtonSaveFromEdit, this, ID_BUTTON1);
+	Bind(wxEVT_SLIDER, &rakf::OnSliderScroll, this, ID_SLIDER1);
+	Bind(wxEVT_BUTTON, &rakf::OnButtonSaveFromEdit, this, ID_BUTTON2);
+	Bind(wxEVT_SCROLL_TOP, &rakf::OnSliderScroll, this, ID_SLIDER2);
+	Bind(wxEVT_SCROLL_BOTTOM, &rakf::OnSliderScroll, this, ID_SLIDER2);
+	Bind(wxEVT_SCROLL_LINEUP, &rakf::OnSliderScroll, this, ID_SLIDER2);
+	Bind(wxEVT_SCROLL_LINEDOWN, &rakf::OnSliderScroll, this, ID_SLIDER2);
+	Bind(wxEVT_SCROLL_PAGEUP, &rakf::OnSliderScroll, this, ID_SLIDER2);
+	Bind(wxEVT_SCROLL_PAGEDOWN, &rakf::OnSliderScroll, this, ID_SLIDER2);
+	Bind(wxEVT_SCROLL_THUMBTRACK, &rakf::OnSliderScroll, this, ID_SLIDER2);
+	Bind(wxEVT_SCROLL_THUMBRELEASE, &rakf::OnSliderScroll, this, ID_SLIDER2);
+	Bind(wxEVT_SCROLL_CHANGED, &rakf::OnSliderScroll, this, ID_SLIDER2);
+	Bind(wxEVT_SLIDER, &rakf::OnSliderScroll, this, ID_SLIDER2);
+	Bind(wxEVT_BUTTON, &rakf::OnButtonSaveFromEdit, this, ID_BUTTON3);
+	Bind(wxEVT_SLIDER, &rakf::OnSliderScroll, this, ID_SLIDER3);
+	Bind(wxEVT_SLIDER, &rakf::OnSliderScroll, this, ID_SLIDER3);
+	Bind(wxEVT_BUTTON, &rakf::OnButtonSaveFromEdit, this, ID_BUTTON4);
+	Bind(wxEVT_SLIDER, &rakf::OnSliderScroll, this, ID_SLIDER4);
+	Bind(wxEVT_SLIDER, &rakf::OnSliderScroll, this, ID_SLIDER4);
+	Bind(wxEVT_LISTBOX, &rakf::OnlbXYZsSelect, this, ID_LISTBOX1);
+	Bind(wxEVT_MENU, &rakf::OnbtnClearClick, this, ID_MENUITEM3);
+	Bind(wxEVT_MENU, &rakf::OnLoadBinary, this, ID_MENUITEM1);
+	Bind(wxEVT_MENU, &rakf::OnSaveBinary, this, ID_MENUITEM2);
+	Bind(wxEVT_MENU, &rakf::OnQuit, this, idMenuQuit);
+	Bind(wxEVT_MENU, &rakf::OnAbout, this, idMenuAbout);
 	//*)
 
 	// maximize:
 	this->Maximize();
 
 	// Load default robot:
-	m_robot.addLink(0, 0.4, 0, DEG2RAD(90), false);
-	m_robot.addLink(0, 0.3, 0, DEG2RAD(90), false);
+	m_robot.addLink(0, 0.4, 0, 90.0_deg, false);
+	m_robot.addLink(0, 0.3, 0, 90.0_deg, false);
 	m_robot.addLink(0, 0.2, 0, 0, false);
 
 	auto openGLSceneRef = m_plot3D->getOpenGLSceneRef();
@@ -688,11 +617,9 @@ robotic_arm_kinematicsFrame::robotic_arm_kinematicsFrame(
 	// Initialize 3D scene:
 	{
 		mrpt::opengl::CGridPlaneXY::Ptr grid_10cm =
-			mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
-				-5, 5, -5, 5, 0, 0.1f);
+			mrpt::opengl::CGridPlaneXY::Create(-5, 5, -5, 5, 0, 0.1f);
 		mrpt::opengl::CGridPlaneXY::Ptr grid_1m =
-			mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
-				-5, 5, -5, 5, 0.001f, 1);
+			mrpt::opengl::CGridPlaneXY::Create(-5, 5, -5, 5, 0.001f, 1);
 
 		grid_10cm->setColor_u8(mrpt::img::TColor(0xC0, 0xC0, 0xC0, 0xA0));
 		grid_1m->setColor_u8(mrpt::img::TColor(0xFF, 0xFF, 0xFF));
@@ -701,7 +628,7 @@ robotic_arm_kinematicsFrame::robotic_arm_kinematicsFrame(
 		openGLSceneRef->insert(grid_1m);
 	}
 
-	m_gl_robot = mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+	m_gl_robot = mrpt::opengl::CSetOfObjects::Create();
 	openGLSceneRef->insert(m_gl_robot);
 
 	this->Regenerate3DView();
@@ -712,20 +639,17 @@ robotic_arm_kinematicsFrame::robotic_arm_kinematicsFrame(
 		gl_view->setViewportPosition(0, 0, 0.2, 0.3);
 		gl_view->setTransparent(true);
 		{
-			mrpt::opengl::CText::Ptr obj =
-				mrpt::make_aligned_shared<mrpt::opengl::CText>("X");
+			mrpt::opengl::CText::Ptr obj = mrpt::opengl::CText::Create("X");
 			obj->setLocation(1.1, 0, 0);
 			gl_view->insert(obj);
 		}
 		{
-			mrpt::opengl::CText::Ptr obj =
-				mrpt::make_aligned_shared<mrpt::opengl::CText>("Y");
+			mrpt::opengl::CText::Ptr obj = mrpt::opengl::CText::Create("Y");
 			obj->setLocation(0, 1.1, 0);
 			gl_view->insert(obj);
 		}
 		{
-			mrpt::opengl::CText::Ptr obj =
-				mrpt::make_aligned_shared<mrpt::opengl::CText>("Z");
+			mrpt::opengl::CText::Ptr obj = mrpt::opengl::CText::Create("Z");
 			obj->setLocation(0, 0, 1.1);
 			gl_view->insert(obj);
 		}
@@ -770,11 +694,16 @@ void robotic_arm_kinematicsFrame::UpdateListLinks()
 		const CPose3D& pose0 = m_robot.getOriginPose();
 		const CMatrixDouble33& R = pose0.getRotationMatrix();
 
-		if (abs(R(0, 2)) > abs(R(1, 2)) && abs(R(0, 2)) > abs(R(2, 2)))
+		if (std::abs(R(0, 2)) > std::abs(R(1, 2)) &&
+			std::abs(R(0, 2)) > std::abs(R(2, 2)))
 			RadioBox1->SetSelection(2);  // X
-		else if (abs(R(1, 2)) > abs(R(0, 2)) && abs(R(1, 2)) > abs(R(2, 2)))
+		else if (
+			std::abs(R(1, 2)) > std::abs(R(0, 2)) &&
+			std::abs(R(1, 2)) > std::abs(R(2, 2)))
 			RadioBox1->SetSelection(1);  // Y
-		else if (abs(R(2, 2)) > abs(R(0, 2)) && abs(R(2, 2)) > abs(R(1, 2)))
+		else if (
+			std::abs(R(2, 2)) > std::abs(R(0, 2)) &&
+			std::abs(R(2, 2)) > std::abs(R(1, 2)))
 			RadioBox1->SetSelection(0);  // Z
 	}
 
@@ -866,7 +795,6 @@ void robotic_arm_kinematicsFrame::UpdateListLinks()
 void robotic_arm_kinematicsFrame::RegenerateDOFPanels()
 {
 	// Clear:
-	for (auto& m_dof_panel : m_dof_panels) delete m_dof_panel;
 	m_dof_panels.clear();
 
 	// Create:
@@ -874,8 +802,8 @@ void robotic_arm_kinematicsFrame::RegenerateDOFPanels()
 	m_dof_panels.resize(N);
 	for (unsigned int i = 0; i < N; i++)
 	{
-		m_dof_panels[i] = new PanelDOF(pnDOFs);
-		boxSizerDOFs->Add(m_dof_panels[i]);
+		m_dof_panels[i] = std::make_unique<PanelDOF>(pnDOFs);
+		boxSizerDOFs->Add(m_dof_panels[i].get());
 	}
 
 	boxSizerDOFs->Fit(pnDOFs);
@@ -919,7 +847,7 @@ void robotic_arm_kinematicsFrame::OnlistLinksSelect(wxCommandEvent& event)
 }
 
 // Sliders of the DOFs bottom panels:
-void robotic_arm_kinematicsFrame::OnSliderDOFScroll(wxScrollEvent& event)
+void robotic_arm_kinematicsFrame::OnSliderDOFScroll(wxScrollEvent&)
 {
 	for (size_t i = 0; i < m_dof_panels.size(); i++)
 	{
@@ -939,7 +867,7 @@ void robotic_arm_kinematicsFrame::OnSliderDOFScroll(wxScrollEvent& event)
 }
 
 // Sliders of the left panel:
-void robotic_arm_kinematicsFrame::OnSliderScroll(wxScrollEvent& event)
+void robotic_arm_kinematicsFrame::OnSliderScroll(wxCommandEvent&)
 {
 	UpdateMatrixView();
 
@@ -1152,15 +1080,15 @@ void robotic_arm_kinematicsFrame::On1stXYZSelect(wxCommandEvent& event)
 		// Z:
 		default:
 		case 0:
-			pose0 = CPose3D(0, 0, 0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0));
+			pose0 = CPose3D(0, 0, 0, 0.0_deg, 0.0_deg, 0.0_deg);
 			break;
 		// Y:
 		case 1:
-			pose0 = CPose3D(0, 0, 0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(-90));
+			pose0 = CPose3D(0, 0, 0, 0.0_deg, 0.0_deg, -90.0_deg);
 			break;
 		// X:
 		case 2:
-			pose0 = CPose3D(0, 0, 0, DEG2RAD(0), DEG2RAD(90), DEG2RAD(0));
+			pose0 = CPose3D(0, 0, 0, 0.0_deg, 90.0_deg, 0.0_deg);
 			break;
 	};
 

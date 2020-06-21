@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -13,7 +13,7 @@
 #include <mrpt/opengl/COpenGLScene.h>
 #include <mrpt/vision/CFeatureExtraction.h>
 #include <mrpt/vision/CImagePyramid.h>
-#include <mrpt/vision/TSimpleFeature.h>
+#include <mrpt/vision/TKeyPoint.h>
 #include <mrpt/vision/types.h>
 #include <iostream>
 
@@ -33,7 +33,6 @@ void TestVideoBuildPyr()
 	size_t N_OCTAVES = 4;
 	bool do_smooth = false;
 	bool do_grayscale = false;
-	bool do_features = false;
 
 	// Ask for a different number of octaves:
 	cout << "Number of octaves to use [4]: ";
@@ -99,11 +98,8 @@ void TestVideoBuildPyr()
 	win.addTextMessage(
 		0.51, 5,  // X,Y<=1 means coordinates are factors over the entire
 		// viewport area.
-		"Keys: 's'=Smoothing, 'g': Grayscale 'f': Features", TColorf(.8, .8, 0),
-		"sans", 10,  // font name & size
-		mrpt::opengl::FILL,
-		10  // An arbitrary ID to always overwrite the same, previous 2D text
-		// message
+		"Keys: 's'=Smoothing, 'g': Grayscale 'f': Features",
+		10  // An arbitrary ID
 	);
 
 	// The image pyramid: Initially empty
@@ -119,7 +115,7 @@ void TestVideoBuildPyr()
 		CObservation::Ptr obs = cam->getNextFrame();
 		if (obs)
 		{
-			if (IS_CLASS(obs, CObservationImage))
+			if (IS_CLASS(*obs, CObservationImage))
 			{
 				// Get the observation object:
 				CObservationImage::Ptr o =
@@ -130,25 +126,6 @@ void TestVideoBuildPyr()
 					o->image,  // This image is destroyed since we are calling
 					// the *Fast() version
 					N_OCTAVES, do_smooth, do_grayscale);
-
-				// Also detect features?
-				if (do_features)
-				{
-					static const int threshold = 20;
-
-					for (unsigned int level = 0; level < N_OCTAVES; ++level)
-					{
-						CImage gray_img(
-							imgpyr.images[level], FAST_REF_OR_CONVERT_TO_GRAY);
-
-						TSimpleFeatureList feats;
-						CFeatureExtraction::detectFeatures_SSE2_FASTER12(
-							gray_img, feats, threshold);
-
-						imgpyr.images[level].drawFeaturesSimple(
-							feats, TColor::blue());
-					}
-				}
 
 				win.get3DSceneAndLock();
 
@@ -162,13 +139,9 @@ void TestVideoBuildPyr()
 					0.51, 25,  // X,Y<=1 means coordinates are factors over the
 					// entire viewport area.
 					format(
-						"Smooth=%i Grayscale=%i Features=%i",
-						int(do_smooth ? 1 : 0), int(do_grayscale ? 1 : 0),
-						int(do_features ? 1 : 0)),
-					TColorf(.8, .8, 0), "sans", 10,  // font name & size
-					mrpt::opengl::FILL,
-					11  // An arbitrary ID to always overwrite the same,
-					// previous 2D text message
+						"Smooth=%i Grayscale=%i", int(do_smooth ? 1 : 0),
+						int(do_grayscale ? 1 : 0)),
+					11  // An arbitrary ID
 				);
 
 				win.unlockAccess3DScene();
@@ -184,7 +157,6 @@ void TestVideoBuildPyr()
 
 				if (key == 's' || key == 'S') do_smooth = !do_smooth;
 				if (key == 'g' || key == 'G') do_grayscale = !do_grayscale;
-				if (key == 'f' || key == 'F') do_features = !do_features;
 			}
 		}
 	}

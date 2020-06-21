@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -33,7 +33,7 @@ using namespace mrpt::math;
 using namespace mrpt::opengl;
 
 //  =========== Begin of Map definition ============
-MAP_DEFINITION_REGISTER("COctoMap,octoMap", mrpt::maps::COctoMap)
+MAP_DEFINITION_REGISTER("mrpt::maps::COctoMap,octoMap", mrpt::maps::COctoMap)
 
 COctoMap::TMapDefinition::TMapDefinition() = default;
 void COctoMap::TMapDefinition::loadFromConfigFile_map_specific(
@@ -135,7 +135,7 @@ void COctoMap::serializeFrom(mrpt::serialization::CArchive& in, uint8_t version)
 }
 
 bool COctoMap::internal_insertObservation(
-	const mrpt::obs::CObservation* obs, const CPose3D* robotPose)
+	const mrpt::obs::CObservation& obs, const CPose3D* robotPose)
 {
 	octomap::point3d sensorPt;
 	octomap::Pointcloud scan;

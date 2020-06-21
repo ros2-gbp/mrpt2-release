@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -75,7 +75,7 @@ using TPoseIDSet = std::set<TPoseID>;
 class THypothesisIDSet : public mrpt::serialization::CSerializable,
 						 public std::set<THypothesisID>
 {
-	DEFINE_SERIALIZABLE(THypothesisIDSet)
+	DEFINE_SERIALIZABLE(THypothesisIDSet, mrpt::hmtslam)
 
    public:
 	/** Default constructor

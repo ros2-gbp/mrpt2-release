@@ -2,12 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #pragma once
+
+#include <mrpt/config.h>  //MRPT_HAS_OPENNI2
 
 /** @file Include this file only from your user code if you have OPENNI2 */
 
@@ -115,7 +117,7 @@ class COpenNI2Generic::CDevice
 	{
 		rgb.resize(w, h, mrpt::img::CH_RGB);
 	}
-	inline void resize(mrpt::math::CMatrix& depth, int w, int h)
+	inline void resize(mrpt::math::CMatrix_u16& depth, int w, int h)
 	{
 		depth.resize(h, w);
 	}
@@ -131,10 +133,10 @@ class COpenNI2Generic::CDevice
 		rgb.setPixel(x, y, (src.r << 16) + (src.g << 8) + src.b);
 	}
 	inline void setPixel(
-		const openni::DepthPixel& src, mrpt::math::CMatrix& depth, int x, int y)
+		const openni::DepthPixel& src, mrpt::math::CMatrix_u16& depth_mm, int x,
+		int y)
 	{
-		static const double rate = 1.0 / 1000;
-		depth(y, x) = src * rate;
+		depth_mm(y, x) = src;
 	}
 
 	template <class NI_PIXEL, class MRPT_DATA>
@@ -204,7 +206,7 @@ class COpenNI2Generic::CDevice
 		mrpt::img::CImage& img, mrpt::system::TTimeStamp& timestamp,
 		bool& there_is_obs, bool& hardware_error);
 	bool getNextFrameD(
-		mrpt::math::CMatrix& img, mrpt::system::TTimeStamp& timestamp,
+		mrpt::math::CMatrix_u16& depth_mm, mrpt::system::TTimeStamp& timestamp,
 		bool& there_is_obs, bool& hardware_error);
 	bool getNextFrameRGBD(
 		mrpt::obs::CObservation3DRangeScan& obs, bool& there_is_obs,

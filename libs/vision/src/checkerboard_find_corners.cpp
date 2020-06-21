@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -13,7 +13,7 @@
 #include <mrpt/vision/chessboard_find_corners.h>
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 #include "checkerboard_ocamcalib_detector.h"
 
 using namespace mrpt;
@@ -91,7 +91,7 @@ bool mrpt::vision::findChessboardCorners(
 
 	if (corners_found)
 	{
-		IplImage iplImg(cvImg);
+		IplImage iplImg = cvIplImage(cvImg);
 		// Refine corners:
 		cvFindCornerSubPix(
 			&iplImg, &corners_list[0], corners_count, cvSize(5, 5),  // window
@@ -139,7 +139,7 @@ void mrpt::vision::findMultipleChessboardsCorners(
 	// Grayscale version:
 	const CImage img(in_img, FAST_REF_OR_CONVERT_TO_GRAY);
 	const cv::Mat img_m = img.asCvMat<cv::Mat>(SHALLOW_COPY);
-	const IplImage img_ipl(img_m);
+	const IplImage img_ipl = cvIplImage(img_m);
 
 	std::vector<std::vector<CvPoint2D32f>> corners_list;
 
@@ -183,8 +183,7 @@ void mrpt::vision::findMultipleChessboardsCorners(
 			const mrpt::math::TPoint3D Ax = pt_x1 - pt_0;  // z=0
 			const mrpt::math::TPoint3D Ay = pt_y1 - pt_0;  // z=0
 
-			const Eigen::Matrix<double, 3, 1> Az =
-				mrpt::math::crossProduct3D(Ax, Ay);
+			const auto Az = mrpt::math::crossProduct3D(Ax, Ay);
 			if (Az[2] > 0)
 			{
 				// Invert all rows (X):

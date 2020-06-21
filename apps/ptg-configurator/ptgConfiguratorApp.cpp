@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -13,10 +13,8 @@
 #include <wx/image.h>
 #include "ptgConfiguratorMain.h"
 //*)
+#include <mrpt/system/os.h>
 #include <wx/cmdline.h>
-#ifdef MRPT_OS_LINUX
-#include <dlfcn.h>
-#endif
 
 IMPLEMENT_APP(ptgConfiguratorApp)
 
@@ -36,11 +34,12 @@ bool ptgConfiguratorApp::OnInit()
 
 	wxCmdLineParser parser(cmdLineDesc, argc, argv);
 	parser.Parse(true);
-#ifdef MRPT_OS_LINUX
 	wxString libraryPath;
 	if (parser.Found(wxT_2("l"), &libraryPath))
-		dlopen(libraryPath.mb_str(), RTLD_LAZY);
-#endif
+	{
+		const std::string sLib = std::string(libraryPath.mb_str());
+		mrpt::system::loadPluginModules(sLib);
+	}
 
 	//(*AppInitialize
 	bool wxsOK = true;

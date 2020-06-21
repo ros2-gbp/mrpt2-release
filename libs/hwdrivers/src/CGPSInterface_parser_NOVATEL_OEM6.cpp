@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -40,6 +40,7 @@ bool CGPSInterface::implement_parser_NOVATEL_OEM6(
 	// If the synch bytes do not match, it is not a valid frame:
 	uint8_t peek_buffer[3];
 	m_rx_buffer.peek_many(&peek_buffer[0], 3);
+
 	// Short header?
 	const bool is_short_hdr =
 		peek_buffer[0] == nv_oem6_short_header_t::SYNCH0 &&
@@ -62,6 +63,7 @@ bool CGPSInterface::implement_parser_NOVATEL_OEM6(
 		}
 		nv_oem6_short_header_t hdr;
 		m_rx_buffer.peek_many(reinterpret_cast<uint8_t*>(&hdr), sizeof(hdr));
+		hdr.fixEndianness();
 		const uint32_t expected_total_msg_len =
 			sizeof(hdr) + hdr.msg_len + 4 /*crc*/;
 		if (nBytesAval < expected_total_msg_len)
@@ -140,6 +142,7 @@ bool CGPSInterface::implement_parser_NOVATEL_OEM6(
 		}
 		nv_oem6_header_t hdr;
 		m_rx_buffer.peek_many(reinterpret_cast<uint8_t*>(&hdr), sizeof(hdr));
+		hdr.fixEndianness();
 		const uint32_t expected_total_msg_len =
 			sizeof(hdr) + hdr.msg_len + 4 /*crc*/;
 		if (nBytesAval < expected_total_msg_len)

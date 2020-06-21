@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -259,9 +259,9 @@ void CPTG_DiffDrive_CollisionGridBased::simulateTrajectories(
 	}
 	catch (...)
 	{
-		std::cout << format(
-			"[CPTG_DiffDrive_CollisionGridBased::simulateTrajectories] "
-			"Simulation aborted: unexpected exception!\n");
+		std::cout
+			<< "[CPTG_DiffDrive_CollisionGridBased::simulateTrajectories] "
+			   "Simulation aborted: unexpected exception!\n";
 	}
 }
 
@@ -396,8 +396,7 @@ bool CPTG_DiffDrive_CollisionGridBased::CCollisionGrid::saveToFile(
 
 		// and standard PTG data:
 		*f << m_parent->getDescription() << m_parent->getAlphaValuesCount()
-		   << static_cast<float>(m_parent->getMax_V())
-		   << static_cast<float>(m_parent->getMax_W());
+		   << d2f(m_parent->getMax_V()) << d2f(m_parent->getMax_W());
 
 		*f << m_x_min << m_x_max << m_y_min << m_y_max;
 		*f << m_resolution;

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,7 +12,7 @@
 #include <mrpt/config/CConfigFileBase.h>
 #include <mrpt/config/CLoadableOptions.h>
 #include <mrpt/img/TColor.h>
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/obs/CActionCollection.h>
 #include <mrpt/obs/CObservation2DRangeScan.h>
 #include <mrpt/obs/CSensoryFrame.h>
@@ -604,8 +604,7 @@ class CLoopCloserERD : public virtual mrpt::graphslam::deciders::
 
 	bool computeDominantEigenVector(
 		const mrpt::math::CMatrixDouble& consist_matrix,
-		mrpt::math::dynamic_vector<double>* eigvec,
-		bool use_power_method = false);
+		mrpt::math::CVectorDouble* eigvec, bool use_power_method = false);
 	/**\brief Return the pair-wise consistency between the observations of the
 	 * given nodes.
 	 *
@@ -686,7 +685,7 @@ class CLoopCloserERD : public virtual mrpt::graphslam::deciders::
 	 * otherwies nullptr.
 	 */
 	static hypot_t* findHypotByID(
-		const hypotsp_t& vec_hypots, const size_t& id, bool throw_exc = true);
+		const hypotsp_t& vec_hypots, size_t id, bool throw_exc = true);
 	/**\brief Get the ICP Edge between the provided nodes.
 	 *
 	 * Handy for not having to manually fetch the laser scans, as the method

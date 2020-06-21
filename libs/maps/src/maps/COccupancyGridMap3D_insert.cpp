@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -21,20 +21,20 @@ using namespace mrpt::maps;
 static constexpr unsigned FRBITS = 9;
 
 bool COccupancyGridMap3D::internal_insertObservation(
-	const mrpt::obs::CObservation* obs, const mrpt::poses::CPose3D* robPose)
+	const mrpt::obs::CObservation& obs, const mrpt::poses::CPose3D* robPose)
 {
 	MRPT_START
 
 	const mrpt::poses::CPose3D robotPose3D =
 		(robPose != nullptr) ? *robPose : mrpt::poses::CPose3D();
 
-	if (auto* o = dynamic_cast<const mrpt::obs::CObservation2DRangeScan*>(obs);
+	if (auto* o = dynamic_cast<const mrpt::obs::CObservation2DRangeScan*>(&obs);
 		o != nullptr)
 	{
 		this->internal_insertObservationScan2D(*o, robotPose3D);
 		return true;
 	}
-	if (auto* o = dynamic_cast<const mrpt::obs::CObservation3DRangeScan*>(obs);
+	if (auto* o = dynamic_cast<const mrpt::obs::CObservation3DRangeScan*>(&obs);
 		o != nullptr)
 	{
 		this->internal_insertObservationScan3D(*o, robotPose3D);
@@ -99,13 +99,15 @@ void COccupancyGridMap3D::internal_insertObservationScan3D(
 	// Depth -> 3D points:
 	mrpt::maps::CSimplePointsMap pts;
 	mrpt::obs::T3DPointsProjectionParams pp;
-	pp.takeIntoAccountSensorPoseOnRobot = true;
+	pp.takeIntoAccountSensorPoseOnRobot = false;  // done below
 	pp.decimation = insertionOptions.decimation_3d_range;
 
-	const_cast<mrpt::obs::CObservation3DRangeScan&>(o)
-		.project3DPointsFromDepthImageInto(pts, pp);
+	const_cast<mrpt::obs::CObservation3DRangeScan&>(o).unprojectInto(pts, pp);
 
 	const auto sensorPose3D = robotPose + o.sensorPose;
+	// Shift everything to its proper pose in the global frame:
+	pts.changeCoordinatesReference(sensorPose3D);
+
 	const auto sensorPt = mrpt::math::TPoint3D(sensorPose3D.asTPose());
 	insertPointCloud(sensorPt, pts, o.maxRange);
 
@@ -201,7 +203,7 @@ void COccupancyGridMap3D::insertRay(
 }
 
 void COccupancyGridMap3D::OnPostSuccesfulInsertObs(
-	const mrpt::obs::CObservation*)
+	const mrpt::obs::CObservation&)
 {
 	m_is_empty = false;
 }

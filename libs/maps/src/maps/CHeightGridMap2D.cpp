@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -28,7 +28,7 @@ using namespace std;
 
 //  =========== Begin of Map definition ============
 MAP_DEFINITION_REGISTER(
-	"CHeightGridMap2D,heightMap,dem", mrpt::maps::CHeightGridMap2D)
+	"mrpt::maps::CHeightGridMap2D,heightMap,dem", mrpt::maps::CHeightGridMap2D)
 
 CHeightGridMap2D::TMapDefinition::TMapDefinition()
 
@@ -117,13 +117,14 @@ void CHeightGridMap2D::internal_clear() { fill(THeightGridmapCell()); }
   ---------------------------------------------------------------*/
 bool CHeightGridMap2D::isEmpty() const { return false; }
 bool CHeightGridMap2D::insertIndividualPoint(
-	const double x, const double y, const double z,
+	const double x, const double y, const double zz,
 	const CHeightGridMap2D_Base::TPointInsertParams& params)
 {
 	THeightGridmapCell* cell = cellByPos(x, y);
 	if (!cell)
 		return false;  // Out of the map: Ignore if we've not resized before.
 
+	const float z = d2f(zz);
 	if (!insertionOptions.filterByHeight ||
 		(z >= insertionOptions.z_min && z <= insertionOptions.z_max))
 	{
@@ -139,14 +140,14 @@ bool CHeightGridMap2D::insertIndividualPoint(
 			float W = cell->w++;  // W = N-1
 			cell->h = (cell->h * W + z) / cell->w;
 			if (W > 0)
-				cell->var = 1 / (W) * (cell->v - pow(cell->u, 2) / cell->w);
+				cell->var = (cell->v - d2f(pow(cell->u, 2)) / cell->w) / W;
 		}
 	}  // end if really inserted
 	return true;
 }
 
 bool CHeightGridMap2D::internal_insertObservation(
-	const CObservation* obs, const CPose3D* robotPose)
+	const CObservation& obs, const CPose3D* robotPose)
 {
 	return dem_internal_insertObservation(obs, robotPose);
 }
@@ -155,11 +156,9 @@ bool CHeightGridMap2D::internal_insertObservation(
 						computeObservationLikelihood
   ---------------------------------------------------------------*/
 double CHeightGridMap2D::internal_computeObservationLikelihood(
-	const CObservation* obs, const CPose3D& takenFrom)
+	[[maybe_unused]] const CObservation& obs,
+	[[maybe_unused]] const CPose3D& takenFrom)
 {
-	MRPT_UNUSED_PARAM(obs);
-	MRPT_UNUSED_PARAM(takenFrom);
-
 	THROW_EXCEPTION("Not implemented yet!");
 }
 
@@ -241,9 +240,8 @@ CHeightGridMap2D::TInsertionOptions::TInsertionOptions()
 void CHeightGridMap2D::TInsertionOptions::dumpToTextStream(
 	std::ostream& out) const
 {
-	out << mrpt::format(
-		"\n----------- [CHeightGridMap2D::TInsertionOptions] ------------ "
-		"\n\n");
+	out << "\n----------- [CHeightGridMap2D::TInsertionOptions] ------------ "
+		   "\n\n";
 	out << mrpt::format(
 		"filterByHeight                          = %c\n",
 		filterByHeight ? 'y' : 'n');
@@ -254,7 +252,7 @@ void CHeightGridMap2D::TInsertionOptions::dumpToTextStream(
 	out << mrpt::format(
 		"colormap                                = %s\n",
 		colorMap == cmJET ? "jet" : "grayscale");
-	out << mrpt::format("\n");
+	out << "\n";
 }
 
 /*---------------------------------------------------------------
@@ -294,11 +292,11 @@ void CHeightGridMap2D::getAs3DObject(
 
 	if (HEIGHTGRIDMAP_EXPORT3D_AS_MESH_value)
 	{
-		opengl::CMesh::Ptr mesh = mrpt::make_aligned_shared<opengl::CMesh>();
+		opengl::CMesh::Ptr mesh = std::make_shared<opengl::CMesh>();
 
 		mesh->setGridLimits(m_x_min, m_x_max, m_y_min, m_y_max);
 
-		mesh->setColor(0.4, 0.4, 0.4);
+		mesh->setColor(0.4f, 0.4f, 0.4f);
 
 		mesh->enableWireFrame(true);
 		mesh->enableColorFromZ(true, insertionOptions.colorMap /*cmJET*/);
@@ -317,8 +315,8 @@ void CHeightGridMap2D::getAs3DObject(
 			{
 				const THeightGridmapCell* c = cellByIndex(x, y);
 				ASSERTDEB_(c);
-				Z.set_unsafe(x, y, c->h);
-				mask.set_unsafe(x, y, c->w ? 1 : 0);
+				Z(x, y) = c->h;
+				mask(x, y) = c->w ? 1 : 0;
 			}
 		}
 		mesh->setZ(Z);
@@ -330,7 +328,7 @@ void CHeightGridMap2D::getAs3DObject(
 	{
 		// As points:
 		mrpt::opengl::CPointCloudColoured::Ptr obj =
-			mrpt::make_aligned_shared<mrpt::opengl::CPointCloudColoured>();
+			mrpt::opengl::CPointCloudColoured::Create();
 		obj->setPointSize(2);
 
 		// Find min/max:
@@ -417,12 +415,9 @@ void CHeightGridMap2D::dem_update_map()
 }
 
 float CHeightGridMap2D::compute3DMatchingRatio(
-	const mrpt::maps::CMetricMap* otherMap,
-	const mrpt::poses::CPose3D& otherMapPose,
-	const TMatchingRatioParams& params) const
+	[[maybe_unused]] const mrpt::maps::CMetricMap* otherMap,
+	[[maybe_unused]] const mrpt::poses::CPose3D& otherMapPose,
+	[[maybe_unused]] const TMatchingRatioParams& params) const
 {
-	MRPT_UNUSED_PARAM(otherMap);
-	MRPT_UNUSED_PARAM(otherMapPose);
-	MRPT_UNUSED_PARAM(params);
 	return 0;
 }

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,7 +12,7 @@
 #include <mrpt/img/CImage.h>
 #include <mrpt/img/TColor.h>
 #include <mrpt/io/CMemoryStream.h>
-#include <mrpt/math/CMatrixTemplateNumeric.h>
+#include <mrpt/math/CMatrixDynamic.h>
 #include <mrpt/random.h>
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/filesystem.h>
@@ -20,7 +20,7 @@
 #include <test_mrpt_common.h>
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 template class mrpt::CTraitsTest<mrpt::img::CImage>;
 
@@ -448,12 +448,7 @@ TEST(CImage, Serialize)
 	EXPECT_EQ(am, bm);
 }
 
-MRPT_TODO("Why does this fail on arm64?");
-#if defined(__aarch64__)
-TEST(CImage, DISABLED_KLT_response)
-#else
 TEST(CImage, KLT_response)
-#endif
 {
 	using namespace mrpt::img;
 

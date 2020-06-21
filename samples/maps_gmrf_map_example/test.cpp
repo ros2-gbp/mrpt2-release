@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -57,15 +57,14 @@ void Example_GMRF()
 		RESOLUTION /* resolution */
 	);
 
-	mrpt::maps::CGasConcentrationGridMap2D::ConnectivityDescriptor::Ptr conn =
+	auto conn =
 		mrpt::maps::CGasConcentrationGridMap2D::ConnectivityDescriptor::Ptr(
 			new MyConnectivityVisitor);
 	gasmap.setMinLoggingLevel(mrpt::system::LVL_DEBUG);
 	gasmap.setCellsConnectivity(conn);
 	gasmap.clear();  // for the connectivity to be taken into account.
 
-	mrpt::opengl::CPointCloud::Ptr gl_data =
-		mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
+	auto gl_data = mrpt::opengl::CPointCloud::Create();
 	gl_data->setPointSize(3.0f);
 
 	for (int i = 0; i < 20; i++)
@@ -87,8 +86,7 @@ void Example_GMRF()
 	gasmap.updateMapEstimation();
 
 	// 3D view:
-	mrpt::opengl::CSetOfObjects::Ptr glObj =
-		mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+	auto glObj = mrpt::opengl::CSetOfObjects::Create();
 	gasmap.getAs3DObject(glObj);
 
 	mrpt::gui::CDisplayWindow3D win("Map", 640, 480);

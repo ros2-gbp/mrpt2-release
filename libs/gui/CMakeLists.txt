@@ -4,32 +4,14 @@
 
 # Embedded version of mathplot:
 if(CMAKE_MRPT_HAS_WXWIDGETS)
-	list(APPEND gui_EXTRA_SRCS		"${MRPT_SOURCE_DIR}/libs/gui/src/mathplots/*.cpp" "${MRPT_SOURCE_DIR}/libs/gui/include/mrpt/otherlibs/mathplot/*.h")
+	list(APPEND gui_EXTRA_SRCS		"${MRPT_SOURCE_DIR}/libs/gui/src/mathplots/*.cpp" "${MRPT_SOURCE_DIR}/libs/gui/include/mrpt/3rdparty/mathplot/*.h")
 	list(APPEND gui_EXTRA_SRCS_NAME 	"mathplot" "mathplot")
 endif()
 
-
-# Embedded freeglut?
-if(CMAKE_MRPT_HAS_OPENGL_GLUT AND NOT CMAKE_MRPT_HAS_GLUT_SYSTEM)
-	#if(NOT BUILD_SHARED_LIBS)
-	#	list(APPEND gui_EXTRA_SRCS		"${MRPT_LIBS_ROOT}/opengl/src/freeglut-2.4.0/*.c" "${MRPT_LIBS_ROOT}/opengl/src/freeglut-2.4.0/*.h")
-	#	list(APPEND gui_EXTRA_SRCS_NAME "freeglut" "freeglut")
-	#endif(NOT BUILD_SHARED_LIBS)
-	#add_definitions(/DFREEGLUT_STATIC)
-	include_directories("${MRPT_LIBS_ROOT}/opengl/include/otherlibs/freeglut/")
-endif()
-
-# Embedded version of freeglut-2.4.0 for Windows:
-# It's already in mrpt-opengl, we need its include headers:
-if (WIN32)
-	list(APPEND gui_EXTRA_SRCS		"${MRPT_LIBS_ROOT}/opengl/src/freeglut-2.4.0/*.h")
-	list(APPEND gui_EXTRA_SRCS_NAME "freeglut-headers")
-	# It's in the **opengl** lib tree:
-	include_directories("${MRPT_LIBS_ROOT}/opengl/src/freeglut-2.4.0/")
-endif ()
-
-if(CMAKE_MRPT_HAS_OPENCV)
-	include_directories(${OpenCV_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS} ${OPENCV_INCLUDE_DIRS} ${OPENCV_INCLUDEDIR})
+if (CMAKE_MRPT_HAS_NANOGUI)
+	set(nanogui_dep mrpt-nanogui)
+else()
+	set(nanogui_dep "")
 endif()
 
 #---------------------------------------------
@@ -40,6 +22,8 @@ define_mrpt_lib(
 	gui
 	# Dependencies: None
 	mrpt-opengl
+	# Other imported targets:
+	${nanogui_dep}
 	)
 
 if(BUILD_mrpt-gui)
@@ -48,13 +32,15 @@ if(BUILD_mrpt-gui)
 		if (MSVC)
 			set_source_files_properties(
 				${mathplot_FILES}
-				${freeglut_FILES}
 				PROPERTIES COMPILE_FLAGS "/Y-")
 		endif ()
 	endif()
 
 	if(CMAKE_MRPT_HAS_WXWIDGETS)
-		target_link_libraries(gui PRIVATE ${wxWidgets_LIBRARIES})
+		if (NOT TARGET imp_wxwidgets)
+			message(ERROR "imp_wxwidgets should be defined!")
+		endif()
+		target_link_libraries(gui PRIVATE imp_wxwidgets)
 	endif()
 
 	if(CMAKE_MRPT_HAS_Qt5)
@@ -63,12 +49,20 @@ if(BUILD_mrpt-gui)
 	endif()
 
 	if(CMAKE_MRPT_HAS_OPENCV)
-		target_link_libraries(gui PRIVATE ${OpenCV_LIBRARIES})
+		target_link_libraries(gui PRIVATE imp_opencv)
 	endif()
 
-	if(CMAKE_MRPT_HAS_OPENGL_GLUT)
-		# Link against gl:
+	if(MRPT_OPENGL_LIBS)
+		# Link against glut:
 		target_link_libraries(gui PRIVATE ${MRPT_OPENGL_LIBS})
+	endif()
+
+	if (TARGET mrpt_glew) # Basically, for Windows
+		target_link_libraries(gui PRIVATE mrpt_glew)
+	endif()
+
+	if (CMAKE_MRPT_HAS_NANOGUI)
+		target_link_libraries(gui PUBLIC mrpt::nanogui)
 	endif()
 
 endif()

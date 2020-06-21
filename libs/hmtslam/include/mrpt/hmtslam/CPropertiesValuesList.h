@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -16,11 +16,11 @@ namespace mrpt::hmtslam
  * instance of any CSerializable object.
  *  A multi-hypotheses version exists in CMHPropertiesValuesList.
  * \sa CSerializable, CMHPropertiesValuesList, mrpt::system::TParameters
- * \ingroup mrpt_base_grp
+ * \ingroup mrpt_hmtslam_grp
  */
 class CPropertiesValuesList : public mrpt::serialization::CSerializable
 {
-	DEFINE_SERIALIZABLE(CPropertiesValuesList)
+	DEFINE_SERIALIZABLE(CPropertiesValuesList, mrpt::hmtslam)
    protected:
 	struct TPropertyValuePair
 	{

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,6 +10,7 @@
 
 #include <fstream>
 #include <iosfwd>
+#include <memory>
 #include <string>
 
 namespace mrpt::io
@@ -76,8 +77,9 @@ class CTextFileLinesParser
 
    private:
 	std::string m_fileName;
+	/** Points to either a user-owned object, or to m_my_in */
 	std::istream* m_in{nullptr};
-	bool m_in_ownership{true};
+	std::shared_ptr<std::istream> m_my_in;
 	size_t m_curLineNum{0};
 	bool m_filter_MATLAB_comments{true};
 	bool m_filter_C_comments{true};

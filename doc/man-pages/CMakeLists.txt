@@ -74,10 +74,15 @@ if (PROG_GZIP AND PROG_POD2MAN)
 	CREATE_MANPAGE_PROJECT(image2gridmap)
 #	CREATE_MANPAGE_PROJECT(rawlog2carmen)
 	CREATE_MANPAGE_PROJECT(ptg-configurator)
-
 	CREATE_MANPAGE_PROJECT(DifOdometry-Datasets)
 	CREATE_MANPAGE_PROJECT(DifOdometry-Camera)
 	CREATE_MANPAGE_PROJECT(robot-map-gui)
-
 	CREATE_MANPAGE_PROJECT(benchmarking-image-features)
-endif (PROG_GZIP AND PROG_POD2MAN)
+	CREATE_MANPAGE_PROJECT(benchmarkingImageFeatures_GUI)
+	CREATE_MANPAGE_PROJECT(yaml2ini)
+	CREATE_MANPAGE_PROJECT(ini2yaml)
+	CREATE_MANPAGE_PROJECT(rosbag2rawlog)
+	CREATE_MANPAGE_PROJECT(mrpt-performance)
+	CREATE_MANPAGE_PROJECT(3d-rotation-converter)
+
+endif()

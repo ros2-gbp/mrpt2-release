@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -127,9 +127,8 @@ class CEdgeCounter
 	void setTextMessageParams(
 		const std::map<std::string, double>& name_to_offset_y,
 		const std::map<std::string, int>& name_to_text_index,
-		const double& offset_y_total_edges, const int& text_index_total_edges,
-		const double& offset_y_loop_closures,
-		const int& text_index_loop_closures);
+		double offset_y_total_edges, int text_index_total_edges,
+		double offset_y_loop_closures, int text_index_loop_closures);
 
 	/**\brief Instance Iterators */
 	inline iterator begin() { return m_name_to_edges_num.begin(); }
@@ -154,7 +153,7 @@ class CEdgeCounter
 	 * Tracking number of edges
 	 */
 	std::map<std::string, int> m_name_to_edges_num;
-	int m_num_loop_closures;
+	int m_num_loop_closures = 0;
 	int m_unique_edges = 0;
 
 	// visualization std::maps

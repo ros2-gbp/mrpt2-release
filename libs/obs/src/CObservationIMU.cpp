@@ -2,16 +2,16 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "obs-precomp.h"  // Precompiled headers
 
+#include <mrpt/math/CVectorDynamic.h>
 #include <mrpt/obs/CObservationIMU.h>
 #include <mrpt/serialization/CArchive.h>
-//#include <mrpt/math/CMatrixD.h>
 
 using namespace mrpt::obs;
 using namespace mrpt::poses;
@@ -154,9 +154,9 @@ void CObservationIMU::getDescriptionAsText(std::ostream& o) const
 	DUMP_IMU_DATA(IMU_X_ACC)
 	DUMP_IMU_DATA(IMU_Y_ACC)
 	DUMP_IMU_DATA(IMU_Z_ACC)
-	DUMP_IMU_DATA(IMU_YAW_VEL)
-	DUMP_IMU_DATA(IMU_PITCH_VEL)
-	DUMP_IMU_DATA(IMU_ROLL_VEL)
+	DUMP_IMU_DATA(IMU_WX)
+	DUMP_IMU_DATA(IMU_WY)
+	DUMP_IMU_DATA(IMU_WZ)
 	DUMP_IMU_DATA(IMU_X_VEL)
 	DUMP_IMU_DATA(IMU_Y_VEL)
 	DUMP_IMU_DATA(IMU_Z_VEL)

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,6 +10,7 @@
 #define MRPT_NO_WARN_BIG_HDR  // Yes, we really want to include all classes.
 #include <mrpt/maps.h>
 #include <mrpt/obs/CObservationPointCloud.h>
+#include <mrpt/obs/CObservationRotatingScan.h>
 
 #include <CTraitsTest.h>
 #include <gtest/gtest.h>
@@ -42,6 +43,8 @@ TEST_CLASS_MOVE_COPY_CTORS(CPointsMapXYZI);
 TEST_CLASS_MOVE_COPY_CTORS(COctoMap);
 TEST_CLASS_MOVE_COPY_CTORS(CColouredOctoMap);
 TEST_CLASS_MOVE_COPY_CTORS(CObservationPointCloud);
+TEST_CLASS_MOVE_COPY_CTORS(CSinCosLookUpTableFor2DScans);
+TEST_CLASS_MOVE_COPY_CTORS(CObservationRotatingScan);
 
 // Create a set of classes, then serialize and deserialize to test possible
 // bugs:
@@ -63,7 +66,8 @@ TEST(SerializeTestMaps, WriteReadToMem)
 		CLASS_ID(CPointsMapXYZI),
 		CLASS_ID(COctoMap),
 		CLASS_ID(CColouredOctoMap),
-		CLASS_ID(CObservationPointCloud)};
+		CLASS_ID(CObservationPointCloud),
+		CLASS_ID(CObservationRotatingScan)};
 
 	for (auto& lstClasse : lstClasses)
 	{
@@ -72,10 +76,10 @@ TEST(SerializeTestMaps, WriteReadToMem)
 			CMemoryStream buf;
 			auto arch = mrpt::serialization::archiveFrom(buf);
 			{
-				auto* o =
-					static_cast<CSerializable*>(lstClasse->createObject());
+				auto o = mrpt::ptr_cast<CSerializable>::from(
+					lstClasse->createObject());
 				arch << *o;
-				delete o;
+				o.reset();
 			}
 
 			CSerializable::Ptr recons;

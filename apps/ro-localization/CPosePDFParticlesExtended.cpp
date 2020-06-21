@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -235,14 +235,13 @@ TExtendedCPose2D CPosePDFParticlesExtended::getEstimatedPoseState() const
 	return est;
 }
 
-/*---------------------------------------------------------------
-						getEstimatedCovariance
-  ---------------------------------------------------------------*/
-void CPosePDFParticlesExtended::getCovarianceAndMean(
-	CMatrixDouble33& cov, CPose2D& mean) const
+std::tuple<CMatrixDouble33, CPose2D>
+	CPosePDFParticlesExtended::getCovarianceAndMean() const
 {
+	CMatrixDouble33 cov;
+	CPose2D mean;
 	getMean(mean);
-	cov.zeros();
+	cov.setZero();
 
 	size_t i, n = m_particles.size();
 	double var_x = 0, var_y = 0, var_p = 0, var_xy = 0, var_xp = 0, var_yp = 0;
@@ -284,6 +283,7 @@ void CPosePDFParticlesExtended::getCovarianceAndMean(
 		cov(2, 0) = cov(0, 2) = var_xp;
 		cov(1, 2) = cov(2, 1) = var_yp;
 	}
+	return {cov, mean};
 }
 
 uint8_t CPosePDFParticlesExtended::serializeGetVersion() const { return 0; }
@@ -372,7 +372,7 @@ void CPosePDFParticlesExtended::prediction_and_update_pfStandardProposal(
 		// ---------------------
 		// Initialize random sample generator:
 		mrpt::poses::CPoseRandomSampler poseSamplesGen;
-		poseSamplesGen.setPosePDF(robotMovement->poseChange.get_ptr());
+		poseSamplesGen.setPosePDF(*robotMovement->poseChange);
 
 		CPose2D increment_i;
 		for (i = 0; i < M; i++)  // Update particle poses:
@@ -454,7 +454,7 @@ void CPosePDFParticlesExtended::prediction_and_update_pfAuxiliaryPFOptimal(
 	// ----------------------------------------------------------------------
 	// Initialize random sample generator:
 	mrpt::poses::CPoseRandomSampler m_movementDrawer;
-	m_movementDrawer.setPosePDF(robotMovement->poseChange.get_ptr());
+	m_movementDrawer.setPosePDF(*robotMovement->poseChange);
 
 	CPose2D mean_movement;
 	robotMovement->poseChange->getMean(mean_movement);
@@ -827,12 +827,9 @@ CPose2D CPosePDFParticlesExtended::getMostLikelyParticle() const
 					bayesianFusion
  ---------------------------------------------------------------*/
 void CPosePDFParticlesExtended::bayesianFusion(
-	const CPosePDF& p1, const CPosePDF& p2,
-	const double minMahalanobisDistToDrop)
+	[[maybe_unused]] const CPosePDF& p1, [[maybe_unused]] const CPosePDF& p2,
+	[[maybe_unused]] const double minMahalanobisDistToDrop)
 {
-	MRPT_UNUSED_PARAM(p1);
-	MRPT_UNUSED_PARAM(p2);
-
 	THROW_EXCEPTION("Not implemented yet!");
 }
 
@@ -892,7 +889,7 @@ CPosePDFParticlesExtended::TPredictionParams::TPredictionParams()
 	KLD_minSampleSize = 250;
 	KLD_maxSampleSize = 100000;
 	KLD_binSize_XY = 0.2f;
-	KLD_binSize_PHI = DEG2RAD(5);
+	KLD_binSize_PHI = 5.0_deg;
 	KLD_delta = 0.01f;
 	KLD_epsilon = 0.02f;
 
@@ -946,7 +943,7 @@ double CPosePDFParticlesExtended::auxiliarComputeObservationLikelihood(
 		}
 
 		ret += map->computeObservationLikelihood(
-			obser, x->pose);  // Compute the likelihood:
+			*obser, x->pose);  // Compute the likelihood:
 	}
 
 	// cout << x->pose << format(": lik = %f",ret) << endl;

@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include <mrpt/config/CConfigFile.h>
-#include <mrpt/core/aligned_std_map.h>
+#include <map>
 #include "rawlog-edit-declarations.h"
 
 using namespace mrpt;
@@ -32,8 +32,7 @@ DECLARE_OP_FUNCTION(op_sensors_pose)
 	   protected:
 		TOutputRawlogCreator outrawlog;
 
-		using TSensor2PoseMap =
-			mrpt::aligned_std_map<std::string, mrpt::poses::CPose3D>;
+		using TSensor2PoseMap = std::map<std::string, mrpt::poses::CPose3D>;
 		TSensor2PoseMap desiredSensorPoses;
 
 	   public:
@@ -41,8 +40,8 @@ DECLARE_OP_FUNCTION(op_sensors_pose)
 
 		CRawlogProcessor_SensorsPose(
 			CFileGZInputStream& in_rawlog, TCLAP::CmdLine& cmdline,
-			bool verbose)
-			: CRawlogProcessorOnEachObservation(in_rawlog, cmdline, verbose)
+			bool Verbose)
+			: CRawlogProcessorOnEachObservation(in_rawlog, cmdline, Verbose)
 		{
 			m_changedPoses = 0;
 

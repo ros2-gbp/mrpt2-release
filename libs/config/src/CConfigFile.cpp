@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -80,13 +80,19 @@ void CConfigFile::writeNow()
 }
 
 void CConfigFile::discardSavingChanges() { m_modified = false; }
-/*---------------------------------------------------------------
-					Destructor
- ---------------------------------------------------------------*/
-CConfigFile::~CConfigFile() { writeNow(); }
-/*---------------------------------------------------------------
-					writeString
- ---------------------------------------------------------------*/
+
+CConfigFile::~CConfigFile()
+{
+	try
+	{
+		writeNow();
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << "[~CConfigFile] Exception:\n" << mrpt::exception_to_str(e);
+	}
+}
+
 void CConfigFile::writeString(
 	const std::string& section, const std::string& name, const std::string& str)
 {
@@ -165,3 +171,5 @@ void CConfigFile::getAllKeys(
 	for (n = names.begin(), s = keys.begin(); n != names.end(); ++n, ++s)
 		*s = n->pItem;
 }
+
+void CConfigFile::clear() { m_impl->m_ini.Reset(); }

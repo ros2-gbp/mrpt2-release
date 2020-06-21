@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -238,7 +238,6 @@ void CHMTSLAM::thread_LSLAM()
 
 		// Finish thread:
 		// -------------------------
-		// try { mrpt::system::getCurrentThreadTimes( timCreat,timExit,timCPU);
 		obj->logFmt(mrpt::system::LVL_DEBUG, "[thread_LSLAM] Thread finished");
 		obj->m_terminationFlag_LSLAM = true;
 	}
@@ -267,9 +266,8 @@ void CHMTSLAM::thread_LSLAM()
 /*---------------------------------------------------------------
 						LSLAM_process_message
   ---------------------------------------------------------------*/
-void CHMTSLAM::LSLAM_process_message(const CMessage& msg)
+void CHMTSLAM::LSLAM_process_message([[maybe_unused]] const CMessage& msg)
 {
-	MRPT_UNUSED_PARAM(msg);
 	MRPT_START
 
 	/*	switch(msg.type)
@@ -384,7 +382,7 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 		DEBUG_STEP);
 	if (DEBUG_STEP == 3)
 	{
-		CMatrix A(3, 3);
+		CMatrixF A(3, 3);
 		DEBUG_STEP = DEBUG_STEP + 0;
 	}
 	if (false)
@@ -488,8 +486,7 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 			// Create new area in the H-MAP:
 			std::lock_guard<std::mutex> lock(m_map_cs);
 
-			CHMHMapNode::Ptr newArea =
-				mrpt::make_aligned_shared<CHMHMapNode>(&m_map);
+			CHMHMapNode::Ptr newArea = std::make_shared<CHMHMapNode>(&m_map);
 
 			// For now, the area exists in this hypothesis only:
 			newArea->m_hypotheses.insert(LMH->m_ID);
@@ -821,10 +818,10 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 							//  Delta_b_c = Delta_b_a (+) Delta_a_c
 							CPose3DPDFGaussian Delta_b_c(Delta_b_a + Delta_a_c);
 							Delta_b_c.cov
-								.zeros();  // *********** DEBUG !!!!!!!!!!!
+								.setZero();  // *********** DEBUG !!!!!!!!!!!
 							Delta_b_c.cov(0, 0) = Delta_b_c.cov(1, 1) =
 								square(0.04);
-							Delta_b_c.cov(3, 3) = square(DEG2RAD(1));
+							Delta_b_c.cov(3, 3) = square(1.0_deg);
 
 							MRPT_LOG_DEBUG_STREAM(
 								"b_a: " << Delta_b_a.mean << endl
@@ -848,7 +845,7 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 							if (!newArc)
 							{
 								// Create a new one:
-								newArc = mrpt::make_aligned_shared<CHMHMapArc>(
+								newArc = std::make_shared<CHMHMapArc>(
 									nodeB,  // Source
 									node_c,  // Target
 									LMH->m_ID,  // Hypos
@@ -1104,11 +1101,11 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 											false);
 
 								newDelta = Anew_old + *oldDelta;
-								newDelta.cov
-									.zeros();  // *********** DEBUG !!!!!!!!!!!
+								newDelta.cov.setZero();  // *********** DEBUG
+														 // !!!!!!!!!!!
 								newDelta.cov(0, 0) = newDelta.cov(1, 1) =
 									square(0.04);
-								newDelta.cov(3, 3) = square(DEG2RAD(1));
+								newDelta.cov(3, 3) = square(1.0_deg);
 
 								MRPT_LOG_DEBUG_STREAM(
 									"[LSLAM_proc_msg_AA] Updating arc "
@@ -1154,11 +1151,11 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 
 								newDelta = *oldDelta + Aold_new;
 
-								newDelta.cov
-									.zeros();  // *********** DEBUG !!!!!!!!!!!
+								newDelta.cov.setZero();  // *********** DEBUG
+														 // !!!!!!!!!!!
 								newDelta.cov(0, 0) = newDelta.cov(1, 1) =
 									square(0.04);
-								newDelta.cov(3, 3) = square(DEG2RAD(1));
+								newDelta.cov(3, 3) = square(1.0_deg);
 
 								MRPT_LOG_DEBUG_STREAM(
 									"[LSLAM_proc_msg_AA] Updating arc "
@@ -1366,9 +1363,9 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 			CPose3DPDFGaussian relPoseGauss;
 			relPoseGauss.copyFrom(relPoseParts);
 
-			relPoseGauss.cov.zeros();  // *********** DEBUG !!!!!!!!!!!
+			relPoseGauss.cov.setZero();  // *********** DEBUG !!!!!!!!!!!
 			relPoseGauss.cov(0, 0) = relPoseGauss.cov(1, 1) = square(0.04);
-			relPoseGauss.cov(3, 3) = square(DEG2RAD(1));
+			relPoseGauss.cov(3, 3) = square(1.0_deg);
 
 			logFmt(
 				mrpt::system::LVL_INFO,
@@ -1388,7 +1385,7 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 			// If not found, create it now:
 			if (!newArc)
 			{
-				newArc = mrpt::make_aligned_shared<CHMHMapArc>(
+				newArc = std::make_shared<CHMHMapArc>(
 					area_a_ID,  // Source
 					area_b_ID,  // Target
 					theArcHypos,  // Hypos
@@ -1771,14 +1768,14 @@ void CHMTSLAM::LSLAM_process_message_from_AA(const TMessageLSLAMfromAA& myMsg)
 		COpenGLScene sceneLSLAM;
 		// Generate the metric maps 3D view...
 		opengl::CSetOfObjects::Ptr maps3D =
-			mrpt::make_aligned_shared<opengl::CSetOfObjects>();
+			std::make_shared<opengl::CSetOfObjects>();
 		maps3D->setName("metric-maps");
 		LMH->getMostLikelyParticle()->d->metricMaps.getAs3DObject(maps3D);
 		sceneLSLAM.insert(maps3D);
 
 		// ...and the robot poses, areas, etc:
 		opengl::CSetOfObjects::Ptr LSLAM_3D =
-			mrpt::make_aligned_shared<opengl::CSetOfObjects>();
+			std::make_shared<opengl::CSetOfObjects>();
 		LSLAM_3D->setName("LSLAM_3D");
 		LMH->getAs3DScene(LSLAM_3D);
 		sceneLSLAM.insert(LSLAM_3D);
@@ -1945,9 +1942,9 @@ void CHMTSLAM::LSLAM_process_message_from_TBI(const TMessageLSLAMfromTBI& myMsg)
 		pdfDeltaMap.cov(0, 0) += square(1.0);
 		pdfDeltaMap.cov(1, 1) += square(1.0);
 		pdfDeltaMap.cov(2, 2) += square(1.0);
-		pdfDeltaMap.cov(3, 3) += square(DEG2RAD(5));
-		pdfDeltaMap.cov(4, 4) += square(DEG2RAD(5));
-		pdfDeltaMap.cov(5, 5) += square(DEG2RAD(5));
+		pdfDeltaMap.cov(3, 3) += square(5.0_deg);
+		pdfDeltaMap.cov(4, 4) += square(5.0_deg);
+		pdfDeltaMap.cov(5, 5) += square(5.0_deg);
 
 		cout << "[LSLAM_proc_msg_TBI] HMap_delta=" << pdfDeltaMap.mean
 			 << " std_x=" << sqrt(pdfDeltaMap.cov(0, 0))

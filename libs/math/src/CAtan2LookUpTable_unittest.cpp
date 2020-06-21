@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -29,7 +29,7 @@ void atan2_lut_test(
 		if (std::abs(x) < skip_area || std::abs(y) < skip_area) continue;
 
 		const double atan2_good = ::atan2(y, x);
-		double atan2_lut;
+		double atan2_lut = .0;
 		bool atan2_lut_valid = atan2lut.atan2(y, x, atan2_lut);
 
 		EXPECT_TRUE(atan2_lut_valid);

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,6 +10,11 @@
 #include "slam-precomp.h"  // Precompiled headers
 
 #include <mrpt/img/CEnhancedMetaFile.h>
+#include <mrpt/maps/CLandmarksMap.h>
+#include <mrpt/maps/CMultiMetricMap.h>
+#include <mrpt/maps/COccupancyGridMap2D.h>
+#include <mrpt/maps/CSimplePointsMap.h>
+#include <mrpt/math/TPose2D.h>
 #include <mrpt/math/distributions.h>
 #include <mrpt/math/geometry.h>
 #include <mrpt/math/ops_containers.h>
@@ -18,14 +23,10 @@
 #include <mrpt/poses/CPosePDFGaussian.h>
 #include <mrpt/random.h>
 #include <mrpt/slam/CGridMapAligner.h>
-#include <mrpt/system/filesystem.h>
-
-#include <mrpt/maps/CLandmarksMap.h>
-#include <mrpt/maps/CMultiMetricMap.h>
-#include <mrpt/maps/COccupancyGridMap2D.h>
-#include <mrpt/maps/CSimplePointsMap.h>
 #include <mrpt/slam/CICP.h>
+#include <mrpt/system/filesystem.h>
 #include <mrpt/tfest/se2.h>
+#include <Eigen/Dense>
 
 using namespace mrpt::math;
 using namespace mrpt::slam;
@@ -39,31 +40,41 @@ using namespace std;
 
 CPosePDF::Ptr CGridMapAligner::AlignPDF(
 	const mrpt::maps::CMetricMap* mm1, const mrpt::maps::CMetricMap* mm2,
-	const CPosePDFGaussian& initialEstimationPDF, float* runningTime,
-	void* info)
+	const CPosePDFGaussian& initialEstimationPDF,
+	mrpt::optional_ref<TMetricMapAlignmentResult> info)
 {
 	MRPT_START
+
+	TReturnInfo infoVal;
+	CPosePDF::Ptr ret;
 
 	switch (options.methodSelection)
 	{
 		case CGridMapAligner::amCorrelation:
-			return AlignPDF_correlation(
-				mm1, mm2, initialEstimationPDF, runningTime, info);
+			ret = AlignPDF_correlation(mm1, mm2, initialEstimationPDF, infoVal);
+			break;
 
 		case CGridMapAligner::amModifiedRANSAC:
 		case CGridMapAligner::amRobustMatch:
 			// The same function has an internal switch for the specific method:
-			return AlignPDF_robustMatch(
-				mm1, mm2, initialEstimationPDF, runningTime, info);
+			ret = AlignPDF_robustMatch(mm1, mm2, initialEstimationPDF, infoVal);
+			break;
 
 		default:
 			THROW_EXCEPTION("Wrong value found in 'options.methodSelection'!!");
 	}
 
+	// Copy the output info if requested:
+	if (info)
+		if (auto* o = dynamic_cast<TReturnInfo*>(&info.value().get()); o)
+			*o = infoVal;
+
+	return ret;
 	MRPT_END
 }
 
-bool myVectorOrder(const pair<size_t, float>& o1, const pair<size_t, float>& o2)
+static bool myVectorOrder(
+	const pair<size_t, float>& o1, const pair<size_t, float>& o2)
 {
 	return o1.second < o2.second;
 }
@@ -73,8 +84,7 @@ bool myVectorOrder(const pair<size_t, float>& o1, const pair<size_t, float>& o2)
 ---------------------------------------------------------------*/
 CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 	const mrpt::maps::CMetricMap* mm1, const mrpt::maps::CMetricMap* mm2,
-	const CPosePDFGaussian& initialEstimationPDF, float* runningTime,
-	void* info)
+	const CPosePDFGaussian& initialEstimationPDF, TReturnInfo& outInfo)
 {
 	MRPT_START
 
@@ -82,15 +92,10 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 		options.methodSelection == CGridMapAligner::amRobustMatch ||
 		options.methodSelection == CGridMapAligner::amModifiedRANSAC);
 
-	TReturnInfo outInfo;
 	mrpt::tfest::TMatchingPairList& correspondences =
 		outInfo.correspondences;  // Use directly this placeholder to save 1
 	// variable & 1 copy.
 	mrpt::tfest::TMatchingPairList largestConsensusCorrs;
-
-	CTicTac* tictac = nullptr;
-
-	CPose2D grossEst = initialEstimationPDF.mean;
 
 	CLandmarksMap::Ptr lm1(new CLandmarksMap());
 	CLandmarksMap::Ptr lm2(new CLandmarksMap());
@@ -105,10 +110,10 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 	const COccupancyGridMap2D* m1 = nullptr;
 	const COccupancyGridMap2D* m2 = nullptr;
 
-	if (IS_CLASS(mm1, CMultiMetricMap) && IS_CLASS(mm2, CMultiMetricMap))
+	if (IS_CLASS(*mm1, CMultiMetricMap) && IS_CLASS(*mm2, CMultiMetricMap))
 	{
-		multimap1 = static_cast<const CMultiMetricMap*>(mm1);
-		multimap2 = static_cast<const CMultiMetricMap*>(mm2);
+		multimap1 = dynamic_cast<const CMultiMetricMap*>(mm1);
+		multimap2 = dynamic_cast<const CMultiMetricMap*>(mm2);
 
 		ASSERT_(multimap1->countMapsByClass<COccupancyGridMap2D>());
 		ASSERT_(multimap2->countMapsByClass<COccupancyGridMap2D>());
@@ -117,11 +122,11 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 		m2 = multimap2->mapByClass<COccupancyGridMap2D>().get();
 	}
 	else if (
-		IS_CLASS(mm1, COccupancyGridMap2D) &&
-		IS_CLASS(mm2, COccupancyGridMap2D))
+		IS_CLASS(*mm1, COccupancyGridMap2D) &&
+		IS_CLASS(*mm2, COccupancyGridMap2D))
 	{
-		m1 = static_cast<const COccupancyGridMap2D*>(mm1);
-		m2 = static_cast<const COccupancyGridMap2D*>(mm2);
+		m1 = dynamic_cast<const COccupancyGridMap2D*>(mm1);
+		m2 = dynamic_cast<const COccupancyGridMap2D*>(mm2);
 	}
 	else
 		THROW_EXCEPTION(
@@ -147,7 +152,7 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 
 	// The PDF to estimate:
 	// ------------------------------------------------------
-	CPosePDFSOG::Ptr pdf_SOG = mrpt::make_aligned_shared<CPosePDFSOG>();
+	CPosePDFSOG::Ptr pdf_SOG = std::make_shared<CPosePDFSOG>();
 
 	// Extract features from grid-maps:
 	// ------------------------------------------------------
@@ -163,11 +168,8 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 		*m2, *lm2, N2, options.feature_descriptor,
 		options.feature_detector_options);
 
-	if (runningTime)
-	{
-		tictac = new CTicTac();
-		tictac->Tic();
-	}
+	mrpt::system::CTicTac tictac;
+	tictac.Tic();
 
 	const size_t nLM1 = lm1->size();
 	const size_t nLM2 = lm2->size();
@@ -218,18 +220,14 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 			{
 				float minDist;
 				minDist =
-					lm1->landmarks.get(idx1)->features[0]->descriptorDistanceTo(
-						*lm2->landmarks.get(idx2)->features[0]);
+					lm1->landmarks.get(idx1)->features[0].descriptorDistanceTo(
+						lm2->landmarks.get(idx2)->features[0]);
 
 				corrs_indiv.emplace_back(idx2, minDist);
 				corrs_indiv_only.push_back(minDist);
 			}  // end for idx2
 
-			// double corr_mean,corr_std;
-			// mrpt::math::meanAndStd(corrs_indiv_only,corr_mean,corr_std);
 			const double corr_best = mrpt::math::minimum(corrs_indiv_only);
-			// cout << "M: " << corr_mean << " std: " << corr_std << " best: "
-			// << corr_best << endl;
 
 			// Sort the list and keep the N best features:
 			std::sort(corrs_indiv.begin(), corrs_indiv.end(), myVectorOrder);
@@ -266,9 +264,9 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 				CMatrixFloat descriptor1;
 				lm1->landmarks.get(it.first)
 					->features[0]
-					->getFirstDescriptorAsMatrix(descriptor1);
+					.getFirstDescriptorAsMatrix(descriptor1);
 
-				im1 = CImage(descriptor1, true);
+				im1.setFromMatrix(descriptor1, true /*normalized*/);
 
 				const size_t FEAT_W = im1.getWidth();
 				const size_t FEAT_H = im1.getHeight();
@@ -293,8 +291,8 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 					CMatrixFloat descriptor2;
 					lm2->landmarks.get(*it_j)
 						->features[0]
-						->getFirstDescriptorAsMatrix(descriptor2);
-					im2 = CImage(descriptor2, true);
+						.getFirstDescriptorAsMatrix(descriptor2);
+					im2.setFromMatrix(descriptor2, true);
 					img_compose.drawImage(
 						10 + FEAT_W, 5 + j * (FEAT_H + 5), im2);
 				}
@@ -355,7 +353,7 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 
 			// The list of SOG modes & their corresponding sub-sets of
 			// matchings:
-			using TMapMatchingsToPoseMode = mrpt::aligned_std_map<
+			using TMapMatchingsToPoseMode = std::map<
 				mrpt::tfest::TMatchingPairList, CPosePDFSOG::TGaussianMode>;
 			TMapMatchingsToPoseMode sog_modes;
 
@@ -383,7 +381,7 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 				tfest_params.ransac_nSimulations = 0;  // 0=auto
 				tfest_params.ransac_fuseByCorrsMatch = true;
 				tfest_params.ransac_fuseMaxDiffXY = 0.01;
-				tfest_params.ransac_fuseMaxDiffPhi = DEG2RAD(0.1);
+				tfest_params.ransac_fuseMaxDiffPhi = 0.1_deg;
 				tfest_params.ransac_algorithmForLandmarks = true;
 				tfest_params.probability_find_good_model =
 					options.ransac_prob_good_inliers;
@@ -466,7 +464,7 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 				// Generic 2x2 covariance matrix for all features in their local
 				// coords:
 				CMatrixDouble22 COV_pnt;
-				COV_pnt.get_unsafe(0, 0) = COV_pnt.get_unsafe(1, 1) =
+				COV_pnt(0, 0) = COV_pnt(1, 1) =
 					square(options.ransac_SOG_sigma_m);
 
 				// The absolute number of trials.
@@ -580,8 +578,6 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 						// multiplied by std^2_xy
 						temptPose.cov *= square(options.ransac_SOG_sigma_m);
 
-						// cout << "q: " << temptPose << endl;
-
 						// Find the landmark in MAP2 with the best (maximum)
 						// product-integral:
 						//   (i^* , j^*) = arg max_(i,j) \int p_i()p_j()
@@ -590,12 +586,12 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 						const double ssin = sin(temptPose.mean.phi());
 
 						CMatrixDouble22 Hc;  // Jacobian wrt point_j
-						Hc.get_unsafe(1, 1) = ccos;
-						Hc.get_unsafe(0, 0) = ccos;
-						Hc.get_unsafe(1, 0) = ssin;
-						Hc.get_unsafe(0, 1) = -ssin;
+						Hc(1, 1) = ccos;
+						Hc(0, 0) = ccos;
+						Hc(1, 0) = ssin;
+						Hc(0, 1) = -ssin;
 
-						CMatrixFixedNumeric<double, 2, 3>
+						CMatrixFixed<double, 2, 3>
 							Hq;  // Jacobian wrt transformation q
 						Hq(0, 0) = 1;
 						Hq(1, 1) = 1;
@@ -634,9 +630,8 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 							pdf_M2_j.mean = mrpt::poses::CPoint2D(
 								temptPose.mean +
 								p2_j_local);  // In (temptative) global coords:
-							pdf_M2_j.cov.get_unsafe(0, 0) =
-								pdf_M2_j.cov.get_unsafe(1, 1) =
-									square(options.ransac_SOG_sigma_m);
+							pdf_M2_j.cov(0, 0) = pdf_M2_j.cov(1, 1) =
+								square(options.ransac_SOG_sigma_m);
 
 #ifdef SHOW_CORRS
 							win.plotEllipse(
@@ -659,15 +654,16 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 								if (used_landmarks1[u]) continue;
 
 								// Jacobian wrt transformation q
-								Hq.get_unsafe(0, 2) =
+								Hq(0, 2) =
 									-p2_j_local.x * ssin - p2_j_local.y * ccos;
-								Hq.get_unsafe(1, 2) =
+								Hq(1, 2) =
 									p2_j_local.x * ccos - p2_j_local.y * ssin;
 
 								// COV_j = Hq \Sigma_q Hq^t + Hc Cj Hc^t
-								Hc.multiply_HCHt(COV_pnt, pdf_M1_i.cov);
-								Hq.multiply_HCHt(
-									temptPose.cov, pdf_M1_i.cov, true);
+								pdf_M1_i.cov =
+									mrpt::math::multiply_HCHt(Hc, COV_pnt);
+								pdf_M1_i.cov += mrpt::math::multiply_HCHt(
+									Hq, temptPose.cov);
 
 								float px, py;
 								lm1_pnts.getPoint(u, px, py);
@@ -686,8 +682,6 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 #ifdef GRIDMAP_USE_PROD_INTEGRAL
 								const double prod_ij =
 									pdf_M1_i.productIntegralWith(pdf_M2_j);
-								// const double prod_ij_d2 = square(
-								// pdf_M1_i.mahalanobisDistanceTo(pdf_M2_j) );
 
 								if (prod_ij > best_pair_value)
 #else
@@ -706,14 +700,6 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 									best_pair_d2 =
 										square(pdf_M1_i.mahalanobisDistanceTo(
 											pdf_M2_j));
-
-									// cout << "P1: " << pdf_M1_i.mean << " C= "
-									// << pdf_M1_i.cov.inMatlabFormat() << endl;
-									// cout << "P2: " << pdf_M2_j.mean << " C= "
-									// << pdf_M2_j.cov.inMatlabFormat() << endl;
-									// cout << "  -> " << format("%e",prod_ij)
-									// << " d2: " << best_pair_d2 << endl <<
-									// endl;
 								}
 							}  // end for u (closest matches of LM2 in MAP 1)
 
@@ -821,8 +807,9 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 				pdf_SOG->clear();
 				for (auto s = sog_modes.begin(); s != sog_modes.end(); ++s)
 				{
-					cout << "SOG mode: " << s->second.mean
-						 << " inliers: " << s->first.size() << endl;
+					MRPT_LOG_INFO_STREAM(
+						"SOG mode: " << s->second.mean
+									 << " inliers: " << s->first.size());
 					pdf_SOG->push_back(s->second);
 				}
 
@@ -857,8 +844,8 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 					lastM1 = m1;
 					NN = 0;
 				}
-				printf(
-					"   Largest consensus: %u\n",
+				MRPT_LOG_INFO_FMT(
+					"Largest consensus: %u",
 					static_cast<unsigned>(largestConsensusCorrs.size()));
 				CEnhancedMetaFile::LINUX_IMG_WIDTH(
 					m1->getSizeX() + m2->getSizeX() + 50);
@@ -905,12 +892,12 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 				outInfo.icp_goodness_all_sog_modes.clear();
 				for (auto i = pdf_SOG->begin(); i != pdf_SOG->end(); ++cnt)
 				{
-					CPosePDF::Ptr icp_est = icp.Align(
-						pnts1.get(), pnts2.get(), (i)->mean, nullptr, &icpInfo);
+					CPosePDF::Ptr icp_est =
+						icp.Align(pnts1.get(), pnts2.get(), (i)->mean, icpInfo);
 
 					//(i)->cov(0,0) += square( 0.05 );
 					//(i)->cov(1,1) += square( 0.05 );
-					//(i)->cov(2,2) += square( DEG2RAD(0.05) );
+					//(i)->cov(2,2) += square( 0.05_deg );
 
 					CPosePDFGaussian i_gauss(i->mean, i->cov);
 					CPosePDFGaussian icp_gauss(icp_est->getMeanVal(), i->cov);
@@ -918,11 +905,13 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 					const double icp_maha_dist =
 						i_gauss.mahalanobisDistanceTo(icp_gauss);
 
-					cout << "ICP " << cnt << " log-w: " << i->log_w
-						 << " Goodness: " << 100 * icpInfo.goodness
-						 << "  D_M= " << icp_maha_dist << endl;
-					cout << "  final pos: " << icp_est->getMeanVal() << endl;
-					cout << "    org pos: " << i->mean << endl;
+					MRPT_LOG_INFO_STREAM(
+						"ICP " << cnt << " log-w: " << i->log_w
+							   << " Goodness: " << 100 * icpInfo.goodness
+							   << "  D_M= " << icp_maha_dist);
+					MRPT_LOG_INFO_STREAM(
+						"final pos: " << icp_est->getMeanVal());
+					MRPT_LOG_INFO_STREAM("  org pos: " << i->mean);
 
 					outInfo.icp_goodness_all_sog_modes.push_back(
 						icpInfo.goodness);
@@ -956,21 +945,7 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 
 	}  // end of: yes, there are landmarks in the grid maps!
 
-	// Copy the output info if requested:
-	// -------------------------------------------------
-	MRPT_TODO(
-		"Refactor `info` so it is polymorphic and can use dynamic_cast<> here");
-	if (info)
-	{
-		auto* info_ = static_cast<TReturnInfo*>(info);
-		*info_ = outInfo;
-	}
-
-	if (runningTime)
-	{
-		*runningTime = tictac->Tac();
-		delete tictac;
-	}
+	outInfo.executionTime = tictac.Tac();
 
 	return pdf_SOG;
 
@@ -982,36 +957,28 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_robustMatch(
 ---------------------------------------------------------------*/
 CPosePDF::Ptr CGridMapAligner::AlignPDF_correlation(
 	const mrpt::maps::CMetricMap* mm1, const mrpt::maps::CMetricMap* mm2,
-	const CPosePDFGaussian& initialEstimationPDF, float* runningTime,
-	void* info)
+	[[maybe_unused]] const CPosePDFGaussian& initialEstimationPDF,
+	TReturnInfo& outInfo)
 {
-	MRPT_UNUSED_PARAM(initialEstimationPDF);
-	MRPT_UNUSED_PARAM(info);
-
 	MRPT_START
 
 	//#define	CORRELATION_SHOW_DEBUG
 
-	CTicTac* tictac = nullptr;
+	mrpt::system::CTicTac tictac;
+	tictac.Tic();
 
 	// Asserts:
 	// -----------------
 	ASSERT_(mm1->GetRuntimeClass() == CLASS_ID(COccupancyGridMap2D));
 	ASSERT_(mm2->GetRuntimeClass() == CLASS_ID(COccupancyGridMap2D));
-	const auto* m1 = static_cast<const COccupancyGridMap2D*>(mm1);
-	const auto* m2 = static_cast<const COccupancyGridMap2D*>(mm2);
+	const auto* m1 = dynamic_cast<const COccupancyGridMap2D*>(mm1);
+	const auto* m2 = dynamic_cast<const COccupancyGridMap2D*>(mm2);
 
-	ASSERT_(m1->getResolution() == m2->getResolution());
-
-	if (runningTime)
-	{
-		tictac = new CTicTac();
-		tictac->Tic();
-	}
+	ASSERT_EQUAL_(m1->getResolution(), m2->getResolution());
 
 	// The PDF to estimate:
 	// ------------------------------------------------------
-	CPosePDFGaussian::Ptr PDF = mrpt::make_aligned_shared<CPosePDFGaussian>();
+	CPosePDFGaussian::Ptr PDF = std::make_shared<CPosePDFGaussian>();
 
 	// Determine the extension to compute the correlation into:
 	// ----------------------------------------------------------
@@ -1035,7 +1002,7 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_correlation(
 		m1->getResolution());
 	size_t map2_lx = map2_mod.getSizeX();
 	size_t map2_ly = map2_mod.getSizeY();
-	CMatrix outCrossCorr, bestCrossCorr;
+	CMatrixF outCrossCorr, bestCrossCorr;
 	float map2width_2 = 0.5f * (map2_mod.getXMax() - map2_mod.getXMin());
 
 #ifdef CORRELATION_SHOW_DEBUG
@@ -1057,10 +1024,10 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_correlation(
 		CPoint2D v1, v3;
 		v2 = CPose2D(0, 0, 0) - v2;  // Inverse
 
-		for (unsigned int cy2 = 0; cy2 < map2_ly; cy2++)
+		for (size_t cy2 = 0; cy2 < map2_ly; cy2++)
 		{
 			COccupancyGridMap2D::cellType* row = map2_mod.getRow(cy2);
-			for (unsigned int cx2 = 0; cx2 < map2_lx; cx2++)
+			for (size_t cx2 = 0; cx2 < map2_lx; cx2++)
 			{
 				v3 = v2 + CPoint2D(map2_mod.idx2x(cx2), map2_mod.idx2y(cy2));
 				*row++ = m2->p2l(m2->getPos(v3.x(), v3.y()));
@@ -1078,7 +1045,7 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_correlation(
 		);
 
 		float corrPeak = outCrossCorr.maxCoeff();
-		printf("phi = %fdeg \tmax corr=%f\n", RAD2DEG(phi), corrPeak);
+		MRPT_LOG_INFO_FMT("phi = %fdeg \tmax corr=%f", RAD2DEG(phi), corrPeak);
 
 		// Keep the maximum:
 		if (corrPeak > currentMaxCorr)
@@ -1098,24 +1065,19 @@ CPosePDF::Ptr CGridMapAligner::AlignPDF_correlation(
 
 	}  // end for phi
 
-	if (runningTime)
-	{
-		*runningTime = tictac->Tac();
-		delete tictac;
-	}
-
-	bestCrossCorr.normalize(0, 1);
-	CImage aux(bestCrossCorr, true);
-	aux.saveToFile("_debug_best_corr.png");
+	outInfo.executionTime = tictac.Tac();
 
 #ifdef CORRELATION_SHOW_DEBUG
+	CImage aux;
+	aux.setFromMatrix(bestCrossCorr, false /* do normalization [0,1]*/);
+	aux.saveToFile("_debug_best_corr.png");
 	delete win;
 	delete win2;
 #endif
 
 	// Transform the best corr matrix peak into coordinates:
-	CMatrix::Index uMax, vMax;
-	currentMaxCorr = bestCrossCorr.maxCoeff(&uMax, &vMax);
+	std::size_t uMax, vMax;
+	currentMaxCorr = bestCrossCorr.maxCoeff(uMax, vMax);
 
 	PDF->mean.x(m1->idx2x(uMax));
 	PDF->mean.y(m1->idx2y(vMax));
@@ -1135,8 +1097,7 @@ CGridMapAligner::TConfigParams::TConfigParams() : feature_detector_options() {}
   ---------------------------------------------------------------*/
 void CGridMapAligner::TConfigParams::dumpToTextStream(std::ostream& out) const
 {
-	out << mrpt::format(
-		"\n----------- [CGridMapAligner::TConfigParams] ------------ \n\n");
+	out << "\n----------- [CGridMapAligner::TConfigParams] ------------ \n\n";
 
 	LOADABLEOPTS_DUMP_VAR(methodSelection, int)
 	LOADABLEOPTS_DUMP_VAR(featsPerSquareMeter, float)
@@ -1158,7 +1119,7 @@ void CGridMapAligner::TConfigParams::dumpToTextStream(std::ostream& out) const
 
 	feature_detector_options.dumpToTextStream(out);
 
-	out << mrpt::format("\n");
+	out << "\n";
 }
 
 /*---------------------------------------------------------------
@@ -1200,14 +1161,10 @@ void CGridMapAligner::TConfigParams::loadFromConfigFile(
 }
 
 CPose3DPDF::Ptr CGridMapAligner::Align3DPDF(
-	const mrpt::maps::CMetricMap* m1, const mrpt::maps::CMetricMap* m2,
-	const CPose3DPDFGaussian& initialEstimationPDF, float* runningTime,
-	void* info)
+	[[maybe_unused]] const mrpt::maps::CMetricMap* m1,
+	[[maybe_unused]] const mrpt::maps::CMetricMap* m2,
+	[[maybe_unused]] const CPose3DPDFGaussian& initialEstimationPDF,
+	[[maybe_unused]] mrpt::optional_ref<TMetricMapAlignmentResult> outInfo)
 {
-	MRPT_UNUSED_PARAM(m1);
-	MRPT_UNUSED_PARAM(m2);
-	MRPT_UNUSED_PARAM(initialEstimationPDF);
-	MRPT_UNUSED_PARAM(runningTime);
-	MRPT_UNUSED_PARAM(info);
-	THROW_EXCEPTION("Align3D method not applicable to gridmap-aligner");
+	THROW_EXCEPTION("Align3D method not applicable to CGridMapAligner");
 }

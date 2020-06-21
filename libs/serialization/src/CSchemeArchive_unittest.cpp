@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -30,7 +30,7 @@ TEST(SchemaSerialization, JSON_archive)
 	arch = pt1;
 	std::stringstream ss;
 	ss << arch;
-	auto pos = ss.str().find("\"datatype\" : \"CPose2D\"");
+	auto pos = ss.str().find("\"datatype\" : \"mrpt::poses::CPose2D\"");
 	EXPECT_TRUE(pos != std::string::npos);
 
 	// test deserializing:
@@ -55,7 +55,7 @@ TEST(SchemaSerialization, JSON_raw)
 	arch = pt1;
 	std::stringstream ss;
 	ss << val;
-	auto pos = ss.str().find("\"datatype\" : \"CPose2D\"");
+	auto pos = ss.str().find("\"datatype\" : \"mrpt::poses::CPose2D\"");
 	EXPECT_TRUE(pos != std::string::npos);
 
 	// test deserializing:

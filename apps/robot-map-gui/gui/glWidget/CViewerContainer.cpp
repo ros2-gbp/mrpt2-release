@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)               |
    |                          https://www.mrpt.org/                            |
    |                                                                           |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file        |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file        |
    | See: https://www.mrpt.org/Authors - All rights reserved.                  |
    | Released under BSD License. See details in https://www.mrpt.org/License   |
    +---------------------------------------------------------------------------+
@@ -69,7 +69,7 @@ void CViewerContainer::showRangeScan(CNode* node)
 	CRangeScanNode* obsNode = dynamic_cast<CRangeScanNode*>(node);
 	ASSERT_(obsNode);
 
-	auto obj = mrpt::make_aligned_shared<mrpt::opengl::CPlanarLaserScan>();
+	auto obj = mrpt::opengl::CPlanarLaserScan::Create();
 	obj->setScan(*(obsNode->observation().get()));
 	obj->setPose(obsNode->getPose());
 	obj->setSurfaceColor(1.0f, 0.0f, 0.0f, 0.5f);

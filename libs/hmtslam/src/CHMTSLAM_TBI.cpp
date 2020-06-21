@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -61,9 +61,6 @@ void CHMTSLAM::thread_TBI()
 
 		// Finish thread:
 		// -------------------------
-		MRPT_TODO("Fix thread times");
-		//		try { mrpt::system::getCurrentThreadTimes(
-		// timCreat,timExit,timCPU); } catch(...) {};
 		obj->logFmt(mrpt::system::LVL_DEBUG, "[thread_TBI] Thread finished");
 		obj->m_terminationFlag_TBI = true;
 	}
@@ -217,7 +214,7 @@ CHMTSLAM::TMessageLSLAMfromTBI::Ptr CHMTSLAM::TBI_main_method(
 				// (i.e. image-based detectors)
 				if (pdf)
 				{
-					ASSERT_(IS_CLASS(pdf, CPose3DPDFSOG));
+					ASSERT_(IS_CLASS(*pdf, CPose3DPDFSOG));
 					CPose3DPDFSOG::Ptr SOG =
 						std::dynamic_pointer_cast<CPose3DPDFSOG>(pdf);
 

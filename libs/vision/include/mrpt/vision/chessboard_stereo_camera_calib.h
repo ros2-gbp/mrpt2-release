@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,8 +11,10 @@
 
 #include <mrpt/img/CImage.h>
 #include <mrpt/img/TStereoCamera.h>
+#include <mrpt/poses/CPose3D.h>
 #include <mrpt/vision/chessboard_camera_calib.h>
 #include <mrpt/vision/types.h>
+#include <array>
 
 namespace mrpt::vision
 {
@@ -37,12 +39,12 @@ struct TImageStereoCallbackData
 {
 	/** =-1:Processing images;  =0: Initial calib without distortion, =1: Calib
 	 * of all parameters */
-	int calibRound;
-	size_t current_iter;
+	int calibRound{-1};
+	size_t current_iter{0};
 	/** Current root-mean square reprojection error (in pixels) */
-	double current_rmse;
+	double current_rmse{0};
 	/** Info for calibRound==-1 */
-	unsigned int nImgsProcessed, nImgsToProcess;
+	unsigned int nImgsProcessed{0}, nImgsToProcess{0};
 };
 
 /** Prototype of optional user callback function. */
@@ -107,7 +109,7 @@ struct TStereoCalibResults
 	/** Poses of the origin of coordinates of the pattern wrt the left camera
 	 * (i.e. the origin of coordinates, as seen from the different camera poses)
 	 */
-	mrpt::aligned_std_vector<mrpt::poses::CPose3D> left_cam_poses;
+	std::vector<mrpt::math::TPose3D> left_cam_poses;
 	/** true if a checkerboard was correctly detected in both left/right images.
 	 * false if it wasn't, so the image pair didn't make it to the optimization.
 	 */
@@ -126,8 +128,7 @@ struct TStereoCalibResults
 	 *  Those not estimated as indicated in TStereoCalibParams will be zeros
 	 * (i.e. an "infinite uncertainty")
 	 */
-	Eigen::Array<double, 9, 1> left_params_inv_variance,
-		right_params_inv_variance;
+	std::array<double, 9> left_params_inv_variance, right_params_inv_variance;
 };
 
 /**  A list of images, used in checkerBoardStereoCalibration

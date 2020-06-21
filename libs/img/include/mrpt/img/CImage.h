@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,7 +12,8 @@
 #include <mrpt/img/CCanvas.h>
 #include <mrpt/img/TCamera.h>
 #include <mrpt/img/TPixelCoord.h>
-#include <mrpt/math/eigen_frwds.h>
+#include <mrpt/math/CMatrixDynamic.h>
+#include <mrpt/math/CMatrixFixed.h>
 #include <mrpt/serialization/CSerializable.h>
 
 // Forwards decls:
@@ -146,7 +147,7 @@ class CExceptionExternalImageNotFound : public std::runtime_error
  */
 class CImage : public mrpt::serialization::CSerializable, public CCanvas
 {
-	DEFINE_SERIALIZABLE(CImage)
+	DEFINE_SERIALIZABLE(CImage, mrpt::img)
 
 	// This must be added for declaration of MEX-related functions
 	DECLARE_MEX_CONVERSION
@@ -207,23 +208,6 @@ class CImage : public mrpt::serialization::CSerializable, public CCanvas
 	/** Constructor from another CImage, making or not a deep copy of the data
 	 */
 	CImage(const CImage& img, copy_type_t copy_type);
-
-	/** Explicit constructor from a matrix, interpreted as grayscale
-	 * intensity values, in the range [0,1] (normalized=true) or [0,255]
-	 * (normalized=false)
-	 * \sa setFromMatrix
-	 */
-	template <typename Derived>
-	explicit inline CImage(
-		const Eigen::MatrixBase<Derived>& m, bool matrix_is_normalized)
-		: CImage()
-	{
-#if MRPT_HAS_OPENCV
-		this->setFromMatrix(m, matrix_is_normalized);
-#else
-		THROW_EXCEPTION("The MRPT has been compiled with MRPT_HAS_OPENCV=0 !");
-#endif
-	}
 
 	/** @} */
 
@@ -424,6 +408,8 @@ class CImage : public mrpt::serialization::CSerializable, public CCanvas
 	 * \param out_img The output undistorted image
 	 * \param cameraParams The input camera params (containing the intrinsic
 	 * and distortion parameters of the camera)
+	 * \note The intrinsic parameters (fx,fy,cx,cy) of the output image are the
+	 * same than in the input image.
 	 * \sa mrpt::vision::CUndistortMap
 	 */
 	void undistort(
@@ -681,6 +667,9 @@ class CImage : public mrpt::serialization::CSerializable, public CCanvas
 	/** Returns true if the image is RGB, false if it is grayscale */
 	bool isColor() const;
 
+	/** Returns true if the object is in the state after default constructor */
+	bool isEmpty() const;
+
 	/** Returns true (as of MRPT v2.0.0, it's fixed) */
 	bool isOriginTopLeft() const;
 
@@ -712,6 +701,11 @@ class CImage : public mrpt::serialization::CSerializable, public CCanvas
 		int x_min = 0, int y_min = 0, int x_max = -1, int y_max = -1,
 		bool normalize_01 = true) const;
 
+	/** \overload For uint8_t matrices [0, 255]. */
+	void getAsMatrix(
+		mrpt::math::CMatrix_u8& outMatrix, bool doResize = true, int x_min = 0,
+		int y_min = 0, int x_max = -1, int y_max = -1) const;
+
 	/**	Returns the image as RGB matrices with pixel values in the range [0,1].
 	 * Matrix indexes in this order: M(row,column)
 	 *  \param doResize If set to true (default), the output matrix will be
@@ -734,11 +728,17 @@ class CImage : public mrpt::serialization::CSerializable, public CCanvas
 		mrpt::math::CMatrixFloat& outMatrixB, bool doResize = true,
 		int x_min = 0, int y_min = 0, int x_max = -1, int y_max = -1) const;
 
+	/** \overload For uint8_t matrices [0, 255]. */
+	void getAsRGBMatrices(
+		mrpt::math::CMatrix_u8& outMatrixR, mrpt::math::CMatrix_u8& outMatrixG,
+		mrpt::math::CMatrix_u8& outMatrixB, bool doResize = true, int x_min = 0,
+		int y_min = 0, int x_max = -1, int y_max = -1) const;
+
 	/**	Returns the image as a matrix, where the image is "tiled" (repeated)
 	 * the required number of times to fill the entire size of the matrix on
 	 * input.
 	 */
-	void getAsMatrixTiled(math::CMatrix& outMatrix) const;
+	void getAsMatrixTiled(mrpt::math::CMatrixFloat& outMatrix) const;
 
 	/** @} */
 
@@ -840,9 +840,8 @@ class CImage : public mrpt::serialization::CSerializable, public CCanvas
 	 *	Matrix indexes are assumed to be in this order: M(row,column)
 	 * \sa getAsMatrix
 	 */
-	template <typename Derived>
-	void setFromMatrix(
-		const Eigen::MatrixBase<Derived>& m, bool matrix_is_normalized = true)
+	template <typename MAT>
+	void setFromMatrix(const MAT& m, bool matrix_is_normalized = true)
 	{
 		MRPT_START
 		const unsigned int lx = m.cols();
@@ -874,11 +873,10 @@ class CImage : public mrpt::serialization::CSerializable, public CCanvas
 	 * Matrix indexes are assumed to be in this order: M(row,column)
 	 * \sa getAsRGBMatrices
 	 */
-	template <typename Derived>
+	template <typename MAT>
 	void setFromRGBMatrices(
-		const Eigen::MatrixBase<Derived>& r,
-		const Eigen::MatrixBase<Derived>& g,
-		const Eigen::MatrixBase<Derived>& b, bool matrix_is_normalized = true)
+		const MAT& r, const MAT& g, const MAT& b,
+		bool matrix_is_normalized = true)
 	{
 		MRPT_START
 		makeSureImageIsLoaded();  // For delayed loaded images stored externally
@@ -1017,6 +1015,9 @@ class CImage : public mrpt::serialization::CSerializable, public CCanvas
 	void colorImage(CImage& ret) const;
 
 	/** @} */
+
+	/** (DEPRECATED, DO NOT USE - Kept here only to interface opencv 2.4) */
+	void getAsIplImage(IplImage* dest) const;
 
    protected:
 	/** @name Data members

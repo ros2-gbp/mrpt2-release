@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -114,7 +114,7 @@ void CVisualizer<
 	const double grid_frequency = 5.0;
 	CGridPlaneXY::Ptr grid = CGridPlaneXY::Create(
 		BB_min.x, BB_max.x, BB_min.y, BB_max.y, BB_min.z, grid_frequency);
-	grid->setColor(0.3, 0.3, 0.3);
+	grid->setColor(0.3f, 0.3f, 0.3f);
 	object->insert(grid);
 }
 
@@ -137,7 +137,7 @@ void CVisualizer<
 	const unsigned int nodes_point_color = viz_params->getWithDefaultVal(
 		"nodes_point_color", (unsigned int)0xA0A0A0);
 
-	CPointCloud::Ptr pnts = mrpt::make_aligned_shared<CPointCloud>();
+	CPointCloud::Ptr pnts = std::make_shared<CPointCloud>();
 	pnts->setColor(TColorf(TColor(nodes_point_color)));
 	pnts->setPointSize(nodes_point_size);
 
@@ -149,7 +149,6 @@ void CVisualizer<
 		pnts->insertPoint(p.x(), p.y(), p.z());
 	}
 
-	pnts->enablePointSmooth();
 	object->insert(pnts);
 }
 
@@ -185,7 +184,7 @@ void CVisualizer<
 									   nodes_corner_scale, 1.0 /*line width*/)
 								 : stock_objects::CornerXYSimple(
 									   nodes_corner_scale, 1.0 /*line width*/))
-				: mrpt::make_aligned_shared<CSetOfObjects>();
+				: std::make_shared<CSetOfObjects>();
 		gl_corner->setPose(p);
 		if (show_ID_labels)
 		{  // don't show IDs twice!
@@ -234,7 +233,7 @@ void CVisualizer<
 			// Create a set of objects at that pose and do the rest in relative
 			// coords:
 			mrpt::opengl::CSetOfObjects::Ptr gl_rel_edge =
-				mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+				mrpt::opengl::CSetOfObjects::Create();
 			gl_rel_edge->setPose(pSource);
 
 			const typename GRAPH_T::constraint_no_pdf_t& edge_pose =
@@ -280,7 +279,7 @@ void CVisualizer<
 	using namespace mrpt::poses;
 	ASSERTMSG_(viz_params, "Pointer to viz_params was not provided.");
 
-	CSetOfLines::Ptr gl_edges = mrpt::make_aligned_shared<CSetOfLines>();
+	CSetOfLines::Ptr gl_edges = std::make_shared<CSetOfLines>();
 	const unsigned int edge_color =
 		viz_params->getWithDefaultVal("edge_color", (unsigned int)0x400000FF);
 	const double edge_width = viz_params->getWithDefaultVal("edge_width", 2.);

@@ -2,13 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "obs-precomp.h"  // Precompiled headers
 
+#include <mrpt/core/lock_helper.h>
 #include <mrpt/obs/CObservation2DRangeScan.h>
 #include <mrpt/obs/CSinCosLookUpTableFor2DScans.h>
 
@@ -36,6 +37,8 @@ const CSinCosLookUpTableFor2DScans::TSinCosValues&
 	CSinCosLookUpTableFor2DScans::getSinCosForScan(
 		const T2DScanProperties& scan_prop) const
 {
+	auto lck = mrpt::lockHelper(m_cache_mtx);
+
 	auto it = m_cache.find(scan_prop);
 	if (it != m_cache.end())
 	{  // Found in the cache:
@@ -71,8 +74,8 @@ const CSinCosLookUpTableFor2DScans::TSinCosValues&
 
 			for (size_t i = 0; i < scan_prop.nRays; i++)
 			{
-				new_entry.ccos[i] = cos(Ang);
-				new_entry.csin[i] = sin(Ang);
+				new_entry.ccos[i] = d2f(cos(Ang));
+				new_entry.csin[i] = d2f(sin(Ang));
 				Ang += dA;
 			}
 		}

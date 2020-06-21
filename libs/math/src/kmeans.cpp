@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -28,11 +28,10 @@ namespace mrpt::math::detail
    ------------------------------------------- */
 template <>
 double internal_kmeans<double>(
-	const bool use_kmeansplusplus_method, const size_t nPoints, const size_t k,
-	const size_t dims, const double* points, const size_t attempts,
-	double* out_center, int* out_assignments)
+	[[maybe_unused]] const bool use_kmeansplusplus_method, const size_t nPoints,
+	const size_t k, const size_t dims, const double* points,
+	const size_t attempts, double* out_center, int* out_assignments)
 {
-	MRPT_UNUSED_PARAM(use_kmeansplusplus_method);
 	return RunKMeans(
 		nPoints, k, dims, const_cast<double*>(points), attempts, out_center,
 		out_assignments);
@@ -40,11 +39,10 @@ double internal_kmeans<double>(
 
 template <>
 double internal_kmeans<float>(
-	const bool use_kmeansplusplus_method, const size_t nPoints, const size_t k,
-	const size_t dims, const float* points, const size_t attempts,
-	float* out_center, int* out_assignments)
+	[[maybe_unused]] const bool use_kmeansplusplus_method, const size_t nPoints,
+	const size_t k, const size_t dims, const float* points,
+	const size_t attempts, float* out_center, int* out_assignments)
 {
-	MRPT_UNUSED_PARAM(use_kmeansplusplus_method);
 	std::vector<double> points_d(nPoints * dims);
 	std::vector<double> centers_d(k * dims);
 	// Convert: float -> double

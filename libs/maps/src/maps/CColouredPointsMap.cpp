@@ -2,7 +2,7 @@
 |                     Mobile Robot Programming Toolkit (MRPT)            |
 |                          https://www.mrpt.org/                         |
 |                                                                        |
-| Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+| Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
 | See: https://www.mrpt.org/Authors - All rights reserved.               |
 | Released under BSD License. See: https://www.mrpt.org/License          |
 +------------------------------------------------------------------------+ */
@@ -32,7 +32,8 @@ using namespace mrpt::config;
 
 //  =========== Begin of Map definition ============
 MAP_DEFINITION_REGISTER(
-	"CColouredPointsMap,colourPointsMap", mrpt::maps::CColouredPointsMap)
+	"mrpt::maps::CColouredPointsMap,colourPointsMap",
+	mrpt::maps::CColouredPointsMap)
 
 CColouredPointsMap::TMapDefinition::TMapDefinition() = default;
 void CColouredPointsMap::TMapDefinition::loadFromConfigFile_map_specific(
@@ -68,12 +69,6 @@ mrpt::maps::CMetricMap* CColouredPointsMap::internal_CreateFromMapDefinition(
 //  =========== End of Map definition Block =========
 
 IMPLEMENTS_SERIALIZABLE(CColouredPointsMap, CPointsMap, mrpt::maps)
-
-#if MRPT_HAS_PCL
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
-//#   include <pcl/registration/icp.h>
-#endif
 
 void CColouredPointsMap::reserve(size_t newLength)
 {
@@ -383,7 +378,7 @@ void CColouredPointsMap::getAs3DObject(
 	if (!genericMapParams.enableSaveAs3DObject) return;
 
 	opengl::CPointCloudColoured::Ptr obj =
-		mrpt::make_aligned_shared<opengl::CPointCloudColoured>();
+		std::make_shared<opengl::CPointCloudColoured>();
 
 	obj->loadFromPointsMap(this);
 	obj->setColor(1, 1, 1, 1.0);
@@ -452,9 +447,8 @@ void CColouredPointsMap::getPointColor(
 //  a dependency on mrpt-vision.
 static void aux_projectPoint_with_distortion(
 	const mrpt::math::TPoint3D& P, const TCamera& params, TPixelCoordf& pixel,
-	bool accept_points_behind)
+	[[maybe_unused]] bool accept_points_behind)
 {
-	MRPT_UNUSED_PARAM(accept_points_behind);
 	// Pinhole model:
 	const double x = P.x / P.z;
 	const double y = P.y / P.z;
@@ -569,9 +563,8 @@ bool CColouredPointsMap::colourFromObservation(
 	return true;
 }  // end colourFromObservation
 
-void CColouredPointsMap::resetPointsMinDist(float defValue)
+void CColouredPointsMap::resetPointsMinDist([[maybe_unused]] float defValue)
 {
-	MRPT_UNUSED_PARAM(defValue);
 	// m_min_dist.assign(x.size(),defValue);
 }
 
@@ -581,13 +574,11 @@ bool CColouredPointsMap::save3D_and_colour_to_text_file(
 	FILE* f = os::fopen(file.c_str(), "wt");
 	if (!f) return false;
 
-	for (unsigned int i = 0; i < m_x.size(); i++)
+	for (size_t i = 0; i < m_x.size(); i++)
 		os::fprintf(
 			f, "%f %f %f %d %d %d\n", m_x[i], m_y[i], m_z[i],
 			(uint8_t)(255 * m_color_R[i]), (uint8_t)(255 * m_color_G[i]),
 			(uint8_t)(255 * m_color_B[i]));
-	//	os::fprintf(f,"%f %f %f %f %f %f
-	//%f\n",x[i],y[i],z[i],m_color_R[i],m_color_G[i],m_color_B[i],m_min_dist[i]);
 
 	os::fclose(f);
 	return true;
@@ -661,51 +652,6 @@ void CColouredPointsMap::addFrom_classSpecific(
 	}
 }
 
-/** Save the point cloud as a PCL PCD file, in either ASCII or binary format
- * \return false on any error */
-bool CColouredPointsMap::savePCDFile(
-	const std::string& filename, bool save_as_binary) const
-{
-#if MRPT_HAS_PCL
-	pcl::PointCloud<pcl::PointXYZRGB> cloud;
-
-	const size_t nThis = this->size();
-
-	// Fill in the cloud data
-	cloud.width = nThis;
-	cloud.height = 1;
-	cloud.is_dense = false;
-	cloud.points.resize(cloud.width * cloud.height);
-
-	const float f = 255.f;
-
-	union myaux_t {
-		uint8_t rgb[4];
-		float f;
-	} aux_val;
-
-	for (size_t i = 0; i < nThis; ++i)
-	{
-		cloud.points[i].x = m_x[i];
-		cloud.points[i].y = m_y[i];
-		cloud.points[i].z = m_z[i];
-
-		aux_val.rgb[0] = static_cast<uint8_t>(this->m_color_B[i] * f);
-		aux_val.rgb[1] = static_cast<uint8_t>(this->m_color_G[i] * f);
-		aux_val.rgb[2] = static_cast<uint8_t>(this->m_color_R[i] * f);
-
-		cloud.points[i].rgb = aux_val.f;
-	}
-
-	return 0 == pcl::io::savePCDFile(filename, cloud, save_as_binary);
-
-#else
-	MRPT_UNUSED_PARAM(filename);
-	MRPT_UNUSED_PARAM(save_as_binary);
-	THROW_EXCEPTION("Operation not available: MRPT was built without PCL");
-#endif
-}
-
 namespace mrpt::maps::detail
 {
 using mrpt::maps::CColouredPointsMap;
@@ -735,19 +681,18 @@ struct pointmap_traits<CColouredPointsMap>
 	/** Helper method fot the generic implementation of
 	 * CPointsMap::loadFromRangeScan(), to be called once per range data */
 	inline static void internal_loadFromRangeScan2D_prepareOneRange(
-		CColouredPointsMap& me, const float gx, const float gy, const float gz,
+		CColouredPointsMap& me, [[maybe_unused]] const float gx,
+		[[maybe_unused]] const float gy, const float gz,
 		mrpt::maps::CPointsMap::TLaserRange2DInsertContext& lric)
 	{
-		MRPT_UNUSED_PARAM(gx);
-		MRPT_UNUSED_PARAM(gy);
 		// Relative height of the point wrt the sensor:
-		const float rel_z = gz - lric.HM.get_unsafe(2, 3);  // m23;
+		const float rel_z = gz - lric.HM(2, 3);  // m23;
 
 		// Variable renaming:
 		float& pR = lric.fVars[0];
 		float& pG = lric.fVars[1];
 		float& pB = lric.fVars[2];
-		const float& Az_1_color = lric.fVars[3];
+		float Az_1_color = lric.fVars[3];
 
 		// Compute color:
 		switch (me.colorScheme.scheme)
@@ -890,11 +835,10 @@ struct pointmap_traits<CColouredPointsMap>
 	/** Helper method fot the generic implementation of
 	 * CPointsMap::loadFromRangeScan(), to be called once per range data */
 	inline static void internal_loadFromRangeScan3D_prepareOneRange(
-		CColouredPointsMap& me, const float gx, const float gy, const float gz,
+		CColouredPointsMap& me, [[maybe_unused]] const float gx,
+		[[maybe_unused]] const float gy, const float gz,
 		mrpt::maps::CPointsMap::TLaserRange3DInsertContext& lric)
 	{
-		MRPT_UNUSED_PARAM(gx);
-		MRPT_UNUSED_PARAM(gy);
 		// Rename variables:
 		float& pR = lric.fVars[0];
 		float& pG = lric.fVars[1];
@@ -916,7 +860,7 @@ struct pointmap_traits<CColouredPointsMap>
 		const uint8_t& simple_3d_to_color_relation = lric.bVars[2];
 
 		// Relative height of the point wrt the sensor:
-		const float rel_z = gz - lric.HM.get_unsafe(2, 3);  // m23;
+		const float rel_z = gz - lric.HM(2, 3);  // m23;
 
 		// Compute color:
 		switch (me.colorScheme.scheme)
@@ -1018,10 +962,9 @@ struct pointmap_traits<CColouredPointsMap>
 	 * CPointsMap::loadFromRangeScan(), to be called once per range data, at the
 	 * end */
 	inline static void internal_loadFromRangeScan3D_postOneRange(
-		CColouredPointsMap& me,
+		[[maybe_unused]] CColouredPointsMap& me,
 		mrpt::maps::CPointsMap::TLaserRange3DInsertContext& lric)
 	{
-		MRPT_UNUSED_PARAM(me);
 		unsigned int& imgW = lric.uVars[0];
 		unsigned int& img_idx_x = lric.uVars[2];
 		unsigned int& img_idx_y = lric.uVars[3];

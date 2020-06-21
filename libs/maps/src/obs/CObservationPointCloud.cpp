@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,12 +11,14 @@
 
 #include <mrpt/io/CFileGZInputStream.h>
 #include <mrpt/io/CFileGZOutputStream.h>
+#include <mrpt/maps/CColouredPointsMap.h>
 #include <mrpt/maps/CPointsMapXYZI.h>
 #include <mrpt/maps/CSimplePointsMap.h>
 #include <mrpt/obs/CObservation3DRangeScan.h>
 #include <mrpt/obs/CObservationPointCloud.h>
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/filesystem.h>
+#include <fstream>
 #include <iostream>
 
 using namespace mrpt::obs;
@@ -55,6 +57,11 @@ void CObservationPointCloud::getDescriptionAsText(std::ostream& o) const
 		o << pointcloud->GetRuntimeClass()->className << "\n";
 		o << "Number of points: " << pointcloud->size() << "\n";
 	}
+
+	if (m_externally_stored != ExternalStorageFormat::None)
+		o << "Pointcloud is stored externally in format `"
+		  << static_cast<int>(m_externally_stored) << "` in file `"
+		  << m_external_file << "`\n";
 }
 
 uint8_t CObservationPointCloud::serializeGetVersion() const { return 0; }
@@ -64,7 +71,7 @@ void CObservationPointCloud::serializeTo(
 	out << sensorLabel << timestamp;  // Base class data
 
 	out << sensorPose;
-	out << static_cast<uint8_t>(m_externally_stored);
+	out.WriteAs<uint8_t>(m_externally_stored);
 
 	if (isExternallyStored())
 	{
@@ -132,6 +139,49 @@ void CObservationPointCloud::load() const
 			const_cast<mrpt::maps::CPointsMap::Ptr&>(pointcloud) = pc;
 		}
 		break;
+		case ExternalStorageFormat::PlainTextFile:
+		{
+			mrpt::math::CMatrixFloat data;
+			data.loadFromTextFile(abs_filename);
+			if (data.rows() == 0)
+				THROW_EXCEPTION_FMT(
+					"Empty external point cloud plain text file? `%s`",
+					abs_filename.c_str());
+
+			mrpt::maps::CPointsMap::Ptr pc;
+
+			if (data.cols() == 3 || data.cols() == 2)
+			{
+				pc = std::dynamic_pointer_cast<mrpt::maps::CPointsMap>(
+					mrpt::maps::CSimplePointsMap::Create());
+			}
+			else if (data.cols() == 6)
+			{
+				pc = std::dynamic_pointer_cast<mrpt::maps::CPointsMap>(
+					mrpt::maps::CColouredPointsMap::Create());
+			}
+			else if (data.cols() == 4)
+			{
+				pc = std::dynamic_pointer_cast<mrpt::maps::CPointsMap>(
+					mrpt::maps::CPointsMapXYZI::Create());
+			}
+			else
+				THROW_EXCEPTION_FMT(
+					"Unexpected number of columns in point cloud file: cols=%u",
+					static_cast<unsigned int>(data.cols()));
+
+			pc->resize(data.rows());
+			std::vector<float> vals(data.cols());
+			for (int i = 0; i < data.rows(); i++)
+			{
+				data.extractRow(i, vals);
+				pc->setPointAllFieldsFast(i, vals);
+			}
+
+			// Assign:
+			const_cast<mrpt::maps::CPointsMap::Ptr&>(pointcloud) = pc;
+		}
+		break;
 		case ExternalStorageFormat::MRPT_Serialization:
 		{
 			mrpt::io::CFileGZInputStream f(abs_filename);
@@ -168,7 +218,19 @@ void CObservationPointCloud::unload()
 				{
 					THROW_EXCEPTION("Saving to kitti format not supported.");
 				}
-				// break;
+				case ExternalStorageFormat::PlainTextFile:
+				{
+					std::ofstream f(abs_filename);
+					ASSERT_(f.is_open());
+					std::vector<float> row;
+					for (size_t i = 0; i < pointcloud->size(); i++)
+					{
+						pointcloud->getPointAllFieldsFast(i, row);
+						for (const float v : row) f << v << " ";
+						f << "\n";
+					}
+				}
+				break;
 				case ExternalStorageFormat::MRPT_Serialization:
 				{
 					mrpt::io::CFileGZOutputStream f(abs_filename);

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -37,7 +37,7 @@ class CColouredOctoMap
 	: public COctoMapBase<octomap::ColorOcTree, octomap::ColorOcTreeNode>
 {
 	// This must be added to any CSerializable derived class:
-	DEFINE_SERIALIZABLE(CColouredOctoMap)
+	DEFINE_SERIALIZABLE(CColouredOctoMap, mrpt::maps)
 
    public:
 	CColouredOctoMap(const double resolution = 0.10);  //!< Default constructor
@@ -162,7 +162,7 @@ class CColouredOctoMap
 	void internal_clear() override;
 
 	bool internal_insertObservation(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D* robotPose) override;
 
 	TColourUpdate m_colour_method{

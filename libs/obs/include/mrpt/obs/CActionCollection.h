@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -25,7 +25,7 @@ namespace mrpt::obs
  */
 class CActionCollection : public mrpt::serialization::CSerializable
 {
-	DEFINE_SERIALIZABLE(CActionCollection)
+	DEFINE_SERIALIZABLE(CActionCollection, mrpt::obs)
 
    protected:
 	/** The robot "actionss" */
@@ -126,7 +126,7 @@ class CActionCollection : public mrpt::serialization::CSerializable
 	  * By default (ith=0), the first one is returned.
 	  */
 	template <typename T>
-	typename T::Ptr getActionByClass(const size_t& ith = 0) const
+	typename T::Ptr getActionByClass(size_t ith = 0) const
 	{
 		MRPT_START
 		size_t foundCount = 0;
@@ -179,7 +179,7 @@ class CActionCollection : public mrpt::serialization::CSerializable
 	/** Remove an action from the list by its index.
 	 * \exception std::exception On index out of bounds.
 	 */
-	void eraseByIndex(const size_t& index);
+	void eraseByIndex(size_t index);
 
 };  // End of class def.
 

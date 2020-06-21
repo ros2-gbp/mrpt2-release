@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -104,16 +104,14 @@ void TestStereoRectify(int argc, char** argv)
 	cout << "Close the window to end.\n";
 	while (win.isOpen())
 	{
-		win.addTextMessage(
-			5, 5, format("%.02fFPS", win.getRenderingFPS()), TColorf(1, 1, 1),
-			"sans", 15, mrpt::opengl::FILL, 0);
+		win.addTextMessage(5, 5, format("%.02fFPS", win.getRenderingFPS()), 0);
 		win.addTextMessage(
 			5, 25,
 			format(
 				"'r': Switch rectify (Now is: %s) | '+'/'-': Modify "
 				"alpha (Now is: %.02f)",
 				enable_rectify ? "ON" : "OFF", rectifyMap.getAlpha()),
-			TColorf(1, 1, 1), "sans", 15, mrpt::opengl::FILL, 10);
+			10);
 		win.addTextMessage(
 			5, 50,
 			format(
@@ -121,7 +119,7 @@ void TestStereoRectify(int argc, char** argv)
 				"Switch no-disparity (Now is: %s) | 'e': Switch epipolar lines",
 				rectifyMap.isEnabledResizeOutput() ? "ON" : "OFF",
 				rectifyMap.isEnabledBothCentersCoincide() ? "ON" : "OFF"),
-			TColorf(1, 1, 1), "sans", 15, mrpt::opengl::FILL, 11);
+			11);
 
 		std::this_thread::sleep_for(1ms);
 
@@ -129,7 +127,7 @@ void TestStereoRectify(int argc, char** argv)
 		CObservation::Ptr obs = cam->getNextFrame();
 		if (obs)
 		{
-			if (IS_CLASS(obs, CObservationStereoImages))
+			if (IS_CLASS(*obs, CObservationStereoImages))
 			{
 				// Get the observation object:
 				CObservationStereoImages::Ptr o =
@@ -187,8 +185,7 @@ void TestStereoRectify(int argc, char** argv)
 				gl_views[1]->setImageView(img_right_rectified);
 
 				win.addTextMessage(
-					150, 5, mrpt::system::timeToString(o->timestamp),
-					TColorf(1, 1, 1), "sans", 15, mrpt::opengl::FILL, 2);
+					150, 5, mrpt::system::timeToString(o->timestamp), 2);
 
 				win.unlockAccess3DScene();
 				win.repaint();

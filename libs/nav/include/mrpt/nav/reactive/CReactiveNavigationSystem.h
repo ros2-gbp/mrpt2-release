@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -59,8 +59,6 @@ namespace mrpt::nav
 class CReactiveNavigationSystem : public CAbstractPTGBasedReactive
 {
    public:
-	MRPT_MAKE_ALIGNED_OPERATOR_NEW
-   public:
 	/** See docs in ctor of base class */
 	CReactiveNavigationSystem(
 		CRobot2NavInterface& react_iterf_impl, bool enableConsoleOutput = true,
@@ -84,12 +82,12 @@ class CReactiveNavigationSystem : public CAbstractPTGBasedReactive
 	CParameterizedTrajectoryGenerator* getPTG(size_t i) override
 	{
 		ASSERT_(i < PTGs.size());
-		return PTGs[i];
+		return PTGs[i].get();
 	}
 	const CParameterizedTrajectoryGenerator* getPTG(size_t i) const override
 	{
 		ASSERT_(i < PTGs.size());
-		return PTGs[i];
+		return PTGs[i].get();
 	}
 	bool checkCollisionWithLatestObstacles(
 		const mrpt::math::TPose2D& relative_robot_pose) const override;
@@ -119,7 +117,7 @@ class CReactiveNavigationSystem : public CAbstractPTGBasedReactive
 
    private:
 	/** The list of PTGs to use for navigation */
-	std::vector<CParameterizedTrajectoryGenerator*> PTGs;
+	std::vector<CParameterizedTrajectoryGenerator::Ptr> PTGs;
 
 	// Steps for the reactive navigation sytem.
 	// ----------------------------------------------------------------------------

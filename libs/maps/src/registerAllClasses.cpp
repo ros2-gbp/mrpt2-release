@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -13,6 +13,7 @@
 #include <mrpt/core/initializer.h>
 #include <mrpt/maps.h>
 #include <mrpt/obs/CObservationPointCloud.h>
+#include <mrpt/obs/CObservationRotatingScan.h>
 
 using namespace mrpt::maps;
 using namespace mrpt::obs;
@@ -45,6 +46,8 @@ MRPT_INITIALIZER(registerAllClasses_mrpt_maps)
 	registerClass(CLASS_ID(CPlanarLaserScan));
 
 	registerClass(CLASS_ID(CObservationPointCloud));
+	registerClass(CLASS_ID(CObservationRotatingScan));
+
 	registerClass(CLASS_ID(CMultiMetricMap));
 
 #endif

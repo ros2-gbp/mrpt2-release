@@ -2,13 +2,12 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/core/aligned_std_vector.h>
 #include <map>
 #include <vector>
 
@@ -52,8 +51,7 @@ namespace mrpt::containers
  */
 template <
 	typename KEY, typename VALUE,
-	typename VECTOR_T =
-		typename mrpt::aligned_std_vector<std::pair<KEY, VALUE>>>
+	typename VECTOR_T = typename std::vector<std::pair<KEY, VALUE>>>
 class map_as_vector
 {
    public:

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,7 +12,7 @@
 #include <mrpt/vision/CFeatureExtraction.h>
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 using namespace mrpt;
 using namespace mrpt::vision;
@@ -44,25 +44,38 @@ void CFeatureExtraction::internal_computePolarImageDescriptors(
 	CImage linpolar_frame(patch_w, patch_h, in_img.getChannelCount());
 
 	// Compute intensity-domain spin images
-	for (auto it = in_features.begin(); it != in_features.end(); ++it)
+	for (auto& f : in_features)
 	{
 		// Overwrite scale with the descriptor scale:
-		(*it)->scale = radius;
+		f.keypoint.octave = radius;
 
-#if MRPT_OPENCV_VERSION_NUM < 0x300
+		const auto pt = cv::Point2f(f.keypoint.pt.x, f.keypoint.pt.y);
+
 		const cv::Mat& in = in_img.asCvMatRef();
 		cv::Mat& out = linpolar_frame.asCvMatRef();
+
+#if MRPT_OPENCV_VERSION_NUM < 0x300
+		IplImage cvin, cvout;
+		in_img.getAsIplImage(&cvin);
+		linpolar_frame.getAsIplImage(&cvout);
 		cvLinearPolar(
-			&in, &out,
-#else
+			&cvin, &cvout, pt, radius, CV_INTER_LINEAR + CV_WARP_FILL_OUTLIERS);
+#elif MRPT_OPENCV_VERSION_NUM < 0x342
 		cv::linearPolar(
-			in_img.asCvMatRef(), linpolar_frame.asCvMatRef(),
+			in(cv::Rect(
+				mrpt::round(pt.x - radius), mrpt::round(pt.y - radius),
+				1 + 2 * radius, 1 + 2 * radius)),
+			out, pt, radius, CV_INTER_LINEAR + CV_WARP_FILL_OUTLIERS);
+#else
+		// Latest opencv versions:
+		cv::warpPolar(
+			in, out, cv::Size(patch_w, patch_h), pt, radius,
+			cv::INTER_LINEAR + cv::WARP_FILL_OUTLIERS);
 #endif
-			cv::Point2f((*it)->x, (*it)->y), radius,
-			CV_INTER_LINEAR + CV_WARP_FILL_OUTLIERS);
 
 		// Get the image as a matrix and save as patch:
-		linpolar_frame.getAsMatrix((*it)->descriptors.PolarImg);
+		f.descriptors.PolarImg.emplace();
+		linpolar_frame.getAsMatrix(*f.descriptors.PolarImg);
 
 	}  // end for it
 

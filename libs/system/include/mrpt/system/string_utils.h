@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -50,6 +50,14 @@ template <class OUT_CONTAINER>
 void tokenize(
 	const std::string& inString, const std::string& inDelimiters,
 	OUT_CONTAINER& outTokens, bool skipBlankTokens = true) noexcept;
+
+// explicit instantiations declarations (to silent gcc warnings):
+extern template void tokenize<std::deque<std::string>>(
+	const std::string& inString, const std::string& inDelimiters,
+	std::deque<std::string>& outTokens, bool skipBlankTokens) noexcept;
+extern template void tokenize<std::vector<std::string>>(
+	const std::string& inString, const std::string& inDelimiters,
+	std::vector<std::string>& outTokens, bool skipBlankTokens) noexcept;
 
 /**  Removes leading and trailing spaces */
 std::string trim(const std::string& str);

@@ -2,22 +2,20 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "vision-precomp.h"  // Precompiled headers
 
+#include <mrpt/3rdparty/do_opencv_includes.h>
 #include <mrpt/config/CConfigFileMemory.h>
 #include <mrpt/system/filesystem.h>
-
 #include <mrpt/vision/chessboard_camera_calib.h>
 #include <mrpt/vision/chessboard_find_corners.h>
 #include <mrpt/vision/pinhole.h>
-
-// Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::vision;
@@ -51,45 +49,7 @@ bool mrpt::vision::checkerBoardCameraCalibration(
 }
 
 #if MRPT_HAS_OPENCV
-// JL says:  This was copied here since it seems OpenCV 2.3 had a broken
-// <opencv2/core/eigen.hpp> header.
-//  It should be removed in the future when 2.3 becomes too old to support.
-namespace cv
-{
-template <
-	typename _Tp, int _rows, int _cols, int _options, int _maxRows,
-	int _maxCols>
-void my_cv2eigen(
-	const Mat& src,
-	Eigen::Matrix<_Tp, _rows, _cols, _options, _maxRows, _maxCols>& dst)
-{
-	CV_DbgAssert(src.rows == _rows && src.cols == _cols);
-	if (!(dst.Flags & Eigen::RowMajorBit))
-	{
-		Mat _dst(
-			src.cols, src.rows, DataType<_Tp>::type, dst.data(),
-			(size_t)(dst.stride() * sizeof(_Tp)));
-		if (src.type() == _dst.type())
-			transpose(src, _dst);
-		else if (src.cols == src.rows)
-		{
-			src.convertTo(_dst, _dst.type());
-			transpose(_dst, _dst);
-		}
-		else
-			Mat(src.t()).convertTo(_dst, _dst.type());
-		CV_DbgAssert(_dst.data == (uchar*)dst.data());
-	}
-	else
-	{
-		Mat _dst(
-			src.rows, src.cols, DataType<_Tp>::type, dst.data(),
-			(size_t)(dst.stride() * sizeof(_Tp)));
-		src.convertTo(_dst, _dst.type());
-		CV_DbgAssert(_dst.data == (uchar*)dst.data());
-	}
-}
-}  // namespace cv
+#include <opencv2/core/eigen.hpp>
 #endif
 
 /* -------------------------------------------------------
@@ -99,10 +59,10 @@ bool mrpt::vision::checkerBoardCameraCalibration(
 	TCalibrationImageList& images, unsigned int check_size_x,
 	unsigned int check_size_y, double check_squares_length_X_meters,
 	double check_squares_length_Y_meters, mrpt::img::TCamera& out_camera_params,
-	bool normalize_image, double* out_MSE, bool skipDrawDetectedImgs,
+	bool normalize_image, double* out_MSE,
+	[[maybe_unused]] bool skipDrawDetectedImgs,
 	bool useScaramuzzaAlternativeDetector)
 {
-	MRPT_UNUSED_PARAM(skipDrawDetectedImgs);
 #if MRPT_HAS_OPENCV
 	try
 	{
@@ -253,9 +213,9 @@ bool mrpt::vision::checkerBoardCameraCalibration(
 				if (!dat.img_original.isExternallyStored())
 				{
 					const int r = 4;
-					CvPoint prev_pt = cvPoint(0, 0);
+					cv::Point prev_pt = cvPoint(0, 0);
 					const int line_max = 8;
-					CvScalar line_colors[8];
+					cv::Scalar line_colors[8];
 
 					line_colors[0] = CV_RGB(255, 0, 0);
 					line_colors[1] = CV_RGB(255, 128, 0);
@@ -325,8 +285,11 @@ bool mrpt::vision::checkerBoardCameraCalibration(
 			tvecs, 0 /*flags*/);
 
 		// Load matrix:
-		out_camera_params.intrinsicParams =
-			CMatrixDouble33(cameraMatrix.ptr<double>());
+		{
+			Eigen::Matrix3d M;
+			cv::cv2eigen(cameraMatrix, M);
+			out_camera_params.intrinsicParams = M;
+		}
 
 		out_camera_params.dist.fill(0);
 		for (int k = 0; k < 5; k++)
@@ -336,7 +299,7 @@ bool mrpt::vision::checkerBoardCameraCalibration(
 		for (i = 0; i < valid_detected_imgs; i++)
 		{
 			CMatrixDouble44 HM;
-			HM.zeros();
+			HM.setZero();
 			HM(3, 3) = 1;
 
 			{
@@ -345,13 +308,13 @@ bool mrpt::vision::checkerBoardCameraCalibration(
 				cv::Rodrigues(rvecs[i], cv_rot);
 
 				Eigen::Matrix3d rot;
-				cv::my_cv2eigen(cv_rot, rot);
+				cv::cv2eigen(cv_rot, rot);
 				HM.block<3, 3>(0, 0) = rot;
 			}
 
 			{
 				Eigen::Matrix<double, 3, 1> trans;
-				cv::my_cv2eigen(tvecs[i], trans);
+				cv::cv2eigen(tvecs[i], trans);
 				HM.block<3, 1>(0, 3) = trans;
 			}
 

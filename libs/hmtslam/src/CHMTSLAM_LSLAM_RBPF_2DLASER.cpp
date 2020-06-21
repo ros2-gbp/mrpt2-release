@@ -2,25 +2,25 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "hmtslam-precomp.h"  // Precomp header
 
-#include <mrpt/hmtslam/CRobotPosesGraph.h>
-#include <mrpt/math/wrap2pi.h>
-#include <mrpt/poses/CPosePDFGaussian.h>
-#include <mrpt/slam/CICP.h>
-
 #include <mrpt/bayes/CParticleFilter.h>
+#include <mrpt/hmtslam/CRobotPosesGraph.h>
 #include <mrpt/io/CFileStream.h>
 #include <mrpt/math/ops_containers.h>
 #include <mrpt/math/utils.h>
+#include <mrpt/math/wrap2pi.h>
+#include <mrpt/poses/CPosePDFGaussian.h>
 #include <mrpt/random.h>
+#include <mrpt/slam/CICP.h>
 #include <mrpt/system/CTicTac.h>
 #include <mrpt/system/os.h>
+#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::slam;
@@ -346,7 +346,7 @@ void CLSLAM_RBPF_2DLASER::prediction_and_update_pfAuxiliaryPFOptimal(
 	//  where X is the robot pose prior (as implemented in
 	//  the aux. function "particlesEvaluator_AuxPFOptimal"),
 	//  and also the "m_maxLikelihood" filled with the maximum lik. values.
-	mrpt::aligned_std_vector<mrpt::poses::CPose2D> newParticles;
+	std::vector<mrpt::poses::CPose2D> newParticles;
 	vector<double> newParticlesWeight;
 	vector<size_t> newParticlesDerivedFromIdx;
 
@@ -570,11 +570,9 @@ void CLSLAM_RBPF_2DLASER::prediction_and_update_pfAuxiliaryPFOptimal(
  ---------------------------------------------------------------*/
 double CLSLAM_RBPF_2DLASER::particlesEvaluator_AuxPFOptimal(
 	const bayes::CParticleFilter::TParticleFilterOptions& PF_options,
-	const CParticleFilterCapable* obj, size_t index, const void* action,
-	const void* observation)
+	const CParticleFilterCapable* obj, size_t index,
+	[[maybe_unused]] const void* action, const void* observation)
 {
-	MRPT_UNUSED_PARAM(action);
-
 	MRPT_START
 
 	const auto* myObj = static_cast<const CLocalMetricHypothesis*>(obj);
@@ -662,11 +660,11 @@ double CLSLAM_RBPF_2DLASER::particlesEvaluator_AuxPFOptimal(
 				auxiliarComputeObservationLikelihood
  ---------------------------------------------------------------*/
 double CLSLAM_RBPF_2DLASER::auxiliarComputeObservationLikelihood(
-	const bayes::CParticleFilter::TParticleFilterOptions& PF_options,
+	[[maybe_unused]] const bayes::CParticleFilter::TParticleFilterOptions&
+		PF_options,
 	const CParticleFilterCapable* obj, size_t particleIndexForMap,
 	const CSensoryFrame* observation, const CPose2D* x)
 {
-	MRPT_UNUSED_PARAM(PF_options);
 	const auto* theObj = static_cast<const CLocalMetricHypothesis*>(obj);
 	auto* map = const_cast<CMultiMetricMap*>(
 		&theObj->m_particles[particleIndexForMap].d->metricMaps);
@@ -853,7 +851,7 @@ void CLSLAM_RBPF_2DLASER::prediction_and_update_pfOptimalProposal(
 	// ------------------------------
 	icp.options.maxIterations = 80;
 	icp.options.thresholdDist = 0.50f;
-	icp.options.thresholdAng = DEG2RAD(20);
+	icp.options.thresholdAng = 20.0_deg;
 	icp.options.smallestThresholdDist = 0.05f;
 	icp.options.ALFA = 0.5f;
 	icp.options.doRANSAC = false;
@@ -907,8 +905,7 @@ void CLSLAM_RBPF_2DLASER::prediction_and_update_pfOptimalProposal(
 
 			// Use ICP to align to each particle's map:
 			CPosePDF::Ptr alignEst = icp.Align(
-				mapalign, &localMapPoints, initialPoseEstimation, nullptr,
-				&icpInfo);
+				mapalign, &localMapPoints, initialPoseEstimation, icpInfo);
 
 			icpEstimation.copyFrom(*alignEst);
 

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -49,7 +49,7 @@ class PointCloudAdapter<pcl::PointCloud<pcl::PointXYZ>>
 	/** Set number of points (to uninitialized values) */
 	inline void resize(const size_t N) { m_obj.points.resize(N); }
 	/** Set height and width (for organized) */
-	inline void setDimensions(const size_t& height, const size_t& width)
+	inline void setDimensions(size_t height, size_t width)
 	{
 		m_obj.height = height;
 		m_obj.width = width;
@@ -110,7 +110,7 @@ class PointCloudAdapter<pcl::PointCloud<pcl::PointXYZRGB>>
 	/** Set number of points (to uninitialized values) */
 	inline void resize(const size_t N) { m_obj.points.resize(N); }
 	/** Set height and width (for organized) */
-	inline void setDimensions(const size_t& height, const size_t& width)
+	inline void setDimensions(size_t height, size_t width)
 	{
 		m_obj.height = height;
 		m_obj.width = width;
@@ -261,7 +261,7 @@ class PointCloudAdapter<pcl::PointCloud<pcl::PointXYZRGBA>>
 	/** Set number of points (to uninitialized values) */
 	inline void resize(const size_t N) { m_obj.points.resize(N); }
 	/** Set height and width (for organized) */
-	inline void setDimensions(const size_t& height, const size_t& width)
+	inline void setDimensions(size_t height, size_t width)
 	{
 		m_obj.height = height;
 		m_obj.width = width;

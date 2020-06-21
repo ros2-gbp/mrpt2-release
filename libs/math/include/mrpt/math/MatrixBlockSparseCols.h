@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,8 +10,8 @@
 #pragma once
 
 #include <mrpt/containers/map_as_vector.h>
-#include <mrpt/core/aligned_std_map.h>
-#include <mrpt/math/CMatrixTemplateNumeric.h>  // For mrpt::math::CMatrixDouble
+#include <mrpt/math/CMatrixDynamic.h>  // For mrpt::math::CMatrixDouble
+#include <map>
 
 namespace mrpt::math
 {
@@ -52,7 +52,7 @@ struct MatrixBlockSparseCols
 	};
 
 	/** Each compressed sparse column */
-	using col_t = mrpt::aligned_std_map<size_t, TEntry>;
+	using col_t = std::map<size_t, TEntry>;
 
    private:
 	/** -> cols[i]: i'th column.
@@ -187,7 +187,7 @@ struct MatrixBlockSparseCols
 	{
 		const size_t nCols = m_cols.size();
 		const size_t nRows = findCurrentNumberOfRows();
-		out.zeros(nRows, nCols);
+		out.setZero(nRows, nCols);
 		for (size_t j = 0; j < nCols; j++)
 			for (typename col_t::const_iterator itRow = m_cols[j].begin();
 				 itRow != m_cols[j].end(); ++itRow)

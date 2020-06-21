@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -149,8 +149,8 @@ void OctetVectorToObject(
 
 /** This declaration must be inserted in all CSerializable classes definition,
  * within the class declaration. */
-#define DEFINE_SERIALIZABLE(class_name)                                      \
-	DEFINE_MRPT_OBJECT(class_name)                                           \
+#define DEFINE_SERIALIZABLE(class_name, NS)                                  \
+	DEFINE_MRPT_OBJECT(class_name, NS)                                       \
    protected:                                                                \
 	/*! @name CSerializable virtual methods */                               \
 	/*! @{ */                                                                \
@@ -160,7 +160,9 @@ void OctetVectorToObject(
 		mrpt::serialization::CArchive& in, uint8_t serial_version) override; \
 /*! @} */
 
-/** This must be inserted in all CSerializable classes implementation files */
+/** To be added to all CSerializable-classes implementation files.
+ * This registers the class name with the NameSpace prefix.
+ */
 #define IMPLEMENTS_SERIALIZABLE(class_name, base, NameSpace) \
 	IMPLEMENTS_MRPT_OBJECT(class_name, base, NameSpace)
 
@@ -172,9 +174,11 @@ void OctetVectorToObject(
 /** This must be inserted as implementation of some required members for
  *  virtual CSerializable classes:
  */
-#define IMPLEMENTS_VIRTUAL_SERIALIZABLE(    \
-	class_name, base_class_name, NameSpace) \
-	IMPLEMENTS_VIRTUAL_MRPT_OBJECT(class_name, base_class_name, NameSpace)
+#define IMPLEMENTS_VIRTUAL_SERIALIZABLE(class_name, base_class, NS) \
+	IMPLEMENTS_VIRTUAL_MRPT_OBJECT(class_name, base_class, NS)
+
+#define IMPLEMENTS_VIRTUAL_SERIALIZABLE_NS_PREFIX(class_name, base_class, NS) \
+	IMPLEMENTS_VIRTUAL_MRPT_OBJECT_NS_PREFIX(class_name, base_class, NS)
 
 /** This must be inserted if a custom conversion method for MEX API is
  * implemented in the class */

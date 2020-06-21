@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -19,11 +19,14 @@ class CSensoryFrame;
 class CObservation2DRangeScan;
 class CObservation3DRangeScan;
 class CObservationVelodyneScan;
+class CObservationRotatingScan;
 class CObservationRange;
 class CObservationBeaconRanges;
 class CObservationBearingRange;
 class CObservationStereoImages;
 class CObservationGPS;
+class CObservationPointCloud;
+class CObservationIMU;
 }  // namespace obs
 namespace maps
 {

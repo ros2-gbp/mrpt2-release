@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -101,7 +101,7 @@ void CRoboticHeadInterface::GetSoundLocation(int& ang)
 /*-------------------------------------------------------------
 						Get3SoundBuffer
 -------------------------------------------------------------*/
-void CRoboticHeadInterface::Get3SoundBuffer(CMatrixTemplate<int>& buf)
+void CRoboticHeadInterface::Get3SoundBuffer(CMatrixDynamic<int>& buf)
 {
 	buf.setSize(3, 500);  // 3 channel, 500 samples per channel
 	msg.type = 0x51;

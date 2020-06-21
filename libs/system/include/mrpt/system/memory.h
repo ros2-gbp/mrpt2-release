@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -68,7 +68,8 @@ template <
 	typename = std::enable_if_t<std::is_pointer<T>::value>>
 bool is_aligned(T ptr)
 {
-	return reinterpret_cast<std::size_t>(ptr) % alignment == 0;
+	return alignment == 0 ||
+		   reinterpret_cast<std::size_t>(ptr) % alignment == 0;
 }
 /** @} */
 

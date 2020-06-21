@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -481,7 +481,8 @@ static bool GetRGBFromName(
 /** Loads the image from an XPM array, as #include'd from a ".xpm" file.
  * \sa loadFromFile
  * \return false on any error */
-bool mrpt::img::CImage::loadFromXPM(const char* const* xpm_data, bool swap_rb)
+bool mrpt::img::CImage::loadFromXPM(
+	[[maybe_unused]] const char* const* xpm_data, [[maybe_unused]] bool swap_rb)
 {
 #if MRPT_HAS_OPENCV
 	try
@@ -638,8 +639,6 @@ bool mrpt::img::CImage::loadFromXPM(const char* const* xpm_data, bool swap_rb)
 		return false;
 	}
 #else
-	MRPT_UNUSED_PARAM(xpm_data);
-	MRPT_UNUSED_PARAM(swap_rb);
 	return false;
 #endif
 }

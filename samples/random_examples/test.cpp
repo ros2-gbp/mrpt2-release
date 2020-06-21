@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -119,7 +119,6 @@ void TestRandomGenerators()
 		Mean[0] = 3;
 		Mean[1] = 2;
 
-		// CMatrixDouble cov(2,2);
 		CMatrixDouble22 cov;
 		cov.fromMatlabStringFormat("[7.5 -7;-7 8]");
 

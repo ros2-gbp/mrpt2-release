@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -88,13 +88,13 @@ void TestPLS()
 			printf(
 				"[TEST] Observation received (%u ranges over %.02fdeg, "
 				"mid=%.03f)!!\n",
-				(unsigned int)obs.scan.size(), RAD2DEG(obs.aperture),
-				obs.scan[obs.scan.size() / 2]);
+				(unsigned int)obs.getScanSize(), RAD2DEG(obs.aperture),
+				obs.getScanRange(obs.getScanSize() / 2));
 
 			obs.sensorPose = CPose3D(0, 0, 0);
 			mrpt::maps::CSimplePointsMap theMap;
 			theMap.insertionOptions.minDistBetweenLaserPoints = 0;
-			theMap.insertObservation(&obs);
+			theMap.insertObservation(obs);
 
 #if MRPT_HAS_WXWIDGETS
 			std::vector<float> xs, ys, zs;

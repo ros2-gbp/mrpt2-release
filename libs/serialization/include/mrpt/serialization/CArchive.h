@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -15,6 +15,7 @@
 #include <mrpt/serialization/CSerializable.h>
 #include <mrpt/typemeta/TTypeName.h>
 #include <cstdint>
+#include <cstring>  // memcpy
 #include <stdexcept>
 #include <string>
 #include <type_traits>  // remove_reference_t, is_polymorphic
@@ -22,7 +23,8 @@
 #include <vector>
 
 // See: https://gcc.gnu.org/viewcvs/gcc?view=revision&revision=258854
-#if defined(__clang__) && (__GLIBCXX__ <= 20180419)
+// See: https://stackoverflow.com/a/46507150/1631514
+#if defined(__clang__) && (__clang_major__ <= 7)
 #define HAS_BROKEN_CLANG_STD_VISIT
 #endif
 
@@ -54,6 +56,10 @@ class CArchive
    public:
 	CArchive() = default;
 	virtual ~CArchive() = default;
+
+	using Ptr = std::shared_ptr<CArchive>;
+	using UniquePtr = std::unique_ptr<CArchive>;
+
 	/** @name Serialization API for generic "archives" I/O streams
 	 * @{ */
 	/** Reads a block of bytes from the stream into Buffer
@@ -153,9 +159,10 @@ class CArchive
 		return var;
 	}
 	template <typename TYPE_TO_STORE, typename TYPE_FROM_ACTUAL>
-	void WriteAs(const TYPE_FROM_ACTUAL& value)
+	CArchive& WriteAs(const TYPE_FROM_ACTUAL& value)
 	{
 		(*this) << static_cast<TYPE_TO_STORE>(value);
+		return *this;
 	}
 	/** Writes an object to the stream.
 	 */
@@ -171,7 +178,7 @@ class CArchive
 	CSerializable::Ptr ReadObject() { return ReadObject<CSerializable>(); }
 	/** Reads an object from stream, its class determined at runtime, and
 	 * returns a smart pointer to the object. This version is similar to
-	 * mrpt::make_aligned_shared<T>.
+	 * std::make_shared<T>.
 	 * \exception std::exception On I/O error or undefined class.
 	 * \exception CExceptionEOF On an End-Of-File condition found
 	 * at a correct place: an EOF that abruptly finishes in the middle of one
@@ -193,7 +200,7 @@ class CArchive
 				THROW_EXCEPTION_FMT(
 					"Stored object has class '%s' which is not registered!",
 					strClassName.c_str());
-			obj.reset(dynamic_cast<CSerializable*>(classId->createObject()));
+			obj = mrpt::ptr_cast<CSerializable>::from(classId->createObject());
 		}
 		internal_ReadObject(
 			obj.get() /* may be nullptr */, strClassName, isOldFormat,
@@ -221,7 +228,7 @@ class CArchive
 		CSerializable::Ptr& ptr,
 		std::enable_if_t<mrpt::is_shared_ptr<T>::value>* = nullptr)
 	{
-		if (IS_CLASS(ptr, typename T::element_type))
+		if (IS_CLASS(*ptr, typename T::element_type))
 			return std::dynamic_pointer_cast<typename T::element_type>(ptr);
 		return ReadVariant_helper<RET, R...>(ptr);
 	}
@@ -231,7 +238,7 @@ class CArchive
 		CSerializable::Ptr& ptr,
 		std::enable_if_t<!mrpt::is_shared_ptr<T>::value>* = nullptr)
 	{
-		if (IS_CLASS(ptr, T)) return dynamic_cast<T&>(*ptr);
+		if (IS_CLASS(*ptr, T)) return dynamic_cast<T&>(*ptr);
 		return ReadVariant_helper<RET, R...>(ptr);
 	}
 
@@ -263,7 +270,7 @@ class CArchive
 				strClassName.c_str());
 		if (strClassName != "nullptr")
 		{
-			obj.reset(dynamic_cast<CSerializable*>(classId->createObject()));
+			obj = mrpt::ptr_cast<CSerializable>::from(classId->createObject());
 		}
 		internal_ReadObject(obj.get(), strClassName, isOldFormat, version);
 		if (!obj)
@@ -276,9 +283,8 @@ class CArchive
 		}
 	}
 
-#ifndef HAS_BROKEN_CLANG_STD_VISIT
-	/** Writes a Variant to the stream.
-	 */
+#if !defined(HAS_BROKEN_CLANG_STD_VISIT)
+	/** Writes a Variant to the stream */
 	template <typename T>
 	void WriteVariant(T t)
 	{
@@ -399,7 +405,7 @@ using is_simple_type = is_any<
 #if MRPT_IS_BIG_ENDIAN
 // Big endian system: Convert into little-endian for streaming
 template <typename T, std::enable_if_t<is_simple_type<T>::value, int> = 0>
-CArchive& mrpt::serialization::operator<<(CArchive& out, const T a)
+CArchive& operator<<(CArchive& out, T a)
 {
 	mrpt::reverseBytesInPlace(a);
 	out.WriteBuffer((void*)&a, sizeof(a));
@@ -407,12 +413,12 @@ CArchive& mrpt::serialization::operator<<(CArchive& out, const T a)
 }
 
 template <typename T, std::enable_if_t<is_simple_type<T>::value, int> = 0>
-CArchive& mrpt::serialization::operator>>(CArchive& in, T& a)
+CArchive& operator>>(CArchive& in, T& a)
 {
 	T b;
 	in.ReadBuffer((void*)&b, sizeof(a));
 	mrpt::reverseBytesInPlace(b);
-	::memcpy(&a, &b, sizeof(b));
+	std::memcpy(&a, &b, sizeof(b));
 	return in;
 }
 
@@ -442,7 +448,7 @@ CArchive& operator>>(CArchive& in, mrpt::Clock::time_point& a);
 		const std::remove_cv_t<std::remove_reference_t<decltype(_VARIABLE)>> \
 			val = _STREAM.ReadPOD<std::remove_cv_t<                          \
 				std::remove_reference_t<decltype(_VARIABLE)>>>();            \
-		::memcpy(&_VARIABLE, &val, sizeof(val));                             \
+		std::memcpy(&_VARIABLE, &val, sizeof(val));                          \
 	} while (0)
 
 // Why this shouldn't be templatized?: There's a more modern system
@@ -587,4 +593,33 @@ CArchiveStreamBase<STREAM> archiveFrom(STREAM& s)
 {
 	return CArchiveStreamBase<STREAM>(s);
 }
+
+/** Like archiveFrom(), returning a shared_ptr<>. */
+template <class STREAM>
+CArchive::Ptr archivePtrFrom(STREAM& s)
+{
+	return std::make_shared<CArchiveStreamBase<STREAM>>(s);
+}
+
+/** Like archiveFrom(), returning a unique_ptr<>. */
+template <class STREAM>
+CArchive::UniquePtr archiveUniquePtrFrom(STREAM& s)
+{
+	return std::make_unique<CArchiveStreamBase<STREAM>>(s);
+}
+
 }  // namespace mrpt::serialization
+
+namespace mrpt::rtti
+{
+// for std::variant
+template <>
+struct CLASS_ID_impl<std::monostate>
+{
+	static constexpr const mrpt::rtti::TRuntimeClassId* get()
+	{
+		return nullptr;
+	}
+};
+
+}  // namespace mrpt::rtti

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -80,8 +80,8 @@ void Test_RPLIDAR()
 			printf(
 				"Scan received: %u ranges, FOV: %.02fdeg, %.03fHz: mid "
 				"rang=%fm\n",
-				(unsigned int)obs.scan.size(), RAD2DEG(obs.aperture), FPS,
-				obs.scan[obs.scan.size() / 2]);
+				(unsigned int)obs.getScanSize(), RAD2DEG(obs.aperture), FPS,
+				obs.getScanRange(obs.getScanSize() / 2));
 
 			obs.sensorPose = mrpt::poses::CPose3D(0, 0, 0);
 

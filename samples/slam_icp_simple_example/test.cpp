@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -43,7 +43,6 @@ int ICP_method = (int)icpClassic;
 void TestICP()
 {
 	CSimplePointsMap m1, m2;
-	float runningTime;
 	CICP::TReturnInfo info;
 	CICP ICP;
 
@@ -55,14 +54,8 @@ void TestICP()
 	stock_observations::example2DRangeScan(scan2, 1);
 
 	// Build the points maps from the scans:
-	m1.insertObservation(&scan1);
-	m2.insertObservation(&scan2);
-
-#if MRPT_HAS_PCL
-	cout << "Saving map1.pcd and map2.pcd in PCL format...\n";
-	m1.savePCDFile("map1.pcd", false);
-	m2.savePCDFile("map2.pcd", false);
-#endif
+	m1.insertObservation(scan1);
+	m2.insertObservation(scan2);
 
 	// -----------------------------------------------------
 
@@ -98,14 +91,13 @@ void TestICP()
 	 */
 	CPose2D initialPose(0.8f, 0.0f, (float)DEG2RAD(0.0f));
 
-	CPosePDF::Ptr pdf =
-		ICP.Align(&m1, &m2, initialPose, &runningTime, (void*)&info);
+	CPosePDF::Ptr pdf = ICP.Align(&m1, &m2, initialPose, info);
 
 	printf(
 		"ICP run in %.02fms, %d iterations (%.02fms/iter), %.01f%% goodness\n "
 		"-> ",
-		runningTime * 1000, info.nIterations,
-		runningTime * 1000.0f / info.nIterations, info.goodness * 100);
+		info.executionTime * 1000, info.nIterations,
+		info.executionTime * 1000.0f / info.nIterations, info.goodness * 100);
 
 	cout << "Mean of estimation: " << pdf->getMeanVal() << endl << endl;
 

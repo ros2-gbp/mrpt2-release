@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -130,15 +130,14 @@ CFormBatchSensorPose::CFormBatchSensorPose(wxWindow* parent, wxWindowID id)
 	FlexGridSizer1->SetSizeHints(this);
 	Center();
 
-	Connect(
-		ID_BITMAPBUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormBatchSensorPose::OnbtnOpenClick);
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormBatchSensorPose::OnbtnApplyClick);
-	Connect(
-		ID_BUTTON2, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormBatchSensorPose::OnbtnCancelClick);
+	Bind(
+		wxEVT_BUTTON, &CFormBatchSensorPose::OnbtnOpenClick, this,
+		ID_BITMAPBUTTON1);
+	Bind(
+		wxEVT_BUTTON, &CFormBatchSensorPose::OnbtnApplyClick, this, ID_BUTTON1);
+	Bind(
+		wxEVT_BUTTON, &CFormBatchSensorPose::OnbtnCancelClick, this,
+		ID_BUTTON2);
 	//*)
 }
 

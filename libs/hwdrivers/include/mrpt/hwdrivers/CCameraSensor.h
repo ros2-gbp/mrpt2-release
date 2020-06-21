@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -21,6 +21,7 @@
 #include <mrpt/hwdrivers/CImageGrabber_OpenCV.h>
 #include <mrpt/hwdrivers/CImageGrabber_dc1394.h>
 #include <mrpt/hwdrivers/CKinect.h>
+#include <mrpt/hwdrivers/CMyntEyeCamera.h>
 #include <mrpt/hwdrivers/COpenNI2Sensor.h>
 #include <mrpt/hwdrivers/CStereoGrabber_Bumblebee_libdc1394.h>
 #include <mrpt/hwdrivers/CSwissRanger3DCamera.h>
@@ -85,7 +86,8 @@ namespace mrpt::hwdrivers
  *   [supplied_section_name]
  *    # Select one of the grabber implementations -----------------------
  *    grabber_type       = opencv | dc1394 | bumblebee_dc1394 | ffmpeg | rawlog
- * | swissranger | svs | kinect | flycap | flycap_stereo | image_dir | duo3d
+ * | swissranger | svs | kinect | flycap | flycap_stereo | image_dir | duo3d |
+ * myntd
  *
  *    #  Options for any grabber_type ------------------------------------
  *    preview_decimation = 0     // N<=0 (or not present): No preview; N>0,
@@ -143,10 +145,10 @@ namespace mrpt::hwdrivers
  *    dc1394_frame_width	= 640
  *    dc1394_frame_height	= 480
  *    dc1394_framerate		= 15					// eg: 7.5, 15, 30, 60,
- * etc... For posibilities see mrpt::hwdrivers::TCaptureOptions_dc1394
+ * etc... For possibilities see mrpt::hwdrivers::TCaptureOptions_dc1394
  *    dc1394_mode7         = -1                    // -1: Ignore, i>=0, set to
  * MODE7_i
- *    dc1394_color_coding	= COLOR_CODING_YUV422	// For posibilities see
+ *    dc1394_color_coding	= COLOR_CODING_YUV422	// For possibilities see
  * mrpt::hwdrivers::TCaptureOptions_dc1394
  *    # Options for setting feature values: dc1394_<feature> = <n>
  *    # with <feature> = brightness | exposure | sharpness | white_balance |
@@ -180,7 +182,7 @@ namespace mrpt::hwdrivers
  * the first camera; 0,1,2,...: The unit number (within the given GUID) of the
  * camera to open (Stereo cameras: 0 or 1)
  *    bumblebee_dc1394_framerate     = 15				// eg: 7.5, 15, 30,
- * 60, etc... For posibilities see mrpt::hwdrivers::TCaptureOptions_dc1394
+ * 60, etc... For possibilities see mrpt::hwdrivers::TCaptureOptions_dc1394
  *
  *    # Options for grabber_type= ffmpeg -------------------------------------
  *    ffmpeg_url             = rtsp://127.0.0.1      // [ffmpeg] The video file
@@ -264,6 +266,9 @@ namespace mrpt::hwdrivers
  * Starting index for images
  *    end_index						= 100			// [int]	End index
  * for the images
+ *
+ *    # Options for grabber_type= myntd  ------------------------------------
+ *    myntd_xxx  =
  *
  *    # Options for grabber_type= duo3d
  *    Create a section like this:
@@ -482,6 +487,10 @@ class CCameraSensor : public mrpt::system::COutputLogger, public CGenericSensor
 	// -----------------------------------------
 	TCaptureOptions_FlyCapture2 m_flycap_options;
 
+	// Options for grabber type= myntd
+	// -----------------------------------------
+	TMyntEyeCameraParameters m_myntd_options;
+
 	// Options for grabber type= flycap_stereo
 	// -----------------------------------------
 	bool m_fcs_start_synch_capture{false};
@@ -538,6 +547,8 @@ class CCameraSensor : public mrpt::system::COutputLogger, public CGenericSensor
 	std::unique_ptr<std::string> m_cap_image_dir;
 	/** The DUO3D capture object */
 	std::unique_ptr<CDUO3DCamera> m_cap_duo3d;
+	/** The MYNT EYE capture object */
+	std::unique_ptr<CMyntEyeCamera> m_myntd;
 	// =========================
 
 	int m_camera_grab_decimator{0};

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -115,7 +115,7 @@ class MyArtProvider : public wxArtProvider
 
 // The "custom class" mpWindow, from the wxMathPlot libray by David Schalig
 //  See http://sourceforge.net/projects/wxmathplot
-#include <mrpt/otherlibs/mathplot/mathplot.h>
+#include <mrpt/3rdparty/mathplot/mathplot.h>
 
 // Auxiliary data types used to import ALOG files:
 struct TAlogRecord
@@ -246,7 +246,7 @@ class xRawLogViewerFrame : public wxFrame
 	void OnmnuCreateAVISelected(wxCommandEvent& event);
 	void OnMenuRegenerateOdometryTimes(wxCommandEvent& event);
 	void OnMenuItem3DObsRecoverParams(wxCommandEvent& event);
-	void Onslid3DcamConfCmdScrollChanged(wxScrollEvent& event);
+	void Onslid3DcamConfCmdScrollChanged(wxCommandEvent&);
 	void OnMenuItemImportBremenDLRLog(wxCommandEvent& event);
 	void OnMenuRenameSingleObs(wxCommandEvent& event);
 	//*)
@@ -606,7 +606,7 @@ class xRawLogViewerFrame : public wxFrame
 };
 
 extern std::string iniFileSect;
-extern mrpt::config::CConfigFile* iniFile;
+extern std::unique_ptr<mrpt::config::CConfigFile> iniFile;
 extern std::string loadedFileName;
 extern mrpt::obs::CRawlog rawlog;
 

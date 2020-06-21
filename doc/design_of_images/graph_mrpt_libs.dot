@@ -2,6 +2,13 @@ digraph MRPT_LIBS {
 
 	node [shape=box,style=filled, fillcolor="#D0D0D0"];
 
+	apps [label="mrpt-apps",URL="group__mrpt__bayes__grp.html"];
+	apps -> gui;
+	apps -> slam;
+	apps -> hwdrivers;
+	apps -> graphslam;
+	apps -> hmtslam;
+
 	bayes [label="mrpt-bayes",URL="group__mrpt__bayes__grp.html"];
 	bayes -> math;
 	bayes -> config;
@@ -16,13 +23,9 @@ digraph MRPT_LIBS {
 	containers  [label="mrpt-containers",URL="group__mrpt__containers__grp.html"];
 	containers -> core;
 
-	{ rank = sink; 
+	{ rank = sink;
 	core       [label="mrpt-core",URL="group__mrpt__core__grp.html"];
 	}
-
-	db         [label="mrpt-db",URL="group__mrpt__db__grp.html"];
-	db  -> serialization;
-	db  -> system;
 
 	detectors  [label="mrpt-detectors",URL="group__mrpt__detectors__grp.html"];
 	detectors -> gui;
@@ -60,7 +63,7 @@ digraph MRPT_LIBS {
 
 	kinematics [label="mrpt-kinematics",URL="group__mrpt__kinematics__grp.html"];
 	kinematics -> opengl;
-	
+
 	maps       [label="mrpt-maps",URL="group__mrpt__maps__grp.html"];
 	maps -> graphs;
 	maps -> obs;
@@ -71,7 +74,7 @@ digraph MRPT_LIBS {
 	math -> system;
 	math -> nanoflann;
 
-	{ rank = sink; 
+	{ rank = sink;
 	nanoflann  [label="mrpt-nanoflann",URL="group__nanoflann__grp.html"];
 	}
 
@@ -81,26 +84,25 @@ digraph MRPT_LIBS {
 
 	obs        [label="mrpt-obs",URL="group__mrpt__obs__grp.html"];
 	obs -> opengl;
-	obs -> db;
 	obs -> tfest;
 
 	opengl     [label="mrpt-opengl", URL="group__mrpt__opengl__grp.html"];
 	opengl -> poses;
 	opengl -> img;
 
-	pbmap      [label="mrpt-pbmap",URL="group__mrpt__pbmap__grp.html"];
-	pbmap -> graphs;
-
 	poses     [label="mrpt-poses",URL="group__mrpt__poses__grp.html"];
 	poses -> bayes;
-	
-	{ rank = sink; 
+
+	{ rank = sink;
 	random     [label="mrpt-random",URL="group__mrpt__random__grp.html"];
 	}
 
 	rtti     [label="mrpt-rtti",URL="group__mrpt__rtti__grp.html"];
 	rtti -> core;
 	rtti -> typemeta;
+
+	ros1bridge   [label="mrpt-ros1bridge", URL="group__mrpt__ros1bridge__grp.html"];
+	ros1bridge -> maps;
 
 	serialization [label="mrpt-serialization",URL="group__mrpt__serialization__grp.html"];
 	serialization -> rtti;
@@ -119,7 +121,7 @@ digraph MRPT_LIBS {
 	topography [label="mrpt-topography",URL="group__mrpt__topography__grp.html"];
 	topography -> obs;
 
-	{ rank = sink; 
+	{ rank = sink;
 	typemeta [label="mrpt-typemeta (.h)",URL="group__mrpt__typemeta__grp.html"];
 	}
 

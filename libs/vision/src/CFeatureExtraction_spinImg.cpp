@@ -2,14 +2,16 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "vision-precomp.h"  // Precompiled headers
 
+#include <mrpt/math/ops_matrices.h>
 #include <mrpt/vision/CFeatureExtraction.h>
+#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::vision;
@@ -50,7 +52,7 @@ void CFeatureExtraction::internal_computeSpinImageDescriptors(
 
 	// constant for passing distances in pixels [0,R] to histogram index
 	// [0,HIST_N_DIS-1]:
-	const float k_dis2idx = (HIST_N_DIS - 1) / static_cast<float>(R);
+	const float k_dis2idx = (HIST_N_DIS - 1) / d2f(R);
 	const float k_idx2dis = 1.0f / k_dis2idx;
 
 	// The Gaussian kernel used below is approximated up to a given distance
@@ -71,17 +73,17 @@ void CFeatureExtraction::internal_computeSpinImageDescriptors(
 	for (auto& in_feature : in_features)
 	{
 		// Overwrite scale with the descriptor scale:
-		in_feature->scale = options.SpinImagesOptions.radius;
+		in_feature.keypoint.octave = options.SpinImagesOptions.radius;
 
 		// Reset histogram to zeros:
-		hist2d.zeros();
+		hist2d.setZero();
 
 		// Define the ROI around the interest point which counts for the
 		// histogram:
-		int px0 = round(in_feature->x - R);
-		int px1 = round(in_feature->x + R);
-		int py0 = round(in_feature->y - R);
-		int py1 = round(in_feature->y + R);
+		int px0 = round(in_feature.keypoint.pt.x - R);
+		int px1 = round(in_feature.keypoint.pt.x + R);
+		int py0 = round(in_feature.keypoint.pt.y - R);
+		int py1 = round(in_feature.keypoint.pt.y + R);
 
 		// Clip at img borders:
 		px0 = max(0, px0);
@@ -104,8 +106,9 @@ void CFeatureExtraction::internal_computeSpinImageDescriptors(
 						(aux_pix_ptr[0] + aux_pix_ptr[1] + aux_pix_ptr[2]) / 3;
 				}
 
-				const float pix_dist =
-					hypot(in_feature->x - px, in_feature->y - py);
+				const float pix_dist = hypot(
+					in_feature.keypoint.pt.x - px,
+					in_feature.keypoint.pt.y - py);
 				const int center_bin_dist = k_dis2idx * pix_dist;
 
 				// A factor to correct the histogram due to the existence of
@@ -164,7 +167,7 @@ void CFeatureExtraction::internal_computeSpinImageDescriptors(
 							double v = _2var_dist * square(pix_dist_cur_dist) +
 									   _2var_int * square(pix_val_cur_val);
 
-							hist2d.get_unsafe(bin_int, bin_dist) += exp(v);
+							hist2d(bin_int, bin_dist) += exp(v);
 						}
 					}
 					// hist2d(bin_int,bin_dist) *= ;
@@ -173,19 +176,20 @@ void CFeatureExtraction::internal_computeSpinImageDescriptors(
 			}  // end py
 		}  // end px
 
-		// Normalize:
-		hist2d.normalize(0, 1);  // [0,1]
+		// Normalize [0,1]
+		mrpt::math::normalize(hist2d, 0, 1);
 
 		// Save the histogram as a vector:
 		unsigned idx = 0;
-		std::vector<float>& ptr_trg = in_feature->descriptors.SpinImg;
+		in_feature.descriptors.SpinImg.emplace();
+		std::vector<float>& ptr_trg = *in_feature.descriptors.SpinImg;
 		ptr_trg.resize(HIST_N_INT * HIST_N_DIS);
 
 		for (unsigned i = 0; i < HIST_N_DIS; i++)
 			for (unsigned j = 0; j < HIST_N_INT; j++)
-				ptr_trg[idx++] = hist2d.get_unsafe(j, i);
+				ptr_trg[idx++] = hist2d(j, i);
 
-		in_feature->descriptors.SpinImg_range_rows = HIST_N_DIS;
+		in_feature.descriptors.SpinImg_range_rows = HIST_N_DIS;
 
 	}  // end for each feature
 

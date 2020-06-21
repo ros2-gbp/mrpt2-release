@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -62,4 +62,25 @@ TEST(DateTime, double_to_from)
 	EXPECT_NEAR(
 		mrpt::system::timestampToDouble(t1),
 		mrpt::system::timestampToDouble(t2), 1e-4);
+}
+
+TEST(DateTime, timestampAdd)
+{
+	const auto t1 = mrpt::system::now();
+	const double d1 = mrpt::system::timestampToDouble(t1);
+
+	const double delta = 10.5;  // seconds
+
+	// Positive incr:
+	{
+		const auto t1p = mrpt::system::timestampAdd(t1, delta);
+		const double d1p = mrpt::system::timestampToDouble(t1p);
+		EXPECT_NEAR(d1p, d1 + delta, 1e-6);
+	}
+	// Negative incr:
+	{
+		const auto t1m = mrpt::system::timestampAdd(t1, -delta);
+		const double d1m = mrpt::system::timestampToDouble(t1m);
+		EXPECT_NEAR(d1m, d1 - delta, 1e-6);
+	}
 }

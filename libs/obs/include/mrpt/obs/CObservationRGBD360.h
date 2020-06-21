@@ -2,14 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
 #include <mrpt/img/CImage.h>
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/math/CPolygon.h>
 #include <mrpt/obs/CObservation.h>
 #include <mrpt/obs/CObservation2DRangeScan.h>
@@ -25,7 +25,7 @@ namespace obs
 //	namespace detail {
 //		// Implemented in CObservationRGBD360_project3D_impl.h
 //		template <class POINTMAP>
-//		void project3DPointsFromDepthImageInto(CObservationRGBD360 &src_obs,
+//		void unprojectInto(CObservationRGBD360 &src_obs,
 // POINTMAP &dest_pointcloud, const bool takeIntoAccountSensorPoseOnRobot, const
 // mrpt::poses::CPose3D * robotPoseInTheWorld, const bool PROJ3D_USE_LUT);
 //	}
@@ -65,8 +65,8 @@ namespace obs
  *
  *
  *  3D point clouds can be generated at any moment after grabbing with
- *CObservationRGBD360::project3DPointsFromDepthImage() and
- *CObservationRGBD360::project3DPointsFromDepthImageInto(), provided the correct
+ *CObservationRGBD360::unprojectInto() and
+ *CObservationRGBD360::unprojectInto(), provided the correct
  *   calibration parameters.
  *
  *  \note Starting at serialization version 3 (MRPT 0.9.1+), the 3D point cloud
@@ -82,7 +82,7 @@ namespace obs
  */
 class CObservationRGBD360 : public CObservation
 {
-	DEFINE_SERIALIZABLE(CObservationRGBD360)
+	DEFINE_SERIALIZABLE(CObservationRGBD360, mrpt::obs)
 
    protected:
 	/** If set to true, m_points3D_external_file is valid. */
@@ -109,7 +109,10 @@ class CObservationRGBD360 : public CObservation
 	bool hasRangeImage{false};
 	/** If hasRangeImage=true, a matrix of floats with the range data as
 	 * captured by the camera (in meters) \sa range_is_depth */
-	mrpt::math::CMatrix rangeImages[NUM_SENSORS];
+	mrpt::math::CMatrix_u16 rangeImages[NUM_SENSORS];
+
+	/** Units for integer depth values in rangeImages */
+	float rangeUnits = 0.001f;
 
 	/** Similar to calling "rangeImage.setSize(H,W)" but this method provides
 	 * memory pooling to speed-up the memory allocation. */

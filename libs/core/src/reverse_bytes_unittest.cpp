@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -117,5 +117,13 @@ TEST(bits, reverseBytes)
 		mrpt::reverseBytesInPlace(val);
 		auto val_check = bit_cast<uint64_t>(val);
 		EXPECT_EQ(val_check, val_r_ok);
+	}
+	{
+		std::chrono::time_point<mrpt::Clock> t = mrpt::Clock::now();
+		const auto t_org = t;
+		mrpt::reverseBytesInPlace(t);
+		EXPECT_NE(t, t_org);
+		mrpt::reverseBytesInPlace(t);
+		EXPECT_EQ(t, t_org);
 	}
 }

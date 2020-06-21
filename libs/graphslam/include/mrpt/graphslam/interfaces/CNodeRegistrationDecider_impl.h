@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -20,7 +20,7 @@ template <class GRAPH_T>
 CNodeRegistrationDecider<GRAPH_T>::CNodeRegistrationDecider()
 	: m_prev_registered_nodeID(INVALID_NODEID)
 {
-	m_init_inf_mat.unit();
+	m_init_inf_mat.setIdentity();
 	m_init_inf_mat *= 10000;
 	this->resetPDF(&this->m_since_prev_node_PDF);
 }
@@ -29,7 +29,7 @@ template <class GRAPH_T>
 void CNodeRegistrationDecider<GRAPH_T>::getDescriptiveReport(
 	std::string* report_str) const
 {
-	MRPT_START;
+	MRPT_START
 
 	stringstream ss("");
 	parent_t::getDescriptiveReport(report_str);
@@ -37,7 +37,7 @@ void CNodeRegistrationDecider<GRAPH_T>::getDescriptiveReport(
 	ss << "Node Registration Decider Strategy [NRD]: " << endl;
 	*report_str += ss.str();
 
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_T>
@@ -50,7 +50,7 @@ template <class GRAPH_T>
 bool CNodeRegistrationDecider<GRAPH_T>::registerNewNodeAtEnd(
 	const typename GRAPH_T::constraint_t& constraint)
 {
-	MRPT_START;
+	MRPT_START
 	using namespace std;
 	using mrpt::graphs::TNodeID;
 
@@ -109,7 +109,7 @@ bool CNodeRegistrationDecider<GRAPH_T>::registerNewNodeAtEnd(
 							   << constraint.getMeanVal().asString());
 
 	return true;
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_T>
@@ -126,14 +126,14 @@ bool CNodeRegistrationDecider<GRAPH_T>::registerNewNodeAtEnd()
 template <class GRAPH_T>
 void CNodeRegistrationDecider<GRAPH_T>::resetPDF(constraint_t* c)
 {
-	MRPT_START;
+	MRPT_START
 	ASSERTDEB_(c);
 
 	*c = constraint_t();
 	ASSERTDEB_(c->isInfType());
 	c->cov_inv = this->m_init_inf_mat;
 
-	MRPT_END;
+	MRPT_END
 }  // end of resetPDF
 
 template <class GRAPH_T>

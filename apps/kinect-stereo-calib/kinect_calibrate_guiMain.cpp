@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -40,6 +40,7 @@
 #include <mrpt/system/filesystem.h>
 #include <mrpt/vision/chessboard_find_corners.h>
 #include <mrpt/vision/chessboard_stereo_camera_calib.h>
+#include <fstream>
 
 using namespace mrpt;
 using namespace mrpt::obs;
@@ -183,7 +184,7 @@ END_EVENT_TABLE()
 
 kinect_calibrate_guiDialog::kinect_calibrate_guiDialog(
 	wxWindow* parent, wxWindowID id)
-	: m_config(_("kinect-stereo-calib")), m_my_redirector(nullptr)
+	: m_config(_("kinect-stereo-calib"))
 {
 	m_grabstate = gsIdle;
 
@@ -1150,157 +1151,71 @@ kinect_calibrate_guiDialog::kinect_calibrate_guiDialog(
 	FlexGridSizer1->SetSizeHints(this);
 	Center();
 
-	Connect(
-		ID_BUTTON15, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnbtnOpCalibKinectClick);
-	Connect(
-		ID_BUTTON16, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnbtnOpCalibStereoGenericClick);
-	Connect(
-		ID_BUTTON17, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnbtnOpTestKinectClick);
-	Connect(
-		ID_BUTTON3, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::OnbtnNext1Click);
-	Connect(
-		ID_BUTTON5, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::OnbtnConnectClick);
-	Connect(
-		ID_BUTTON4, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::OnbtnNext1Click);
-	Connect(
-		ID_BUTTON8, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnbtnDisconnectClick);
-	Connect(
-		ID_RADIOBOX1, wxEVT_COMMAND_RADIOBOX_SELECTED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnrbChannelSwitchSelect);
-	Connect(
-		ID_SPINCTRL7, wxEVT_COMMAND_SPINCTRL_UPDATED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::OnedTiltChange);
-	Connect(
-		ID_BUTTON6, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::OnbtnCaptureClick);
-	Connect(
-		ID_BUTTON7, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnbtnNextCalibClick);
-	Connect(
-		ID_LISTBOX1, wxEVT_COMMAND_LISTBOX_SELECTED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnlbImagePairsSelect);
-	Connect(
-		ID_BUTTON9, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnbtnListRemoveSelectedClick);
-	Connect(
-		ID_BUTTON10, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::OnbtnListLoadClick);
-	Connect(
-		ID_BUTTON11, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnbtnLoadImageListClick);
-	Connect(
-		ID_BUTTON12, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::OnbtnListSaveClick);
-	Connect(
-		ID_RADIOBOX2, wxEVT_COMMAND_RADIOBOX_SELECTED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnrbShowImagesSelect);
-	Connect(
-		ID_SPINCTRL3, wxEVT_COMMAND_SPINCTRL_UPDATED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnNeedsToUpdate6DCamPlot);
-	Connect(
-		ID_SPINCTRL4, wxEVT_COMMAND_SPINCTRL_UPDATED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnNeedsToUpdate6DCamPlot);
-	Connect(
-		ID_TEXTCTRL6, wxEVT_COMMAND_TEXT_UPDATED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::OnedCalibSizeXText);
-	Connect(
-		ID_TEXTCTRL7, wxEVT_COMMAND_TEXT_UPDATED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::OnedCalibSizeXText);
-	Connect(
-		ID_CHECKBOX3, wxEVT_COMMAND_CHECKBOX_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OncbCalibNormalizeClick);
-	Connect(
-		ID_CHECKBOX2, wxEVT_COMMAND_CHECKBOX_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OncbCalibNormalizeClick);
-	Connect(
-		ID_BUTTON14, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::OnbtnRunCalibClick);
-	Connect(
-		ID_BUTTON13, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnbtnSaveCalibClick);
-	Connect(
-		ID_BUTTON18, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnbtnConnectLive3DClick);
-	Connect(
-		ID_BUTTON20, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnbtnDisconnectLiveClick);
-	Connect(
-		ID_BUTTON19, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnbtnLoadCalibClick);
-	Connect(
-		ID_BUTTON21, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnbtnSaveCalibLiveClick);
-	Connect(
-		ID_BITMAPBUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnbtnHelpLiveCalibClick);
-	Panel5->Connect(
-		wxEVT_SET_FOCUS,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::OnPanel5SetFocus,
-		nullptr, this);
-	Connect(
-		ID_NOTEBOOK1, wxEVT_COMMAND_NOTEBOOK_PAGE_CHANGING,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OnNotebook1PageChanging);
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::OnAbout);
-	Connect(
-		ID_BUTTON2, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::OnbtnQuitClick);
-	Connect(
-		ID_TIMER1, wxEVT_TIMER,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			OntimConsoleDumpTrigger);
-	Connect(
-		ID_TIMER2, wxEVT_TIMER,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::OntimMiscTrigger);
-	Connect(
-		wxID_ANY, wxEVT_CLOSE_WINDOW,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::OnClose);
-	Connect(
-		wxEVT_SIZE,
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::OnResize);
+	using kcgd = kinect_calibrate_guiDialog;
+
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnOpCalibKinectClick, this, ID_BUTTON15);
+	Bind(
+		wxEVT_BUTTON, &kcgd::OnbtnOpCalibStereoGenericClick, this, ID_BUTTON16);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnOpTestKinectClick, this, ID_BUTTON17);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnNext1Click, this, ID_BUTTON3);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnConnectClick, this, ID_BUTTON5);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnNext1Click, this, ID_BUTTON4);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnDisconnectClick, this, ID_BUTTON8);
+	Bind(wxEVT_RADIOBOX, &kcgd::OnrbChannelSwitchSelect, this, ID_RADIOBOX1);
+	Bind(
+		wxEVT_COMMAND_SPINCTRL_UPDATED, &kcgd::OnedTiltChange, this,
+		ID_SPINCTRL7);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnCaptureClick, this, ID_BUTTON6);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnNextCalibClick, this, ID_BUTTON7);
+	Bind(wxEVT_LISTBOX, &kcgd::OnlbImagePairsSelect, this, ID_LISTBOX1);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnListRemoveSelectedClick, this, ID_BUTTON9);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnListLoadClick, this, ID_BUTTON10);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnLoadImageListClick, this, ID_BUTTON11);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnListSaveClick, this, ID_BUTTON12);
+	Bind(wxEVT_RADIOBOX, &kcgd::OnrbShowImagesSelect, this, ID_RADIOBOX2);
+	Bind(
+		wxEVT_COMMAND_SPINCTRL_UPDATED, &kcgd::OnNeedsToUpdate6DCamPlot, this,
+		ID_SPINCTRL3);
+	Bind(
+		wxEVT_COMMAND_SPINCTRL_UPDATED, &kcgd::OnNeedsToUpdate6DCamPlot, this,
+		ID_SPINCTRL4);
+	Bind(
+		wxEVT_COMMAND_TEXT_UPDATED, &kcgd::OnedCalibSizeXText, this,
+		ID_TEXTCTRL6);
+	Bind(
+		wxEVT_COMMAND_TEXT_UPDATED, &kcgd::OnedCalibSizeXText, this,
+		ID_TEXTCTRL7);
+	Bind(wxEVT_CHECKBOX, &kcgd::OncbCalibNormalizeClick, this, ID_CHECKBOX3);
+	Bind(wxEVT_CHECKBOX, &kcgd::OncbCalibNormalizeClick, this, ID_CHECKBOX2);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnRunCalibClick, this, ID_BUTTON14);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnSaveCalibClick, this, ID_BUTTON13);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnConnectLive3DClick, this, ID_BUTTON18);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnDisconnectLiveClick, this, ID_BUTTON20);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnLoadCalibClick, this, ID_BUTTON19);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnSaveCalibLiveClick, this, ID_BUTTON21);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnHelpLiveCalibClick, this, ID_BITMAPBUTTON1);
+	Panel5->Bind(wxEVT_SET_FOCUS, &kcgd::OnPanel5SetFocus, this);
+	Bind(
+		wxEVT_NOTEBOOK_PAGE_CHANGING, &kcgd::OnNotebook1PageChanging, this,
+		ID_NOTEBOOK1);
+	Bind(wxEVT_BUTTON, &kcgd::OnAbout, this, ID_BUTTON1);
+	Bind(wxEVT_BUTTON, &kcgd::OnbtnQuitClick, this, ID_BUTTON2);
+	Bind(wxEVT_TIMER, &kcgd::OntimConsoleDumpTrigger, this, ID_TIMER1);
+	Bind(wxEVT_TIMER, &kcgd::OntimMiscTrigger, this, ID_TIMER2);
+	Bind(wxEVT_CLOSE_WINDOW, &kcgd::OnClose, this, wxID_ANY);
+	Bind(wxEVT_SIZE, &kcgd::OnResize, this);
 	//*)
 
-	Connect(
-		ID_GRID1,
+	Bind(
 #if wxCHECK_VERSION(3, 1, 0)
 		wxEVT_GRID_CELL_CHANGED,
 #else
 		wxEVT_GRID_CELL_CHANGE,
 #endif
-		(wxObjectEventFunction)&kinect_calibrate_guiDialog::
-			Onm_grid_live_calibCellChange);
+		&kcgd::Onm_grid_live_calibCellChange, this, ID_GRID1);
 
 	// Set std::cout/cerr out:
-	m_my_redirector = new CMyRedirector(
+	m_my_redirector = std::make_unique<CMyRedirector>(
 		edLogTest,
 		false,  // yieldApplication
 		0,  // bufferSize
@@ -1330,13 +1245,12 @@ kinect_calibrate_guiDialog::kinect_calibrate_guiDialog(
 	// Prepare 3D scene: (of live view)
 	// ------------------------------------------
 	auto openGLSceneRef = m_plot3D->getOpenGLSceneRef();
-	openGLSceneRef = mrpt::make_aligned_shared<mrpt::opengl::COpenGLScene>();
+	openGLSceneRef = mrpt::opengl::COpenGLScene::Create();
 
 	// Ground plane:
 	{
 		mrpt::opengl::CGridPlaneXY::Ptr obj =
-			mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
-				-10, 10, -10, 10, 0, 1);
+			mrpt::opengl::CGridPlaneXY::Create(-10, 10, -10, 10, 0, 1);
 		obj->setColor_u8(TColor(200, 200, 200));
 		openGLSceneRef->insert(obj);
 	}
@@ -1345,8 +1259,7 @@ kinect_calibrate_guiDialog::kinect_calibrate_guiDialog(
 	// mrpt::opengl::stock_objects::CornerXYZSimple(0.5,2) );
 
 	// 3D points:
-	m_gl_3d_points =
-		mrpt::make_aligned_shared<mrpt::opengl::CPointCloudColoured>();
+	m_gl_3d_points = mrpt::opengl::CPointCloudColoured::Create();
 	m_gl_3d_points->setPointSize(2);
 	openGLSceneRef->insert(m_gl_3d_points);
 
@@ -1365,9 +1278,6 @@ kinect_calibrate_guiDialog::kinect_calibrate_guiDialog(
 
 kinect_calibrate_guiDialog::~kinect_calibrate_guiDialog()
 {
-	delete m_my_redirector;
-	m_my_redirector = nullptr;
-
 	//(*Destroy(kinect_calibrate_guiDialog)
 	//*)
 }
@@ -1497,8 +1407,9 @@ void kinect_calibrate_guiDialog::thread_grabbing()
 		while (!hard_error && !p.quit)
 		{
 			// Grab new observation from the camera:
-			CObservation3DRangeScan::Ptr obs = mrpt::make_aligned_shared<
-				CObservation3DRangeScan>();  // Smart pointers to observations
+			CObservation3DRangeScan::Ptr obs =
+				std::make_shared<CObservation3DRangeScan>();  // Smart pointers
+															  // to observations
 
 			kinect.getNextObservation(*obs, there_is_obs, hard_error);
 
@@ -1796,14 +1707,16 @@ void kinect_calibrate_guiDialog::ProcessNewGrabbedObs()
 		// ------------------------------------------
 		case 5:
 		{
-			m_plot3D->last_timestamp = m_last_obs->timestamp;
+			m_plot3D->getOpenGLSceneRef()->getViewport()->addTextMessage(
+				20, 20,
+				mrpt::system::dateTimeLocalToString(m_last_obs->timestamp));
 
 			m_last_obs->cameraParams = m_calib_result.cam_params.leftCamera;
 			m_last_obs->cameraParamsIntensity =
 				m_calib_result.cam_params.rightCamera;
 
 			const mrpt::poses::CPose3D l2r =
-				mrpt::poses::CPose3D(0, 0, 0, DEG2RAD(-90), 0, DEG2RAD(-90)) +
+				mrpt::poses::CPose3D(0, 0, 0, -90.0_deg, 0, -90.0_deg) +
 				(-m_calib_result.right2left_camera_pose);
 
 			m_last_obs->relativePoseIntensityWRTDepth =
@@ -1812,7 +1725,7 @@ void kinect_calibrate_guiDialog::ProcessNewGrabbedObs()
 			T3DPointsProjectionParams pp;
 			pp.takeIntoAccountSensorPoseOnRobot = false;
 
-			m_last_obs->project3DPointsFromDepthImageInto(*m_gl_3d_points, pp);
+			m_last_obs->unprojectInto(*m_gl_3d_points, pp);
 
 			m_gl_corner_left->setPose(mrpt::poses::CPose3D());
 			m_gl_corner_right->setPose(l2r);
@@ -2153,11 +2066,8 @@ void kinect_calibrate_guiDialog::OnbtnRunCalibClick(wxCommandEvent& event)
 		edLogCalibResult->Clear();
 
 		// Run calibration:
-		bool res;
-		{
-			res = mrpt::vision::checkerBoardStereoCalibration(
-				m_calib_images, m_calib_params, m_calib_result);
-		}
+		const bool res = mrpt::vision::checkerBoardStereoCalibration(
+			m_calib_images, m_calib_params, m_calib_result);
 
 		pd.Close();
 
@@ -2197,10 +2107,8 @@ void kinect_calibrate_guiDialog::OnbtnRunCalibClick(wxCommandEvent& event)
 
 			// Inverse variance of the estimates, in this order:
 			//  [fx fy cx cy k1 k2 k3 t1 t2].
-			const Eigen::Array<double, 9, 1>& lc_inf =
-				m_calib_result.left_params_inv_variance;
-			const Eigen::Array<double, 9, 1>& rc_inf =
-				m_calib_result.right_params_inv_variance;
+			const auto& lc_inf = m_calib_result.left_params_inv_variance;
+			const auto& rc_inf = m_calib_result.right_params_inv_variance;
 			const double std_detector = 0.2;  // pixels
 
 			cout << mrpt::format(
@@ -2856,13 +2764,12 @@ void kinect_calibrate_guiDialog::CalibUpdate3DViewCameras()
 	WX_START_TRY
 
 	mrpt::opengl::COpenGLScene::Ptr scene =
-		mrpt::make_aligned_shared<mrpt::opengl::COpenGLScene>();
+		mrpt::opengl::COpenGLScene::Create();
 
 	// Ground plane:
 	{
 		mrpt::opengl::CGridPlaneXY::Ptr obj =
-			mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
-				-10, 10, -10, 10, 0, 1);
+			mrpt::opengl::CGridPlaneXY::Create(-10, 10, -10, 10, 0, 1);
 		obj->setColor_u8(TColor(200, 200, 200));
 		scene->insert(obj);
 	}
@@ -2883,13 +2790,12 @@ void kinect_calibrate_guiDialog::CalibUpdate3DViewCameras()
 		return;
 
 	opengl::CSetOfObjects::Ptr gl_objs =
-		mrpt::make_aligned_shared<opengl::CSetOfObjects>();
+		std::make_shared<opengl::CSetOfObjects>();
 
-	opengl::CGridPlaneXY::Ptr grid =
-		mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
-			0, check_size_x * check_squares_length_X_meters, 0,
-			check_size_y * check_squares_length_Y_meters, 0,
-			check_squares_length_X_meters);
+	opengl::CGridPlaneXY::Ptr grid = std::make_shared<opengl::CGridPlaneXY>(
+		0, check_size_x * check_squares_length_X_meters, 0,
+		check_size_y * check_squares_length_Y_meters, 0,
+		check_squares_length_X_meters);
 	gl_objs->insert(grid);
 
 	const size_t N = m_calib_result.left_cam_poses.size();
@@ -2905,9 +2811,9 @@ void kinect_calibrate_guiDialog::CalibUpdate3DViewCameras()
 				cor->setName(mrpt::format("#%u", static_cast<unsigned int>(i)));
 				cor->enableShowName(true);
 
-				mrpt::poses::CPose3D p =
-					-m_calib_result
-						 .left_cam_poses[i];  // Inversed poses are estimated.
+				// Inversed poses are estimated.
+				const auto p =
+					-mrpt::poses::CPose3D(m_calib_result.left_cam_poses[i]);
 				cor->setPose(p);
 
 				gl_objs->insert(cor);
@@ -2915,10 +2821,10 @@ void kinect_calibrate_guiDialog::CalibUpdate3DViewCameras()
 			{
 				mrpt::opengl::CSetOfObjects::Ptr cor =
 					mrpt::opengl::stock_objects::CornerXYZSimple(0.05f, 2);
+				// Inversed poses are estimated.
 				mrpt::poses::CPose3D p =
 					-(m_calib_result.right2left_camera_pose +
-					  m_calib_result
-						  .left_cam_poses[i]);  // Inversed poses are estimated.
+					  mrpt::poses::CPose3D(m_calib_result.left_cam_poses[i]));
 				cor->setPose(p);
 				gl_objs->insert(cor);
 			}
@@ -2926,7 +2832,7 @@ void kinect_calibrate_guiDialog::CalibUpdate3DViewCameras()
 	}
 
 	gl_objs->setPose(
-		mrpt::poses::CPose3D(0, 0, 0, DEG2RAD(0), DEG2RAD(180), DEG2RAD(0)));
+		mrpt::poses::CPose3D(0, 0, 0, 0.0_deg, 180.0_deg, 0.0_deg));
 	scene->insert(gl_objs);
 
 	m_plot3D_cameras->setOpenGLSceneRef(scene);

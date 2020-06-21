@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -425,12 +425,12 @@ CPanelCameraSelection::CPanelCameraSelection(wxWindow* parent, wxWindowID id)
 	FlexGridSizer1->Fit(this);
 	FlexGridSizer1->SetSizeHints(this);
 
-	Connect(
-		ID_BUTTON7, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CPanelCameraSelection::OnbtnBrowseVideoClick);
-	Connect(
-		ID_BUTTON8, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CPanelCameraSelection::OnbtnBrowseRawlogClick);
+	Bind(
+		wxEVT_COMMAND_BUTTON_CLICKED,
+		&CPanelCameraSelection::OnbtnBrowseVideoClick, this, ID_BUTTON7);
+	Bind(
+		wxEVT_COMMAND_BUTTON_CLICKED,
+		&CPanelCameraSelection::OnbtnBrowseRawlogClick, this, ID_BUTTON8);
 	Connect(
 		ID_BUTTON9, wxEVT_COMMAND_BUTTON_CLICKED,
 		(wxObjectEventFunction)&CPanelCameraSelection::

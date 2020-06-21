@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -28,6 +28,10 @@ class CRateTimer
 
 	/** Changes the object loop rate (Hz) */
 	void setRate(const double rate_hz);
+
+	/** Gets current rate (Hz) */
+	double rate() const { return m_rate_hz; }
+
 	/** Sleeps for some time, such as the return of this method is 1/rate
 	 * (seconds)
 	 * after the return of the previous call.

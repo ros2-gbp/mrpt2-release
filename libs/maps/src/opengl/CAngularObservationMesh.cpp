@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -44,31 +44,25 @@ using namespace mrpt::opengl;
 using namespace mrpt::poses;
 using namespace mrpt::math;
 
-IMPLEMENTS_SERIALIZABLE(
-	CAngularObservationMesh, CRenderizableDisplayList, mrpt::opengl)
+IMPLEMENTS_SERIALIZABLE(CAngularObservationMesh, CRenderizable, mrpt::opengl)
 
 void CAngularObservationMesh::addTriangle(
 	const TPoint3D& p1, const TPoint3D& p2, const TPoint3D& p3) const
 {
-	const TPoint3D* arr[3] = {&p1, &p2, &p3};
-	CSetOfTriangles::TTriangle t;
-	for (size_t i = 0; i < 3; i++)
-	{
-		t.x[i] = arr[i]->x;
-		t.y[i] = arr[i]->y;
-		t.z[i] = arr[i]->z;
-		t.r[i] = m_color.R * (1.f / 255);
-		t.g[i] = m_color.G * (1.f / 255);
-		t.b[i] = m_color.B * (1.f / 255);
-		t.a[i] = m_color.A * (1.f / 255);
-	}
-	triangles.push_back(t);
-	CRenderizableDisplayList::notifyChange();
+	mrpt::opengl::TTriangle t;
+	t.vertices[0].xyzrgba.pt = p1;
+	t.vertices[1].xyzrgba.pt = p2;
+	t.vertices[2].xyzrgba.pt = p3;
+	t.computeNormals();
+	t.setColor(m_color);
+
+	triangles.emplace_back(std::move(t));
+	CRenderizable::notifyChange();
 }
 
 void CAngularObservationMesh::updateMesh() const
 {
-	CRenderizableDisplayList::notifyChange();
+	CRenderizable::notifyChange();
 
 	size_t numRows = scanSet.size();
 	triangles.clear();
@@ -80,10 +74,10 @@ void CAngularObservationMesh::updateMesh() const
 		return;
 	}
 	if (pitchBounds.size() != numRows && pitchBounds.size() != 2) return;
-	size_t numCols = scanSet[0].scan.size();
+	size_t numCols = scanSet[0].getScanSize();
 	actualMesh.setSize(numRows, numCols);
 	validityMatrix.setSize(numRows, numCols);
-	auto* pitchs = new double[numRows];
+	std::vector<double> pitchs(numRows);
 	if (pitchBounds.size() == 2)
 	{
 		double p1 = pitchBounds[0];
@@ -97,14 +91,13 @@ void CAngularObservationMesh::updateMesh() const
 	const bool rToL = scanSet[0].rightToLeft;
 	for (size_t i = 0; i < numRows; i++)
 	{
-		const auto& scan = scanSet[i].scan;
-		const auto& valid = scanSet[i].validRange;
+		const auto& ss_i = scanSet[i];
 		const double pitchIncr = scanSet[i].deltaPitch;
 		const double aperture = scanSet[i].aperture;
 		const CPose3D origin = scanSet[i].sensorPose;
 		// This is not an error...
 		for (size_t j = 0; j < numCols; j++)
-			if ((validityMatrix(i, j) = (valid[j] != 0)))
+			if ((validityMatrix(i, j) = ss_i.getScanRangeValidity(j)))
 			{
 				double pYaw = aperture * ((static_cast<double>(j) /
 										   static_cast<double>(numCols - 1)) -
@@ -113,11 +106,11 @@ void CAngularObservationMesh::updateMesh() const
 				actualMesh(i, j) =
 					((origin +
 					  CPose3D(0, 0, 0, rToL ? pYaw : -pYaw, pitchIncr)) +
-					 CPoint3D(scan[j], 0, 0))
+					 CPoint3D(ss_i.getScanRange(j), 0, 0))
 						.asTPoint();
 			}
 	}
-	delete[] pitchs;
+
 	triangles.reserve(2 * (numRows - 1) * (numCols - 1));
 	for (size_t k = 0; k < numRows - 1; k++)
 	{
@@ -164,51 +157,61 @@ void CAngularObservationMesh::updateMesh() const
 	meshUpToDate = true;
 }
 
-void CAngularObservationMesh::render_dl() const
+void CAngularObservationMesh::render(const RenderContext& rc) const
 {
-#if MRPT_HAS_OPENGL_GLUT
-	if (mEnableTransparency)
+	switch (rc.shader_id)
 	{
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	}
-	else
-	{
-		glEnable(GL_DEPTH_TEST);
-		glDisable(GL_BLEND);
-	}
-	glEnable(GL_COLOR_MATERIAL);
-	glShadeModel(GL_SMOOTH);
-	if (!meshUpToDate) updateMesh();
-	if (!mWireframe) glBegin(GL_TRIANGLES);
+		case DefaultShaderID::TRIANGLES:
+			if (!m_Wireframe) CRenderizableShaderTriangles::render(rc);
+			break;
+		case DefaultShaderID::WIREFRAME:
+			if (m_Wireframe) CRenderizableShaderWireFrame::render(rc);
+			break;
+	};
+}
+void CAngularObservationMesh::renderUpdateBuffers() const
+{
+	CRenderizableShaderTriangles::renderUpdateBuffers();
+	CRenderizableShaderWireFrame::renderUpdateBuffers();
+}
+
+void CAngularObservationMesh::onUpdateBuffers_Wireframe()
+{
+	auto& vbd = CRenderizableShaderWireFrame::m_vertex_buffer_data;
+	auto& cbd = CRenderizableShaderWireFrame::m_color_buffer_data;
+	vbd.clear();
+	cbd.clear();
+
 	for (const auto& t : triangles)
 	{
-		float ax = t.x[1] - t.x[0];
-		float bx = t.x[2] - t.x[0];
-		float ay = t.y[1] - t.y[0];
-		float by = t.y[2] - t.y[0];
-		float az = t.z[1] - t.z[0];
-		float bz = t.z[2] - t.z[0];
-		glNormal3f(ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx);
-		if (mWireframe) glBegin(GL_LINE_LOOP);
-		for (int k = 0; k < 3; k++)
+		// Was: glBegin(GL_LINE_LOOP);
+		for (int k = 0; k <= 3; k++)
 		{
-			glColor4f(t.r[k], t.g[k], t.b[k], t.a[k]);
-			glVertex3f(t.x[k], t.y[k], t.z[k]);
+			int kk = k % 3;
+			vbd.emplace_back(t.x(kk), t.y(kk), t.z(kk));
+			cbd.emplace_back(t.r(kk), t.g(kk), t.b(kk), t.a(kk));
 		}
-		if (mWireframe) glEnd();
 	}
-	if (!mWireframe) glEnd();
-	glDisable(GL_BLEND);
-	glDisable(GL_LIGHTING);
-#endif
+}
+
+void CAngularObservationMesh::onUpdateBuffers_Triangles()
+{
+	auto& tris = CRenderizableShaderTriangles::m_triangles;
+
+	tris = this->triangles;
+
+	// All faces, all vertices, same color:
+	for (auto& t : tris)
+	{
+		t.setColor(m_color);
+		t.computeNormals();
+	}
 }
 
 bool CAngularObservationMesh::traceRay(
-	const mrpt::poses::CPose3D& o, double& dist) const
+	[[maybe_unused]] const mrpt::poses::CPose3D& o,
+	[[maybe_unused]] double& dist) const
 {
-	MRPT_UNUSED_PARAM(o);
-	MRPT_UNUSED_PARAM(dist);
 	// TODO: redo
 	return false;
 }
@@ -216,40 +219,43 @@ bool CAngularObservationMesh::traceRay(
 bool CAngularObservationMesh::setScanSet(
 	const std::vector<mrpt::obs::CObservation2DRangeScan>& scans)
 {
-	CRenderizableDisplayList::notifyChange();
+	CRenderizable::notifyChange();
 
 	// Returns false if the scan is inconsistent
 	if (scans.size() > 0)
 	{
-		size_t setSize = scans[0].scan.size();
+		size_t setSize = scans[0].getScanSize();
 		bool rToL = scans[0].rightToLeft;
 		for (auto it = scans.begin() + 1; it != scans.end(); ++it)
 		{
-			if (it->scan.size() != setSize) return false;
+			if (it->getScanSize() != setSize) return false;
 			if (it->rightToLeft != rToL) return false;
 		}
 	}
 	scanSet = scans;
 	meshUpToDate = false;
+	CRenderizable::notifyChange();
 	return true;
 }
 
 void CAngularObservationMesh::setPitchBounds(
 	const double initial, const double final)
 {
-	CRenderizableDisplayList::notifyChange();
+	CRenderizable::notifyChange();
 
 	pitchBounds.clear();
 	pitchBounds.push_back(initial);
 	pitchBounds.push_back(final);
 	meshUpToDate = false;
+	CRenderizable::notifyChange();
 }
 void CAngularObservationMesh::setPitchBounds(const std::vector<double>& bounds)
 {
-	CRenderizableDisplayList::notifyChange();
+	CRenderizable::notifyChange();
 
 	pitchBounds = bounds;
 	meshUpToDate = false;
+	CRenderizable::notifyChange();
 }
 void CAngularObservationMesh::getPitchBounds(
 	double& initial, double& final) const
@@ -272,8 +278,6 @@ void CAngularObservationMesh::generateSetOfTriangles(
 {
 	if (!meshUpToDate) updateMesh();
 	res->insertTriangles(triangles.begin(), triangles.end());
-	// for (vector<CSetOfTriangles::TTriangle>::iterator
-	// it=triangles.begin();it!=triangles.end();++it) res->insertTriangle(*it);
 }
 
 struct CAngularObservationMesh_fnctr
@@ -282,7 +286,7 @@ struct CAngularObservationMesh_fnctr
 	CAngularObservationMesh_fnctr(CPointsMap* p) : m(p) {}
 	inline void operator()(const CObservation2DRangeScan& obj)
 	{
-		m->insertObservation(&obj);
+		m->insertObservation(obj);
 	}
 };
 
@@ -312,7 +316,7 @@ void CAngularObservationMesh::serializeTo(
 {
 	writeToStreamRender(out);
 	// Version 0:
-	out << pitchBounds << scanSet << mWireframe << mEnableTransparency;
+	out << pitchBounds << scanSet << m_Wireframe << mEnableTransparency;
 }
 
 void CAngularObservationMesh::serializeFrom(
@@ -322,12 +326,13 @@ void CAngularObservationMesh::serializeFrom(
 	{
 		case 0:
 			readFromStreamRender(in);
-			in >> pitchBounds >> scanSet >> mWireframe >> mEnableTransparency;
+			in >> pitchBounds >> scanSet >> m_Wireframe >> mEnableTransparency;
 			break;
 		default:
 			MRPT_THROW_UNKNOWN_SERIALIZATION_VERSION(version);
 	};
 	meshUpToDate = false;
+	CRenderizable::notifyChange();
 }
 
 void CAngularObservationMesh::TDoubleRange::values(
@@ -345,12 +350,12 @@ void CAngularObservationMesh::getTracedRays(CSetOfLines::Ptr& res) const
 {
 	if (!meshUpToDate) updateMesh();
 	size_t count = 0;
-	for (size_t i = 0; i < validityMatrix.rows(); i++)
-		for (size_t j = 0; j < validityMatrix.cols(); j++)
+	for (int i = 0; i < validityMatrix.rows(); i++)
+		for (int j = 0; j < validityMatrix.cols(); j++)
 			if (validityMatrix(i, j)) count++;
 	res->reserve(count);
-	for (size_t i = 0; i < actualMesh.rows(); i++)
-		for (size_t j = 0; j < actualMesh.cols(); j++)
+	for (int i = 0; i < actualMesh.rows(); i++)
+		for (int j = 0; j < actualMesh.cols(); j++)
 			if (validityMatrix(i, j))
 				res->appendLine(
 					(scanSet[i].sensorPose).asTPose(), actualMesh(i, j));
@@ -372,17 +377,17 @@ class FAddUntracedLines
 	}
 	void operator()(const CObservation2DRangeScan& obs)
 	{
-		size_t hm = obs.scan.size();
-		for (char it : obs.validRange)
-			if (it) hm--;
+		size_t hm = obs.getScanSize();
+		for (size_t i = 0; i < obs.getScanSize(); i++)
+			if (obs.getScanRangeValidity(i)) hm--;
 		lins->reserve(hm);
-		for (size_t i = 0; i < obs.scan.size(); i++)
-			if (!obs.validRange[i])
+		for (size_t i = 0; i < obs.getScanSize(); i++)
+			if (!obs.getScanRangeValidity(i))
 			{
-				double yaw =
-					obs.aperture * ((static_cast<double>(i) /
-									 static_cast<double>(obs.scan.size() - 1)) -
-									0.5);
+				double yaw = obs.aperture *
+							 ((static_cast<double>(i) /
+							   static_cast<double>(obs.getScanSize() - 1)) -
+							  0.5);
 				lins->appendLine(
 					obs.sensorPose.asTPose(),
 					(obs.sensorPose +
@@ -403,15 +408,10 @@ void CAngularObservationMesh::getUntracedRays(
 		FAddUntracedLines(res, dist, pitchBounds));
 }
 
-TPolygon3D createFromTriangle(const CSetOfTriangles::TTriangle& t)
+TPolygon3D createFromTriangle(const mrpt::opengl::TTriangle& t)
 {
 	TPolygon3D res(3);
-	for (size_t i = 0; i < 3; i++)
-	{
-		res[i].x = t.x[i];
-		res[i].y = t.y[i];
-		res[i].z = t.z[i];
-	}
+	for (size_t i = 0; i < 3; i++) res[i] = t.vertices[i].xyzrgba.pt;
 	return res;
 }
 
@@ -439,26 +439,26 @@ void CAngularObservationMesh::getBoundingBox(
 
 	for (const auto& t : triangles)
 	{
-		keep_min(bb_min.x, t.x[0]);
-		keep_max(bb_max.x, t.x[0]);
-		keep_min(bb_min.y, t.y[0]);
-		keep_max(bb_max.y, t.y[0]);
-		keep_min(bb_min.z, t.z[0]);
-		keep_max(bb_max.z, t.z[0]);
+		keep_min(bb_min.x, t.x(0));
+		keep_max(bb_max.x, t.x(0));
+		keep_min(bb_min.y, t.y(0));
+		keep_max(bb_max.y, t.y(0));
+		keep_min(bb_min.z, t.z(0));
+		keep_max(bb_max.z, t.z(0));
 
-		keep_min(bb_min.x, t.x[1]);
-		keep_max(bb_max.x, t.x[1]);
-		keep_min(bb_min.y, t.y[1]);
-		keep_max(bb_max.y, t.y[1]);
-		keep_min(bb_min.z, t.z[1]);
-		keep_max(bb_max.z, t.z[1]);
+		keep_min(bb_min.x, t.x(1));
+		keep_max(bb_max.x, t.x(1));
+		keep_min(bb_min.y, t.y(1));
+		keep_max(bb_max.y, t.y(1));
+		keep_min(bb_min.z, t.z(1));
+		keep_max(bb_max.z, t.z(1));
 
-		keep_min(bb_min.x, t.x[2]);
-		keep_max(bb_max.x, t.x[2]);
-		keep_min(bb_min.y, t.y[2]);
-		keep_max(bb_max.y, t.y[2]);
-		keep_min(bb_min.z, t.z[2]);
-		keep_max(bb_max.z, t.z[2]);
+		keep_min(bb_min.x, t.x(2));
+		keep_max(bb_max.x, t.x(2));
+		keep_min(bb_min.y, t.y(2));
+		keep_max(bb_max.y, t.y(2));
+		keep_min(bb_min.z, t.z(2));
+		keep_max(bb_max.z, t.z(2));
 	}
 
 	// Convert to coordinates of my parent:

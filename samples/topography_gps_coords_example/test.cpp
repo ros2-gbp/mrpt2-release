@@ -2,12 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include <mrpt/topography.h>
+#include <Eigen/Dense>
 #include <iostream>
 
 using namespace mrpt;
@@ -63,7 +64,7 @@ void TestGPS_coords()
 	cout << "(p1.h-p0.h)*ENU_Z: "
 		 << (pt1.height - pt0.height) * mrpt::poses::CPose3D(pose_ENU)
 											.getRotationMatrix()
-											.block<3, 1>(0, 2)
+											.blockCopy<3, 1>(0, 2)
 											.transpose()
 		 << endl;
 

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -20,12 +20,12 @@
 #include <wx/settings.h>
 #include <wx/string.h>
 //*)
-#ifdef MRPT_OS_LINUX
-#include <dlfcn.h>
-#endif
+#include <mrpt/system/os.h>
 
 #include <mrpt/gui/WxUtils.h>
 #include <mrpt/gui/wx28-fixes.h>
+#include <mrpt/math/TLine3D.h>
+#include <mrpt/math/TObject3D.h>
 #include <mrpt/system/string_utils.h>
 #include "../wx-common/mrpt_logo.xpm"
 #include "imgs/main_icon.xpm"
@@ -60,7 +60,7 @@ wxBitmap MyArtProvider::CreateBitmap(
 #include <mrpt/system/CTicTac.h>
 #include <mrpt/system/os.h>
 
-mrpt::nav::CParameterizedTrajectoryGenerator* ptg = nullptr;
+mrpt::nav::CParameterizedTrajectoryGenerator::Ptr ptg;
 
 //(*IdInit(ptgConfiguratorframe)
 const long ptgConfiguratorframe::ID_STATICTEXT1 = wxNewId();
@@ -623,89 +623,38 @@ ptgConfiguratorframe::ptgConfiguratorframe(wxWindow* parent, wxWindowID id)
 	FlexGridSizer1->SetSizeHints(this);
 	Center();
 
-	Connect(
-		ID_CHOICE1, wxEVT_COMMAND_CHOICE_SELECTED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::OncbPTGClassSelect);
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::OnbtnReloadParamsClick);
-	Connect(
-		ID_SPINCTRL1, wxEVT_COMMAND_SPINCTRL_UPDATED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::OnedPTGIndexChange);
-	Connect(
-		ID_CHECKBOX1, wxEVT_COMMAND_CHECKBOX_CLICKED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::OncbDrawShapePathClick);
-	Connect(
-		ID_BUTTON5, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::OnButton1Click);
-	Connect(
-		ID_CHECKBOX3, wxEVT_COMMAND_CHECKBOX_CLICKED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::
-			OncbHighlightOnePathClick);
-	Connect(
-		ID_SLIDER1,
-		wxEVT_SCROLL_TOP | wxEVT_SCROLL_BOTTOM | wxEVT_SCROLL_LINEUP |
-			wxEVT_SCROLL_LINEDOWN | wxEVT_SCROLL_PAGEUP |
-			wxEVT_SCROLL_PAGEDOWN | wxEVT_SCROLL_THUMBTRACK |
-			wxEVT_SCROLL_THUMBRELEASE | wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::
-			OnslidPathHighlightCmdScroll);
-	Connect(
-		ID_SLIDER1, wxEVT_SCROLL_THUMBTRACK,
-		(wxObjectEventFunction)&ptgConfiguratorframe::
-			OnslidPathHighlightCmdScroll);
-	Connect(
-		ID_SLIDER1, wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::
-			OnslidPathHighlightCmdScroll);
-	Connect(
-		ID_SPINCTRL2, wxEVT_COMMAND_SPINCTRL_UPDATED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::
-			OnedIndexHighlightPathChange);
-	Connect(
-		ID_CHECKBOX4, wxEVT_COMMAND_CHECKBOX_CLICKED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::
-			OncbHighlightOnePathClick);
-	Connect(
-		ID_CHECKBOX2, wxEVT_COMMAND_CHECKBOX_CLICKED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::OncbBuildTPObsClick);
-	Connect(
-		ID_BUTTON3, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::OnbtnPlaceObsClick);
-	Connect(
-		ID_BUTTON2, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::OnbtnRebuildTPObsClick);
-	Connect(
-		ID_BUTTON4, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::OnbtnPlaceTargetClick);
-	Connect(
-		ID_CHECKBOX5, wxEVT_COMMAND_CHECKBOX_CLICKED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::OnrbShowTPSelectSelect);
-	Connect(
-		ID_CHECKBOX6, wxEVT_COMMAND_CHECKBOX_CLICKED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::OnrbShowTPSelectSelect);
-	Connect(
-		ID_CHECKBOX7, wxEVT_COMMAND_CHECKBOX_CLICKED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::OnrbShowTPSelectSelect);
-	Connect(
-		idMenuQuit, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::OnQuit);
-	Connect(
-		idMenuAbout, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&ptgConfiguratorframe::OnAbout);
+	using pcf = ptgConfiguratorframe;
+
+	Bind(wxEVT_CHOICE, &pcf::OncbPTGClassSelect, this, ID_CHOICE1);
+	Bind(wxEVT_BUTTON, &pcf::OnbtnReloadParamsClick, this, ID_BUTTON1);
+	Bind(
+		wxEVT_COMMAND_SPINCTRL_UPDATED, &pcf::OnedPTGIndexChange, this,
+		ID_SPINCTRL1);
+	Bind(wxEVT_CHECKBOX, &pcf::OncbDrawShapePathClick, this, ID_CHECKBOX1);
+	Bind(wxEVT_BUTTON, &pcf::OnButton1Click, this, ID_BUTTON5);
+	Bind(wxEVT_CHECKBOX, &pcf::OncbHighlightOnePathClick, this, ID_CHECKBOX3);
+	Bind(wxEVT_SLIDER, &pcf::OnslidPathHighlightCmdScroll, this, ID_SLIDER1);
+	Bind(
+		wxEVT_COMMAND_SPINCTRL_UPDATED, &pcf::OnedIndexHighlightPathChange,
+		this, ID_SPINCTRL2);
+	Bind(wxEVT_CHECKBOX, &pcf::OncbHighlightOnePathClick, this, ID_CHECKBOX4);
+	Bind(wxEVT_CHECKBOX, &pcf::OncbBuildTPObsClick, this, ID_CHECKBOX2);
+	Bind(wxEVT_BUTTON, &pcf::OnbtnPlaceObsClick, this, ID_BUTTON3);
+	Bind(wxEVT_BUTTON, &pcf::OnbtnRebuildTPObsClick, this, ID_BUTTON2);
+	Bind(wxEVT_BUTTON, &pcf::OnbtnPlaceTargetClick, this, ID_BUTTON4);
+	Bind(wxEVT_CHECKBOX, &pcf::OnrbShowTPSelectSelect, this, ID_CHECKBOX5);
+	Bind(wxEVT_CHECKBOX, &pcf::OnrbShowTPSelectSelect, this, ID_CHECKBOX6);
+	Bind(wxEVT_CHECKBOX, &pcf::OnrbShowTPSelectSelect, this, ID_CHECKBOX7);
+	Bind(wxEVT_MENU, &pcf::OnQuit, this, idMenuQuit);
+	Bind(wxEVT_MENU, &pcf::OnAbout, this, idMenuAbout);
 	//*)
 
-	m_plot->Connect(
-		wxEVT_MOTION,
-		(wxObjectEventFunction)&ptgConfiguratorframe::Onplot3DMouseMove,
-		nullptr, this);
-	m_plot->Connect(
-		wxEVT_LEFT_DOWN,
-		(wxObjectEventFunction)&ptgConfiguratorframe::Onplot3DMouseClick,
-		nullptr, this);
+	m_plot->Bind(wxEVT_MOTION, &pcf::Onplot3DMouseMove, this);
+	m_plot->Bind(wxEVT_LEFT_DOWN, &pcf::Onplot3DMouseClick, this);
 
 	// Redirect all output to control:
-	m_myRedirector = new CMyRedirector(edLog, false, 100, true);
+	m_myRedirector =
+		std::make_unique<CMyRedirector>(edLog, false, 100, true, false, true);
 
 	WX_START_TRY
 
@@ -739,12 +688,10 @@ ptgConfiguratorframe::ptgConfiguratorframe(wxWindow* parent, wxWindowID id)
 	gl_view_TPSpace->insert(gl_TPSpace_clearance);
 	gl_view_TPSpace->insert(gl_TPSpace_clearance_interp);
 
-	m_plot->addTextMessage(
-		0.01, 5, "Workspace", mrpt::img::TColorf(1, 1, 1, 0.75), "sans", 15,
-		mrpt::opengl::NICE, 1);
-	m_plotTPSpace->addTextMessage(
-		0.01, 5, "TP-Space", mrpt::img::TColorf(1, 1, 1, 0.75), "sans", 15,
-		mrpt::opengl::NICE, 2);
+	m_plot->getOpenGLSceneRef()->getViewport()->addTextMessage(
+		0.01, 5, "Workspace", 1);
+	m_plotTPSpace->getOpenGLSceneRef()->getViewport()->addTextMessage(
+		0.01, 5, "TP-Space", 2);
 
 	gl_robot_ptg_prediction = mrpt::opengl::CSetOfLines::Create();
 	gl_robot_ptg_prediction->setName("ptg_prediction");
@@ -869,14 +816,8 @@ ptgConfiguratorframe::ptgConfiguratorframe(wxWindow* parent, wxWindowID id)
 
 ptgConfiguratorframe::~ptgConfiguratorframe()
 {
-	delete m_myRedirector;
 	//(*Destroy(ptgConfiguratorframe)
 	//*)
-	if (ptg)
-	{
-		delete ptg;
-		ptg = nullptr;
-	}
 }
 
 void ptgConfiguratorframe::prepareRobotPathPlot(
@@ -942,10 +883,7 @@ void ptgConfiguratorframe::OncbPTGClassSelect(wxCommandEvent& event)
 	const std::string sSelPTG =
 		std::string(cbPTGClass->GetString(sel).mb_str());
 
-	if (ptg)
-	{
-		delete ptg;
-	}
+	ptg.reset();
 
 	// Factory:
 	const mrpt::rtti::TRuntimeClassId* classId =
@@ -956,7 +894,7 @@ void ptgConfiguratorframe::OncbPTGClassSelect(wxCommandEvent& event)
 			"[CreatePTG] No PTG named `%s` is registered!", sSelPTG.c_str());
 	}
 
-	ptg = dynamic_cast<mrpt::nav::CParameterizedTrajectoryGenerator*>(
+	ptg = mrpt::ptr_cast<mrpt::nav::CParameterizedTrajectoryGenerator>::from(
 		classId->createObject());
 	if (!ptg)
 	{
@@ -1146,42 +1084,34 @@ void ptgConfiguratorframe::rebuild3Dview()
 				robotPath_w.resize(nSteps);
 			}
 
-			mrpt::math::TPose2D prevPose, curPose;
 			double maxRobotHeadErr = .0;
 			for (size_t j = 0; j < nSteps; j++)
 			{
-				ptg->getPathPose(k, j, curPose);
-				if (j != 0)
+				const mrpt::math::TPose2D curPose = ptg->getPathPose(k, j);
+				const mrpt::math::TTwist2D curVel = ptg->getPathTwist(k, j);
+
+				// Head calc:
+				const double head2dir =
+					(curVel.vy != 0 || curVel.vx != 0)
+						? mrpt::math::angDistance(
+							  ::atan2(curVel.vy, curVel.vx), curPose.phi)
+						: .0;
+
+				if (is_selected_path)
 				{
-					// Numerical estimate of global direction of motion:
-					const double dx = curPose.x - prevPose.x,
-								 dy = curPose.y - prevPose.y,
-								 dphi = mrpt::math::angDistance(
-									 prevPose.phi, curPose.phi);
+					robotHeadAng_x[j] = j * dt;
+					robotHeadAng_y[j] = mrpt::RAD2DEG(head2dir);
+					robotPath_x[j] = curPose.x;
+					robotPath_y[j] = curPose.y;
+					robotPath_phi[j] = mrpt::RAD2DEG(curPose.phi);
+					robotPath_dist[j] = ptg->getPathDist(k, j);
 
-					// Head calc:
-					const double head2dir =
-						(dy != 0 || dx != 0) ? mrpt::math::angDistance(
-												   ::atan2(dy, dx), curPose.phi)
-											 : .0;
-
-					if (is_selected_path)
-					{
-						robotHeadAng_x[j] = j * dt;
-						robotHeadAng_y[j] = mrpt::RAD2DEG(head2dir);
-						robotPath_x[j] = curPose.x;
-						robotPath_y[j] = curPose.y;
-						robotPath_phi[j] = mrpt::RAD2DEG(curPose.phi);
-						robotPath_dist[j] = ptg->getPathDist(k, j);
-
-						robotPath_vx[j] = dx / dt;
-						robotPath_vy[j] = dy / dt;
-						robotPath_w[j] = mrpt::RAD2DEG(dphi / dt);
-					}
-
-					mrpt::keep_max(maxRobotHeadErr, std::abs(head2dir));
+					robotPath_vx[j] = curVel.vx;
+					robotPath_vy[j] = curVel.vy;
+					robotPath_w[j] = mrpt::RAD2DEG(curVel.omega);
 				}
-				prevPose = curPose;
+
+				mrpt::keep_max(maxRobotHeadErr, std::abs(head2dir));
 			}
 
 			robotHeadAngAll_y[k] = mrpt::RAD2DEG(maxRobotHeadErr);
@@ -1288,15 +1218,15 @@ void ptgConfiguratorframe::rebuild3Dview()
 
 void ptgConfiguratorframe::loadPlugin()
 {
-#ifdef MRPT_OS_LINUX
 	wxFileDialog openFileDialog(
 		this, _("Open library"), wxT(""), wxT(""),
-		wxT("so files (*.so)|*.so|so files (*.so.*)|*.so.*"),
+		wxT("so files (*.so)|*.so|so files (*.so.*)|*.so.*|*.dll"),
 		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
 	if (openFileDialog.ShowModal() == wxID_CANCEL) return;
 
-	dlopen(openFileDialog.GetPath().mb_str(), RTLD_LAZY);
+	const std::string sLib = std::string(openFileDialog.GetPath().mb_str());
+	mrpt::system::loadPluginModule(sLib);
 
 	// Populate list of existing PTGs:
 	{
@@ -1317,11 +1247,6 @@ void ptgConfiguratorframe::loadPlugin()
 		wxCommandEvent e;
 		OncbPTGClassSelect(e);
 	}
-#else
-	wxMessageBox(
-		wxT("This feature is only available in GNU/Linux!"), wxT("Error"), wxOK,
-		nullptr);
-#endif
 }
 
 void ptgConfiguratorframe::OnedPTGIndexChange(wxSpinEvent& event)
@@ -1448,7 +1373,7 @@ void ptgConfiguratorframe::OnbtnPlaceTargetClick(wxCommandEvent& event)
 	m_cursorPickState = cpsPickTarget;
 }
 
-void ptgConfiguratorframe::OnslidPathHighlightCmdScroll(wxScrollEvent& event)
+void ptgConfiguratorframe::OnslidPathHighlightCmdScroll(wxCommandEvent&)
 {
 	edIndexHighlightPath->SetValue(slidPathHighlight->GetValue());
 	wxSpinEvent dm;

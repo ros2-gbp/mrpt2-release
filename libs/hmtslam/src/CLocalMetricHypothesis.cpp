@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,7 +10,7 @@
 #include "hmtslam-precomp.h"  // Precomp header
 
 #include <mrpt/opengl/CArrow.h>
-#include <mrpt/opengl/CEllipsoid.h>
+#include <mrpt/opengl/CEllipsoid3D.h>
 #include <mrpt/opengl/CGridPlaneXY.h>
 #include <mrpt/opengl/CSimpleLine.h>
 #include <mrpt/opengl/CSphere.h>
@@ -67,9 +67,8 @@ void CLocalMetricHypothesis::getAs3DScene(
 	// -------------------------------------------
 	{
 		opengl::CGridPlaneXY::Ptr obj =
-			mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
-				-100, 100, -100, 100, 0, 5);
-		obj->setColor(0.4, 0.4, 0.4);
+			std::make_shared<opengl::CGridPlaneXY>(-100, 100, -100, 100, 0, 5);
+		obj->setColor(0.4f, 0.4f, 0.4f);
 
 		objs->insert(obj);  // it will free the memory
 	}
@@ -111,7 +110,7 @@ void CLocalMetricHypothesis::getAs3DScene(
 	// -----------------------------------------
 	const CPose3D meanCurPose = lstPoses[m_currentRobotPose].getMeanVal();
 	{
-		opengl::CCamera::Ptr cam = mrpt::make_aligned_shared<opengl::CCamera>();
+		opengl::CCamera::Ptr cam = std::make_shared<opengl::CCamera>();
 		cam->setZoomDistance(85);
 		cam->setAzimuthDegrees(45 + RAD2DEG(meanCurPose.yaw()));
 		cam->setElevationDegrees(45);
@@ -125,8 +124,8 @@ void CLocalMetricHypothesis::getAs3DScene(
 
 	for (it = lstPoses.begin(); it != lstPoses.end(); it++)
 	{
-		opengl::CEllipsoid::Ptr ellip =
-			mrpt::make_aligned_shared<opengl::CEllipsoid>();
+		opengl::CEllipsoid3D::Ptr ellip =
+			std::make_shared<opengl::CEllipsoid3D>();
 		// Color depending on being into the current area:
 		if (m_nodeIDmemberships.find(it->first)->second ==
 			m_nodeIDmemberships.find(m_currentRobotPose)->second)
@@ -224,7 +223,7 @@ void CLocalMetricHypothesis::getAs3DScene(
 			pdf.copyFrom(*pdfParts);
 
 			opengl::CSimpleLine::Ptr line =
-				mrpt::make_aligned_shared<opengl::CSimpleLine>();
+				std::make_shared<opengl::CSimpleLine>();
 			line->setColor(0.8, 0.8, 0.8, 0.3);
 			line->setLineWidth(2);
 
@@ -258,7 +257,7 @@ void CLocalMetricHypothesis::getAs3DScene(
 					const CPose3DPDFGaussian  *hisPdf = & hisIt->second.m_pose;
 
 					opengl::CSimpleLine::Ptr line =
-	   mrpt::make_aligned_shared<opengl::CSimpleLine>();
+	   std::make_shared<opengl::CSimpleLine>();
 					line->m_color_R = 0.2f;
 					line->m_color_G = 0.8f;
 					line->m_color_B = 0.2f;
@@ -289,8 +288,7 @@ void CLocalMetricHypothesis::getAs3DScene(
 		for (itMeans = areas_mean.begin(); itMeans != areas_mean.end();
 			 itMeans++)
 		{
-			opengl::CSphere::Ptr sphere =
-				mrpt::make_aligned_shared<opengl::CSphere>();
+			opengl::CSphere::Ptr sphere = std::make_shared<opengl::CSphere>();
 
 			if (itMeans->first ==
 				m_nodeIDmemberships.find(m_currentRobotPose)->second)
@@ -313,7 +311,7 @@ void CLocalMetricHypothesis::getAs3DScene(
 			objs->insert(sphere);
 
 			// And text label:
-			opengl::CText::Ptr txt = mrpt::make_aligned_shared<opengl::CText>();
+			opengl::CText::Ptr txt = std::make_shared<opengl::CText>();
 			txt->setColor(1, 1, 1);
 
 			const CHMHMapNode::Ptr node =
@@ -358,7 +356,7 @@ void CLocalMetricHypothesis::getAs3DScene(
 					{
 						// Yes, target node of the arc is in the LMH: Draw it:
 						opengl::CSimpleLine::Ptr line =
-							mrpt::make_aligned_shared<opengl::CSimpleLine>();
+							std::make_shared<opengl::CSimpleLine>();
 						line->setColor(0.8, 0.8, 0);
 						line->setLineWidth(3);
 
@@ -507,8 +505,7 @@ void CLocalMetricHypothesis::clearRobotPoses()
 /*---------------------------------------------------------------
 						getCurrentPose
  ---------------------------------------------------------------*/
-const CPose3D* CLocalMetricHypothesis::getCurrentPose(
-	const size_t& particleIdx) const
+const CPose3D* CLocalMetricHypothesis::getCurrentPose(size_t particleIdx) const
 {
 	if (particleIdx >= m_particles.size())
 		THROW_EXCEPTION("Particle index out of bounds!");
@@ -521,7 +518,7 @@ const CPose3D* CLocalMetricHypothesis::getCurrentPose(
 /*---------------------------------------------------------------
 						getCurrentPose
  ---------------------------------------------------------------*/
-CPose3D* CLocalMetricHypothesis::getCurrentPose(const size_t& particleIdx)
+CPose3D* CLocalMetricHypothesis::getCurrentPose(size_t particleIdx)
 {
 	if (particleIdx >= m_particles.size())
 		THROW_EXCEPTION("Particle index out of bounds!");
@@ -796,7 +793,7 @@ void CLocalMetricHypothesis::updateAreaFromLMH(
 
 	CHMHMapNode::Ptr node;
 	{
-		std::lock_guard<std::mutex>(m_parent->m_map_cs);
+		std::lock_guard<std::mutex> lock(m_parent->m_map_cs);
 		node = m_parent->m_map.getNodeByID(areaID);
 		ASSERT_(node);
 		ASSERT_(node->m_hypotheses.has(m_ID));
@@ -817,7 +814,7 @@ void CLocalMetricHypothesis::updateAreaFromLMH(
 		if (!annot)
 		{
 			// Add it now:
-			posesGraph = mrpt::make_aligned_shared<CRobotPosesGraph>();
+			posesGraph = std::make_shared<CRobotPosesGraph>();
 			node->m_annotations.setMemoryReference(
 				NODE_ANNOTATION_POSES_GRAPH, posesGraph, m_ID);
 		}

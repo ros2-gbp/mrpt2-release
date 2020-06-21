@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/obs/CObservation.h>  // INVALID_BEACON_ID
 #include <mrpt/poses/CPoint3D.h>
 #include <mrpt/poses/CPointPDFGaussian.h>
@@ -34,7 +34,7 @@ class CBeaconMap;
  */
 class CBeacon : public mrpt::poses::CPointPDF
 {
-	DEFINE_SERIALIZABLE(CBeacon)
+	DEFINE_SERIALIZABLE(CBeacon, mrpt::maps)
 
    public:
 	/** The type for the IDs of landmarks.
@@ -90,19 +90,9 @@ class CBeacon : public mrpt::poses::CPointPDF
 	 */
 	TBeaconID m_ID{INVALID_BEACON_ID};
 
-	/** Returns an estimate of the point, (the mean, or mathematical expectation
-	 * of the PDF).
-	 * \sa getCovariance
-	 */
 	void getMean(mrpt::poses::CPoint3D& mean_point) const override;
 
-	/** Returns an estimate of the point covariance matrix (3x3 cov matrix) and
-	 * the mean, both at once.
-	 * \sa getMean
-	 */
-	void getCovarianceAndMean(
-		mrpt::math::CMatrixDouble33& cov,
-		mrpt::poses::CPoint3D& mean_point) const override;
+	std::tuple<cov_mat_t, type_value> getCovarianceAndMean() const override;
 
 	/** Copy operator, translating if necesary (for example, between particles
 	 * and gaussian representations) */
@@ -161,12 +151,12 @@ class CBeacon : public mrpt::poses::CPointPDF
 	 *  \sa CBeaconMap::insertionOptions, generateRingSOG
 	 */
 	void generateObservationModelDistribution(
-		const float& sensedRange, mrpt::poses::CPointPDFSOG& outPDF,
+		float sensedRange, mrpt::poses::CPointPDFSOG& outPDF,
 		const CBeaconMap* myBeaconMap,
 		const mrpt::poses::CPoint3D& sensorPntOnRobot,
 		const mrpt::poses::CPoint3D& centerPoint =
 			mrpt::poses::CPoint3D(0, 0, 0),
-		const float& maxDistanceFromCenter = 0) const;
+		float maxDistanceFromCenter = 0) const;
 
 	/** This static method returns a SOG with ring-shape (or as a 3D sphere)
 	 * that can be used to initialize a beacon if observed the first time.
@@ -179,13 +169,13 @@ class CBeacon : public mrpt::poses::CPointPDF
 	 * \sa generateObservationModelDistribution
 	 */
 	static void generateRingSOG(
-		const float& sensedRange, mrpt::poses::CPointPDFSOG& outPDF,
+		float sensedRange, mrpt::poses::CPointPDFSOG& outPDF,
 		const CBeaconMap* myBeaconMap, const mrpt::poses::CPoint3D& sensorPnt,
 		const mrpt::math::CMatrixDouble33* covarianceCompositionToAdd = nullptr,
 		bool clearPreviousContentsOutPDF = true,
 		const mrpt::poses::CPoint3D& centerPoint =
 			mrpt::poses::CPoint3D(0, 0, 0),
-		const float& maxDistanceFromCenter = 0);
+		float maxDistanceFromCenter = 0);
 
 };  // End of class definition
 

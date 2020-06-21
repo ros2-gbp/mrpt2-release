@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -47,7 +47,7 @@ const int INVALID_CLICK_COORDS = -99999;
 #include "wx/sizer.h"
 #endif
 
-#include <mrpt/otherlibs/mathplot/mathplot.h>
+#include <mrpt/3rdparty/mathplot/mathplot.h>
 
 #include <wx/bmpbuttn.h>
 #include <wx/image.h>
@@ -104,7 +104,7 @@ wxBitmap mpLayer::GetColourSquare(int side)
 {
 	wxBitmap square(side, side, -1);
 	wxColour filler = m_pen.GetColour();
-	wxBrush brush(filler, wxSOLID);
+	wxBrush brush(filler, wxBRUSHSTYLE_SOLID);
 	wxMemoryDC dc;
 	dc.SelectObject(square);
 	dc.SetBackground(brush);
@@ -172,10 +172,10 @@ void mpInfoLayer::Plot(wxDC& dc, mpWindow& w)
 // %d x %d"), m_winX, m_winY, scrx, scry);
 #endif
 			if (m_winX != 1)
-				m_dim.x = (int)floor((double)(m_dim.x * scrx / m_winX));
+				m_dim.x = (int)floor((double)(m_dim.x * scrx) / m_winX);
 			if (m_winY != 1)
 			{
-				m_dim.y = (int)floor((double)(m_dim.y * scry / m_winY));
+				m_dim.y = (int)floor((double)(m_dim.y * scry) / m_winY);
 				UpdateReference();
 			}
 			// Finally update window size
@@ -233,10 +233,10 @@ void mpInfoCoords::Plot(wxDC& dc, mpWindow& w)
 // %d x %d"), m_winX, m_winY, scrx, scry);
 #endif
 			if (m_winX != 1)
-				m_dim.x = (int)floor((double)(m_dim.x * scrx / m_winX));
+				m_dim.x = (int)floor((double)(m_dim.x * scrx) / m_winX);
 			if (m_winY != 1)
 			{
-				m_dim.y = (int)floor((double)(m_dim.y * scry / m_winY));
+				m_dim.y = (int)floor((double)(m_dim.y * scry) / m_winY);
 				UpdateReference();
 			}
 			// Finally update window size
@@ -280,10 +280,10 @@ void mpInfoLegend::Plot(wxDC& dc, mpWindow& w)
 // %d x %d"), m_winX, m_winY, scrx, scry);
 #endif
 			if (m_winX != 1)
-				m_dim.x = (int)floor((double)(m_dim.x * scrx / m_winX));
+				m_dim.x = (int)floor((double)(m_dim.x * scrx) / m_winX);
 			if (m_winY != 1)
 			{
-				m_dim.y = (int)floor((double)(m_dim.y * scry / m_winY));
+				m_dim.y = (int)floor((double)(m_dim.y * scry) / m_winY);
 				UpdateReference();
 			}
 			// Finally update window size
@@ -303,7 +303,7 @@ void mpInfoLegend::Plot(wxDC& dc, mpWindow& w)
 		mpLayer* ly = nullptr;
 		wxPen lpen;
 		wxString label;
-		for (unsigned int p = 0; p < w.CountAllLayers(); p++)
+		for (size_t p = 0; p < w.CountAllLayers(); p++)
 		{
 			ly = w.GetLayer(p);
 			if ((ly->GetLayerType() == mpLAYER_PLOT) && (ly->IsVisible()))
@@ -328,7 +328,7 @@ void mpInfoLegend::Plot(wxDC& dc, mpWindow& w)
 			textY += mpLEGEND_MARGIN;
 			m_dim.height = textY;
 			dc.DrawRectangle(m_dim.x, m_dim.y, m_dim.width, m_dim.height);
-			for (unsigned int p2 = 0; p2 < w.CountAllLayers(); p2++)
+			for (size_t p2 = 0; p2 < w.CountAllLayers(); p2++)
 			{
 				ly = w.GetLayer(p2);
 				if ((ly->GetLayerType() == mpLAYER_PLOT) && (ly->IsVisible()))
@@ -552,10 +552,10 @@ void mpFXY::Plot(wxDC& dc, mpWindow& w)
 		// positioning
 		Rewind();
 		GetNextXY(x, y);
-		maxDrawX = x;
-		minDrawX = x;
-		maxDrawY = y;
-		minDrawY = y;
+		maxDrawX = static_cast<int>(x);
+		minDrawX = static_cast<int>(x);
+		maxDrawY = static_cast<int>(y);
+		minDrawY = static_cast<int>(y);
 		// drawnPoints = 0;
 		Rewind();
 
@@ -1549,8 +1549,8 @@ void mpWindow::OnMouseWheel(wxMouseEvent& event)
 		// Scroll vertically or horizontally (this is SHIFT is hold down).
 		int change =
 			-event.GetWheelRotation();  // Opposite direction (More intuitive)!
-		float changeUnitsX = change / m_scaleX;
-		float changeUnitsY = change / m_scaleY;
+		float changeUnitsX = change / static_cast<float>(m_scaleX);
+		float changeUnitsY = change / static_cast<float>(m_scaleY);
 
 		if (event.m_shiftDown)
 		{
@@ -1617,7 +1617,7 @@ void mpWindow::OnMouseMove(wxMouseEvent& event)
 			if (m_movingInfoLayer == nullptr)
 			{
 				wxClientDC dc(this);
-				wxPen pen(*wxBLACK, 1, wxDOT);
+				wxPen pen(*wxBLACK, 1, wxPENSTYLE_DOT);
 				dc.SetPen(pen);
 				dc.SetBrush(*wxTRANSPARENT_BRUSH);
 				dc.DrawRectangle(
@@ -2224,7 +2224,8 @@ void mpWindow::OnPaint(wxPaintEvent& WXUNUSED(event))
 		// 	int centerY = (m_scrY - m_marginTop - m_marginBottom)/2; // -
 		// m_marginTop; // c.y = m_scrY/2;
 		/*SetScrollbars(1, 1, (int) ((m_maxX - m_minX)*m_scaleX), (int) ((m_maxY
-		 * - m_minY)*m_scaleY));*/  //, x2p(m_posX + centerX/m_scaleX), y2p(m_posY - centerY/m_scaleY), true);
+		 * - m_minY)*m_scaleY));*/  //, x2p(m_posX + centerX/m_scaleX),
+									// y2p(m_posY - centerY/m_scaleY), true);
 	}
 }
 
@@ -3067,7 +3068,7 @@ bool mpPrintout::OnPrintPage(int page)
 		// trgDc->SetDeviceOrigin( m_prnX>>1, m_prnY>>1);  // Origin at the
 		// center
 		mpLayer* layer;
-		for (unsigned int li = 0; li < plotWindow->CountAllLayers(); ++li)
+		for (size_t li = 0; li < plotWindow->CountAllLayers(); ++li)
 		{
 			layer = plotWindow->GetLayer(li);
 			layer->Plot(*trgDc, *plotWindow);

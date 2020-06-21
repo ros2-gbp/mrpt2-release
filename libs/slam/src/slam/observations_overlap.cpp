@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -27,8 +27,8 @@ double mrpt::slam::observationsOverlap(
 	const mrpt::obs::CObservation* o1, const mrpt::obs::CObservation* o2,
 	const mrpt::poses::CPose3D* pose_o2_wrt_o1)
 {
-	if (IS_CLASS(o1, CObservation2DRangeScan) &&
-		IS_CLASS(o2, CObservation2DRangeScan))
+	if (IS_CLASS(*o1, CObservation2DRangeScan) &&
+		IS_CLASS(*o2, CObservation2DRangeScan))
 	{
 		const auto* this_obs = static_cast<const CObservation2DRangeScan*>(o1);
 		const auto* obs = static_cast<const CObservation2DRangeScan*>(o2);
@@ -69,9 +69,8 @@ double mrpt::slam::observationsOverlap(
  */
 double mrpt::slam::observationsOverlap(
 	const mrpt::obs::CSensoryFrame& sf1, const mrpt::obs::CSensoryFrame& sf2,
-	const mrpt::poses::CPose3D* pose_sf2_wrt_sf1)
+	[[maybe_unused]] const mrpt::poses::CPose3D* pose_sf2_wrt_sf1)
 {
-	MRPT_UNUSED_PARAM(pose_sf2_wrt_sf1);
 	// Return the average value:
 	size_t N = 0;
 	double accum = 0;

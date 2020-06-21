@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -118,9 +118,7 @@ class CWindowManager : public mrpt::system::COutputLogger
 			return;
 		}
 
-		win->addTextMessage(
-			x, y, text, color, m_font_name, m_font_size, mrpt::opengl::NICE,
-			unique_index);
+		win->addTextMessage(x, y, text, unique_index);
 	}
 
 	/**\brief Assign position and size values for the placement of the next

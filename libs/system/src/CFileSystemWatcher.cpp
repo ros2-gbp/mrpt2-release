@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -191,9 +191,9 @@ void CFileSystemWatcher::getChanges(TFileSystemChangeList& out_list)
 #define BUF_LEN (1024 * (EVENT_SIZE + 16))
 
 		char buf[BUF_LEN];
-		int len, i = 0;
+		ssize_t i = 0;
 
-		len = read(m_fd, buf, BUF_LEN);
+		const auto len = read(m_fd, buf, BUF_LEN);
 		if (len < 0)
 		{
 			if (errno == EINTR)
@@ -213,7 +213,7 @@ void CFileSystemWatcher::getChanges(TFileSystemChangeList& out_list)
 			struct inotify_event event_val
 			{
 			};
-			::memcpy(
+			std::memcpy(
 				&event_val, &buf[i],
 				sizeof(event_val));  // Was: event = (struct inotify_event *) ;
 			struct inotify_event* event = &event_val;

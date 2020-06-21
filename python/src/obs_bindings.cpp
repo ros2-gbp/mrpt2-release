@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -30,7 +30,6 @@
 #include <cstdint>
 
 using namespace boost::python;
-
 using namespace mrpt::io;
 using namespace mrpt::poses;
 using namespace mrpt::obs;
@@ -223,10 +222,8 @@ object CObservation2DRangeScan_to_ROS_LaserScan_msg(
 	scan_msg.attr("angle_increment") = self.beamAperture;
 	// set ranges (no intensities given in mrpt)
 	list ranges;
-	for (float i : self.scan)
-	{
-		ranges.append(i);
-	}
+	for (size_t i = 0; i < self.getScanSize(); i++)
+		ranges.append(self.getScanRange(i));
 	scan_msg.attr("ranges") = ranges;
 	return scan_msg;
 }
@@ -595,8 +592,6 @@ void export_obs()
 
 		class_<CObservation2DRangeScan, bases<CObservation>>(
 			"CObservation2DRangeScan", init<>())
-			.def_readwrite("scan", &CObservation2DRangeScan::scan)
-			.def_readwrite("validRange", &CObservation2DRangeScan::validRange)
 			.def_readwrite("aperture", &CObservation2DRangeScan::aperture)
 			.def_readwrite("sensorPose", &CObservation2DRangeScan::sensorPose)
 			.def_readwrite("maxRange", &CObservation2DRangeScan::maxRange)
@@ -706,18 +701,10 @@ void export_obs()
 					"Returns the number of actions / observations object in "
 					"the sequence.")
 				.def(
-					"addAction", &CRawlog::addAction,
-					"Add an action to the sequence: a collection of just one "
-					"element is created. The object is duplicated, so the "
-					"original one can be free if desired.")
-				.def(
-					"addActions", &CRawlog::addActions,
-					"Add a set of actions to the sequence; the object is "
-					"duplicated, so the original one can be free if desired.")
-				.def(
-					"addObservations", &CRawlog::addObservations,
-					"Add a set of observations to the sequence; the object is "
-					"duplicated, so the original one can be free if desired.")
+					"insert",
+					static_cast<void (CRawlog::*)(const CSerializable::Ptr&)>(
+						&CRawlog::insert),
+					"Add an object to the sequence.")
 				.def(
 					"readActionObservationPair",
 					&CRawlog_readActionObservationPair,

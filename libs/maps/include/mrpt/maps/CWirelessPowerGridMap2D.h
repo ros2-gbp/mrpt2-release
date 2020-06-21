@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -31,7 +31,7 @@ namespace mrpt::maps
  */
 class CWirelessPowerGridMap2D : public CRandomFieldGridMap2D
 {
-	DEFINE_SERIALIZABLE(CWirelessPowerGridMap2D)
+	DEFINE_SERIALIZABLE(CWirelessPowerGridMap2D, mrpt::maps)
    public:
 	/** Constructor */
 	CWirelessPowerGridMap2D(
@@ -73,10 +73,10 @@ class CWirelessPowerGridMap2D : public CRandomFieldGridMap2D
 	// See docs in derived class
 	void internal_clear() override;
 	bool internal_insertObservation(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D* robotPose = nullptr) override;
 	double internal_computeObservationLikelihood(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D& takenFrom) override;
 
 	MAP_DEFINITION_START(CWirelessPowerGridMap2D)

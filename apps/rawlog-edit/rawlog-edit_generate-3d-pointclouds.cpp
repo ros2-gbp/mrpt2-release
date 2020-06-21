@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -34,15 +34,15 @@ DECLARE_OP_FUNCTION(op_generate_3d_pointclouds)
 
 		CRawlogProcessor_Generate3DPointClouds(
 			CFileGZInputStream& in_rawlog, TCLAP::CmdLine& cmdline,
-			bool verbose)
-			: CRawlogProcessorOnEachObservation(in_rawlog, cmdline, verbose)
+			bool Verbose)
+			: CRawlogProcessorOnEachObservation(in_rawlog, cmdline, Verbose)
 		{
 			entries_modified = 0;
 		}
 
 		bool processOneObservation(CObservation::Ptr& obs) override
 		{
-			if (IS_CLASS(obs, CObservation3DRangeScan))
+			if (IS_CLASS(*obs, CObservation3DRangeScan))
 			{
 				CObservation3DRangeScan::Ptr obs3D =
 					std::dynamic_pointer_cast<CObservation3DRangeScan>(obs);
@@ -50,7 +50,7 @@ DECLARE_OP_FUNCTION(op_generate_3d_pointclouds)
 				{
 					obs3D->load();  // We must be sure that depth has been
 					// loaded, if stored separately.
-					obs3D->project3DPointsFromDepthImage();
+					obs3D->unprojectInto(*obs3D);
 					entries_modified++;
 				}
 			}

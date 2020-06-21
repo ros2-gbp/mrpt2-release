@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -34,7 +34,7 @@ CSetOfObjects::Ptr graph_visualize(
 	const bool is_3D_graph = constraint_t::is_3D();
 
 	// create opengl obejct to be filled.
-	CSetOfObjects::Ptr ret = mrpt::make_aligned_shared<CSetOfObjects>();
+	CSetOfObjects::Ptr ret = std::make_shared<CSetOfObjects>();
 
 	// graph visualization parameters
 	const bool show_ID_labels =
@@ -84,14 +84,14 @@ CSetOfObjects::Ptr graph_visualize(
 		const double grid_frequency = 5.0;
 		CGridPlaneXY::Ptr grid = CGridPlaneXY::Create(
 			BB_min.x, BB_max.x, BB_min.y, BB_max.y, BB_min.z, grid_frequency);
-		grid->setColor(0.3, 0.3, 0.3);
+		grid->setColor(0.3f, 0.3f, 0.3f);
 		ret->insert(grid);
 	}  // end show_ground_grid
 
 	// Draw nodes as thick points:
 	if (nodes_point_size > 0)
 	{
-		CPointCloud::Ptr pnts = mrpt::make_aligned_shared<CPointCloud>();
+		CPointCloud::Ptr pnts = std::make_shared<CPointCloud>();
 		pnts->setColor(
 			mrpt::img::TColorf(mrpt::img::TColor(nodes_point_color)));
 		pnts->setPointSize(nodes_point_size);
@@ -103,8 +103,6 @@ CSetOfObjects::Ptr graph_visualize(
 				itNod->second);  // Convert to 3D from whatever its real type.
 			pnts->insertPoint(p.x(), p.y(), p.z());
 		}
-
-		pnts->enablePointSmooth();
 
 		ret->insert(pnts);
 	}  // end draw node points
@@ -123,7 +121,7 @@ CSetOfObjects::Ptr graph_visualize(
 								 nodes_corner_scale, 1.0 /*line width*/)
 						   : stock_objects::CornerXYSimple(
 								 nodes_corner_scale, 1.0 /*line width*/))
-					: mrpt::make_aligned_shared<CSetOfObjects>();
+					: std::make_shared<CSetOfObjects>();
 			gl_corner->setPose(p);
 			if (show_ID_labels)  // don't show IDs twice!
 			{
@@ -184,7 +182,7 @@ CSetOfObjects::Ptr graph_visualize(
 
 	if (show_edges)
 	{
-		CSetOfLines::Ptr gl_edges = mrpt::make_aligned_shared<CSetOfLines>();
+		CSetOfLines::Ptr gl_edges = std::make_shared<CSetOfLines>();
 		const mrpt::img::TColor col8bit(
 			edge_color & 0xffffff, edge_color >> 24);
 

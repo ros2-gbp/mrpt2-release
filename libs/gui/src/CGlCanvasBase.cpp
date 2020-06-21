@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,7 +10,9 @@
 #include "gui-precomp.h"  // Precompiled headers
 
 #include <mrpt/gui/CGlCanvasBase.h>
+#include <mrpt/opengl/opengl_api.h>
 #include <mrpt/system/CTicTac.h>
+#include <cstdlib>
 
 #if MRPT_HAS_OPENGL_GLUT
 #ifdef _WIN32
@@ -40,6 +42,14 @@ using mrpt::system::CTicTac;
 
 float CGlCanvasBase::SENSIBILITY_DEG_PER_PIXEL = 0.1f;
 
+CGlCanvasBase::CGlCanvasBase() {}
+
+CGlCanvasBase::~CGlCanvasBase()
+{
+	// Ensure all OpenGL resources are freed before the opengl context is gone:
+	if (m_openGLScene) m_openGLScene->unloadShaders();
+}
+
 void CGlCanvasBase::setMinimumZoom(float zoom) { m_minZoom = zoom; }
 void CGlCanvasBase::setMaximumZoom(float zoom) { m_maxZoom = zoom; }
 void CGlCanvasBase::setMousePos(int x, int y)
@@ -51,13 +61,13 @@ void CGlCanvasBase::setMousePos(int x, int y)
 void CGlCanvasBase::setMouseClicked(bool is) { mouseClicked = is; }
 void CGlCanvasBase::updateZoom(CamaraParams& params, int x, int y) const
 {
-	float zoom = params.cameraZoomDistance * exp(0.01 * (y - m_mouseClickY));
+	float zoom = params.cameraZoomDistance * exp(0.01f * (y - m_mouseClickY));
 	if (zoom <= m_minZoom || (m_maxZoom != -1.0f && m_maxZoom <= zoom)) return;
 	params.cameraZoomDistance = zoom;
-	if (params.cameraZoomDistance < 0.01) params.cameraZoomDistance = 0.01f;
+	if (params.cameraZoomDistance < 0.01f) params.cameraZoomDistance = 0.01f;
 
-	float Az = -0.05 * (x - m_mouseClickX);
-	float D = 0.001 * params.cameraZoomDistance;
+	float Az = -0.05f * (x - m_mouseClickX);
+	float D = 0.001f * params.cameraZoomDistance;
 	params.cameraPointingZ += D * Az;
 }
 
@@ -69,8 +79,20 @@ void CGlCanvasBase::updateZoom(CamaraParams& params, float delta) const
 	params.cameraZoomDistance = zoom;
 }
 
+// Required, for example, when missing "button down" events happen if
+// the mouse clicks on a nanogui component, *then* moves out of it
+// while still pressing a button:
+inline void mouseGlitchFilter(
+	const int x, const int y, const int& mouseClickX, const int& mouseClickY)
+{
+	if (std::abs(x - mouseClickX) > 60) const_cast<int&>(mouseClickX) = x;
+	if (std::abs(y - mouseClickY) > 60) const_cast<int&>(mouseClickY) = y;
+}
+
 void CGlCanvasBase::updateRotate(CamaraParams& params, int x, int y) const
 {
+	mouseGlitchFilter(x, y, m_mouseClickX, m_mouseClickY);
+
 	const float dis = max(0.01f, (params.cameraZoomDistance));
 	float eye_x =
 		params.cameraPointingX + dis * cos(DEG2RAD(params.cameraAzimuthDeg)) *
@@ -101,9 +123,11 @@ void CGlCanvasBase::updateRotate(CamaraParams& params, int x, int y) const
 
 void CGlCanvasBase::updateOrbitCamera(CamaraParams& params, int x, int y) const
 {
-	params.cameraAzimuthDeg -= 0.2 * (x - m_mouseClickX);
+	mouseGlitchFilter(x, y, m_mouseClickX, m_mouseClickY);
+
+	params.cameraAzimuthDeg -= 0.2f * (x - m_mouseClickX);
 	params.setElevationDeg(
-		params.cameraElevationDeg + 0.2 * (y - m_mouseClickY));
+		params.cameraElevationDeg + 0.2f * (y - m_mouseClickY));
 }
 
 void CGlCanvasBase::updateLastPos(int x, int y)
@@ -132,7 +156,7 @@ void CGlCanvasBase::updatePan(CamaraParams& params, int x, int y) const
 {
 	float Ay = -(x - m_mouseClickX);
 	float Ax = -(y - m_mouseClickY);
-	float D = 0.001 * params.cameraZoomDistance;
+	float D = 0.001f * params.cameraZoomDistance;
 	params.cameraPointingX += D * (Ax * cos(DEG2RAD(params.cameraAzimuthDeg)) -
 								   Ay * sin(DEG2RAD(params.cameraAzimuthDeg)));
 	params.cameraPointingY += D * (Ax * sin(DEG2RAD(params.cameraAzimuthDeg)) +
@@ -261,16 +285,13 @@ double CGlCanvasBase::renderCanvas(int width, int height)
 	{
 		// Call PreRender user code:
 		preRender();
-
-		glPushAttrib(GL_ALL_ATTRIB_BITS);
+		CHECK_OPENGL_ERROR();
 
 		// Set static configs:
 		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_ALPHA_TEST);
-		glEnable(GL_TEXTURE_2D);
+		CHECK_OPENGL_ERROR();
 
-		// PART 1a: Set the viewport
-		// --------------------------------------
+		// Set the viewport
 		resizeViewport((GLsizei)width, (GLsizei)height);
 
 		// Set the background color:
@@ -293,15 +314,9 @@ double CGlCanvasBase::renderCanvas(int width, int height)
 				updateCameraParams(cam);
 			}
 
-			// PART 2: Set the MODELVIEW matrix
-			// --------------------------------------
-			glMatrixMode(GL_MODELVIEW);
-			glLoadIdentity();
-
 			tictac.Tic();
 
-			// PART 3: Draw primitives:
-			// --------------------------------------
+			// Draw primitives:
 			m_openGLScene->render();
 
 		}  // end if "m_openGLScene!=nullptr"
@@ -309,26 +324,19 @@ double CGlCanvasBase::renderCanvas(int width, int height)
 		postRender();
 
 		// Flush & swap buffers to disply new image:
-		glFlush();
+		glFinish();
 		swapBuffers();
+		CHECK_OPENGL_ERROR();
 
 		At = tictac.Tac();
-
-		glPopAttrib();
 	}
 	catch (const std::exception& e)
 	{
-		glPopAttrib();
 		const std::string err_msg =
-			std::string("[CWxGLCanvasBase::Render] Exception!: ") +
-			std::string(e.what());
+			std::string("[CGLCanvasBase::Render] Exception:\n") +
+			mrpt::exception_to_str(e);
 		std::cerr << err_msg;
 		renderError(err_msg);
-	}
-	catch (...)
-	{
-		glPopAttrib();
-		std::cerr << "Runtime error!" << std::endl;
 	}
 
 	return At;
@@ -345,4 +353,10 @@ void CGlCanvasBase::CamaraParams::setElevationDeg(float deg)
 		cameraElevationDeg = -90.0f;
 	else if (cameraElevationDeg > 90.0f)
 		cameraElevationDeg = 90.0f;
+}
+
+void CGlCanvasBaseHeadless::renderError(const std::string& e)
+{
+	std::cerr << "[CGlCanvasBaseHeadless::renderError] Error:" << e
+			  << std::endl;
 }

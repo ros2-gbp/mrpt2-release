@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -42,7 +42,7 @@ class CPose3DPDFGaussian;
 class CPose3DQuatPDFGaussianInf : public CPose3DQuatPDF
 {
 	// This must be added to any CSerializable derived class:
-	DEFINE_SERIALIZABLE(CPose3DQuatPDFGaussianInf)
+	DEFINE_SERIALIZABLE(CPose3DQuatPDFGaussianInf, mrpt::poses)
 	using self_t = CPose3DQuatPDFGaussianInf;
 
    public:
@@ -70,18 +70,13 @@ class CPose3DQuatPDFGaussianInf : public CPose3DQuatPDF
 
 	inline const CPose3DQuat& getPoseMean() const { return mean; }
 	inline CPose3DQuat& getPoseMean() { return mean; }
-	/** Returns an estimate of the pose, (the mean, or mathematical expectation
-	 * of the PDF)  \sa getCovariance */
+
 	void getMean(CPose3DQuat& mean_pose) const override { mean_pose = mean; }
 	bool isInfType() const override { return true; }
-	/** Returns an estimate of the pose covariance matrix (7x7 cov matrix) and
-	 * the mean, both at once. \sa getMean */
-	void getCovarianceAndMean(
-		mrpt::math::CMatrixDouble77& cov,
-		CPose3DQuat& mean_point) const override
+
+	std::tuple<cov_mat_t, type_value> getCovarianceAndMean() const override
 	{
-		cov_inv.inv(cov);
-		mean_point = mean;
+		return {cov_inv.inverse_LLt(), mean};
 	}
 
 	/** Returns the information (inverse covariance) matrix (a STATE_LEN x

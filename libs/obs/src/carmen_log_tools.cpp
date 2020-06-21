@@ -2,20 +2,19 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "obs-precomp.h"  // Precompiled headers
 
+#include <mrpt/math/TPose2D.h>
 #include <mrpt/obs/CObservation2DRangeScan.h>
 #include <mrpt/obs/CObservationOdometry.h>
-#include <mrpt/system/TParameters.h>
-
-#include <mrpt/system/string_utils.h>
-
 #include <mrpt/obs/carmen_log_tools.h>
+#include <mrpt/system/TParameters.h>
+#include <mrpt/system/string_utils.h>
 
 using namespace mrpt;
 using namespace mrpt::obs;
@@ -52,7 +51,7 @@ bool mrpt::obs::carmen_log_parse_line(
 		S.str(line);
 
 		CObservation2DRangeScan::Ptr obsLaser_ptr =
-			mrpt::make_aligned_shared<CObservation2DRangeScan>();
+			std::make_shared<CObservation2DRangeScan>();
 		CObservation2DRangeScan* obsLaser =
 			obsLaser_ptr.get();  // Faster access
 
@@ -84,8 +83,7 @@ bool mrpt::obs::carmen_log_parse_line(
 			obsLaser->setScanRange(i, range);
 			// Valid value?
 			obsLaser->setScanRangeValidity(
-				i, (obsLaser->scan[i] >= obsLaser->maxRange ||
-					obsLaser->scan[i] <= 0));
+				i, (range >= obsLaser->maxRange || range <= 0));
 		}
 
 		size_t remmision_count;
@@ -136,7 +134,7 @@ bool mrpt::obs::carmen_log_parse_line(
 		// Create odometry observation:
 		{
 			CObservationOdometry::Ptr obsOdo_ptr =
-				mrpt::make_aligned_shared<CObservationOdometry>();
+				std::make_shared<CObservationOdometry>();
 
 			obsOdo_ptr->timestamp = obs_time;
 			obsOdo_ptr->odometry = CPose2D(globalRobotPose);
@@ -159,7 +157,7 @@ bool mrpt::obs::carmen_log_parse_line(
 		S.str(line);
 
 		CObservation2DRangeScan::Ptr obsLaser_ptr =
-			mrpt::make_aligned_shared<CObservation2DRangeScan>();
+			std::make_shared<CObservation2DRangeScan>();
 		CObservation2DRangeScan* obsLaser =
 			obsLaser_ptr.get();  // Faster access
 
@@ -201,8 +199,8 @@ bool mrpt::obs::carmen_log_parse_line(
 								 "laser_rear_laser_resolution", "0.5"s)
 							 .c_str());
 			}
-			obsLaser->maxRange = maxRange;
-			obsLaser->aperture = DEG2RAD(resolutionDeg) * nRanges;
+			obsLaser->maxRange = d2f(maxRange);
+			obsLaser->aperture = d2f(DEG2RAD(resolutionDeg) * nRanges);
 		}
 
 		obsLaser->resizeScan(nRanges);
@@ -217,8 +215,8 @@ bool mrpt::obs::carmen_log_parse_line(
 			obsLaser->setScanRange(i, range);
 			// Valid value?
 			obsLaser->setScanRangeValidity(
-				i, (obsLaser->scan[i] >= obsLaser->maxRange ||
-					obsLaser->scan[i] <= 0));
+				i, (obsLaser->getScanRange(i) >= obsLaser->maxRange ||
+					obsLaser->getScanRange(i) <= 0));
 		}
 
 		mrpt::math::TPose2D globalLaserPose;
@@ -247,7 +245,7 @@ bool mrpt::obs::carmen_log_parse_line(
 		// Create odometry observation:
 		{
 			CObservationOdometry::Ptr obsOdo_ptr =
-				mrpt::make_aligned_shared<CObservationOdometry>();
+				std::make_shared<CObservationOdometry>();
 
 			obsOdo_ptr->timestamp = obs_time;
 			obsOdo_ptr->odometry = CPose2D(globalRobotPose);

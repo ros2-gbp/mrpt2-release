@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,7 +10,7 @@
 
 #include <mrpt/bayes/CParticleFilterCapable.h>
 #include <mrpt/bayes/CParticleFilterData.h>
-#include <mrpt/math/lightweight_geom_data.h>
+#include <mrpt/math/TPose3D.h>
 #include <mrpt/obs/CActionRobotMovement2D.h>
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/poses/CPose3DPDFGaussian.h>
@@ -258,12 +258,10 @@ class PF_implementation : public mrpt::system::COutputLogger
 	}  // end of PF_SLAM_implementation_replaceByNewParticleSet
 
 	virtual bool PF_SLAM_implementation_doWeHaveValidObservations(
-		const typename mrpt::bayes::CParticleFilterData<
+		[[maybe_unused]] const typename mrpt::bayes::CParticleFilterData<
 			PARTICLE_TYPE, STORAGE>::CParticleList& particles,
-		const mrpt::obs::CSensoryFrame* sf) const
+		[[maybe_unused]] const mrpt::obs::CSensoryFrame* sf) const
 	{
-		MRPT_UNUSED_PARAM(particles);
-		MRPT_UNUSED_PARAM(sf);
 		return true;  // By default, always process the SFs.
 	}
 

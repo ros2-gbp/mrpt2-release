@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -66,7 +66,7 @@ class C2DRangeFinderAbstract : public mrpt::system::COutputLogger,
 
    protected:
 	/** The I/O channel (will be nullptr if not bound). */
-	mrpt::io::CStream* m_stream{nullptr};
+	std::shared_ptr<mrpt::io::CStream> m_stream;
 
 	/** Should be call by derived classes at "loadConfig" (loads exclusion areas
 	 *AND exclusion angles).
@@ -120,7 +120,7 @@ class C2DRangeFinderAbstract : public mrpt::system::COutputLogger,
 	 * class.
 	 * \sa comms::CSerialPort
 	 */
-	void bindIO(mrpt::io::CStream* streamIO);
+	void bindIO(const std::shared_ptr<mrpt::io::CStream>& streamIO);
 
 	/** Get the last observation from the sensor, if available, and unmarks it
 	 * as being "the last one" (thus a new scan must arrive or subsequent calls
@@ -156,6 +156,28 @@ class C2DRangeFinderAbstract : public mrpt::system::COutputLogger,
 	 * \return If everything works "true", or "false" if there is any error.
 	 */
 	virtual bool turnOff() = 0;
+
+	/** Returns the empirical, filtered estimation for the period at which whole
+	 * scans are being returned from calls to doProcessSimple()
+	 * \note:  Units: seconds */
+	double getEstimatedScanPeriod() const { return m_estimated_scan_period; }
+
+   protected:
+	/** Must be called from doProcessSimple() implementations */
+	void internal_notifyGoodScanNow();
+
+	/** Must be called from doProcessSimple() implementations.
+	 * Returns true if ok, false if this seems strange and should
+	 * return an error condition to the user. */
+	bool internal_notifyNoScanReceived();
+
+   private:
+	/// Used in internal_notifyGoodScanNow()
+	mrpt::system::TTimeStamp m_last_good_scan{INVALID_TIMESTAMP};
+	/// Updated in internal_notifyGoodScanNow()
+	double m_estimated_scan_period{1.0};
+	/// Used in internal_notifyNoScanReceived()
+	int m_failure_waiting_scan_counter{0}, m_max_missed_scan_failures{10};
 
 };  // End of class
 }  // namespace mrpt::hwdrivers

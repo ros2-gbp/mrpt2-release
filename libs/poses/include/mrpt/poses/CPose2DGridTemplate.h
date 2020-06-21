@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/core/bits_math.h>  // for DEG2RAD()
+#include <mrpt/core/bits_math.h>  // for .0_deg
 #include <mrpt/core/round.h>  // for round()
 #include <mrpt/serialization/CSerializable.h>
 
@@ -179,7 +179,7 @@ class CPose2DGridTemplate
 	 * each row contains values for a fixed "y".
 	 */
 	template <class MATRIXLIKE>
-	void getAsMatrix(const double& phi, MATRIXLIKE& outMat)
+	void getAsMatrix(double phi, MATRIXLIKE& outMat)
 	{
 		MRPT_START
 		outMat.setSize(m_sizeY, m_sizeX);

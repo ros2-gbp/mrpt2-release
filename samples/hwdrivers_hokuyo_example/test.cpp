@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -123,35 +123,19 @@ void Test_HOKUYO()
 		{
 			double FPS = 1.0 / tictac.Tac();
 
-			printf(
-				"Scan received: %u ranges, FOV: %.02fdeg, %.03fHz: mid "
-				"rang=%fm\n",
-				(unsigned int)obs.scan.size(), RAD2DEG(obs.aperture), FPS,
-				obs.scan[obs.scan.size() / 2]);
-
-			if (obs.hasIntensity())
-			{
-				size_t i;
-				std::cout << "[ ";
-				for (i = 0; i < obs.intensity.size() - 1; i++)
-				{
-					std::cout << obs.intensity[i] << ",\t";
-					if (i % 10 == 9) std::cout << std::endl;
-				}
-				std::cout << obs.intensity[i] << " ]" << std::endl;
-			}
+			obs.getDescriptionAsText(std::cout);
 
 			obs.sensorPose = CPose3D(0, 0, 0);
 
 			mrpt::maps::CSimplePointsMap theMap;
 			theMap.insertionOptions.minDistBetweenLaserPoints = 0;
-			theMap.insertObservation(&obs);
+			theMap.insertObservation(obs);
 			// map.save2D_to_text_file("_out_scan.txt");
 
 			/*
 			COpenGLScene			scene3D;
 			opengl::CPointCloud::Ptr	points =
-			mrpt::make_aligned_shared<opengl::CPointCloud>();
+			opengl::CPointCloud::Create();
 			points->loadFromPointsMap(&map);
 			scene3D.insert(points);
 			CFileStream("_out_point_cloud.3Dscene",fomWrite) << scene3D;

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -48,7 +48,7 @@ class MyObserver : public mrpt::system::CObserver
 // ------------------------------------------------------
 void TestObserverPattern()
 {
-	CSimplePointsMap::Ptr map1 = mrpt::make_aligned_shared<CSimplePointsMap>();
+	CSimplePointsMap::Ptr map1 = CSimplePointsMap::Create();
 
 	CObservation2DRangeScan obs = getScan();
 
@@ -57,13 +57,13 @@ void TestObserverPattern()
 	observer.observeBegin(*map1);
 
 	// Insert:
-	for (int i = 0; i < 3; i++) map1->insertObservation(&obs);
+	for (int i = 0; i < 3; i++) map1->insertObservation(obs);
 
 	// Clear:
 	map1->clear();
 
 	// Insert again:
-	map1->insertObservation(&obs);
+	map1->insertObservation(obs);
 
 	// Destroy
 	map1.reset();

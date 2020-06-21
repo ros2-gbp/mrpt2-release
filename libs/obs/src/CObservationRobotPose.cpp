@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -20,12 +20,12 @@ using namespace mrpt::poses;
 // This must be added to any CSerializable class implementation file.
 IMPLEMENTS_SERIALIZABLE(CObservationRobotPose, CObservation, mrpt::obs)
 
-uint8_t CObservationRobotPose::serializeGetVersion() const { return 0; }
+uint8_t CObservationRobotPose::serializeGetVersion() const { return 1; }
 void CObservationRobotPose::serializeTo(
 	mrpt::serialization::CArchive& out) const
 {
 	out << pose;
-	out << sensorLabel << timestamp;
+	out << sensorLabel << timestamp << sensorPose;
 }
 
 void CObservationRobotPose::serializeFrom(
@@ -34,9 +34,11 @@ void CObservationRobotPose::serializeFrom(
 	switch (version)
 	{
 		case 0:
+		case 1:
 		{
 			in >> pose;
 			in >> sensorLabel >> timestamp;
+			if (version >= 1) in >> sensorPose;
 		}
 		break;
 		default:

@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/lightweight_geom_data.h>
+#include <mrpt/math/TPolygon2D.h>
 #include <mrpt/serialization/CSerializable.h>
 
 namespace mrpt::math
@@ -19,7 +19,7 @@ namespace mrpt::math
 class CPolygon : public mrpt::serialization::CSerializable,
 				 public mrpt::math::TPolygon2D
 {
-	DEFINE_SERIALIZABLE(CPolygon)
+	DEFINE_SERIALIZABLE(CPolygon, mrpt::math)
 
    public:
 	/** Default constructor (empty polygon, 0 vertices) */

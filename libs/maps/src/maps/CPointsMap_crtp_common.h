@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -46,7 +46,7 @@ struct loadFromRangeImpl
 		// std::vector<> memory is not actually deadllocated
 		// and can be reused.
 
-		const int sizeRangeScan = rangeScan.scan.size();
+		const int sizeRangeScan = rangeScan.getScanSize();
 
 		if (!sizeRangeScan) return;  // Nothing to do.
 
@@ -63,15 +63,15 @@ struct loadFromRangeImpl
 		sensorPose3D.getHomogeneousMatrix(lric.HM);
 
 		// For quicker access as "float" numbers:
-		float m00 = lric.HM.get_unsafe(0, 0);
-		float m01 = lric.HM.get_unsafe(0, 1);
-		float m03 = lric.HM.get_unsafe(0, 3);
-		float m10 = lric.HM.get_unsafe(1, 0);
-		float m11 = lric.HM.get_unsafe(1, 1);
-		float m13 = lric.HM.get_unsafe(1, 3);
-		float m20 = lric.HM.get_unsafe(2, 0);
-		float m21 = lric.HM.get_unsafe(2, 1);
-		float m23 = lric.HM.get_unsafe(2, 3);
+		float m00 = lric.HM(0, 0);
+		float m01 = lric.HM(0, 1);
+		float m03 = lric.HM(0, 3);
+		float m10 = lric.HM(1, 0);
+		float m11 = lric.HM(1, 1);
+		float m13 = lric.HM(1, 3);
+		float m20 = lric.HM(2, 0);
+		float m21 = lric.HM(2, 1);
+		float m23 = lric.HM(2, 3);
 
 		float lx_1, ly_1, lz_1, lx = 0, ly = 0,
 								lz = 0;  // Punto anterior y actual:
@@ -164,7 +164,7 @@ struct loadFromRangeImpl
 			// hold vectors of 4*N capacity, so there is no need to call
 			// reserve() here.
 
-			const float* ptr_in_scan = &rangeScan.scan[0];
+			const float* ptr_in_scan = &rangeScan.getScanRange(0);
 			const float* ptr_in_cos = &sincos_vals.ccos[0];
 			const float* ptr_in_sin = &sincos_vals.csin[0];
 
@@ -208,16 +208,16 @@ struct loadFromRangeImpl
 
 			// Convert from the std::vector format:
 			const Eigen::Map<Eigen::Matrix<float, Eigen::Dynamic, 1>> scan_vals(
-				const_cast<float*>(&rangeScan.scan[0]), rangeScan.scan.size(),
-				1);
+				const_cast<float*>(&rangeScan.getScanRange(0)),
+				rangeScan.getScanSize(), 1);
 			// SinCos table allocates N+4 floats for the convenience of SSE2:
 			// Map to make it appears it has the correct size:
 			const Eigen::Map<Eigen::Matrix<float, Eigen::Dynamic, 1>> ccos(
-				const_cast<float*>(&sincos_vals.ccos[0]), rangeScan.scan.size(),
-				1);
+				const_cast<float*>(&sincos_vals.ccos[0]),
+				rangeScan.getScanSize(), 1);
 			const Eigen::Map<Eigen::Matrix<float, Eigen::Dynamic, 1>> csin(
-				const_cast<float*>(&sincos_vals.csin[0]), rangeScan.scan.size(),
-				1);
+				const_cast<float*>(&sincos_vals.csin[0]),
+				rangeScan.getScanSize(), 1);
 
 			// Vectorized (optimized) scalar multiplications:
 			scan_x = scan_vals.array() * ccos.array();
@@ -233,7 +233,7 @@ struct loadFromRangeImpl
 
 		for (int i = 0; i < sizeRangeScan; i++)
 		{
-			if (rangeScan.validRange[i])
+			if (rangeScan.getScanRangeValidity(i))
 			{
 				lx = scan_gx[i];
 				ly = scan_gy[i];
@@ -285,7 +285,7 @@ struct loadFromRangeImpl
 										 .minDistBetweenLaserPoints &&
 							d < obj.insertionOptions
 									.maxDistForInterpolatePoints &&
-							fabs(changeInDirection) < DEG2RAD(5))
+							fabs(changeInDirection) < 5.0_deg)
 						{
 							int nInterpol = mrpt::round(
 								d / (2 * sqrt(minDistSqrBetweenLaserPoints)));
@@ -342,7 +342,7 @@ struct loadFromRangeImpl
 			}
 
 			// Save for next iteration:
-			lastPointWasValid = rangeScan.validRange[i] != 0;
+			lastPointWasValid = rangeScan.getScanRangeValidity(i) != 0;
 		}
 
 		// The last point
@@ -403,18 +403,18 @@ struct loadFromRangeImpl
 		mrpt::maps::CPointsMap::TLaserRange3DInsertContext lric(rangeScan);
 		sensorPose3D.getHomogeneousMatrix(lric.HM);
 		// For quicker access to values as "float" instead of "doubles":
-		float m00 = lric.HM.get_unsafe(0, 0);
-		float m01 = lric.HM.get_unsafe(0, 1);
-		float m02 = lric.HM.get_unsafe(0, 2);
-		float m03 = lric.HM.get_unsafe(0, 3);
-		float m10 = lric.HM.get_unsafe(1, 0);
-		float m11 = lric.HM.get_unsafe(1, 1);
-		float m12 = lric.HM.get_unsafe(1, 2);
-		float m13 = lric.HM.get_unsafe(1, 3);
-		float m20 = lric.HM.get_unsafe(2, 0);
-		float m21 = lric.HM.get_unsafe(2, 1);
-		float m22 = lric.HM.get_unsafe(2, 2);
-		float m23 = lric.HM.get_unsafe(2, 3);
+		float m00 = lric.HM(0, 0);
+		float m01 = lric.HM(0, 1);
+		float m02 = lric.HM(0, 2);
+		float m03 = lric.HM(0, 3);
+		float m10 = lric.HM(1, 0);
+		float m11 = lric.HM(1, 1);
+		float m12 = lric.HM(1, 2);
+		float m13 = lric.HM(1, 3);
+		float m20 = lric.HM(2, 0);
+		float m21 = lric.HM(2, 1);
+		float m22 = lric.HM(2, 2);
+		float m23 = lric.HM(2, 3);
 
 		float lx_1, ly_1, lz_1, lx = 0, ly = 0,
 								lz = 0;  // Punto anterior y actual:

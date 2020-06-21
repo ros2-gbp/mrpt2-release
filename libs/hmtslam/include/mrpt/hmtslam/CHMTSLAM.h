@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,7 +11,6 @@
 #include <mrpt/containers/CThreadSafeQueue.h>
 #include <mrpt/system/COutputLogger.h>
 
-#include <mrpt/core/aligned_std_map.h>
 #include <mrpt/hmtslam/CHierarchicalMHMap.h>
 #include <mrpt/hmtslam/CLocalMetricHypothesis.h>
 #include <mrpt/hmtslam/CTopLCDetector_FabMap.h>
@@ -23,6 +22,7 @@
 #include <mrpt/serialization/CMessage.h>
 #include <mrpt/slam/CICP.h>
 #include <mrpt/slam/TKLDParams.h>
+#include <map>
 
 #include <queue>
 #include <thread>
@@ -72,7 +72,7 @@ class CHMTSLAM : public mrpt::system::COutputLogger,
 	friend class CTopLCDetector_GridMatching;
 	friend class CTopLCDetector_FabMap;
 
-	DEFINE_SERIALIZABLE(CHMTSLAM)
+	DEFINE_SERIALIZABLE(CHMTSLAM, mrpt::hmtslam)
 
    protected:
 	/** @name Inter-thread communication queues:
@@ -152,7 +152,7 @@ class CHMTSLAM : public mrpt::system::COutputLogger,
 		 */
 		std::map<CHMHMapNode::TNodeID, TBI_info> loopClosureData;
 
-		// MRPT_MAKE_ALIGNED_OPERATOR_NEW
+		//
 	};
 
 	/** LSLAM thread input queue, messages of type CHMTSLAM::TMessageLSLAMfromAA
@@ -334,11 +334,11 @@ class CHMTSLAM : public mrpt::system::COutputLogger,
 	/** @} */
    protected:
 	/** Termination flag for signaling all threads to terminate */
-	bool m_terminateThreads;
+	std::atomic_bool m_terminateThreads;
 
 	/** Threads termination flags:
 	 */
-	bool m_terminationFlag_LSLAM, m_terminationFlag_TBI,
+	std::atomic_bool m_terminationFlag_LSLAM, m_terminationFlag_TBI,
 		m_terminationFlag_3D_viewer;
 
 	/** Generates a new and unique area textual label (currently this generates
@@ -414,7 +414,7 @@ class CHMTSLAM : public mrpt::system::COutputLogger,
 	/** The hiearchical, multi-hypothesis graph-based map. */
 	CHierarchicalMHMap m_map;
 	/** The list of LMHs at each instant. */
-	mrpt::aligned_std_map<THypothesisID, CLocalMetricHypothesis> m_LMHs;
+	std::map<THypothesisID, CLocalMetricHypothesis> m_LMHs;
 	/** @} */
 
 	/** Called from LSLAM thread when log files must be created.

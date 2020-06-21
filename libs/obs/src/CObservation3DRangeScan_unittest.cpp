@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -22,25 +22,49 @@
 using namespace mrpt;
 using namespace std;
 
-#define TEST_RANGEIMG_WIDTH 32
-#define TEST_RANGEIMG_HEIGHT 24
+// We need OPENCV to read the image internal to CObservation3DRangeScan,
+// and to build the unprojected points LUTs, so skip tests if we don't have
+// opencv.
+#if MRPT_HAS_OPENCV
+
+constexpr unsigned int TEST_RANGEIMG_WIDTH = 32;
+constexpr unsigned int TEST_RANGEIMG_HEIGHT = 24;
+
+constexpr float SECOND_LAYER_CONSTANT_RANGE = 50.0f;
 
 void fillSampleObs(
 	mrpt::obs::CObservation3DRangeScan& obs,
 	mrpt::obs::T3DPointsProjectionParams& pp, int test_case)
 {
 	obs.hasRangeImage = true;
+
+	// Create a second depth layer:
+	obs.rangeImageOtherLayers.clear();
+	mrpt::math::CMatrix_u16& ri_2nd = obs.rangeImageOtherLayers["LATEST"];
+
 	obs.rangeImage_setSize(TEST_RANGEIMG_HEIGHT, TEST_RANGEIMG_WIDTH);
 
 	obs.rangeImage.setZero();
 
-	for (int r = 10; r < 16; r++)
-		for (int c = 10; c <= r; c++) obs.rangeImage(r, c) = r;
+	obs.rangeUnits = 1e-3f;
+
+	for (unsigned int r = 10; r < 16; r++)
+		for (unsigned int c = 10; c <= r; c++)
+			obs.rangeImage(r, c) = static_cast<uint16_t>(r / obs.rangeUnits);
+
+	ri_2nd.fill(
+		static_cast<uint16_t>(SECOND_LAYER_CONSTANT_RANGE / obs.rangeUnits));
+
+	obs.cameraParams.ncols = TEST_RANGEIMG_WIDTH;
+	obs.cameraParams.nrows = TEST_RANGEIMG_HEIGHT;
+	obs.cameraParams.cx(TEST_RANGEIMG_WIDTH / 2);
+	obs.cameraParams.cy(TEST_RANGEIMG_HEIGHT / 2);
+	obs.cameraParams.fx(TEST_RANGEIMG_WIDTH * 2);
+	obs.cameraParams.fy(TEST_RANGEIMG_WIDTH * 2);
 
 	// Test case:
-	pp.PROJ3D_USE_LUT = (test_case & 1) != 0;
-	pp.USE_SSE2 = (test_case & 2) != 0;
-	pp.takeIntoAccountSensorPoseOnRobot = (test_case & 4) != 0;
+	pp.USE_SSE2 = (test_case & 1) != 0;
+	pp.takeIntoAccountSensorPoseOnRobot = (test_case & 2) != 0;
 }
 
 TEST(CObservation3DRangeScan, Project3D_noFilter)
@@ -48,12 +72,12 @@ TEST(CObservation3DRangeScan, Project3D_noFilter)
 	mrpt::obs::T3DPointsProjectionParams pp;
 	mrpt::obs::TRangeImageFilterParams fp;
 
-	for (int i = 0; i < 8; i++)  // test all combinations of flags
+	for (int i = 0; i < 4; i++)  // test all combinations of flags
 	{
 		mrpt::obs::CObservation3DRangeScan o;
 		fillSampleObs(o, pp, i);
 
-		o.project3DPointsFromDepthImageInto(o, pp, fp);
+		o.unprojectInto(o, pp, fp);
 		EXPECT_EQ(o.points3D_x.size(), 21U)
 			<< " testcase flags: i=" << i << std::endl;
 	}
@@ -61,7 +85,7 @@ TEST(CObservation3DRangeScan, Project3D_noFilter)
 
 TEST(CObservation3DRangeScan, Project3D_filterMinMax1)
 {
-	mrpt::math::CMatrix fMax(TEST_RANGEIMG_HEIGHT, TEST_RANGEIMG_WIDTH),
+	mrpt::math::CMatrixF fMax(TEST_RANGEIMG_HEIGHT, TEST_RANGEIMG_WIDTH),
 		fMin(TEST_RANGEIMG_HEIGHT, TEST_RANGEIMG_WIDTH);
 	fMin(12, 12) = 11.5f;
 	fMax(12, 12) = 12.5f;  // pass
@@ -74,21 +98,40 @@ TEST(CObservation3DRangeScan, Project3D_filterMinMax1)
 	fp.rangeMask_min = &fMin;
 	fp.rangeMask_max = &fMax;
 
-	for (int i = 0; i < 16; i++)  // test all combinations of flags
+	for (int i = 0; i < 8; i++)  // test all combinations of flags
 	{
 		mrpt::obs::CObservation3DRangeScan o;
 		fillSampleObs(o, pp, i);
-		fp.rangeCheckBetween = (i & 8) != 0;
+		fp.rangeCheckBetween = (i & 4) != 0;
 
-		o.project3DPointsFromDepthImageInto(o, pp, fp);
+		o.unprojectInto(o, pp, fp);
 		EXPECT_EQ(o.points3D_x.size(), 20U)
+			<< " testcase flags: i=" << i << std::endl;
+	}
+}
+
+TEST(CObservation3DRangeScan, Project3D_additionalLayers)
+{
+	mrpt::obs::T3DPointsProjectionParams pp;
+	mrpt::obs::TRangeImageFilterParams fp;
+
+	pp.layer = "LATEST";
+
+	for (int i = 0; i < 4; i++)  // test all combinations of flags
+	{
+		mrpt::obs::CObservation3DRangeScan o;
+		fillSampleObs(o, pp, i);
+
+		o.unprojectInto(o, pp, fp);
+		EXPECT_EQ(
+			o.points3D_x.size(), TEST_RANGEIMG_HEIGHT * TEST_RANGEIMG_WIDTH)
 			<< " testcase flags: i=" << i << std::endl;
 	}
 }
 
 TEST(CObservation3DRangeScan, Project3D_filterMinMaxAllBetween)
 {
-	mrpt::math::CMatrix fMax(TEST_RANGEIMG_HEIGHT, TEST_RANGEIMG_WIDTH),
+	mrpt::math::CMatrixF fMax(TEST_RANGEIMG_HEIGHT, TEST_RANGEIMG_WIDTH),
 		fMin(TEST_RANGEIMG_HEIGHT, TEST_RANGEIMG_WIDTH);
 	// Default filter=0.0f -> no filtering
 	for (int r = 10; r < 16; r++)
@@ -109,7 +152,7 @@ TEST(CObservation3DRangeScan, Project3D_filterMinMaxAllBetween)
 		fillSampleObs(o, pp, i);
 		fp.rangeCheckBetween = (i & 8) != 0;
 
-		o.project3DPointsFromDepthImageInto(o, pp, fp);
+		o.unprojectInto(o, pp, fp);
 		EXPECT_EQ(o.points3D_x.size(), fp.rangeCheckBetween ? 21U : 0U)
 			<< " testcase flags: i=" << i << std::endl;
 	}
@@ -117,7 +160,7 @@ TEST(CObservation3DRangeScan, Project3D_filterMinMaxAllBetween)
 
 TEST(CObservation3DRangeScan, Project3D_filterMinMaxNoneBetween)
 {
-	mrpt::math::CMatrix fMax(TEST_RANGEIMG_HEIGHT, TEST_RANGEIMG_WIDTH),
+	mrpt::math::CMatrixF fMax(TEST_RANGEIMG_HEIGHT, TEST_RANGEIMG_WIDTH),
 		fMin(TEST_RANGEIMG_HEIGHT, TEST_RANGEIMG_WIDTH);
 	// Default filter=0.0f -> no filtering
 	for (int r = 10; r < 16; r++)
@@ -138,7 +181,7 @@ TEST(CObservation3DRangeScan, Project3D_filterMinMaxNoneBetween)
 		fillSampleObs(o, pp, i);
 		fp.rangeCheckBetween = (i & 8) != 0;
 
-		o.project3DPointsFromDepthImageInto(o, pp, fp);
+		o.unprojectInto(o, pp, fp);
 		EXPECT_EQ(o.points3D_x.size(), fp.rangeCheckBetween ? 0U : 21U)
 			<< " testcase flags: i=" << i << std::endl;
 	}
@@ -146,7 +189,7 @@ TEST(CObservation3DRangeScan, Project3D_filterMinMaxNoneBetween)
 
 TEST(CObservation3DRangeScan, Project3D_filterMin)
 {
-	mrpt::math::CMatrix fMin(TEST_RANGEIMG_HEIGHT, TEST_RANGEIMG_WIDTH);
+	mrpt::math::CMatrixF fMin(TEST_RANGEIMG_HEIGHT, TEST_RANGEIMG_WIDTH);
 	// Default filter=0.0f -> no filtering
 	for (int r = 10; r < 16; r++)
 		for (int c = 10; c < 16; c++)
@@ -162,7 +205,7 @@ TEST(CObservation3DRangeScan, Project3D_filterMin)
 		mrpt::obs::CObservation3DRangeScan o;
 		fillSampleObs(o, pp, i);
 
-		o.project3DPointsFromDepthImageInto(o, pp, fp);
+		o.unprojectInto(o, pp, fp);
 		EXPECT_EQ(o.points3D_x.size(), 6U)
 			<< " testcase flags: i=" << i << std::endl;
 	}
@@ -170,7 +213,7 @@ TEST(CObservation3DRangeScan, Project3D_filterMin)
 
 TEST(CObservation3DRangeScan, Project3D_filterMax)
 {
-	mrpt::math::CMatrix fMax(TEST_RANGEIMG_HEIGHT, TEST_RANGEIMG_WIDTH);
+	mrpt::math::CMatrixF fMax(TEST_RANGEIMG_HEIGHT, TEST_RANGEIMG_WIDTH);
 	// Default filter=0.0f -> no filtering
 	for (int r = 10; r < 16; r++)
 		for (int c = 10; c < 16; c++)
@@ -186,15 +229,11 @@ TEST(CObservation3DRangeScan, Project3D_filterMax)
 		mrpt::obs::CObservation3DRangeScan o;
 		fillSampleObs(o, pp, i);
 
-		o.project3DPointsFromDepthImageInto(o, pp, fp);
+		o.unprojectInto(o, pp, fp);
 		EXPECT_EQ(o.points3D_x.size(), 3U)
 			<< " testcase flags: i=" << i << std::endl;
 	}
 }
-
-// We need OPENCV to read the image internal to CObservation3DRangeScan,
-// so skip this test if built without opencv.
-#if MRPT_HAS_OPENCV
 
 TEST(CObservation3DRangeScan, LoadAndCheckFloorPoints)
 {
@@ -224,7 +263,7 @@ TEST(CObservation3DRangeScan, LoadAndCheckFloorPoints)
 	// decimation=1
 	{
 		mrpt::maps::CSimplePointsMap pts;
-		obs->project3DPointsFromDepthImageInto(pts, pp);
+		obs->unprojectInto(pts, pp);
 
 		mrpt::containers::copy_container_typecasting(
 			pts.getPointsBufferRef_z(), ptsz);
@@ -248,7 +287,7 @@ TEST(CObservation3DRangeScan, LoadAndCheckFloorPoints)
 	{
 		mrpt::maps::CSimplePointsMap pts;
 		pp.decimation = 8;
-		obs->project3DPointsFromDepthImageInto(pts, pp);
+		obs->unprojectInto(pts, pp);
 
 		mrpt::containers::copy_container_typecasting(
 			pts.getPointsBufferRef_z(), ptsz);
@@ -275,6 +314,80 @@ TEST(CObservation3DRangeScan, LoadAndCheckFloorPoints)
 		EXPECT_GE(bin_count[14], 100);
 		EXPECT_LE(bin_count[18], 40);
 		EXPECT_LE(bin_count[19], 5);
+	}
+}
+
+TEST(CObservation3DRangeScan, SyntheticRange)
+{
+	for (int i = 0; i < 4; i++)  // test all combinations of flags
+	{
+		mrpt::obs::T3DPointsProjectionParams pp;
+		mrpt::obs::CObservation3DRangeScan o;
+		fillSampleObs(o, pp, i);
+		const float R = 15.0f;
+		o.rangeImage.fill(static_cast<uint16_t>(R / o.rangeUnits));
+
+		// Ranges:
+		o.range_is_depth = false;
+
+		// x y z yaw pitch roll
+		o.sensorPose = mrpt::poses::CPose3D::FromString("[1 2 3 0 0 0]");
+
+		mrpt::maps::CSimplePointsMap pts;
+		o.unprojectInto(pts, pp);
+
+		EXPECT_EQ(pts.size(), TEST_RANGEIMG_WIDTH * TEST_RANGEIMG_HEIGHT);
+
+		for (size_t j = 0; j < pts.size(); j++)
+		{
+			float px, py, pz;
+			pts.getPoint(j, px, py, pz);
+
+			mrpt::math::TPoint3D l;
+			if (pp.takeIntoAccountSensorPoseOnRobot)
+				o.sensorPose.inverseComposePoint(px, py, pz, l.x, l.y, l.z);
+			else
+				l = mrpt::math::TPoint3D(px, py, pz);
+
+			EXPECT_NEAR(l.norm(), R, 2e-3);
+		}
+	}
+}
+
+TEST(CObservation3DRangeScan, SyntheticDepth)
+{
+	for (int i = 0; i < 4; i++)  // test all combinations of flags
+	{
+		mrpt::obs::T3DPointsProjectionParams pp;
+		mrpt::obs::CObservation3DRangeScan o;
+		fillSampleObs(o, pp, i);
+		const float R = 15.0f;
+		o.rangeImage.fill(static_cast<uint16_t>(R / o.rangeUnits));
+
+		// depth:
+		o.range_is_depth = true;
+
+		// x y z yaw pitch roll
+		o.sensorPose = mrpt::poses::CPose3D::FromString("[1 2 3 0 0 0]");
+
+		mrpt::maps::CSimplePointsMap pts;
+		o.unprojectInto(pts, pp);
+
+		EXPECT_EQ(pts.size(), TEST_RANGEIMG_WIDTH * TEST_RANGEIMG_HEIGHT);
+
+		for (size_t j = 0; j < pts.size(); j++)
+		{
+			float px, py, pz;
+			pts.getPoint(j, px, py, pz);
+
+			mrpt::math::TPoint3D l;
+			if (pp.takeIntoAccountSensorPoseOnRobot)
+				o.sensorPose.inverseComposePoint(px, py, pz, l.x, l.y, l.z);
+			else
+				l = mrpt::math::TPoint3D(px, py, pz);
+
+			EXPECT_NEAR(l.x, R, 2e-3);
+		}
 	}
 }
 #endif

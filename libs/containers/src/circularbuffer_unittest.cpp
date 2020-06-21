@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,6 +11,7 @@
 #include <mrpt/containers/circular_buffer.h>
 #include <mrpt/core/common.h>
 #include <mrpt/random.h>
+#include <array>
 
 #include <gtest/gtest.h>
 
@@ -26,7 +27,7 @@ TEST(circular_buffer_tests, EmptyPop)
 }
 TEST(circular_buffer_tests, EmptyPopAfterPushes)
 {
-	const size_t LEN = 20;
+	constexpr size_t LEN = 20;
 	mrpt::containers::circular_buffer<cb_t> cb(LEN);
 	for (size_t nWr = 0; nWr < LEN; nWr++)
 	{
@@ -40,7 +41,7 @@ TEST(circular_buffer_tests, EmptyPopAfterPushes)
 
 TEST(circular_buffer_tests, RandomWriteAndPeek)
 {
-	const size_t LEN = 20;
+	constexpr size_t LEN = 20;
 	mrpt::containers::circular_buffer<cb_t> cb(LEN);
 
 	for (size_t iter = 0; iter < 1000; iter++)
@@ -63,7 +64,7 @@ TEST(circular_buffer_tests, RandomWriteAndPeek)
 }
 TEST(circular_buffer_tests, RandomWriteManyAndPeek)
 {
-	const size_t LEN = 20;
+	constexpr size_t LEN = 20;
 	mrpt::containers::circular_buffer<cb_t> cb(LEN);
 	std::vector<cb_t> dum_buf;
 
@@ -78,7 +79,7 @@ TEST(circular_buffer_tests, RandomWriteManyAndPeek)
 		if (iter % 2)
 		{
 			for (size_t i = 0; i < nWr; i++) ret = cb.peek(i);
-			MRPT_UNUSED_PARAM(ret);
+			(void)ret;
 		}
 		else
 		{
@@ -87,7 +88,7 @@ TEST(circular_buffer_tests, RandomWriteManyAndPeek)
 		if (iter % 3)
 		{
 			for (size_t i = 0; i < nWr; i++) cb.pop(ret);
-			MRPT_UNUSED_PARAM(ret);
+			(void)ret;
 		}
 		else
 		{
@@ -97,7 +98,7 @@ TEST(circular_buffer_tests, RandomWriteManyAndPeek)
 }
 TEST(circular_buffer_tests, RandomWriteAndPeekOverrun)
 {
-	const size_t LEN = 20;
+	constexpr size_t LEN = 20;
 	mrpt::containers::circular_buffer<cb_t> cb(LEN);
 
 	for (size_t iter = 0; iter < 100; iter++)
@@ -108,15 +109,7 @@ TEST(circular_buffer_tests, RandomWriteAndPeekOverrun)
 		cb_t ret;
 		for (unsigned k = 0; k < 5; k++)
 		{
-			try
-			{
-				ret = cb.peek(nWr + k);
-				GTEST_FAIL() << "Exception was expected but didn't happen!";
-			}
-			catch (std::exception&)
-			{
-				// OK
-			}
+			EXPECT_ANY_THROW(ret = cb.peek(nWr + k););
 		}
 		for (size_t i = 0; i < nWr; i++) cb.pop(ret);
 	}
@@ -136,4 +129,36 @@ TEST(circular_buffer_tests, Size)
 		cb.pop();
 		EXPECT_EQ(cb.size(), cb.capacity() - 2 - i);
 	}
+}
+
+template <typename T>
+void impl_WritePeekCheck()
+{
+	constexpr T LEN = 20;
+	mrpt::containers::circular_buffer<T> cb(LEN + 1);
+
+	for (T i = 0; i < LEN; i++) cb.push(i);
+
+	std::array<T, LEN> peek_vals;
+	cb.peek_many(&peek_vals[0], LEN);
+
+	for (T i = 0; i < LEN; i++)
+		EXPECT_EQ(static_cast<int>(peek_vals[i]), static_cast<int>(i));
+}
+
+TEST(circular_buffer_tests, WritePeekCheck_uint8_t)
+{
+	impl_WritePeekCheck<uint8_t>();
+}
+TEST(circular_buffer_tests, WritePeekCheck_uint16_t)
+{
+	impl_WritePeekCheck<uint16_t>();
+}
+TEST(circular_buffer_tests, WritePeekCheck_uint32_t)
+{
+	impl_WritePeekCheck<uint32_t>();
+}
+TEST(circular_buffer_tests, WritePeekCheck_uint64_t)
+{
+	impl_WritePeekCheck<uint64_t>();
 }

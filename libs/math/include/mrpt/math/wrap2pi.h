@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -25,7 +25,7 @@ template <class T>
 inline void wrapTo2PiInPlace(T& a)
 {
 	bool was_neg = a < 0;
-	a = fmod(a, static_cast<T>(2.0 * M_PI));
+	a = static_cast<T>(fmod(a, static_cast<T>(2.0 * M_PI)));
 	if (was_neg) a += static_cast<T>(2.0 * M_PI);
 }
 

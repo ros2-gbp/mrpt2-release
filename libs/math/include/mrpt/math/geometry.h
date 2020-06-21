@@ -2,17 +2,20 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixFixedNumeric.h>
-#include <mrpt/math/CMatrixTemplateNumeric.h>
+#include <mrpt/math/CMatrixDynamic.h>
+#include <mrpt/math/CMatrixFixed.h>
 #include <mrpt/math/CSparseMatrixTemplate.h>
-#include <mrpt/math/lightweight_geom_data.h>
-
+#include <mrpt/math/TLine2D.h>
+#include <mrpt/math/TPolygon3D.h>
+#include <mrpt/math/TPolygonWithPlane.h>
+#include <mrpt/math/TPose3D.h>
+#include <mrpt/math/epsilon.h>
 #include <mrpt/math/math_frwds.h>  // forward declarations
 #include <mrpt/math/wrap2pi.h>
 
@@ -22,35 +25,6 @@ namespace mrpt::math
  * "lightweight" point & pose classes
  *  \ingroup mrpt_math_grp
  * @{ */
-
-/** Slightly heavyweight type to speed-up calculations with polygons in 3D
- * \sa TPolygon3D,TPlane
- */
-class TPolygonWithPlane
-{
-   public:
-	/** Actual polygon. */
-	TPolygon3D poly;
-	/** Plane containing the polygon. */
-	TPlane plane;
-	/** Plane's pose.  \sa inversePose */
-	mrpt::math::TPose3D pose;
-	/** Plane's inverse pose. \sa pose */
-	mrpt::math::TPose3D inversePose;
-	/** Polygon, after being projected to the plane using inversePose. \sa
-	 * inversePose */
-	TPolygon2D poly2D;
-	/** Constructor. Takes a polygon and computes each parameter. */
-	TPolygonWithPlane(const TPolygon3D& p);
-	/** Basic constructor. Needed to create containers  \sa
-	 * TPolygonWithPlane(const TPolygon3D &) */
-	TPolygonWithPlane() = default;
-	/** Static method for vectors. Takes a set of polygons and creates every
-	 * TPolygonWithPlane  */
-	static void getPlanes(
-		const std::vector<TPolygon3D>& oldPolys,
-		std::vector<TPolygonWithPlane>& newPolys);
-};
 
 /** @name Simple intersection operations, relying basically on geometrical
    operations.
@@ -669,8 +643,8 @@ void createPlaneFromPoseAndNormal(
  * \param[in] vec must be a *unitary* vector
  * \sa generateAxisBaseFromDirectionAndAxis()
  */
-void generateAxisBaseFromDirectionAndAxis(
-	const double (&vec)[3], char coord, CMatrixDouble44& matrix);
+CMatrixDouble44 generateAxisBaseFromDirectionAndAxis(
+	const mrpt::math::TVector3D& vec, uint8_t coord);
 /** @}
  */
 
@@ -734,16 +708,6 @@ void assemblePolygons(
 	const std::vector<TObject3D>& objs, std::vector<TPolygon3D>& polys,
 	std::vector<TSegment3D>& remainder1, std::vector<TObject3D>& remainder2);
 
-/**
- * Changes the value of the geometric epsilon (default = 1e-5)
- * \sa geometryEpsilon,getEpsilon
- */
-void setEpsilon(double nE);
-/**
- * Gets the value of the geometric epsilon  (default = 1e-5)
- * \sa setEpsilon
- */
-double getEpsilon();
 /**
  * Splits a 2D polygon into convex components.
  */
@@ -824,20 +788,15 @@ inline void crossProduct3D(
 	ASSERT_(v0.size() == 3);
 	ASSERT_(v1.size() == 3);
 	v_out.resize(3);
-	v_out[0] = v0[1] * v1[2] - v0[2] * v1[1];
-	v_out[1] = -v0[0] * v1[2] + v0[2] * v1[0];
-	v_out[2] = v0[0] * v1[1] - v0[1] * v1[0];
+	crossProduct3D<std::vector<T>, std::vector<T>, std::vector<T>>(
+		v0, v1, v_out);
 }
-
 //! overload (returning a vector of size 3 by value).
 template <class VEC1, class VEC2>
-inline Eigen::Matrix<double, 3, 1> crossProduct3D(
-	const VEC1& v0, const VEC2& v1)
+inline VEC1 crossProduct3D(const VEC1& v0, const VEC2& v1)
 {
-	Eigen::Matrix<double, 3, 1> vOut;
-	vOut[0] = v0[1] * v1[2] - v0[2] * v1[1];
-	vOut[1] = v0[2] * v1[0] - v0[0] * v1[2];
-	vOut[2] = v0[0] * v1[1] - v0[1] * v1[0];
+	VEC1 vOut;
+	crossProduct3D<VEC1, VEC2, VEC1>(v0, v1, vOut);
 	return vOut;
 }
 
@@ -855,15 +814,15 @@ inline void skew_symmetric3(const VECTOR& v, MATRIX& M)
 {
 	ASSERT_(v.size() == 3);
 	M.setSize(3, 3);
-	M.set_unsafe(0, 0, 0);
-	M.set_unsafe(0, 1, -v[2]);
-	M.set_unsafe(0, 2, v[1]);
-	M.set_unsafe(1, 0, v[2]);
-	M.set_unsafe(1, 1, 0);
-	M.set_unsafe(1, 2, -v[0]);
-	M.set_unsafe(2, 0, -v[1]);
-	M.set_unsafe(2, 1, v[0]);
-	M.set_unsafe(2, 2, 0);
+	M(0, 0) = 0;
+	M(0, 1) = -v[2];
+	M(0, 2) = v[1];
+	M(1, 0) = v[2];
+	M(1, 1) = 0;
+	M(1, 2) = -v[0];
+	M(2, 0) = -v[1];
+	M(2, 1) = v[0];
+	M(2, 2) = 0;
 }
 //! \overload
 template <class VECTOR>
@@ -888,16 +847,16 @@ template <class VECTOR, class MATRIX>
 inline void skew_symmetric3_neg(const VECTOR& v, MATRIX& M)
 {
 	ASSERT_(v.size() == 3);
-	M.setSize(3, 3);
-	M.set_unsafe(0, 0, 0);
-	M.set_unsafe(0, 1, v[2]);
-	M.set_unsafe(0, 2, -v[1]);
-	M.set_unsafe(1, 0, -v[2]);
-	M.set_unsafe(1, 1, 0);
-	M.set_unsafe(1, 2, v[0]);
-	M.set_unsafe(2, 0, v[1]);
-	M.set_unsafe(2, 1, -v[0]);
-	M.set_unsafe(2, 2, 0);
+	ASSERT_(M.rows() == 3 && M.cols() == 3);
+	M(0, 0) = 0;
+	M(0, 1) = v[2];
+	M(0, 2) = -v[1];
+	M(1, 0) = -v[2];
+	M(1, 1) = 0;
+	M(1, 2) = v[0];
+	M(2, 0) = v[1];
+	M(2, 1) = -v[0];
+	M(2, 2) = 0;
 }
 //! \overload
 template <class VECTOR>
@@ -915,7 +874,7 @@ inline mrpt::math::CMatrixDouble33 skew_symmetric3_neg(const VECTOR& v)
 template <class T, class U>
 inline bool vectorsAreParallel2D(const T& v1, const U& v2)
 {
-	return abs(v1[0] * v2[1] - v2[0] * v1[1]) < getEpsilon();
+	return std::abs(v1[0] * v2[1] - v2[0] * v1[1]) < getEpsilon();
 }
 
 /**
@@ -925,30 +884,29 @@ inline bool vectorsAreParallel2D(const T& v1, const U& v2)
 template <class T, class U>
 inline bool vectorsAreParallel3D(const T& v1, const U& v2)
 {
-	if (abs(v1[0] * v2[1] - v2[0] * v1[1]) >= getEpsilon()) return false;
-	if (abs(v1[1] * v2[2] - v2[1] * v1[2]) >= getEpsilon()) return false;
-	return abs(v1[2] * v2[0] - v2[2] * v1[0]) < getEpsilon();
+	if (std::abs(v1[0] * v2[1] - v2[0] * v1[1]) >= getEpsilon()) return false;
+	if (std::abs(v1[1] * v2[2] - v2[1] * v1[2]) >= getEpsilon()) return false;
+	return std::abs(v1[2] * v2[0] - v2[2] * v1[0]) < getEpsilon();
 }
 
 /** Computes the closest point from a given point to a segment.
  * \sa closestFromPointToLine
  */
 void closestFromPointToSegment(
-	const double& Px, const double& Py, const double& x1, const double& y1,
-	const double& x2, const double& y2, double& out_x, double& out_y);
+	double Px, double Py, double x1, double y1, double x2, double y2,
+	double& out_x, double& out_y);
 
 /** Computes the closest point from a given point to a (infinite) line.
  * \sa closestFromPointToSegment
  */
 void closestFromPointToLine(
-	const double& Px, const double& Py, const double& x1, const double& y1,
-	const double& x2, const double& y2, double& out_x, double& out_y);
+	double Px, double Py, double x1, double y1, double x2, double y2,
+	double& out_x, double& out_y);
 
 /** Returns the square distance from a point to a line.
  */
 double closestSquareDistanceFromPointToLine(
-	const double& Px, const double& Py, const double& x1, const double& y1,
-	const double& x2, const double& y2);
+	double Px, double Py, double x1, double y1, double x2, double y2);
 
 /** Returns the distance between 2 points in 2D. */
 template <typename T>
@@ -1013,8 +971,8 @@ bool SegmentsIntersection(
  * \sa pointIntoQuadrangle
  */
 bool pointIntoPolygon2D(
-	const double& px, const double& py, unsigned int polyEdges,
-	const double* poly_xs, const double* poly_ys);
+	double px, double py, unsigned int polyEdges, const double* poly_xs,
+	const double* poly_ys);
 
 /** Specialized method to check whether a point (x,y) falls into a quadrangle.
  * \sa pointIntoPolygon2D
@@ -1047,8 +1005,8 @@ bool pointIntoQuadrangle(
  * point is INTO the polygon or its perimeter.
  */
 double distancePointToPolygon2D(
-	const double& px, const double& py, unsigned int polyEdges,
-	const double* poly_xs, const double* poly_ys);
+	double px, double py, unsigned int polyEdges, const double* poly_xs,
+	const double* poly_ys);
 
 /** Calculates the minimum distance between a pair of lines.
   The lines are given by:
@@ -1060,11 +1018,9 @@ double distancePointToPolygon2D(
   to EPS) parallel.
  */
 bool minDistBetweenLines(
-	const double& p1_x, const double& p1_y, const double& p1_z,
-	const double& p2_x, const double& p2_y, const double& p2_z,
-	const double& p3_x, const double& p3_y, const double& p3_z,
-	const double& p4_x, const double& p4_y, const double& p4_z, double& x,
-	double& y, double& z, double& dist);
+	double p1_x, double p1_y, double p1_z, double p2_x, double p2_y,
+	double p2_z, double p3_x, double p3_y, double p3_z, double p4_x,
+	double p4_y, double p4_z, double& x, double& y, double& z, double& dist);
 
 /** Returns whether two rotated rectangles intersect.
  *  The first rectangle is not rotated and given by
@@ -1076,10 +1032,9 @@ bool minDistBetweenLines(
  *   to the coordinates system of rectangle 1.
  */
 bool RectanglesIntersection(
-	const double& R1_x_min, const double& R1_x_max, const double& R1_y_min,
-	const double& R1_y_max, const double& R2_x_min, const double& R2_x_max,
-	const double& R2_y_min, const double& R2_y_max, const double& R2_pose_x,
-	const double& R2_pose_y, const double& R2_pose_phi);
+	double R1_x_min, double R1_x_max, double R1_y_min, double R1_y_max,
+	double R2_x_min, double R2_x_max, double R2_y_min, double R2_y_max,
+	double R2_pose_x, double R2_pose_y, double R2_pose_phi);
 
 /** Computes an axis base (a set of three 3D normal vectors) with the given
   vector being the first of them ("X")
@@ -1110,7 +1065,7 @@ bool RectanglesIntersection(
 	*
 	*    \f[ v^3 = v^1 \times v^2  \f]
   *
-  * \return The 3x3 matrix (CMatrixTemplateNumeric<T>), containing one vector
+  * \return The 3x3 matrix (CMatrixDynamic<T>), containing one vector
   per column.
   * \except Throws an std::exception on invalid input (i.e. null direction
   vector)
@@ -1118,48 +1073,15 @@ bool RectanglesIntersection(
   *
   * (JLB @ 18-SEP-2007)
   */
-template <class T>
-CMatrixTemplateNumeric<T> generateAxisBaseFromDirection(T dx, T dy, T dz)
-{
-	MRPT_START
-
-	if (dx == 0 && dy == 0 && dz == 0)
-		THROW_EXCEPTION("Invalid input: Direction vector is (0,0,0);");
-
-	CMatrixTemplateNumeric<T> P(3, 3);
-
-	// 1st vector:
-	T n_xy = square(dx) + square(dy);
-	T n = sqrt(n_xy + square(dz));
-	n_xy = sqrt(n_xy);
-	P(0, 0) = dx / n;
-	P(1, 0) = dy / n;
-	P(2, 0) = dz / n;
-
-	// 2nd perpendicular vector:
-	if (fabs(dx) > 1e-4 || fabs(dy) > 1e-4)
-	{
-		P(0, 1) = -dy / n_xy;
-		P(1, 1) = dx / n_xy;
-		P(2, 1) = 0;
-	}
-	else
-	{
-		// Any vector in the XY plane will work:
-		P(0, 1) = 1;
-		P(1, 1) = 0;
-		P(2, 1) = 0;
-	}
-
-	// 3rd perpendicular vector: cross product of the two last vectors:
-	P.col(2) = crossProduct3D(P.col(0), P.col(1));
-
-	return P;
-	MRPT_END
-}
+CMatrixDouble33 generateAxisBaseFromDirection(double dx, double dy, double dz);
 
 /** @} */  // end of misc. geom. methods
 
 /** @} */  // end of grouping
 
+namespace internal
+{
+void unsafeProjectPolygon(
+	const TPolygon3D& poly, const TPose3D& pose, TPolygon2D& newPoly);
+}
 }  // namespace mrpt::math

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -73,8 +73,7 @@ void TestPathPlanning()
 	cout.flush();
 	tictac.Tic();
 
-	pathPlanning.computePath(
-		gridmap, origin, target, thePath, notFound, 100.0f /* Max. distance */);
+	pathPlanning.computePath(gridmap, origin, target, thePath, notFound);
 
 	double t = tictac.Tac();
 	cout << "Done in " << t * 1000 << " ms" << endl;

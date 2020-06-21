@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,6 +11,7 @@
 
 #include <mrpt/maps/CLandmark.h>
 #include <mrpt/maps/CLandmarksMap.h>
+#include <mrpt/math/TPose2D.h>
 #include <mrpt/math/utils.h>
 #include <mrpt/obs/CObservationBeaconRanges.h>
 #include <mrpt/slam/CRejectionSamplingRangeOnlyLocalization.h>
@@ -61,7 +62,7 @@ void CRejectionSamplingRangeOnlyLocalization::RS_drawFromProposal(
 	outSample.y(m_dataPerBeacon[m_drawIndex].beaconPosition.y + sin(ang) * R);
 
 	outSample.phi(
-		getRandomGenerator().drawGaussian1D(m_oldPose.phi(), DEG2RAD(2)));
+		getRandomGenerator().drawGaussian1D(m_oldPose.phi(), 2.0_deg));
 
 	// Compute the robot pose P.
 	//	  P = SAMPLE - ROT · SENSOR_ON_ROBOT
@@ -209,7 +210,7 @@ bool CRejectionSamplingRangeOnlyLocalization::setParams(
 		std::vector<bool>* cell;
 
 		// The ngular step size:
-		float Aa = DEG2RAD(5);
+		float Aa = 5.0_deg;
 
 		// Fill the grid:
 		for (i = 0; i < m_dataPerBeacon.size(); i++)

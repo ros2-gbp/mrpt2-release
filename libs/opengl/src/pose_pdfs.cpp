@@ -2,14 +2,15 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "opengl-precomp.h"  // Precompiled header
 
-#include <mrpt/opengl/CEllipsoid.h>
+#include <mrpt/opengl/CEllipsoid2D.h>
+#include <mrpt/opengl/CEllipsoid3D.h>
 #include <mrpt/opengl/CPointCloud.h>
 #include <mrpt/opengl/CSetOfLines.h>
 #include <mrpt/opengl/CSetOfObjects.h>
@@ -31,8 +32,8 @@ using namespace mrpt::poses;
 
 const double POSE_TAIL_LENGTH = 0.1;
 const double POSE_TAIL_WIDTH = 3.0;
-const double POSE_POINT_SIZE = 4.0;
-const double POSE_AXIS_SCALE = 0.1;
+const float POSE_POINT_SIZE = 4.0f;
+const float POSE_AXIS_SCALE = 0.1f;
 
 #define POSE_COLOR 0, 0, 1
 #define POINT_COLOR 1, 0, 0
@@ -44,24 +45,22 @@ CSetOfObjects::Ptr CSetOfObjects::posePDF2opengl(const CPosePDF& o)
 {
 	auto outObj = CSetOfObjects::Create();
 
-	if (IS_CLASS(&o, CPosePDFSOG))
+	if (IS_CLASS(o, CPosePDFSOG))
 	{
 		const auto* p = dynamic_cast<const CPosePDFSOG*>(&o);
 		ASSERT_(p != nullptr);
 
-		opengl::CSetOfLines::Ptr lins =
-			mrpt::make_aligned_shared<opengl::CSetOfLines>();
-		lins->setColor(0, 0, 1, 0.6);
+		opengl::CSetOfLines::Ptr lins = std::make_shared<opengl::CSetOfLines>();
+		lins->setColor(0.0f, 0.0f, 1.0f, 0.6f);
 		lins->setLineWidth(POSE_TAIL_WIDTH);
 
 		for (const auto& it : *p)
 		{
-			opengl::CEllipsoid::Ptr ellip =
-				mrpt::make_aligned_shared<opengl::CEllipsoid>();
+			auto ellip = mrpt::opengl::CEllipsoid2D::Create();
 
 			ellip->setPose(CPose3D(it.mean.x(), it.mean.y(), 0));
-			ellip->setCovMatrix(it.cov, 2 /* x y */);
-			ellip->setColor(POSE_COLOR, 0.6);
+			ellip->setCovMatrix(it.cov.blockCopy<2, 2>());
+			ellip->setColor(POSE_COLOR, 0.6f);
 			ellip->setQuantiles(3);
 			ellip->enableDrawSolid3D(false);
 
@@ -74,22 +73,20 @@ CSetOfObjects::Ptr CSetOfObjects::posePDF2opengl(const CPosePDF& o)
 		}
 		outObj->insert(lins);
 	}
-	else if (IS_CLASS(&o, CPosePDFGaussian))
+	else if (IS_CLASS(o, CPosePDFGaussian))
 	{
 		const auto* p = dynamic_cast<const CPosePDFGaussian*>(&o);
 		ASSERT_(p != nullptr);
 
-		opengl::CSetOfLines::Ptr lins =
-			mrpt::make_aligned_shared<opengl::CSetOfLines>();
-		lins->setColor(POSE_COLOR, 0.6);
+		opengl::CSetOfLines::Ptr lins = std::make_shared<opengl::CSetOfLines>();
+		lins->setColor(POSE_COLOR, 0.6f);
 		lins->setLineWidth(POSE_TAIL_WIDTH);
 
-		opengl::CEllipsoid::Ptr ellip =
-			mrpt::make_aligned_shared<opengl::CEllipsoid>();
+		auto ellip = mrpt::opengl::CEllipsoid2D::Create();
 
 		ellip->setPose(CPose3D(p->mean.x(), p->mean.y(), 0));
-		ellip->setCovMatrix(p->cov, 2 /* x y */);
-		ellip->setColor(POSE_COLOR, 0.6);
+		ellip->setCovMatrix(p->cov.blockCopy<2, 2>());
+		ellip->setColor(POSE_COLOR, 0.6f);
 
 		ellip->setQuantiles(3);
 		ellip->enableDrawSolid3D(false);
@@ -103,25 +100,23 @@ CSetOfObjects::Ptr CSetOfObjects::posePDF2opengl(const CPosePDF& o)
 
 		outObj->insert(lins);
 	}
-	else if (IS_CLASS(&o, CPosePDFParticles))
+	else if (IS_CLASS(o, CPosePDFParticles))
 	{
 		const auto* p = dynamic_cast<const CPosePDFParticles*>(&o);
 		ASSERT_(p != nullptr);
 
-		opengl::CPointCloud::Ptr pnts =
-			mrpt::make_aligned_shared<opengl::CPointCloud>();
-		pnts->setColor(POSE_COLOR, 0.6);
+		auto pnts = opengl::CPointCloud::Create();
+		pnts->setColor(POSE_COLOR, 0.6f);
 		pnts->setPointSize(POSE_POINT_SIZE);
 
-		opengl::CSetOfLines::Ptr lins =
-			mrpt::make_aligned_shared<opengl::CSetOfLines>();
-		lins->setColor(POSE_COLOR, 0.6);
+		auto lins = opengl::CSetOfLines::Create();
+		lins->setColor(POSE_COLOR, 0.6f);
 		lins->setLineWidth(POSE_TAIL_WIDTH);
 
 		for (size_t i = 0; i < p->size(); ++i)
 		{
 			const auto po = p->m_particles[i].d;
-			pnts->insertPoint(po.x, po.y, 0);
+			pnts->insertPoint(d2f(po.x), d2f(po.y), 0);
 			lins->appendLine(
 				po.x, po.y, 0, po.x + POSE_TAIL_LENGTH * cos(po.phi),
 				po.y + POSE_TAIL_LENGTH * sin(po.phi), 0);
@@ -138,9 +133,9 @@ CSetOfObjects::Ptr CSetOfObjects::posePDF2opengl(const CPosePDF& o)
  *    mrpt::poses::CPointPDF::getAs3DObject     */
 CSetOfObjects::Ptr CSetOfObjects::posePDF2opengl(const CPointPDF& o)
 {
-	CSetOfObjects::Ptr outObj = mrpt::make_aligned_shared<CSetOfObjects>();
+	auto outObj = std::make_shared<CSetOfObjects>();
 
-	if (IS_CLASS(&o, CPointPDFSOG))
+	if (IS_CLASS(o, CPointPDFSOG))
 	{
 		const auto* p = dynamic_cast<const CPointPDFSOG*>(&o);
 		ASSERT_(p != nullptr);
@@ -148,39 +143,62 @@ CSetOfObjects::Ptr CSetOfObjects::posePDF2opengl(const CPointPDF& o)
 		// For each gaussian node
 		for (const auto& it : *p)
 		{
-			opengl::CEllipsoid::Ptr obj =
-				mrpt::make_aligned_shared<opengl::CEllipsoid>();
-
+			mrpt::opengl::CRenderizable::Ptr obj;
+			if (it.val.cov(2, 2) == 0)
+			{
+				auto ellip = mrpt::opengl::CEllipsoid2D::Create();
+				ellip->setCovMatrix(it.val.cov.blockCopy<2, 2>());
+				ellip->setQuantiles(3);
+				ellip->enableDrawSolid3D(false);
+				obj = ellip;
+			}
+			else
+			{
+				auto ellip = mrpt::opengl::CEllipsoid3D::Create();
+				ellip->setCovMatrix(it.val.cov);
+				ellip->setQuantiles(3);
+				ellip->enableDrawSolid3D(false);
+				obj = ellip;
+			}
 			obj->setPose(it.val.mean);
-			obj->setCovMatrix(it.val.cov, it.val.cov(2, 2) == 0 ? 2 : 3);
-
-			obj->setQuantiles(3);
-			obj->enableDrawSolid3D(false);
 			obj->setColor(POINT_COLOR);
 
 			outObj->insert(obj);
 		}  // end for each gaussian node
 	}
-	else if (IS_CLASS(&o, CPointPDFGaussian))
+	else if (IS_CLASS(o, CPointPDFGaussian))
 	{
 		const auto* p = dynamic_cast<const CPointPDFGaussian*>(&o);
 		ASSERT_(p != nullptr);
 
-		CEllipsoid::Ptr obj = mrpt::make_aligned_shared<CEllipsoid>();
+		mrpt::opengl::CRenderizable::Ptr obj;
+		if (p->cov(2, 2) == 0)
+		{
+			auto ellip = mrpt::opengl::CEllipsoid2D::Create();
+			ellip->setCovMatrix(p->cov.blockCopy<2, 2>());
+			ellip->setQuantiles(3);
+			ellip->enableDrawSolid3D(false);
+			obj = ellip;
+		}
+		else
+		{
+			auto ellip = mrpt::opengl::CEllipsoid3D::Create();
+			ellip->setCovMatrix(p->cov);
+			ellip->setQuantiles(3);
+			ellip->enableDrawSolid3D(false);
+			obj = ellip;
+		}
 		obj->setLocation(p->mean.x(), p->mean.y(), p->mean.z());
-		obj->setCovMatrix(p->cov, p->cov(2, 2) == 0 ? 2 : 3);
 		obj->setColor(POINT_COLOR);
-		obj->setQuantiles(3);
-		obj->enableDrawSolid3D(false);
 		outObj->insert(obj);
 	}
-	else if (IS_CLASS(&o, CPointPDFParticles))
+	else if (IS_CLASS(o, CPointPDFParticles))
 	{
 		const auto* p = dynamic_cast<const CPointPDFParticles*>(&o);
 		ASSERT_(p != nullptr);
 
 		mrpt::opengl::CPointCloud::Ptr obj =
-			mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
+			mrpt::opengl::CPointCloud::Create();
 		const size_t N = p->size();
 
 		obj->resize(N);
@@ -200,9 +218,9 @@ CSetOfObjects::Ptr CSetOfObjects::posePDF2opengl(const CPointPDF& o)
  *    mrpt::poses::CPose3DPDF::getAs3DObject     */
 CSetOfObjects::Ptr CSetOfObjects::posePDF2opengl(const CPose3DPDF& o)
 {
-	CSetOfObjects::Ptr outObj = mrpt::make_aligned_shared<CSetOfObjects>();
+	CSetOfObjects::Ptr outObj = std::make_shared<CSetOfObjects>();
 
-	if (IS_CLASS(&o, CPose3DPDFSOG))
+	if (IS_CLASS(o, CPose3DPDFSOG))
 	{
 		const auto* p = dynamic_cast<const CPose3DPDFSOG*>(&o);
 		ASSERT_(p != nullptr);
@@ -210,12 +228,11 @@ CSetOfObjects::Ptr CSetOfObjects::posePDF2opengl(const CPose3DPDF& o)
 		// For each gaussian node
 		for (const auto& it : *p)
 		{
-			opengl::CEllipsoid::Ptr obj =
-				mrpt::make_aligned_shared<opengl::CEllipsoid>();
+			opengl::CEllipsoid3D::Ptr obj =
+				std::make_shared<opengl::CEllipsoid3D>();
 
 			obj->setPose(it.val.mean);
-			obj->setCovMatrix(
-				CMatrixDouble(it.val.cov), it.val.cov(2, 2) == 0 ? 2 : 3);
+			obj->setCovMatrix(it.val.cov.blockCopy<3, 3>());
 
 			obj->setQuantiles(3);
 			obj->enableDrawSolid3D(false);
@@ -230,16 +247,15 @@ CSetOfObjects::Ptr CSetOfObjects::posePDF2opengl(const CPose3DPDF& o)
 			outObj->insert(axes);
 		}  // end for each gaussian node
 	}
-	else if (IS_CLASS(&o, CPose3DPDFGaussian))
+	else if (IS_CLASS(o, CPose3DPDFGaussian))
 	{
 		const auto* p = dynamic_cast<const CPose3DPDFGaussian*>(&o);
 		ASSERT_(p != nullptr);
 
-		opengl::CEllipsoid::Ptr obj =
-			mrpt::make_aligned_shared<opengl::CEllipsoid>();
+		auto obj = std::make_shared<opengl::CEllipsoid3D>();
 
 		obj->setPose(p->mean);
-		obj->setCovMatrix(CMatrixDouble(p->cov), p->cov(2, 2) == 0 ? 2 : 3);
+		obj->setCovMatrix(p->cov.blockCopy<3, 3>());
 
 		obj->setQuantiles(3);
 		obj->enableDrawSolid3D(false);
@@ -252,7 +268,7 @@ CSetOfObjects::Ptr CSetOfObjects::posePDF2opengl(const CPose3DPDF& o)
 		axes->setScale(POSE_AXIS_SCALE);
 		outObj->insert(axes);
 	}
-	else if (IS_CLASS(&o, CPose3DPDFParticles))
+	else if (IS_CLASS(o, CPose3DPDFParticles))
 	{
 		const auto* p = dynamic_cast<const CPose3DPDFParticles*>(&o);
 		ASSERT_(p != nullptr);
@@ -274,18 +290,17 @@ CSetOfObjects::Ptr CSetOfObjects::posePDF2opengl(const CPose3DPDF& o)
  *    mrpt::poses::CPose3DQuatPDF::getAs3DObject     */
 CSetOfObjects::Ptr CSetOfObjects::posePDF2opengl(const CPose3DQuatPDF& o)
 {
-	CSetOfObjects::Ptr outObj = mrpt::make_aligned_shared<CSetOfObjects>();
+	CSetOfObjects::Ptr outObj = std::make_shared<CSetOfObjects>();
 
-	if (IS_CLASS(&o, CPose3DQuatPDFGaussian))
+	if (IS_CLASS(o, CPose3DQuatPDFGaussian))
 	{
 		const auto* p = dynamic_cast<const CPose3DQuatPDFGaussian*>(&o);
 		ASSERT_(p != nullptr);
 
-		opengl::CEllipsoid::Ptr obj =
-			mrpt::make_aligned_shared<opengl::CEllipsoid>();
+		auto obj = mrpt::opengl::CEllipsoid3D::Create();
 
 		obj->setPose(CPose3D(p->mean));
-		obj->setCovMatrix(CMatrixDouble(p->cov), p->cov(2, 2) == 0 ? 2 : 3);
+		obj->setCovMatrix(p->cov.blockCopy<3, 3>());
 
 		obj->setQuantiles(3);
 		obj->enableDrawSolid3D(false);

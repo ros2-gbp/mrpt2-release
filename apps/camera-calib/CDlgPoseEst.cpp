@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -281,25 +281,17 @@ CDlgPoseEst::CDlgPoseEst(
 	FlexGridSizer1->SetSizeHints(this);
 	Center();
 
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CDlgPoseEst::OnbtnStartClick);
-	Connect(
-		ID_BUTTON2, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CDlgPoseEst::OnbtnStopClick);
-	Connect(
-		ID_BUTTON3, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CDlgPoseEst::OnbtnCloseClick);
-	Connect(
-		ID_TIMER1, wxEVT_TIMER,
-		(wxObjectEventFunction)&CDlgPoseEst::OntimCaptureTrigger);
+	Bind(wxEVT_BUTTON, &CDlgPoseEst::OnbtnStartClick, this, ID_BUTTON1);
+	Bind(wxEVT_BUTTON, &CDlgPoseEst::OnbtnStopClick, this, ID_BUTTON2);
+	Bind(wxEVT_BUTTON, &CDlgPoseEst::OnbtnCloseClick, this, ID_BUTTON3);
+	Bind(wxEVT_TIMER, &CDlgPoseEst::OntimCaptureTrigger, this, ID_TIMER1);
 	cam_intrinsic = Eigen::MatrixXd::Zero(3, 3);
 	I3 = Eigen::MatrixXd::Identity(3, 3);
 	pose_mat = Eigen::MatrixXd::Zero(6, 1);
 	pose_mat << -25, 25, 100, -0.1, 0.25, 0.5;
 	//*)
 
-	scene = mrpt::make_aligned_shared<mrpt::opengl::COpenGLScene>();
+	scene = mrpt::opengl::COpenGLScene::Create();
 	cor = mrpt::opengl::stock_objects::CornerXYZ();
 	cor1 = mrpt::opengl::stock_objects::CornerXYZ();
 
@@ -310,7 +302,7 @@ CDlgPoseEst::CDlgPoseEst(
 	const double check_squares_length_Y_meters =
 		0.005 * atof(string(edLengthY->GetValue().mb_str()).c_str());
 
-	grid = mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
+	grid = std::make_shared<opengl::CGridPlaneXY>(
 		0, check_size_y * check_squares_length_Y_meters, 0,
 		check_size_x * check_squares_length_X_meters, 0,
 		check_squares_length_Y_meters);
@@ -324,12 +316,11 @@ CDlgPoseEst::CDlgPoseEst(
 	scene->insert(cor);
 
 	this->showCamPose();
-	redire = new CMyRedirector(txtLog, true, 10);
+	redire = std::make_unique<CMyRedirector>(txtLog, true, 10);
 }
 
 CDlgPoseEst::~CDlgPoseEst()
 {
-	delete redire;
 	//(*Destroy(CDlgPoseEst)
 	//*)
 }
@@ -434,17 +425,17 @@ void CDlgPoseEst::OntimCaptureTrigger(wxTimerEvent& event)
 		CObservation::Ptr obs = m_video->getNextFrame();
 		ASSERT_(obs);
 		ASSERT_(
-			IS_CLASS(obs, CObservationImage) ||
-			IS_CLASS(obs, CObservation3DRangeScan));
+			IS_CLASS(*obs, CObservationImage) ||
+			IS_CLASS(*obs, CObservation3DRangeScan));
 
 		// Convert to an image:
-		if (IS_CLASS(obs, CObservation3DRangeScan))
+		if (IS_CLASS(*obs, CObservation3DRangeScan))
 		{
 			CObservation3DRangeScan::Ptr obs3D =
 				std::dynamic_pointer_cast<CObservation3DRangeScan>(obs);
 
 			CObservationImage::Ptr obsImg =
-				mrpt::make_aligned_shared<CObservationImage>();
+				std::make_shared<CObservationImage>();
 			obsImg->timestamp = obs3D->timestamp;
 			ASSERT_(obs3D->hasIntensityImage);
 			obsImg->image = obs3D->intensityImage;

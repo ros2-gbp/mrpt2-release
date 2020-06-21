@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -14,9 +14,9 @@
 #include <mrpt/gui/WxSubsystem.h>
 #include <mrpt/gui/WxUtils.h>
 #include <mrpt/img/CImage.h>
-#include <mrpt/system/os.h>
-
 #include <mrpt/math/utils.h>
+#include <mrpt/system/os.h>
+#include <cstring>
 
 using namespace mrpt;
 using namespace mrpt::gui;
@@ -83,46 +83,23 @@ CWindowDialogPlots::CWindowDialogPlots(
 	SetMenuBar(MenuBar1);
 
 	// Events:
-	Connect(
-		wxID_ANY, wxEVT_CLOSE_WINDOW,
-		(wxObjectEventFunction)&CWindowDialogPlots::OnClose);
-	Connect(
-		ID_MENUITEM1, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&CWindowDialogPlots::OnMenuClose);
-	Connect(
-		ID_MENU_PRINT, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&CWindowDialogPlots::OnMenuPrint);
-	Connect(
-		ID_MENUITEM2, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&CWindowDialogPlots::OnMenuAbout);
+	Bind(wxEVT_CLOSE_WINDOW, &CWindowDialogPlots::OnClose, this, wxID_ANY);
+	Bind(wxEVT_MENU, &CWindowDialogPlots::OnMenuClose, this, ID_MENUITEM1);
+	Bind(wxEVT_MENU, &CWindowDialogPlots::OnMenuPrint, this, ID_MENU_PRINT);
+	Bind(wxEVT_MENU, &CWindowDialogPlots::OnMenuAbout, this, ID_MENUITEM2);
 
-	Connect(
-		wxID_ANY, wxEVT_SIZE,
-		(wxObjectEventFunction)&CWindowDialogPlots::OnResize);
+	Bind(wxEVT_SIZE, &CWindowDialogPlots::OnResize, this, wxID_ANY);
 
-	Connect(
-		wxID_ANY, wxEVT_CHAR,
-		(wxObjectEventFunction)&CWindowDialogPlots::OnChar);
-	m_plot->Connect(
-		wxEVT_CHAR, (wxObjectEventFunction)&CWindowDialogPlots::OnChar, nullptr,
-		this);
-	m_plot->Connect(
-		wxEVT_MOTION, (wxObjectEventFunction)&CWindowDialogPlots::OnMouseMove,
-		nullptr, this);
+	Bind(wxEVT_CHAR, &CWindowDialogPlots::OnChar, this, wxID_ANY);
+	m_plot->Bind(wxEVT_CHAR, &CWindowDialogPlots::OnChar, this);
+	m_plot->Bind(wxEVT_MOTION, &CWindowDialogPlots::OnMouseMove, this);
 
-	m_plot->Connect(
-		wxEVT_LEFT_DOWN,
-		(wxObjectEventFunction)&CWindowDialogPlots::OnMouseDown, nullptr, this);
-	m_plot->Connect(
-		wxEVT_RIGHT_DOWN,
-		(wxObjectEventFunction)&CWindowDialogPlots::OnMouseDown, nullptr, this);
+	m_plot->Bind(wxEVT_LEFT_DOWN, &CWindowDialogPlots::OnMouseDown, this);
+	m_plot->Bind(wxEVT_RIGHT_DOWN, &CWindowDialogPlots::OnMouseDown, this);
 
 	// Increment number of windows:
 	// int winCount =
 	WxSubsystem::CWXMainFrame::notifyWindowCreation();
-	// cout << "[CWindowDialogPlots] Notifying new window: " << winCount <<
-	// endl;
-
 	// this->Iconize(false);
 
 #if 0
@@ -275,7 +252,7 @@ void CWindowDialogPlots::OnMenuSelected(wxCommandEvent& ev)
 	{
 		if (m_winPlots && m_winPlots->m_callback)
 			m_winPlots->m_callback(
-				it->second, m_curCursorPos.x, m_curCursorPos.y,
+				it->second, d2f(m_curCursorPos.x), d2f(m_curCursorPos.y),
 				m_winPlots->m_callback_param);
 	}
 }
@@ -322,7 +299,7 @@ void CWindowDialogPlots::plot(
 	if (existingLy)
 	{
 		// Assure the class:
-		auto* lyPlot2D = static_cast<mpFXYVector*>(existingLy);
+		auto* lyPlot2D = dynamic_cast<mpFXYVector*>(existingLy);
 
 		if (!lyPlot2D)
 		{
@@ -345,8 +322,8 @@ void CWindowDialogPlots::plot(
 	// Set data:
 	{
 		std::vector<float> x_(x.size()), y_(x.size());
-		::memcpy(&x_[0], &x[0], sizeof(x[0]) * x_.size());
-		::memcpy(&y_[0], &y[0], sizeof(y[0]) * y_.size());
+		std::memcpy(&x_[0], &x[0], sizeof(x[0]) * x_.size());
+		std::memcpy(&y_[0], &y[0], sizeof(y[0]) * y_.size());
 		theLayer->SetData(x_, y_);
 	}
 
@@ -486,7 +463,7 @@ void CWindowDialogPlots::plotEllipse(
 	if (existingLy)
 	{
 		// Assure the class:
-		auto* lyPlotEllipse = static_cast<mpCovarianceEllipse*>(existingLy);
+		auto* lyPlotEllipse = dynamic_cast<mpCovarianceEllipse*>(existingLy);
 
 		if (!lyPlotEllipse)
 		{
@@ -620,8 +597,8 @@ void CWindowDialogPlots::plotEllipse(
 }
 
 void CWindowDialogPlots::image(
-	void* theWxImage, const float& x0, const float& y0, const float& w,
-	const float& h, const std::string& plotName)
+	void* theWxImage, float x0, float y0, float w, float h,
+	const std::string& plotName)
 {
 	mpBitmapLayer* theLayer;
 
@@ -635,7 +612,7 @@ void CWindowDialogPlots::image(
 	if (existingLy)
 	{
 		// Assure the class:
-		auto* ly = static_cast<mpBitmapLayer*>(existingLy);
+		auto* ly = dynamic_cast<mpBitmapLayer*>(existingLy);
 
 		if (!ly)
 		{
@@ -696,22 +673,21 @@ CDisplayWindowPlots::~CDisplayWindowPlots()
 
 /** Set cursor style to default (cursorIsCross=false) or to a cross
  * (cursorIsCross=true) */
-void CDisplayWindowPlots::setCursorCross(bool cursorIsCross)
+void CDisplayWindowPlots::setCursorCross([[maybe_unused]] bool cursorIsCross)
 {
 #if MRPT_HAS_WXWIDGETS && MRPT_HAS_OPENGL_GLUT
 	const auto* win = (const CWindowDialogPlots*)m_hwnd.get();
 	if (!win) return;
 	win->m_plot->SetCursor(
 		*(cursorIsCross ? wxCROSS_CURSOR : wxSTANDARD_CURSOR));
-#else
-	MRPT_UNUSED_PARAM(cursorIsCross);
 #endif
 }
 
 /*---------------------------------------------------------------
 					getLastMousePosition
  ---------------------------------------------------------------*/
-bool CDisplayWindowPlots::getLastMousePosition(int& x, int& y) const
+bool CDisplayWindowPlots::getLastMousePosition(
+	[[maybe_unused]] int& x, [[maybe_unused]] int& y) const
 {
 #if MRPT_HAS_WXWIDGETS && MRPT_HAS_OPENGL_GLUT
 	const auto* win = (const CWindowDialogPlots*)m_hwnd.get();
@@ -720,8 +696,6 @@ bool CDisplayWindowPlots::getLastMousePosition(int& x, int& y) const
 	y = win->m_last_mouse_point.y;
 	return true;
 #else
-	MRPT_UNUSED_PARAM(x);
-	MRPT_UNUSED_PARAM(y);
 	return false;
 #endif
 }
@@ -729,7 +703,8 @@ bool CDisplayWindowPlots::getLastMousePosition(int& x, int& y) const
 /*---------------------------------------------------------------
 					resize
  ---------------------------------------------------------------*/
-void CDisplayWindowPlots::resize(unsigned int width, unsigned int height)
+void CDisplayWindowPlots::resize(
+	[[maybe_unused]] unsigned int width, [[maybe_unused]] unsigned int height)
 {
 #if MRPT_HAS_WXWIDGETS
 	if (!isOpen())
@@ -746,16 +721,13 @@ void CDisplayWindowPlots::resize(unsigned int width, unsigned int height)
 	REQ->x = width;
 	REQ->y = height;
 	WxSubsystem::pushPendingWxRequest(REQ);
-#else
-	MRPT_UNUSED_PARAM(width);
-	MRPT_UNUSED_PARAM(height);
 #endif
 }
 
 /*---------------------------------------------------------------
 					setPos
  ---------------------------------------------------------------*/
-void CDisplayWindowPlots::setPos(int x, int y)
+void CDisplayWindowPlots::setPos([[maybe_unused]] int x, [[maybe_unused]] int y)
 {
 #if MRPT_HAS_WXWIDGETS
 	if (!isOpen())
@@ -772,16 +744,14 @@ void CDisplayWindowPlots::setPos(int x, int y)
 	REQ->x = x;
 	REQ->y = y;
 	WxSubsystem::pushPendingWxRequest(REQ);
-#else
-	MRPT_UNUSED_PARAM(x);
-	MRPT_UNUSED_PARAM(y);
 #endif
 }
 
 /*---------------------------------------------------------------
 					setWindowTitle
  ---------------------------------------------------------------*/
-void CDisplayWindowPlots::setWindowTitle(const std::string& str)
+void CDisplayWindowPlots::setWindowTitle([
+	[maybe_unused]] const std::string& str)
 {
 #if MRPT_HAS_WXWIDGETS
 	if (!isOpen())
@@ -797,15 +767,13 @@ void CDisplayWindowPlots::setWindowTitle(const std::string& str)
 	REQ->OPCODE = 404;
 	REQ->str = str;
 	WxSubsystem::pushPendingWxRequest(REQ);
-#else
-	MRPT_UNUSED_PARAM(str);
 #endif
 }
 
 /*---------------------------------------------------------------
 					enableMousePanZoom
  ---------------------------------------------------------------*/
-void CDisplayWindowPlots::enableMousePanZoom(bool enabled)
+void CDisplayWindowPlots::enableMousePanZoom([[maybe_unused]] bool enabled)
 {
 #if MRPT_HAS_WXWIDGETS
 	if (!isOpen()) return;
@@ -816,15 +784,13 @@ void CDisplayWindowPlots::enableMousePanZoom(bool enabled)
 	REQ->OPCODE = 410;
 	REQ->boolVal = enabled;
 	WxSubsystem::pushPendingWxRequest(REQ);
-#else
-	MRPT_UNUSED_PARAM(enabled);
 #endif
 }
 
 /*---------------------------------------------------------------
 					axis_equal
  ---------------------------------------------------------------*/
-void CDisplayWindowPlots::axis_equal(bool enabled)
+void CDisplayWindowPlots::axis_equal([[maybe_unused]] bool enabled)
 {
 #if MRPT_HAS_WXWIDGETS
 	if (!isOpen()) return;
@@ -835,8 +801,6 @@ void CDisplayWindowPlots::axis_equal(bool enabled)
 	REQ->OPCODE = 411;
 	REQ->boolVal = enabled;
 	WxSubsystem::pushPendingWxRequest(REQ);
-#else
-	MRPT_UNUSED_PARAM(enabled);
 #endif
 }
 
@@ -844,7 +808,9 @@ void CDisplayWindowPlots::axis_equal(bool enabled)
 					axis
  ---------------------------------------------------------------*/
 void CDisplayWindowPlots::axis(
-	float x_min, float x_max, float y_min, float y_max, bool aspectRatioFix)
+	[[maybe_unused]] float x_min, [[maybe_unused]] float x_max,
+	[[maybe_unused]] float y_min, [[maybe_unused]] float y_max,
+	[[maybe_unused]] bool aspectRatioFix)
 {
 #if MRPT_HAS_WXWIDGETS
 	if (!isOpen()) return;
@@ -861,19 +827,13 @@ void CDisplayWindowPlots::axis(
 	REQ->vector_y[1] = y_max;
 	REQ->boolVal = aspectRatioFix;
 	WxSubsystem::pushPendingWxRequest(REQ);
-#else
-	MRPT_UNUSED_PARAM(x_min);
-	MRPT_UNUSED_PARAM(x_max);
-	MRPT_UNUSED_PARAM(y_min);
-	MRPT_UNUSED_PARAM(y_max);
-	MRPT_UNUSED_PARAM(aspectRatioFix);
 #endif
 }
 
 /*---------------------------------------------------------------
 					axis_fit
  ---------------------------------------------------------------*/
-void CDisplayWindowPlots::axis_fit(bool aspectRatioFix)
+void CDisplayWindowPlots::axis_fit([[maybe_unused]] bool aspectRatioFix)
 {
 #if MRPT_HAS_WXWIDGETS
 	if (!isOpen()) return;
@@ -884,8 +844,6 @@ void CDisplayWindowPlots::axis_fit(bool aspectRatioFix)
 	REQ->OPCODE = 413;
 	REQ->boolVal = aspectRatioFix;
 	WxSubsystem::pushPendingWxRequest(REQ);
-#else
-	MRPT_UNUSED_PARAM(aspectRatioFix);
 #endif
 }
 
@@ -894,9 +852,12 @@ void CDisplayWindowPlots::axis_fit(bool aspectRatioFix)
  ---------------------------------------------------------------*/
 template <typename T>
 void CDisplayWindowPlots::plotEllipse(
-	const T mean_x, const T mean_y, const CMatrixTemplateNumeric<T>& cov22,
-	const float quantiles, const std::string& lineFormat,
-	const std::string& plotName, bool showName)
+	[[maybe_unused]] const T mean_x, [[maybe_unused]] const T mean_y,
+	[[maybe_unused]] const CMatrixDynamic<T>& cov22,
+	[[maybe_unused]] const float quantiles,
+	[[maybe_unused]] const std::string& lineFormat,
+	[[maybe_unused]] const std::string& plotName,
+	[[maybe_unused]] bool showName)
 {
 #if MRPT_HAS_WXWIDGETS
 	MRPT_START
@@ -928,38 +889,30 @@ void CDisplayWindowPlots::plotEllipse(
 	REQ->plotName = plotName + holdon_post;
 
 	REQ->vector_x.resize(3);
-	REQ->vector_x[0] = mean_x;
-	REQ->vector_x[1] = mean_y;
+	REQ->vector_x[0] = d2f(mean_x);
+	REQ->vector_x[1] = d2f(mean_y);
 	REQ->vector_x[2] = quantiles;
 
 	REQ->vector_y.resize(3);
-	REQ->vector_y[0] = cov22(0, 0);
-	REQ->vector_y[1] = cov22(1, 1);
-	REQ->vector_y[2] = cov22(0, 1);
+	REQ->vector_y[0] = d2f(cov22(0, 0));
+	REQ->vector_y[1] = d2f(cov22(1, 1));
+	REQ->vector_y[2] = d2f(cov22(0, 1));
 
 	REQ->boolVal = showName;
 
 	WxSubsystem::pushPendingWxRequest(REQ);
 	MRPT_END
-#else
-	MRPT_UNUSED_PARAM(mean_x);
-	MRPT_UNUSED_PARAM(mean_y);
-	MRPT_UNUSED_PARAM(cov22);
-	MRPT_UNUSED_PARAM(quantiles);
-	MRPT_UNUSED_PARAM(lineFormat);
-	MRPT_UNUSED_PARAM(plotName);
-	MRPT_UNUSED_PARAM(showName);
 #endif
 }
 
 // Explicit instantations:
 template void CDisplayWindowPlots::plotEllipse(
-	const float mean_x, const float mean_y,
-	const CMatrixTemplateNumeric<float>& cov22, const float quantiles,
-	const std::string& lineFormat, const std::string& plotName, bool showName);
+	const float mean_x, const float mean_y, const CMatrixDynamic<float>& cov22,
+	const float quantiles, const std::string& lineFormat,
+	const std::string& plotName, bool showName);
 template void CDisplayWindowPlots::plotEllipse(
 	const double mean_x, const double mean_y,
-	const CMatrixTemplateNumeric<double>& cov22, const float quantiles,
+	const CMatrixDynamic<double>& cov22, const float quantiles,
 	const std::string& lineFormat, const std::string& plotName, bool showName);
 
 /*---------------------------------------------------------------
@@ -967,9 +920,12 @@ template void CDisplayWindowPlots::plotEllipse(
  ---------------------------------------------------------------*/
 template <typename T>
 void CDisplayWindowPlots::plotEllipse(
-	const T mean_x, const T mean_y, const CMatrixFixedNumeric<T, 2, 2>& cov22,
-	const float quantiles, const std::string& lineFormat,
-	const std::string& plotName, bool showName)
+	[[maybe_unused]] const T mean_x, [[maybe_unused]] const T mean_y,
+	[[maybe_unused]] const CMatrixFixed<T, 2, 2>& cov22,
+	[[maybe_unused]] const float quantiles,
+	[[maybe_unused]] const std::string& lineFormat,
+	[[maybe_unused]] const std::string& plotName,
+	[[maybe_unused]] bool showName)
 {
 #if MRPT_HAS_WXWIDGETS
 	MRPT_START
@@ -1000,46 +956,40 @@ void CDisplayWindowPlots::plotEllipse(
 	REQ->plotName = plotName + holdon_post;
 
 	REQ->vector_x.resize(3);
-	REQ->vector_x[0] = mean_x;
-	REQ->vector_x[1] = mean_y;
+	REQ->vector_x[0] = d2f(mean_x);
+	REQ->vector_x[1] = d2f(mean_y);
 	REQ->vector_x[2] = quantiles;
 
 	REQ->vector_y.resize(3);
-	REQ->vector_y[0] = cov22(0, 0);
-	REQ->vector_y[1] = cov22(1, 1);
-	REQ->vector_y[2] = cov22(0, 1);
+	REQ->vector_y[0] = d2f(cov22(0, 0));
+	REQ->vector_y[1] = d2f(cov22(1, 1));
+	REQ->vector_y[2] = d2f(cov22(0, 1));
 
 	REQ->boolVal = showName;
 
 	WxSubsystem::pushPendingWxRequest(REQ);
 	MRPT_END
-#else
-	MRPT_UNUSED_PARAM(mean_x);
-	MRPT_UNUSED_PARAM(mean_y);
-	MRPT_UNUSED_PARAM(cov22);
-	MRPT_UNUSED_PARAM(quantiles);
-	MRPT_UNUSED_PARAM(lineFormat);
-	MRPT_UNUSED_PARAM(plotName);
-	MRPT_UNUSED_PARAM(showName);
 #endif
 }
 
 // Explicit instantations:
 template void CDisplayWindowPlots::plotEllipse(
 	const float mean_x, const float mean_y,
-	const CMatrixFixedNumeric<float, 2, 2>& cov22, const float quantiles,
+	const CMatrixFixed<float, 2, 2>& cov22, const float quantiles,
 	const std::string& lineFormat, const std::string& plotName, bool showName);
 template void CDisplayWindowPlots::plotEllipse(
 	const double mean_x, const double mean_y,
-	const CMatrixFixedNumeric<double, 2, 2>& cov22, const float quantiles,
+	const CMatrixFixed<double, 2, 2>& cov22, const float quantiles,
 	const std::string& lineFormat, const std::string& plotName, bool showName);
 
 /*---------------------------------------------------------------
 					image
  ---------------------------------------------------------------*/
 void CDisplayWindowPlots::image(
-	const mrpt::img::CImage& img, const float& x_left, const float& y_bottom,
-	const float& x_width, const float& y_height, const std::string& plotName)
+	[[maybe_unused]] const mrpt::img::CImage& img,
+	[[maybe_unused]] float x_left, [[maybe_unused]] float y_bottom,
+	[[maybe_unused]] float x_width, [[maybe_unused]] float y_height,
+	[[maybe_unused]] const std::string& plotName)
 {
 #if MRPT_HAS_WXWIDGETS
 	MRPT_START
@@ -1075,13 +1025,6 @@ void CDisplayWindowPlots::image(
 
 	WxSubsystem::pushPendingWxRequest(REQ);
 	MRPT_END
-#else
-	MRPT_UNUSED_PARAM(img);
-	MRPT_UNUSED_PARAM(x_left);
-	MRPT_UNUSED_PARAM(y_bottom);
-	MRPT_UNUSED_PARAM(x_width);
-	MRPT_UNUSED_PARAM(y_height);
-	MRPT_UNUSED_PARAM(plotName);
 #endif
 }
 
@@ -1089,8 +1032,9 @@ void CDisplayWindowPlots::image(
 					internal_plot
  ---------------------------------------------------------------*/
 void CDisplayWindowPlots::internal_plot(
-	CVectorFloat& x, CVectorFloat& y, const std::string& lineFormat,
-	const std::string& plotName)
+	[[maybe_unused]] CVectorFloat& x, [[maybe_unused]] CVectorFloat& y,
+	[[maybe_unused]] const std::string& lineFormat,
+	[[maybe_unused]] const std::string& plotName)
 {
 #if MRPT_HAS_WXWIDGETS
 	MRPT_START
@@ -1122,11 +1066,6 @@ void CDisplayWindowPlots::internal_plot(
 
 	WxSubsystem::pushPendingWxRequest(REQ);
 	MRPT_END
-#else
-	MRPT_UNUSED_PARAM(x);
-	MRPT_UNUSED_PARAM(y);
-	MRPT_UNUSED_PARAM(lineFormat);
-	MRPT_UNUSED_PARAM(plotName);
 #endif
 }
 
@@ -1171,7 +1110,7 @@ void CDisplayWindowPlots::hold_off()
 					addPopupMenuEntry
  ---------------------------------------------------------------*/
 void CDisplayWindowPlots::addPopupMenuEntry(
-	const std::string& label, int menuID)
+	[[maybe_unused]] const std::string& label, [[maybe_unused]] int menuID)
 {
 #if MRPT_HAS_WXWIDGETS
 	MRPT_START
@@ -1186,9 +1125,6 @@ void CDisplayWindowPlots::addPopupMenuEntry(
 
 	WxSubsystem::pushPendingWxRequest(REQ);
 	MRPT_END
-#else
-	MRPT_UNUSED_PARAM(label);
-	MRPT_UNUSED_PARAM(menuID);
 #endif
 }
 

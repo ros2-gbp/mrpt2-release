@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -17,7 +17,7 @@
 #include <mrpt/system/CTimeLogger.h>
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 using namespace mrpt::hwdrivers;
 using namespace mrpt::system;
@@ -39,8 +39,7 @@ ctor
 COpenNI2Sensor::COpenNI2Sensor()
 	: m_sensorPoseOnRobot(),
 
-	  m_relativePoseIntensityWRTDepth(
-		  0, 0, 0, DEG2RAD(-90), DEG2RAD(0), DEG2RAD(-90))
+	  m_relativePoseIntensityWRTDepth(0, 0, 0, -90.0_deg, 0.0_deg, -90.0_deg)
 
 {
 	// Default label:
@@ -155,7 +154,7 @@ void COpenNI2Sensor::doProcess()
 	bool thereIs, hwError;
 
 	CObservation3DRangeScan::Ptr newObs =
-		mrpt::make_aligned_shared<CObservation3DRangeScan>();
+		std::make_shared<CObservation3DRangeScan>();
 
 	assert(getNumDevices() > 0);
 	getNextObservation(*newObs, thereIs, hwError);
@@ -240,7 +239,7 @@ void COpenNI2Sensor::loadConfig_sensorSpecific(
 	if (hasLeft2RightPose)
 	{
 		const mrpt::poses::CPose3D twist(
-			0, 0, 0, DEG2RAD(-90), DEG2RAD(0), DEG2RAD(-90));
+			0, 0, 0, -90.0_deg, 0.0_deg, -90.0_deg);
 		m_relativePoseIntensityWRTDepth =
 			twist +
 			mrpt::poses::CPose3D(mrpt::poses::CPose3DQuat(sc.rightCameraPose));
@@ -276,8 +275,8 @@ void COpenNI2Sensor::loadConfig_sensorSpecific(
  * \sa doProcess
  */
 void COpenNI2Sensor::getNextObservation(
-	mrpt::obs::CObservation3DRangeScan& out_obs, bool& there_is_obs,
-	bool& hardware_error)
+	[[maybe_unused]] mrpt::obs::CObservation3DRangeScan& out_obs,
+	[[maybe_unused]] bool& there_is_obs, [[maybe_unused]] bool& hardware_error)
 {
 #if MRPT_HAS_OPENNI2
 	//	cout << "COpenNI2Sensor::getNextObservation \n";
@@ -298,7 +297,7 @@ void COpenNI2Sensor::getNextObservation(
 	// 3D point cloud:
 	if (out_obs.hasRangeImage && m_grab_3D_points)
 	{
-		out_obs.project3DPointsFromDepthImage();
+		out_obs.unprojectInto(out_obs);
 
 		if (!m_grab_depth)
 		{
@@ -318,17 +317,11 @@ void COpenNI2Sensor::getNextObservation(
 				if (!m_win_range)
 				{
 					m_win_range =
-						mrpt::make_aligned_shared<mrpt::gui::CDisplayWindow>(
-							"Preview RANGE");
+						mrpt::gui::CDisplayWindow::Create("Preview RANGE");
 					m_win_range->setPos(5, 5);
 				}
 
-				// Normalize the image
-				mrpt::img::CImage img;
-				img.setFromMatrix(out_obs.rangeImage);
-				CMatrixFloat r =
-					out_obs.rangeImage * float(1.0 / this->m_maxRange);
-				m_win_range->showImage(img);
+				m_win_range->showImage(out_obs.rangeImage_getAsImage());
 			}
 		}
 		if (out_obs.hasIntensityImage)
@@ -339,8 +332,7 @@ void COpenNI2Sensor::getNextObservation(
 				if (!m_win_int)
 				{
 					m_win_int =
-						mrpt::make_aligned_shared<mrpt::gui::CDisplayWindow>(
-							"Preview INTENSITY");
+						mrpt::gui::CDisplayWindow::Create("Preview INTENSITY");
 					m_win_int->setPos(300, 5);
 				}
 				m_win_int->showImage(out_obs.intensityImage);
@@ -355,9 +347,6 @@ void COpenNI2Sensor::getNextObservation(
 
 //	cout << "COpenNI2Sensor::getNextObservation finish\n";
 #else
-	MRPT_UNUSED_PARAM(out_obs);
-	MRPT_UNUSED_PARAM(there_is_obs);
-	MRPT_UNUSED_PARAM(hardware_error);
 	THROW_EXCEPTION("MRPT was built without OpenNI2 support");
 #endif  // MRPT_HAS_OPENNI2
 }
@@ -365,9 +354,9 @@ void COpenNI2Sensor::getNextObservation(
 /* -----------------------------------------------------
 setPathForExternalImages
 ----------------------------------------------------- */
-void COpenNI2Sensor::setPathForExternalImages(const std::string& directory)
+void COpenNI2Sensor::setPathForExternalImages([
+	[maybe_unused]] const std::string& directory)
 {
-	MRPT_UNUSED_PARAM(directory);
 	// Ignore for now. It seems performance is better grabbing everything
 	// to a single big file than creating hundreds of smaller files per
 	// second...

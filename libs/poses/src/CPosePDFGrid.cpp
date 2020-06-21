@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -70,10 +70,7 @@ void CPosePDFGrid::getMean(CPose2D& p) const
 	se_averager.get_average(p);
 }
 
-/*---------------------------------------------------------------
-						getCovarianceAndMean
-  ---------------------------------------------------------------*/
-void CPosePDFGrid::getCovarianceAndMean(CMatrixDouble33& cov, CPose2D& p) const
+std::tuple<CMatrixDouble33, CPose2D> CPosePDFGrid::getCovarianceAndMean() const
 {
 	CPosePDFParticles auxParts;
 	auxParts.resetDeterministic(
@@ -90,7 +87,7 @@ void CPosePDFGrid::getCovarianceAndMean(CMatrixDouble33& cov, CPose2D& p) const
 					TPose2D(idx2x(x), idx2y(y), idx2phi(phiInd));
 			}
 	}
-	auxParts.getCovarianceAndMean(cov, p);
+	return auxParts.getCovarianceAndMean();
 }
 
 uint8_t CPosePDFGrid::serializeGetVersion() const { return 0; }
@@ -171,9 +168,9 @@ bool CPosePDFGrid::saveToTextFile(const std::string& dataFile) const
 /*---------------------------------------------------------------
 						changeCoordinatesReference
   ---------------------------------------------------------------*/
-void CPosePDFGrid::changeCoordinatesReference(const CPose3D& newReferenceBase)
+void CPosePDFGrid::changeCoordinatesReference([
+	[maybe_unused]] const CPose3D& newReferenceBase)
 {
-	MRPT_UNUSED_PARAM(newReferenceBase);
 	THROW_EXCEPTION("Not implemented yet!");
 }
 
@@ -181,30 +178,25 @@ void CPosePDFGrid::changeCoordinatesReference(const CPose3D& newReferenceBase)
 					bayesianFusion
  ---------------------------------------------------------------*/
 void CPosePDFGrid::bayesianFusion(
-	const CPosePDF& p1, const CPosePDF& p2,
-	const double minMahalanobisDistToDrop)
+	[[maybe_unused]] const CPosePDF& p1, [[maybe_unused]] const CPosePDF& p2,
+	[[maybe_unused]] const double minMahalanobisDistToDrop)
 {
-	MRPT_UNUSED_PARAM(p1);
-	MRPT_UNUSED_PARAM(p2);
-	MRPT_UNUSED_PARAM(minMahalanobisDistToDrop);
 	THROW_EXCEPTION("Not implemented yet!");
 }
 
 /*---------------------------------------------------------------
 					inverse
  ---------------------------------------------------------------*/
-void CPosePDFGrid::inverse(CPosePDF& o) const
+void CPosePDFGrid::inverse([[maybe_unused]] CPosePDF& o) const
 {
-	MRPT_UNUSED_PARAM(o);
 	THROW_EXCEPTION("Not implemented yet!");
 }
 
 /*---------------------------------------------------------------
 					drawSingleSample
  ---------------------------------------------------------------*/
-void CPosePDFGrid::drawSingleSample(CPose2D& outPart) const
+void CPosePDFGrid::drawSingleSample([[maybe_unused]] CPose2D& outPart) const
 {
-	MRPT_UNUSED_PARAM(outPart);
 	THROW_EXCEPTION("Not implemented yet!");
 }
 
@@ -212,11 +204,9 @@ void CPosePDFGrid::drawSingleSample(CPose2D& outPart) const
 					drawSingleSample
  ---------------------------------------------------------------*/
 void CPosePDFGrid::drawManySamples(
-	size_t N, std::vector<CVectorDouble>& outSamples) const
+	[[maybe_unused]] size_t N,
+	[[maybe_unused]] std::vector<CVectorDouble>& outSamples) const
 {
-	MRPT_UNUSED_PARAM(N);
-	MRPT_UNUSED_PARAM(outSamples);
-
 	THROW_EXCEPTION("Not implemented yet!");
 }
 

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -40,14 +40,13 @@ bool tfest::se3_l2_robust(
 	// -------------------------------------------
 	// Thresholds
 	// -------------------------------------------
-	Eigen::Matrix<double, 7, 1> th;
-	th[0] =  // X (meters)
-		th[1] =  // Y (meters)
-		th[2] = params.ransac_threshold_lin;  // Z (meters)
-	th[3] =  // YAW (degrees)
-		th[4] =  // PITCH (degrees)
-		th[5] = params.ransac_threshold_ang;  // ROLL (degrees)
-	th[6] = params.ransac_threshold_scale;  // SCALE
+	CVectorFixedDouble<7> th;
+	// x,y,z [m]
+	th[0] = th[1] = th[2] = params.ransac_threshold_lin;
+	// yaw,pitch, roll [deg]
+	th[3] = th[4] = th[5] = params.ransac_threshold_ang;
+	// scale:
+	th[6] = params.ransac_threshold_scale;
 
 	// -------------------------------------------
 	// RANSAC parameters
@@ -126,7 +125,7 @@ bool tfest::se3_l2_robust(
 
 		// Maybe inliers Output
 		const CPose3D mbOut = CPose3D(mbOutQuat);
-		CVectorFloat mbOut_vec(7);
+		CVectorDouble mbOut_vec(7);
 		mbOut_vec[0] = mbOut.x();
 		mbOut_vec[1] = mbOut.y();
 		mbOut_vec[2] = mbOut.z();
@@ -194,7 +193,7 @@ bool tfest::se3_l2_robust(
 			// Good set of points found
 			TMatchingPairList cSetInliers;
 			cSetInliers.resize(cSet.size());
-			for (unsigned int m = 0; m < cSet.size(); m++)
+			for (size_t m = 0; m < cSet.size(); m++)
 				cSetInliers[m] = in_correspondences[cSet[m]];
 
 			// Compute output: Consensus Set + Initial Inliers Guess

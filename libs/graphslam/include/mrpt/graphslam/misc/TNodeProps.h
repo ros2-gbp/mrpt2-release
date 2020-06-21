@@ -2,13 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
 #include <mrpt/obs/CObservation2DRangeScan.h>
+
 #include <string>
 
 namespace mrpt::graphslam::detail
@@ -18,6 +19,9 @@ struct TNodeProps
 {
 	typename GRAPH_T::global_pose_t pose;
 	mrpt::obs::CObservation2DRangeScan::Ptr scan;
+
+	TNodeProps() = default;
+	TNodeProps(const TNodeProps& o) { *this = o; }
 
 	TNodeProps operator=(const TNodeProps& other)
 	{
@@ -50,7 +54,7 @@ struct TNodeProps
 
 	friend std::ostream& operator<<(std::ostream& o, const TNodeProps& obj)
 	{
-		o << obj.getAsString() << endl;
+		o << obj.getAsString() << std::endl;
 		return o;
 	}
 };

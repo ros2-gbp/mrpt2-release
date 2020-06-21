@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -28,6 +28,8 @@
 #include <mrpt/gui/about_box.h>
 #include <mrpt/io/CFileGZInputStream.h>
 #include <mrpt/io/CFileGZOutputStream.h>
+#include <mrpt/math/TLine3D.h>
+#include <mrpt/math/TObject3D.h>
 #include <mrpt/poses/CPoint2D.h>
 #include <mrpt/poses/CPose2D.h>
 #include "../wx-common/mrpt_logo.xpm"
@@ -811,92 +813,35 @@ reactive_navigator_demoframe::reactive_navigator_demoframe(
 	FlexGridSizer1->SetSizeHints(this);
 	Center();
 
-	Connect(
-		ID_BUTTON4, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::OnbtnStartClick);
-	Connect(
-		ID_BUTTON5, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::OnbtnStopClick);
-	Connect(
-		ID_BUTTON7, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OnbtnPlaceTargetClick);
-	Connect(
-		ID_BUTTON12, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OnbtnSetWaypointSeqClick);
-	Connect(
-		ID_BUTTON6, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OnbtnPlaceRobotClick);
-	Connect(
-		ID_BUTTON8, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OnbtnDrawMapObsClick);
-	Connect(
-		ID_BUTTON11, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OnbtnDrawEmptyClick);
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OnbtnLoadMapClick);
-	Connect(
-		ID_BUTTON9, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OnbtnEmptyMapClick);
-	Connect(
-		ID_BUTTON10, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OnbtnSaveMapClick);
-	Connect(
-		ID_BUTTON2, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::OnAbout);
-	Connect(
-		ID_BUTTON3, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::OnbtnQuitClick);
-	Connect(
-		ID_RADIOBOX1, wxEVT_COMMAND_RADIOBOX_SELECTED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OnrbKinTypeSelect);
-	Connect(
-		ID_BUTTON13, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OnbtnGenerateTemplateClick);
-	Connect(
-		ID_TEXTCTRL3, wxEVT_COMMAND_TEXT_UPDATED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OnedManualKinRampsText);
-	Connect(
-		ID_NOTEBOOK1, wxEVT_COMMAND_NOTEBOOK_PAGE_CHANGED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OnNotebook1PageChanged1);
-	Connect(
-		ID_MENUITEM4, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OnbtnLoadMapClick);
-	Connect(
-		idMenuQuit, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::OnQuit);
-	Connect(
-		ID_MENUITEM1, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OnMenuItemChangeVisibleStuff);
-	Connect(
-		ID_MENUITEM2, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OnMenuItemChangeVisibleStuff);
-	Connect(
-		ID_MENUITEM3, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OnMenuItemClearRobotPath);
-	Connect(
-		idMenuAbout, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::OnAbout);
-	Connect(
-		ID_TIMER1, wxEVT_TIMER,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			OntimRunSimulTrigger);
+	using rndf = reactive_navigator_demoframe;
+
+	Bind(wxEVT_BUTTON, &rndf::OnbtnStartClick, this, ID_BUTTON4);
+	Bind(wxEVT_BUTTON, &rndf::OnbtnStopClick, this, ID_BUTTON5);
+	Bind(wxEVT_BUTTON, &rndf::OnbtnPlaceTargetClick, this, ID_BUTTON7);
+	Bind(wxEVT_BUTTON, &rndf::OnbtnSetWaypointSeqClick, this, ID_BUTTON12);
+	Bind(wxEVT_BUTTON, &rndf::OnbtnPlaceRobotClick, this, ID_BUTTON6);
+	Bind(wxEVT_BUTTON, &rndf::OnbtnDrawMapObsClick, this, ID_BUTTON8);
+	Bind(wxEVT_BUTTON, &rndf::OnbtnDrawEmptyClick, this, ID_BUTTON11);
+	Bind(wxEVT_BUTTON, &rndf::OnbtnLoadMapClick, this, ID_BUTTON1);
+	Bind(wxEVT_BUTTON, &rndf::OnbtnEmptyMapClick, this, ID_BUTTON9);
+	Bind(wxEVT_BUTTON, &rndf::OnbtnSaveMapClick, this, ID_BUTTON10);
+	Bind(wxEVT_BUTTON, &rndf::OnAbout, this, ID_BUTTON2);
+	Bind(wxEVT_BUTTON, &rndf::OnbtnQuitClick, this, ID_BUTTON3);
+	Bind(wxEVT_RADIOBOX, &rndf::OnrbKinTypeSelect, this, ID_RADIOBOX1);
+	Bind(wxEVT_BUTTON, &rndf::OnbtnGenerateTemplateClick, this, ID_BUTTON13);
+	Bind(
+		wxEVT_COMMAND_TEXT_UPDATED, &rndf::OnedManualKinRampsText, this,
+		ID_TEXTCTRL3);
+	Bind(
+		wxEVT_COMMAND_NOTEBOOK_PAGE_CHANGED, &rndf::OnNotebook1PageChanged1,
+		this, ID_NOTEBOOK1);
+	Bind(wxEVT_MENU, &rndf::OnbtnLoadMapClick, this, ID_MENUITEM4);
+	Bind(wxEVT_MENU, &rndf::OnQuit, this, idMenuQuit);
+	Bind(wxEVT_MENU, &rndf::OnMenuItemChangeVisibleStuff, this, ID_MENUITEM1);
+	Bind(wxEVT_MENU, &rndf::OnMenuItemChangeVisibleStuff, this, ID_MENUITEM2);
+	Bind(wxEVT_MENU, &rndf::OnMenuItemClearRobotPath, this, ID_MENUITEM3);
+	Bind(wxEVT_MENU, &rndf::OnAbout, this, idMenuAbout);
+	Bind(wxEVT_TIMER, &rndf::OntimRunSimulTrigger, this, ID_TIMER1);
 	//*)
 
 	// Load updated cfg file:
@@ -923,20 +868,14 @@ reactive_navigator_demoframe::reactive_navigator_demoframe(
 	SplitterWindow1->SetSashPosition(200);
 	SplitterWindow2->SetSashPosition(90);
 
-	m_plot3D->Connect(
-		wxEVT_MOTION,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::Onplot3DMouseMove,
-		nullptr, this);
-	m_plot3D->Connect(
-		wxEVT_LEFT_DOWN,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			Onplot3DMouseClick,
-		nullptr, this);
-	m_plot3D->Connect(
-		wxEVT_RIGHT_DOWN,
-		(wxObjectEventFunction)&reactive_navigator_demoframe::
-			Onplot3DMouseClick,
-		nullptr, this);
+	m_plot3D->Bind(
+		wxEVT_MOTION, &reactive_navigator_demoframe::Onplot3DMouseMove, this);
+	m_plot3D->Bind(
+		wxEVT_LEFT_DOWN, &reactive_navigator_demoframe::Onplot3DMouseClick,
+		this);
+	m_plot3D->Bind(
+		wxEVT_RIGHT_DOWN, &reactive_navigator_demoframe::Onplot3DMouseClick,
+		this);
 
 	mnuViewMaxRange->Check(true);
 	mnuViewRobotPath->Check(true);
@@ -944,7 +883,7 @@ reactive_navigator_demoframe::reactive_navigator_demoframe(
 	updateButtonsEnableState(false);
 
 	// Redirect all output to control:
-	m_myRedirector = new CMyRedirector(edLog, false, 100, true);
+	m_myRedirector = std::make_unique<CMyRedirector>(edLog, false, 100, true);
 
 	WX_START_TRY
 
@@ -958,61 +897,62 @@ reactive_navigator_demoframe::reactive_navigator_demoframe(
 	auto openGLSceneRef = m_plot3D->getOpenGLSceneRef();
 	{
 		mrpt::opengl::CGridPlaneXY::Ptr obj =
-			mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
-				-50, 50, -50, 50, 0, 1);
+			mrpt::opengl::CGridPlaneXY::Create(-50, 50, -50, 50, 0, 1);
 		obj->setColor_u8(TColor(30, 30, 30, 50));
 		openGLSceneRef->insert(obj);
 	}
 
-	gl_grid = mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+	gl_grid = mrpt::opengl::CSetOfObjects::Create();
 	openGLSceneRef->insert(gl_grid);
 	this->updateMap3DView();
 
 	// Robot viz is built in OnrbKinTypeSelect()
-	gl_robot_local = mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
-	gl_robot = mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+	gl_robot_local = mrpt::opengl::CSetOfObjects::Create();
+	gl_robot = mrpt::opengl::CSetOfObjects::Create();
 	{
 		mrpt::opengl::CSetOfObjects::Ptr gl_robot_render =
-			mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+			mrpt::opengl::CSetOfObjects::Create();
 		gl_robot_render->setName("robot_render");
 		gl_robot->insert(gl_robot_render);
 	}
 	openGLSceneRef->insert(gl_robot);
 
-	gl_scan3D = mrpt::make_aligned_shared<mrpt::opengl::CPlanarLaserScan>();
+	gl_scan3D = mrpt::opengl::CPlanarLaserScan::Create();
 	gl_scan3D->enableLine(false);
 	gl_scan3D->enableSurface(true);
-	gl_scan3D->setPointsWidth(3.0);
+	gl_scan3D->setSurfaceColor(1.0f, 0, 0, 0.2f);
+	gl_scan3D->setPointSize(2.0);
+	gl_scan3D->setLocation(0, 0, 0.01);
 	gl_robot->insert(gl_scan3D);
 
-	gl_robot_sensor_range =
-		mrpt::make_aligned_shared<mrpt::opengl::CDisk>(0, 0);
+	gl_robot_sensor_range = mrpt::opengl::CDisk::Create(0, 0);
 	gl_robot_sensor_range->setColor_u8(TColor(0, 0, 255, 90));
 	gl_robot_sensor_range->setLocation(0, 0, 0.01);
 	gl_robot->insert(gl_robot_sensor_range);
 
-	gl_robot_path = mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
+	gl_robot_path = mrpt::opengl::CSetOfLines::Create();
 	gl_robot_path->setLineWidth(1);
 	gl_robot_path->setColor_u8(TColor(40, 40, 40, 200));
+	gl_robot_path->setLocation(0, 0, 0.01);
 	openGLSceneRef->insert(gl_robot_path);
 
-	gl_target = mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+	gl_target = mrpt::opengl::CSetOfObjects::Create();
 	gl_target->setVisibility(false);
 	{
 		mrpt::opengl::CArrow::Ptr obj;
-		obj = mrpt::make_aligned_shared<mrpt::opengl::CArrow>(
+		obj = mrpt::opengl::CArrow::Create(
 			1, 0, 0, 0.2f, 0, 0, 0.4f, 0.05f, 0.15f);
 		obj->setColor_u8(TColor(0, 0, 255));
 		gl_target->insert(obj);
-		obj = mrpt::make_aligned_shared<mrpt::opengl::CArrow>(
+		obj = mrpt::opengl::CArrow::Create(
 			-1, 0, 0, -0.2f, 0, 0, 0.4f, 0.05f, 0.15f);
 		obj->setColor_u8(TColor(0, 0, 255));
 		gl_target->insert(obj);
-		obj = mrpt::make_aligned_shared<mrpt::opengl::CArrow>(
+		obj = mrpt::opengl::CArrow::Create(
 			0, 1, 0, 0, 0.2f, 0, 0.4f, 0.05f, 0.15f);
 		obj->setColor_u8(TColor(0, 0, 255));
 		gl_target->insert(obj);
-		obj = mrpt::make_aligned_shared<mrpt::opengl::CArrow>(
+		obj = mrpt::opengl::CArrow::Create(
 			0, -1, 0, 0, -0.2f, 0, 0.4f, 0.05f, 0.15f);
 		obj->setColor_u8(TColor(0, 0, 255));
 		gl_target->insert(obj);
@@ -1020,33 +960,30 @@ reactive_navigator_demoframe::reactive_navigator_demoframe(
 	}
 
 	{
-		gl_waypoints_clicking =
-			mrpt::make_aligned_shared<opengl::CSetOfObjects>();
+		gl_waypoints_clicking = std::make_shared<opengl::CSetOfObjects>();
 		openGLSceneRef->insert(gl_waypoints_clicking);
 
-		gl_waypoints_status =
-			mrpt::make_aligned_shared<opengl::CSetOfObjects>();
+		gl_waypoints_status = std::make_shared<opengl::CSetOfObjects>();
 		openGLSceneRef->insert(gl_waypoints_status);
 	}
 
 	{  // Sign of "picking a navigation target":
-		m_gl_placing_nav_target =
-			mrpt::make_aligned_shared<opengl::CSetOfObjects>();
+		m_gl_placing_nav_target = std::make_shared<opengl::CSetOfObjects>();
 
 		mrpt::opengl::CArrow::Ptr obj;
-		obj = mrpt::make_aligned_shared<mrpt::opengl::CArrow>(
+		obj = mrpt::opengl::CArrow::Create(
 			1, 0, 0, 0.2f, 0, 0, 0.4f, 0.05f, 0.15f);
 		obj->setColor_u8(TColor(0, 0, 255));
 		m_gl_placing_nav_target->insert(obj);
-		obj = mrpt::make_aligned_shared<mrpt::opengl::CArrow>(
+		obj = mrpt::opengl::CArrow::Create(
 			-1, 0, 0, -0.2f, 0, 0, 0.4f, 0.05f, 0.15f);
 		obj->setColor_u8(TColor(0, 0, 255));
 		m_gl_placing_nav_target->insert(obj);
-		obj = mrpt::make_aligned_shared<mrpt::opengl::CArrow>(
+		obj = mrpt::opengl::CArrow::Create(
 			0, 1, 0, 0, 0.2f, 0, 0.4f, 0.05f, 0.15f);
 		obj->setColor_u8(TColor(0, 0, 255));
 		m_gl_placing_nav_target->insert(obj);
-		obj = mrpt::make_aligned_shared<mrpt::opengl::CArrow>(
+		obj = mrpt::opengl::CArrow::Create(
 			0, -1, 0, 0, -0.2f, 0, 0.4f, 0.05f, 0.15f);
 		obj->setColor_u8(TColor(0, 0, 255));
 		m_gl_placing_nav_target->insert(obj);
@@ -1054,7 +991,7 @@ reactive_navigator_demoframe::reactive_navigator_demoframe(
 		openGLSceneRef->insert(m_gl_placing_nav_target);
 	}
 	{  // Sign of "replacing the robot":
-		m_gl_placing_robot = mrpt::make_aligned_shared<opengl::CSetOfObjects>();
+		m_gl_placing_robot = std::make_shared<opengl::CSetOfObjects>();
 		mrpt::opengl::CSetOfObjects::Ptr obj =
 			mrpt::opengl::stock_objects::CornerXYZSimple(1.0, 2.0);
 		obj->setColor_u8(TColor(255, 0, 0, 120));
@@ -1064,11 +1001,10 @@ reactive_navigator_demoframe::reactive_navigator_demoframe(
 		openGLSceneRef->insert(m_gl_placing_robot);
 	}
 	{  // Sign of "drawing obstacles":
-		m_gl_drawing_obs = mrpt::make_aligned_shared<opengl::CSetOfObjects>();
+		m_gl_drawing_obs = std::make_shared<opengl::CSetOfObjects>();
 
 		mrpt::opengl::CCylinder::Ptr obj =
-			mrpt::make_aligned_shared<mrpt::opengl::CCylinder>(
-				0.05f, 0.10f, 1.0f);
+			mrpt::opengl::CCylinder::Create(0.05f, 0.10f, 1.0f);
 		obj->setColor_u8(mrpt::img::TColor(0xff, 0x00, 0x00, 0x70));
 		m_gl_drawing_obs->insert(obj);
 
@@ -1078,8 +1014,7 @@ reactive_navigator_demoframe::reactive_navigator_demoframe(
 
 	openGLSceneRef->insert(mrpt::opengl::stock_objects::CornerXYZ(1));
 
-	gl_robot_ptg_prediction =
-		mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
+	gl_robot_ptg_prediction = mrpt::opengl::CSetOfLines::Create();
 	gl_robot_ptg_prediction->setName("ptg_prediction");
 	gl_robot_ptg_prediction->setLineWidth(2.0);
 	gl_robot_ptg_prediction->setColor_u8(mrpt::img::TColor(0x00, 0x00, 0xff));
@@ -1102,23 +1037,22 @@ reactive_navigator_demoframe::reactive_navigator_demoframe(
 	auto openGLSceneLocalViewRef = m_plotLocalView->getOpenGLSceneRef();
 	{
 		mrpt::opengl::CGridPlaneXY::Ptr obj =
-			mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
-				-1, 1.001f, -1, 1.001f, 0, 1);
+			mrpt::opengl::CGridPlaneXY::Create(-1, 1.001f, -1, 1.001f, 0, 1);
 		obj->setColor_u8(TColor(30, 30, 30, 50));
 		openGLSceneLocalViewRef->insert(obj);
 	}
 
-	gl_line_direction = mrpt::make_aligned_shared<mrpt::opengl::CSimpleLine>();
+	gl_line_direction = mrpt::opengl::CSimpleLine::Create();
 	gl_line_direction->setLineWidth(4);
 	gl_line_direction->setColor_u8(TColor(0, 0, 0));
 	openGLSceneLocalViewRef->insert(gl_line_direction);
 
-	gl_rel_target = mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
+	gl_rel_target = mrpt::opengl::CPointCloud::Create();
 	gl_rel_target->setPointSize(7);
 	gl_rel_target->setColor_u8(TColor(0, 0, 255));
 	openGLSceneLocalViewRef->insert(gl_rel_target);
 
-	gl_rel_robot = mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
+	gl_rel_robot = mrpt::opengl::CPointCloud::Create();
 	gl_rel_robot->setPointSize(5);
 	gl_rel_robot->setColor_u8(TColor(0, 0, 0));
 	gl_rel_robot->insertPoint(0, 0, 0);
@@ -1128,12 +1062,12 @@ reactive_navigator_demoframe::reactive_navigator_demoframe(
 		mrpt::opengl::stock_objects::CornerXYSimple(0.1f, 2));
 	openGLSceneLocalViewRef->insert(gl_robot_local);
 
-	gl_tp_obstacles = mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
+	gl_tp_obstacles = mrpt::opengl::CSetOfLines::Create();
 	gl_tp_obstacles->setLineWidth(3);
 	gl_tp_obstacles->setColor_u8(TColor(0, 0, 0));
 	openGLSceneLocalViewRef->insert(gl_tp_obstacles);
 
-	gl_nd_gaps = mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
+	gl_nd_gaps = mrpt::opengl::CSetOfLines::Create();
 	gl_nd_gaps->setLineWidth(1);
 	gl_nd_gaps->setColor_u8(TColor(255, 0, 0));
 	openGLSceneRef->insert(gl_nd_gaps);
@@ -1172,9 +1106,6 @@ reactive_navigator_demoframe::~reactive_navigator_demoframe()
 	// Destroy this first to avoid problems, since it may contain a ref of the
 	// simulator object:
 	m_navMethod.reset();
-
-	delete m_myRedirector;
-	m_myRedirector = nullptr;
 }
 
 void reactive_navigator_demoframe::OnQuit(wxCommandEvent&) { Close(); }
@@ -1420,7 +1351,7 @@ void reactive_navigator_demoframe::simulateOneStep(double time_step)
 			m_latest_obstacles.insertionOptions.also_interpolate = false;
 
 			m_latest_obstacles.clear();  // erase old points
-			m_latest_obstacles.insertObservation(&simulatedScan);
+			m_latest_obstacles.insertObservation(simulatedScan);
 			// m_latest_obstacles is ref-copied into the robot2nav interface.
 		}
 
@@ -1496,8 +1427,8 @@ void reactive_navigator_demoframe::simulateOneStep(double time_step)
 	if (sel_PTG >= 0 && sel_PTG < (int)lfr.infoPerPTG.size())
 	{
 		const size_t nObs = lfr.infoPerPTG[sel_PTG].TP_Obstacles.size();
-		if (lfr.infoPerPTG.size() > 0 &&
-			IS_CLASS(lfr.infoPerPTG[sel_PTG].HLFR, CLogFileRecord_ND))
+		if (lfr.infoPerPTG.size() > 0 && lfr.infoPerPTG[sel_PTG].HLFR &&
+			IS_CLASS(*lfr.infoPerPTG[sel_PTG].HLFR, CLogFileRecord_ND))
 		{
 			CLogFileRecord_ND::Ptr log =
 				std::dynamic_pointer_cast<CLogFileRecord_ND>(
@@ -2077,9 +2008,8 @@ void create_viz_robot_holo(mrpt::opengl::CSetOfObjects& objs)
 		objs.insert(gl_xyz);
 	}
 
-	mrpt::opengl::CCylinder::Ptr obj =
-		mrpt::make_aligned_shared<mrpt::opengl::CCylinder>(
-			0.36f /*base radius*/, 0.20f /*top radius */, 1.2f /*height*/);
+	mrpt::opengl::CCylinder::Ptr obj = mrpt::opengl::CCylinder::Create(
+		0.36f /*base radius*/, 0.20f /*top radius */, 1.2f /*height*/);
 	obj->setColor_u8(TColor::red());
 	objs.insert(obj);
 }

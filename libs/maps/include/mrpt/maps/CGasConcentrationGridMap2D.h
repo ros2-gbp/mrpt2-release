@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -31,13 +31,13 @@ namespace mrpt::maps
  */
 class CGasConcentrationGridMap2D : public CRandomFieldGridMap2D
 {
-	DEFINE_SERIALIZABLE(CGasConcentrationGridMap2D)
+	DEFINE_SERIALIZABLE(CGasConcentrationGridMap2D, mrpt::maps)
    public:
 	/** Constructor
 	 */
 	CGasConcentrationGridMap2D(
 		TMapRepresentation mapType = mrAchim, float x_min = -2, float x_max = 2,
-		float y_min = -2, float y_max = 2, float resolution = 0.1);
+		float y_min = -2, float y_max = 2, float resolution = 0.1f);
 
 	/** Destructor */
 	~CGasConcentrationGridMap2D() override;
@@ -105,34 +105,36 @@ class CGasConcentrationGridMap2D : public CRandomFieldGridMap2D
 
 	/** Implements the transition model of the gasConcentration map using the
 	 * information of the wind maps  */
-	bool simulateAdvection(const double& STD_increase_value);
+	bool simulateAdvection(double STD_increase_value);
 
 	// Params for the estimation of the gaussian volume in a cell.
 	struct TGaussianCell
 	{
-		int cx;  // x-index of the cell
-		int cy;  // y-index of the cell
-		float value;  // volume approximation
+		int cx = 0;  // x-index of the cell
+		int cy = 0;  // y-index of the cell
+		float value = 0;  // volume approximation
 	};
 
 	// Params for the estimation of the wind effect on each cell of the grid
 	struct TGaussianWindTable
 	{
 		// Fixed params
-		float resolution;  // Cell_resolution. To be read from config-file
-		float std_phi;  // to be read from config-file
-		float std_r;  // to be read from config-file
+		float resolution = 0;  // Cell_resolution. To be read from config-file
+		float std_phi = 0;  // to be read from config-file
+		float std_r = 0;  // to be read from config-file
 
 		// unsigned int subcell_count; //subcell_count x subcell_count	subcells
 		// float subcell_res;
-		float phi_inc;  // rad
-		unsigned int phi_count;
-		float r_inc;  // m
-		float max_r;  // maximum distance (m)
-		unsigned int r_count;
+		float phi_inc = 0;  // rad
+		unsigned int phi_count = 0;
+		float r_inc = 0;  // m
+		float max_r = 0;  // maximum distance (m)
+		unsigned int r_count = 0;
 
 		std::vector<std::vector<std::vector<TGaussianCell>>>* table;
-	} LUT;
+	};
+
+	TGaussianWindTable LUT;
 
    protected:
 	/** Get the part of the options common to all CRandomFieldGridMap2D classes
@@ -146,10 +148,10 @@ class CGasConcentrationGridMap2D : public CRandomFieldGridMap2D
 	// See docs in base class
 	void internal_clear() override;
 	bool internal_insertObservation(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D* robotPose = nullptr) override;
 	double internal_computeObservationLikelihood(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D& takenFrom) override;
 
 	/** Builds a LookUp table with the values of the Gaussian Weights result of

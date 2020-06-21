@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -38,11 +38,8 @@ CSICKTim561Eth::CSICKTim561Eth(string _ip, unsigned int _port)
 	: m_ip(_ip),
 	  m_port(_port),
 	  m_client(),
-
 	  m_cmd(),
-
 	  m_sensorPose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
-
 	  m_beamApperture(.25 * M_PI / 180.0)
 {
 	setVerbosityLevel(mrpt::system::LVL_DEBUG);
@@ -51,8 +48,6 @@ CSICKTim561Eth::CSICKTim561Eth(string _ip, unsigned int _port)
 CSICKTim561Eth::~CSICKTim561Eth()
 {
 	if (m_connected) m_client.close();
-	// delete m_client;
-	// delete m_sensorPose;
 }
 
 void CSICKTim561Eth::initialize()
@@ -513,7 +508,7 @@ void CSICKTim561Eth::doProcessSimple(
 void CSICKTim561Eth::doProcess()
 {
 	CObservation2DRangeScan::Ptr obs =
-		mrpt::make_aligned_shared<CObservation2DRangeScan>();
+		std::make_shared<CObservation2DRangeScan>();
 	try
 	{
 		bool isThereObservation, hwError;

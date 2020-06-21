@@ -2,13 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include <mrpt/comms/CSerialPort.h>
 #include <iostream>
+#include <memory>
 
 using namespace mrpt::comms;
 using namespace std;
@@ -17,7 +18,7 @@ int main()
 {
 	try
 	{
-		CSerialPort* serPort;
+		std::unique_ptr<CSerialPort> serPort;
 
 		string serName;
 
@@ -30,7 +31,7 @@ int main()
 
 		cout << endl;
 		cout << "Opening serial port...";
-		serPort = new CSerialPort(serName);
+		serPort = std::make_unique<CSerialPort>(serName);
 		cout << "OK" << endl;
 
 		cout << "Setting timeouts...";
@@ -58,8 +59,6 @@ int main()
 			buf2[nRead] = 0;
 			cout << buf2 << "'" << endl;
 		}
-
-		delete serPort;
 	}
 	catch (const std::exception& e)
 	{

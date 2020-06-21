@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -74,6 +74,11 @@ struct safe_ptr : safe_ptr_basic<T>
 	safe_ptr() : safe_ptr_basic<T>() {}
 	safe_ptr(const safe_ptr<T>& o) : safe_ptr_basic<T>(o) {}
 	safe_ptr(const T* p) : safe_ptr_basic<T>(p) {}
+	safe_ptr& operator=(T* p)
+	{
+		safe_ptr_basic<T>::operator=(p);
+		return *this;
+	}
 	~safe_ptr() override = default;
 	T& operator*()
 	{
@@ -86,12 +91,12 @@ struct safe_ptr : safe_ptr_basic<T>
 		return *safe_ptr_basic<T>::ptr;
 	}
 
-	T& operator[](const size_t& i)
+	T& operator[](size_t i)
 	{
 		ASSERT_(safe_ptr_basic<T>::ptr);
 		return safe_ptr_basic<T>::ptr[i];
 	}
-	const T& operator[](const size_t& i) const
+	const T& operator[](size_t i) const
 	{
 		ASSERT_(safe_ptr_basic<T>::ptr);
 		return safe_ptr_basic<T>::ptr[i];
@@ -196,12 +201,12 @@ struct non_copiable_ptr : non_copiable_ptr_basic<T>
 		return *non_copiable_ptr_basic<T>::ptr;
 	}
 
-	T& operator[](const size_t& i)
+	T& operator[](size_t i)
 	{
 		ASSERT_(non_copiable_ptr_basic<T>::ptr);
 		return non_copiable_ptr_basic<T>::ptr[i];
 	}
-	const T& operator[](const size_t& i) const
+	const T& operator[](size_t i) const
 	{
 		ASSERT_(non_copiable_ptr_basic<T>::ptr);
 		return non_copiable_ptr_basic<T>::ptr[i];
@@ -342,12 +347,12 @@ struct copiable_NULL_ptr : copiable_NULL_ptr_basic<T>
 		return *copiable_NULL_ptr_basic<T>::ptr;
 	}
 
-	T& operator[](const size_t& i)
+	T& operator[](size_t i)
 	{
 		ASSERT_(copiable_NULL_ptr_basic<T>::ptr);
 		return copiable_NULL_ptr_basic<T>::ptr[i];
 	}
-	const T& operator[](const size_t& i) const
+	const T& operator[](size_t i) const
 	{
 		ASSERT_(copiable_NULL_ptr_basic<T>::ptr);
 		return copiable_NULL_ptr_basic<T>::ptr[i];

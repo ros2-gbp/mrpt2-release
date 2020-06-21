@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -69,8 +69,15 @@ CClientTCPSocket::CClientTCPSocket()
 
 CClientTCPSocket::~CClientTCPSocket()
 {
-	// Close socket:
-	close();
+	try
+	{
+		close();
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << "[~CClientTCPSocket] Exception:\n"
+				  << mrpt::exception_to_str(e);
+	}
 #ifdef _WIN32
 	WSACleanup();
 #else
@@ -195,11 +202,12 @@ void CClientTCPSocket::connect(
 			remotePartAddress.c_str(), remotePartTCPPort, strerror(er), er));
 
 	// Wait for connect:
-	fd_set socket_set;
-	timeval timer;
-
-	FD_ZERO(&socket_set);
-	FD_SET(m_hSock, &socket_set);
+	timeval timer = {0, 0};
+	fd_set ss_write, ss_errors;
+	FD_ZERO(&ss_write);
+	FD_ZERO(&ss_errors);
+	FD_SET(m_hSock, &ss_write);
+	FD_SET(m_hSock, &ss_errors);
 
 	timer.tv_sec = timeout_ms / 1000;
 	timer.tv_usec = 1000 * (timeout_ms % 1000);
@@ -207,8 +215,8 @@ void CClientTCPSocket::connect(
 	int sel_ret = select(
 		m_hSock + 1,
 		nullptr,  // For read
-		&socket_set,  // For write or *connect done*
-		&socket_set,  // For errors
+		&ss_write,  // For write or *connect done*
+		&ss_errors,  // For errors
 		timeout_ms == 0 ? nullptr : &timer);
 
 	if (sel_ret == 0)
@@ -279,7 +287,7 @@ size_t CClientTCPSocket::readAsync(
 	int readNow;
 	bool timeoutExpired = false;
 
-	struct timeval timeoutSelect;
+	struct timeval timeoutSelect = {0, 0};
 	struct timeval* ptrTimeout;
 	fd_set sockArr;
 
@@ -369,7 +377,7 @@ size_t CClientTCPSocket::writeAsync(
 	int writtenNow;
 	bool timeoutExpired = false;
 
-	struct timeval timeoutSelect;
+	struct timeval timeoutSelect = {0, 0};
 	struct timeval* ptrTimeout;
 	fd_set sockArr;
 
@@ -459,7 +467,7 @@ size_t CClientTCPSocket::getReadPendingBytes()
 /*---------------------------------------------------------------
 						setTCPNoDelay
  ---------------------------------------------------------------*/
-int CClientTCPSocket::setTCPNoDelay(const int& newValue)
+int CClientTCPSocket::setTCPNoDelay(int newValue)
 {
 	int length = sizeof(newValue);
 
@@ -490,7 +498,7 @@ int CClientTCPSocket::getTCPNoDelay()
 /*---------------------------------------------------------------
 						setSOSendBufffer
  ---------------------------------------------------------------*/
-int CClientTCPSocket::setSOSendBufffer(const int& newValue)
+int CClientTCPSocket::setSOSendBufffer(int newValue)
 {
 	const unsigned int length = sizeof(newValue);
 
@@ -518,11 +526,10 @@ std::string CClientTCPSocket::getLastErrorStr()
 	return mrpt::comms::net::getLastSocketErrorStr();
 }
 
-uint64_t CClientTCPSocket::Seek(int64_t off, CStream::TSeekOrigin org)
+uint64_t CClientTCPSocket::Seek(
+	[[maybe_unused]] int64_t off, [[maybe_unused]] CStream::TSeekOrigin org)
 {
 	MRPT_START
-	MRPT_UNUSED_PARAM(off);
-	MRPT_UNUSED_PARAM(org);
 	THROW_EXCEPTION("This method has no effect in this class!");
 	MRPT_END
 }

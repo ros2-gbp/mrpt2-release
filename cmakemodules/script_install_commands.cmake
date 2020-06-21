@@ -22,7 +22,7 @@ if(WIN32)
 	install(DIRECTORY
 			"${MRPT_SOURCE_DIR}/doc"
 			"${MRPT_SOURCE_DIR}/cmakemodules"
-			"${MRPT_SOURCE_DIR}/otherlibs"
+			"${MRPT_SOURCE_DIR}/3rdparty"
 			"${MRPT_SOURCE_DIR}/scripts"
 			"${MRPT_SOURCE_DIR}/tests"
 			"${MRPT_SOURCE_DIR}/parse-files"
@@ -48,11 +48,11 @@ if(WIN32)
 	endif()
 
 	# My own debug DLLs:
-	file(GLOB_RECURSE EXTRA_DLLS "${MRPT_BINARY_DIR}/bin/Debug/*.dll")
+	file(GLOB_RECURSE EXTRA_DLLS "${MRPT_BINARY_DIR}/bin/Debug/*.dll" "${MRPT_BINARY_DIR}/bin/Release/*.dll")
 	foreach(F ${EXTRA_DLLS})
 		install(FILES "${F}" DESTINATION bin)
 	endforeach()
-	file(GLOB_RECURSE EXTRA_LIBS "${MRPT_BINARY_DIR}/lib/Debug/*.lib")
+	file(GLOB_RECURSE EXTRA_LIBS "${MRPT_BINARY_DIR}/lib/Debug/*.lib" "${MRPT_BINARY_DIR}/lib/Release/*.lib" )
 	foreach(F ${EXTRA_LIBS})
 		install(FILES "${F}" DESTINATION lib)
 	endforeach()
@@ -63,10 +63,6 @@ else(WIN32)
 		install(DIRECTORY "${MRPT_SOURCE_DIR}/samples" DESTINATION ${mrpt_doc_INSTALL_PREFIX}share/doc/mrpt-doc/  )
 		if(EXISTS "${MRPT_SOURCE_DIR}/doc/mrpt-book.ps.gz")
 			install(FILES "${MRPT_SOURCE_DIR}/doc/mrpt-book.ps.gz" DESTINATION ${mrpt_doc_INSTALL_PREFIX}share/doc/mrpt-doc/ )
-		endif()
-
-		if(EXISTS "${MRPT_SOURCE_DIR}/doc/pbmap-guide/pbmap-guide.ps.gz")
-			install(FILES "${MRPT_SOURCE_DIR}/doc/pbmap-guide/pbmap-guide.ps.gz" DESTINATION ${mrpt_doc_INSTALL_PREFIX}share/doc/mrpt-doc/ )
 		endif()
 
 		# applications config files
@@ -95,6 +91,7 @@ if (NOT IS_DEBIAN_DBG_PKG)
 		FILES
 			"${MRPT_CONFIG_FILE_INCLUDE_DIR}/mrpt/config.h"
 			"${MRPT_CONFIG_FILE_INCLUDE_DIR}/mrpt/version.h"
+			"${MRPT_CONFIG_FILE_INCLUDE_DIR}/mrpt/mrpt_paths_config.h"
 		DESTINATION
 			"${libmrpt_common_dev_INSTALL_PREFIX}include/mrpt/"
 		)

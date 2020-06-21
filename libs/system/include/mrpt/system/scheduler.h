@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,10 +10,11 @@
 
 namespace mrpt::system
 {
-/** \addtogroup mrpt_scheduler Scheduler helpers
- * (in #include <mrpt/system/scheduler.h>)
- *  \ingroup mrpt_base_grp
+// clang-format off
+/** \addtogroup mrpt_scheduler Scheduler helpers (in #include <mrpt/system/scheduler.h>)
+ *  \ingroup mrpt_system_grp
  * @{ */
+// clang-format on
 
 /**  The type for cross-platform process (application) priorities.
  * \sa changeCurrentProcessPriority

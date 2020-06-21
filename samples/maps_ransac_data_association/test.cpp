@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -108,15 +108,15 @@ void TestRANSAC()
 	const size_t nObs = NUM_OBSERVATIONS_TO_SIMUL;
 
 	mrpt::opengl::CPointCloud::Ptr gl_obs_map =
-		mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
+		mrpt::opengl::CPointCloud::Create();
 	mrpt::opengl::CPointCloud::Ptr gl_result =
-		mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
+		mrpt::opengl::CPointCloud::Create();
 	mrpt::opengl::CSetOfObjects::Ptr gl_obs =
-		mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+		mrpt::opengl::CSetOfObjects::Create();
 	mrpt::opengl::CSetOfObjects::Ptr gl_obs_txts =
-		mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+		mrpt::opengl::CSetOfObjects::Create();
 	mrpt::opengl::CSetOfLines::Ptr gl_lines =
-		mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
+		mrpt::opengl::CSetOfLines::Create();
 	{
 		mrpt::opengl::COpenGLScene::Ptr& scene = win.get3DSceneAndLock();
 
@@ -130,7 +130,7 @@ void TestRANSAC()
 
 		//
 		mrpt::opengl::CPointCloud::Ptr gl_map =
-			mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
+			mrpt::opengl::CPointCloud::Create();
 		gl_map->loadFromPointsMap(&the_map);
 		gl_map->setColor(0, 0, 1);
 		gl_map->setPointSize(3);
@@ -140,9 +140,8 @@ void TestRANSAC()
 #if SHOW_POINT_LABELS
 		for (size_t i = 0; i < the_map.size(); i++)
 		{
-			mrpt::opengl::CText::Ptr gl_txt =
-				mrpt::make_aligned_shared<mrpt::opengl::CText>(
-					mrpt::format("%u", static_cast<unsigned int>(i)));
+			mrpt::opengl::CText::Ptr gl_txt = mrpt::opengl::CText::Create(
+				mrpt::format("%u", static_cast<unsigned int>(i)));
 			double x, y;
 			the_map.getPoint(i, x, y);
 			gl_txt->setLocation(x + 0.05, y + 0.05, 0.01);
@@ -256,7 +255,7 @@ void TestRANSAC()
 		params.ransac_nSimulations = 0;  // 0=auto
 		params.ransac_fuseByCorrsMatch = true;
 		params.ransac_fuseMaxDiffXY = 0.01f;
-		params.ransac_fuseMaxDiffPhi = DEG2RAD(0.1);
+		params.ransac_fuseMaxDiffPhi = 0.1_deg;
 		params.ransac_algorithmForLandmarks = true;
 		params.probability_find_good_model = 0.999999;
 		params.ransac_min_nSimulations =
@@ -316,7 +315,7 @@ void TestRANSAC()
 				5, 5,
 				"Blue: map landmarks | Red: Observations | White lines: Found "
 				"correspondences",
-				mrpt::img::TColorf(0, 0, 0), "mono", 12, mrpt::opengl::NICE, 0);
+				0);
 
 			//
 			gl_obs_map->clear();
@@ -330,9 +329,8 @@ void TestRANSAC()
 			gl_obs_txts->clear();
 			for (size_t i = 0; i < nObs; i++)
 			{
-				mrpt::opengl::CText::Ptr gl_txt =
-					mrpt::make_aligned_shared<mrpt::opengl::CText>(
-						mrpt::format("%u", static_cast<unsigned int>(i)));
+				mrpt::opengl::CText::Ptr gl_txt = mrpt::opengl::CText::Create(
+					mrpt::format("%u", static_cast<unsigned int>(i)));
 				const double x = observations[i].x;
 				const double y = observations[i].y;
 				gl_txt->setLocation(x + 0.05, y + 0.05, 0.01);
@@ -366,13 +364,12 @@ void TestRANSAC()
 			}
 
 			win.addTextMessage(
-				5, 20, "Ground truth pose    : " + GT_pose.asString(),
-				mrpt::img::TColorf(0, 0, 0), "mono", 12, mrpt::opengl::NICE, 1);
+				5, 20, "Ground truth pose    : " + GT_pose.asString(), 1);
 			win.addTextMessage(
 				5, 35,
 				"RANSAC estimated pose: " + solution_pose.mean.asString() +
 					mrpt::format(" | RMSE=%f", (nPairs ? sqerr / nPairs : 0.0)),
-				mrpt::img::TColorf(0, 0, 0), "mono", 12, mrpt::opengl::NICE, 2);
+				2);
 
 			win.unlockAccess3DScene();
 			win.repaint();

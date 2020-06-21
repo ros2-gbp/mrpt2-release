@@ -2,16 +2,16 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/core/aligned_std_deque.h>
 #include <mrpt/obs/CObservation.h>
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/serialization/CSerializable.h>
+#include <deque>
 
 namespace mrpt::obs
 {
@@ -24,7 +24,7 @@ namespace mrpt::obs
  */
 class CObservation6DFeatures : public CObservation
 {
-	DEFINE_SERIALIZABLE(CObservation6DFeatures)
+	DEFINE_SERIALIZABLE(CObservation6DFeatures, mrpt::obs)
    public:
 	/** Default ctor */
 	CObservation6DFeatures();
@@ -46,11 +46,11 @@ class CObservation6DFeatures : public CObservation
 		/** Ctor with default values */
 		TMeasurement();
 
-		MRPT_MAKE_ALIGNED_OPERATOR_NEW  // Required because we contain Eigen
+		// Required because we contain Eigen
 		// matrices
 	};
 	/** The list of observed features */
-	mrpt::aligned_std_deque<TMeasurement> sensedFeatures;
+	std::deque<TMeasurement> sensedFeatures;
 
 	/** The pose of the sensor on the robot/vehicle */
 	mrpt::poses::CPose3D sensorPose;

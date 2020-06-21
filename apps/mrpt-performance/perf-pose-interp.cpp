@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -31,8 +31,8 @@ double pose_interp_test(int a1, int a2)
 	const long N = 400000;
 	mrpt::system::CTicTac tictac;
 
-	pose_t a = pose_t(
-		mrpt::poses::CPose3D(1.0, 2.0, 0, DEG2RAD(10), .0, .0).asTPose());
+	pose_t a =
+		pose_t(mrpt::poses::CPose3D(1.0, 2.0, 0, 10.0_deg, .0, .0).asTPose());
 
 	PATH_T pose_path;
 	const auto t0 = mrpt::Clock::now();

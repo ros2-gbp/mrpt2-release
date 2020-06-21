@@ -2,14 +2,15 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/lightweight_geom_data.h>
-#include <mrpt/opengl/CRenderizableDisplayList.h>
+#include <mrpt/math/TPoint3D.h>
+#include <mrpt/opengl/CRenderizableShaderTriangles.h>
+#include <mrpt/opengl/CRenderizableShaderWireFrame.h>
 
 namespace mrpt::opengl
 {
@@ -36,31 +37,31 @@ namespace mrpt::opengl
  *
  * \ingroup mrpt_opengl_grp
  */
-class CBox : public CRenderizableDisplayList
+class CBox : public CRenderizableShaderTriangles,
+			 public CRenderizableShaderWireFrame
 {
-	DEFINE_SERIALIZABLE(CBox)
-
-   protected:
-	/** Corners coordinates */
-	mrpt::math::TPoint3D m_corner_min, m_corner_max;
-	/** true: wireframe, false: solid */
-	bool m_wireframe{false};
-	/** For wireframe only. */
-	float m_lineWidth{1};
-	/** Draw line borders to solid box with the given linewidth (default: true)
-	 */
-	bool m_draw_border{false};
-	/** Color of the solid box borders. */
-	mrpt::img::TColor m_solidborder_color;
+	DEFINE_SERIALIZABLE(CBox, mrpt::opengl)
 
    public:
-	/** Render
-	 * \sa mrpt::opengl::CRenderizable
-	 */
-	void render_dl() const override;
+	/** @name Renderizable shader API virtual methods
+	 * @{ */
+	void render(const RenderContext& rc) const override;
+	void renderUpdateBuffers() const override;
 
-	/** Evaluates the bounding box of this object (including possible children)
-	 * in the coordinate frame of the object parent. */
+	virtual shader_list_t requiredShaders() const override
+	{
+		// May use up to two shaders (triangles and lines):
+		return {DefaultShaderID::WIREFRAME, DefaultShaderID::TRIANGLES};
+	}
+	void onUpdateBuffers_Wireframe() override;
+	void onUpdateBuffers_Triangles() override;
+	void freeOpenGLResources() override
+	{
+		CRenderizableShaderTriangles::freeOpenGLResources();
+		CRenderizableShaderWireFrame::freeOpenGLResources();
+	}
+	/** @} */
+
 	void getBoundingBox(
 		mrpt::math::TPoint3D& bb_min,
 		mrpt::math::TPoint3D& bb_max) const override;
@@ -74,25 +75,25 @@ class CBox : public CRenderizableDisplayList
 	inline void setLineWidth(float width)
 	{
 		m_lineWidth = width;
-		CRenderizableDisplayList::notifyChange();
+		CRenderizable::notifyChange();
 	}
 	inline float getLineWidth() const { return m_lineWidth; }
 	inline void setWireframe(bool is_wireframe = true)
 	{
 		m_wireframe = is_wireframe;
-		CRenderizableDisplayList::notifyChange();
+		CRenderizable::notifyChange();
 	}
 	inline bool isWireframe() const { return m_wireframe; }
 	inline void enableBoxBorder(bool drawBorder = true)
 	{
 		m_draw_border = drawBorder;
-		CRenderizableDisplayList::notifyChange();
+		CRenderizable::notifyChange();
 	}
 	inline bool isBoxBorderEnabled() const { return m_draw_border; }
 	inline void setBoxBorderColor(const mrpt::img::TColor& c)
 	{
 		m_solidborder_color = c;
-		CRenderizableDisplayList::notifyChange();
+		CRenderizable::notifyChange();
 	}
 	inline mrpt::img::TColor getBoxBorderColor() const
 	{
@@ -111,7 +112,7 @@ class CBox : public CRenderizableDisplayList
 	}
 
 	/** Basic empty constructor. Set all parameters to default. */
-	CBox();
+	CBox() = default;
 
 	/** Constructor with all the parameters  */
 	CBox(
@@ -122,6 +123,17 @@ class CBox : public CRenderizableDisplayList
 	/** Destructor  */
 	~CBox() override = default;
 
-   private:
+   protected:
+	/** Corners coordinates */
+	mrpt::math::TPoint3D m_corner_min = {-1, -1, -1}, m_corner_max = {1, 1, 1};
+	/** true: wireframe, false (default): solid */
+	bool m_wireframe{false};
+
+	/** Draw line borders to solid box with the given linewidth (default: true)
+	 */
+	bool m_draw_border{true};
+
+	/** Color of the solid box borders. */
+	mrpt::img::TColor m_solidborder_color = {0, 0, 0};
 };
 }  // namespace mrpt::opengl

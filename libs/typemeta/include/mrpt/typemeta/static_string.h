@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -38,7 +38,7 @@ class string_literal
 		return MRPT_X_ASSERT(i >= 0 && i < N), _lit[i];
 	}
 	constexpr const char* c_str() const { return _lit; }
-	constexpr operator const char*() const { return c_str(); }
+	constexpr operator const char*() const { return _lit; }
 	operator std::string() const { return _lit; }
 };
 

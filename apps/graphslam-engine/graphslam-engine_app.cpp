@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -14,7 +14,7 @@
 #include <mrpt/graphslam/apps_related/CGraphSlamHandler.h>
 #include <mrpt/graphslam/apps_related/TUserOptionsChecker.h>
 
-#include <mrpt/otherlibs/tclap/CmdLine.h>
+#include <mrpt/3rdparty/tclap/CmdLine.h>
 
 #include <string>
 
@@ -25,7 +25,6 @@ using namespace mrpt::graphslam;
 using namespace mrpt::graphslam::deciders;
 using namespace mrpt::graphslam::optimizers;
 using namespace mrpt::graphslam::apps;
-
 using namespace std;
 
 // command line arguments

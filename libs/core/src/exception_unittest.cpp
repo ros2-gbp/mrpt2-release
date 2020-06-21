@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -50,7 +50,7 @@ TEST(exception, stackedExceptionComplex)
 		const auto sExc = mrpt::exception_to_str(e);
 		// std::cerr << sExc;
 		const auto num_lines = std::count(sExc.begin(), sExc.end(), '\n');
-		EXPECT_EQ(num_lines, 5);
+		EXPECT_EQ(num_lines, 6);
 	}
 }
 

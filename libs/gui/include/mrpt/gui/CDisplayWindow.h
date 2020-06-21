@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,6 +10,7 @@
 
 #include <mrpt/gui/CBaseGUIWindow.h>
 #include <mrpt/img/CImage.h>
+#include <mrpt/math/CVectorDynamic.h>
 #include <mrpt/system/os.h>
 #include <vector>
 
@@ -24,6 +25,9 @@ namespace gui
  *
  *  For a list of supported events with the observer/observable pattern, see the
  * discussion in mrpt::gui::CBaseGUIWindow.
+ *
+ * ![mrpt::gui::CDisplayWindow screenshot](preview_CDisplayWindow.jpg)
+ *
  * \ingroup mrpt_gui_grp
  */
 class CDisplayWindow : public mrpt::gui::CBaseGUIWindow
@@ -70,13 +74,13 @@ class CDisplayWindow : public mrpt::gui::CBaseGUIWindow
 		const mrpt::img::CImage& img, const mrpt::math::CVectorFloat& x,
 		const mrpt::math::CVectorFloat& y,
 		const mrpt::img::TColor& color = mrpt::img::TColor::red(),
-		const bool& showNumbers = false);
+		bool showNumbers = false);
 	/** \overload */
 	void showImageAndPoints(
 		const mrpt::img::CImage& img, const std::vector<float>& x,
 		const std::vector<float>& y,
 		const mrpt::img::TColor& color = mrpt::img::TColor::red(),
-		const bool& showNumbers = false);
+		bool showNumbers = false);
 
 	/** Show a given color or grayscale image on the window and print a set of
 	 * points on it.
@@ -88,7 +92,7 @@ class CDisplayWindow : public mrpt::gui::CBaseGUIWindow
 	void showImageAndPoints(
 		const mrpt::img::CImage& img, const FEATURELIST& list,
 		const mrpt::img::TColor& color = mrpt::img::TColor::red(),
-		const bool& showIDs = false)
+		bool showIDs = false)
 	{
 		MRPT_START
 		mrpt::img::CImage imgColor = img.colorImage();
@@ -151,24 +155,23 @@ class CDisplayWindow : public mrpt::gui::CBaseGUIWindow
 		for (typename MATCHEDLIST::const_iterator i = mList.begin();
 			 i != mList.end(); ++i, ++nf)
 		{
-			imgColor.drawCircle(
-				round(i->first->x), round(i->first->y), 4, color);
-			imgColor.drawCircle(
-				round(i->second->x + w), round(i->second->y), 4, color);
-			// imgColor.line( round( i->first->x ), round( i->first->y ), round(
-			// i->second->x + w ), round( i->second->y ), color );
+			const auto x1 = round(i->first.keypoint.pt.x);
+			const auto y1 = round(i->first.keypoint.pt.y);
+			const auto x2 = round(i->second.keypoint.pt.x);
+			const auto y2 = round(i->second.keypoint.pt.y);
+
+			imgColor.drawCircle(x1, y1, 4, color);
+			imgColor.drawCircle(x2 + w, y2, 4, color);
+
 			if (showNumbers)
 			{
 				char buf[15];
 				mrpt::system::os::sprintf(
-					buf, 15, "%d[%u]", nf, (unsigned int)i->first->ID);
-				imgColor.textOut(
-					round(i->first->x) - 10, round(i->first->y), buf, color);
+					buf, 15, "%d[%u]", nf, (unsigned int)i->first.keypoint.ID);
+				imgColor.textOut(x1 - 10, y1, buf, color);
 				mrpt::system::os::sprintf(
-					buf, 15, "%d[%u]", nf, (unsigned int)i->second->ID);
-				imgColor.textOut(
-					round(i->second->x + w) + 10, round(i->second->y), buf,
-					color);
+					buf, 15, "%d[%u]", nf, (unsigned int)i->second.keypoint.ID);
+				imgColor.textOut(x2 + w + 10, y2, buf, color);
 			}
 		}
 		showImage(imgColor);

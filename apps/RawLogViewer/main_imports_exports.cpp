@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -39,6 +39,7 @@
 #include <mrpt/system/filesystem.h>
 #include <mrpt/system/os.h>
 #include <mrpt/system/string_utils.h>
+#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::obs;
@@ -142,7 +143,7 @@ void xRawLogViewerFrame::OnImportCARMEN(wxCommandEvent& event)
 		bool isRearLaser = line.find("RLASER ") == 0;
 		if (isFrontLaser || isRearLaser)
 		{
-			obsScan = mrpt::make_aligned_shared<CObservation2DRangeScan>();
+			obsScan = std::make_shared<CObservation2DRangeScan>();
 			obsScan->aperture = M_PIf;
 			obsScan->rightToLeft = true;
 			obsScan->maxRange = maxValidLaserRange;
@@ -158,10 +159,10 @@ void xRawLogViewerFrame::OnImportCARMEN(wxCommandEvent& event)
 
 			for (int q = 0; q < scanSize; q++)
 			{
-				obsScan->setScanRange(q, atof(str));
+				const auto r = atof(str);
+				obsScan->setScanRange(q, r);
 				goToNextToken(str);
-				obsScan->setScanRangeValidity(
-					q, obsScan->scan[q] < maxValidLaserRange);
+				obsScan->setScanRangeValidity(q, r < maxValidLaserRange);
 			}
 
 			// Read odometry:
@@ -204,13 +205,13 @@ void xRawLogViewerFrame::OnImportCARMEN(wxCommandEvent& event)
 			actions.clear();
 			actions.insert(actionMovement);
 
-			rawlog.addActions(actions);
+			rawlog.insert(actions);
 
 			// Add the SCAN to the log:
 			sf.clear();
 			sf.push_back(obsScan);
 
-			rawlog.addObservations(sf);
+			rawlog.insert(sf);
 		}
 
 		if ((i++ % 30) == 0)
@@ -323,17 +324,16 @@ void xRawLogViewerFrame::OnImportSequenceOfImages(wxCommandEvent& event)
 				!os::_strcmpi("ras", filExt.c_str()))
 			{
 				// Add SF:
-				CSensoryFrame::Ptr sf =
-					mrpt::make_aligned_shared<CSensoryFrame>();
+				CSensoryFrame::Ptr sf = std::make_shared<CSensoryFrame>();
 				CObservationImage::Ptr im =
-					mrpt::make_aligned_shared<CObservationImage>();
+					std::make_shared<CObservationImage>();
 				im->cameraPose = CPose3D(0, 0, 0);
 				im->image.loadFromFile(filName);
 				im->timestamp = fakeTimeStamp;
 
 				// Default camera parameters:
 				im->cameraParams.dist.fill(0);
-				im->cameraParams.intrinsicParams.zeros();
+				im->cameraParams.intrinsicParams.setZero();
 				im->cameraParams.intrinsicParams(0, 0) = 300;  // fx
 				im->cameraParams.intrinsicParams(1, 1) = 300;  // fy
 				im->cameraParams.intrinsicParams(0, 2) =
@@ -344,12 +344,12 @@ void xRawLogViewerFrame::OnImportSequenceOfImages(wxCommandEvent& event)
 
 				sf->push_back(im);
 
-				rawlog.addObservationsMemoryReference(sf);
+				rawlog.insert(sf);
 
 				// Add emppty action:
 				CActionCollection::Ptr acts =
-					mrpt::make_aligned_shared<CActionCollection>();
-				rawlog.addActionsMemoryReference(acts);
+					std::make_shared<CActionCollection>();
+				rawlog.insert(acts);
 
 				// for the next step:
 				fakeTimeStamp += At;
@@ -490,7 +490,7 @@ void xRawLogViewerFrame::OnMenuExportALOG(wxCommandEvent& event)
 					lastTime = obs->timestamp;
 					if (firstTime == INVALID_TIMESTAMP) firstTime = lastTime;
 					double time_obs = timeDifference(firstTime, lastTime);
-					auto M_real = static_cast<unsigned int>(obs->scan.size());
+					auto M_real = static_cast<unsigned int>(obs->getScanSize());
 					ASSERT_(M_real == 361 || M_real == 181);
 
 					::fprintf(
@@ -514,8 +514,9 @@ void xRawLogViewerFrame::OnMenuExportALOG(wxCommandEvent& event)
 							else
 								idx = 2 * j;
 
-							float val =
-								obs->validRange[idx] ? obs->scan[idx] : 0;
+							float val = obs->getScanRangeValidity(idx)
+											? obs->getScanRange(idx)
+											: 0;
 							if (j < (181 - 1))
 								::fprintf(f, "%.03f,", val);
 							else
@@ -526,8 +527,9 @@ void xRawLogViewerFrame::OnMenuExportALOG(wxCommandEvent& event)
 					{
 						for (unsigned int idx = 0; idx < 181; idx++)
 						{
-							float val =
-								obs->validRange[idx] ? obs->scan[idx] : 0;
+							float val = obs->getScanRangeValidity(idx)
+											? obs->getScanRange(idx)
+											: 0;
 							if (idx < (181 - 1))
 								::fprintf(f, "%.03f,", val);
 							else
@@ -703,13 +705,13 @@ void xRawLogViewerFrame::OnImportRTL(wxCommandEvent& event)
 		defaultDir =
 			(iniFile->read_string(iniFileSect, "LastDir", ".").c_str());
 		defaultFilename = _("IMPORTED.rawlog");
-		wxFileDialog dialog(
+		wxFileDialog dialog2(
 			this, caption, defaultDir, defaultFilename, wildcard,
 			wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
-		if (dialog.ShowModal() != wxID_OK) return;
+		if (dialog2.ShowModal() != wxID_OK) return;
 
-		target_filename = string(dialog.GetPath().mbc_str());
+		target_filename = string(dialog2.GetPath().mbc_str());
 	}
 
 	string dir_for_images(".");
@@ -958,13 +960,13 @@ void xRawLogViewerFrame::OnMenuImportALOG(wxCommandEvent& event)
 		defaultDir =
 			(iniFile->read_string(iniFileSect, "LastDir", ".").c_str());
 		defaultFilename = _("IMPORTED.rawlog");
-		wxFileDialog dialog(
+		wxFileDialog dialog2(
 			this, caption, defaultDir, defaultFilename, wildcard,
 			wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
-		if (dialog.ShowModal() != wxID_OK) return;
+		if (dialog2.ShowModal() != wxID_OK) return;
 
-		target_filename = string(dialog.GetPath().mbc_str());
+		target_filename = string(dialog2.GetPath().mbc_str());
 	}
 
 	// Ask for the directory of images:
@@ -1116,7 +1118,7 @@ void xRawLogViewerFrame::saveImportedLogToRawlog(
 					// 2D/3D LASER
 					// ----------------
 					CObservation2DRangeScan::Ptr obs =
-						mrpt::make_aligned_shared<CObservation2DRangeScan>();
+						std::make_shared<CObservation2DRangeScan>();
 					newObs = obs;
 
 					obs->aperture = M_PIf;
@@ -1154,7 +1156,7 @@ void xRawLogViewerFrame::saveImportedLogToRawlog(
 					if (fileExists(img_file))
 					{
 						CObservationImage::Ptr obs =
-							mrpt::make_aligned_shared<CObservationImage>();
+							std::make_shared<CObservationImage>();
 						newObs = obs;
 
 						obs->cameraPose.setFromValues(
@@ -1280,7 +1282,7 @@ void xRawLogViewerFrame::OnGenGasTxt(wxCommandEvent& event)
 				{
 					CObservation::Ptr o =
 						rawlog.getAsObservation(i);  // get the observation
-					if (IS_CLASS(o, CObservationGasSensors))
+					if (IS_CLASS(*o, CObservationGasSensors))
 					{
 						obs = std::dynamic_pointer_cast<CObservationGasSensors>(
 							o);  // Get the GAS observation
@@ -1397,7 +1399,7 @@ void xRawLogViewerFrame::OnGenWifiTxt(wxCommandEvent& event)
 				{
 					CObservation::Ptr o =
 						rawlog.getAsObservation(i);  // get the observation
-					if (IS_CLASS(o, CObservationWirelessPower))
+					if (IS_CLASS(*o, CObservationWirelessPower))
 					{
 						obs = std::dynamic_pointer_cast<
 							CObservationWirelessPower>(
@@ -1514,7 +1516,7 @@ void xRawLogViewerFrame::OnGenRFIDTxt(wxCommandEvent& event)
 				{
 					CObservation::Ptr o =
 						rawlog.getAsObservation(i);  // get the observation
-					if (IS_CLASS(o, CObservationRFID))
+					if (IS_CLASS(*o, CObservationRFID))
 					{
 						obs = std::dynamic_pointer_cast<CObservationRFID>(
 							o);  // Get the GAS observation
@@ -1722,13 +1724,12 @@ void xRawLogViewerFrame::OnMenuItemImportBremenDLRLog(wxCommandEvent& event)
 			{
 				if (use_SF_format)
 				{
-					newRawlog.addObservations(set_of_obs);
+					newRawlog.insert(set_of_obs);
 				}
 				else
 				{
 					for (size_t i = 0; i < set_of_obs.size(); i++)
-						newRawlog.addObservationMemoryReference(
-							set_of_obs.getObservationByIndex(i));
+						newRawlog.insert(set_of_obs.getObservationByIndex(i));
 				}
 				set_of_obs.clear();
 			}
@@ -1740,7 +1741,7 @@ void xRawLogViewerFrame::OnMenuItemImportBremenDLRLog(wxCommandEvent& event)
 				//  so we have the observation, even if it's empty:
 				// Create upon first landmark:
 				CObservationBearingRange::Ptr obs =
-					mrpt::make_aligned_shared<CObservationBearingRange>();
+					std::make_shared<CObservationBearingRange>();
 				obs->sensorLabel = "CIRCLE_DETECTOR";
 				obs->timestamp = cur_timestamp;
 				obs->minSensorDistance = 0;
@@ -1749,7 +1750,7 @@ void xRawLogViewerFrame::OnMenuItemImportBremenDLRLog(wxCommandEvent& event)
 				obs->sensor_std_range = 1e-2f;
 				obs->sensor_std_pitch = 0;  // Is a 2D sensor
 				obs->fieldOfView_pitch = 0;
-				obs->fieldOfView_yaw = DEG2RAD(180);
+				obs->fieldOfView_yaw = 180.0_deg;
 				obs->validCovariances =
 					true;  // Each observation has its own cov. matrix.
 
@@ -1766,7 +1767,7 @@ void xRawLogViewerFrame::OnMenuItemImportBremenDLRLog(wxCommandEvent& event)
 
 			// Add the image to be inserted before the next odometry entry:
 			CObservationImage::Ptr newImg =
-				mrpt::make_aligned_shared<CObservationImage>();
+				std::make_shared<CObservationImage>();
 			newImg->timestamp = cur_timestamp;
 			newImg->sensorLabel = "CAMERA";
 			newImg->image.setExternalStorage(words[1] + std::string(".jpg"));
@@ -1797,14 +1798,14 @@ void xRawLogViewerFrame::OnMenuItemImportBremenDLRLog(wxCommandEvent& event)
 			{
 				CActionCollection acts;
 				acts.insert(act_mov);
-				newRawlog.addActions(acts);
+				newRawlog.insert(acts);
 			}
 			else
 			{
 				obs_odo.timestamp = cur_timestamp;
 				obs_odo.odometry += odoIncr;
-				newRawlog.addObservationMemoryReference(
-					mrpt::make_aligned_shared<CObservationOdometry>(obs_odo));
+				newRawlog.insert(
+					std::make_shared<CObservationOdometry>(obs_odo));
 			}
 		}
 		else if (words[0] == "LANDMARK_C")
@@ -1850,7 +1851,7 @@ void xRawLogViewerFrame::OnMenuItemImportBremenDLRLog(wxCommandEvent& event)
 			const CMatrixDouble33 H(dat_H);
 
 			// Transform covariance with Jacobian:
-			const CMatrixDouble33 C_ypr = H * C_xy * H.transpose();
+			const CMatrixDouble33 C_ypr = mrpt::math::multiply_HCHt(H, C_xy);
 
 			// Create obs:
 			CObservationBearingRange::TMeasurement meas;
@@ -1896,13 +1897,12 @@ void xRawLogViewerFrame::OnMenuItemImportBremenDLRLog(wxCommandEvent& event)
 	{
 		if (use_SF_format)
 		{
-			newRawlog.addObservations(set_of_obs);
+			newRawlog.insert(set_of_obs);
 		}
 		else
 		{
 			for (size_t i = 0; i < set_of_obs.size(); i++)
-				newRawlog.addObservationMemoryReference(
-					set_of_obs.getObservationByIndex(i));
+				newRawlog.insert(set_of_obs.getObservationByIndex(i));
 		}
 	}
 
@@ -2126,7 +2126,7 @@ void xRawLogViewerFrame::OnGenerateTextFileRangeBearing(wxCommandEvent& event)
 			{
 				CObservation::Ptr o = rawlog.getAsObservation(i);
 
-				if (IS_CLASS(o, CObservationBearingRange))
+				if (IS_CLASS(*o, CObservationBearingRange))
 				{
 					CObservationBearingRange::Ptr obs =
 						std::dynamic_pointer_cast<CObservationBearingRange>(o);

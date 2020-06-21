@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -175,7 +175,8 @@ class CNetworkOfPoses
 		/**\brief Potential class constructors
 		 */
 		/**\{ */
-		inline global_pose_t() : constraint_no_pdf_t() {}
+		inline global_pose_t() = default;
+
 		template <typename ARG1>
 		inline global_pose_t(const ARG1& a1) : constraint_no_pdf_t(a1)
 		{
@@ -186,14 +187,6 @@ class CNetworkOfPoses
 		{
 		}
 		/**\} */
-
-		/**\brief Copy constructor - delegate copying to the NODE_ANNOTATIONS
-		 * struct
-		 */
-		inline global_pose_t(const global_pose_t& other)
-			: constraint_no_pdf_t(other), NODE_ANNOTATIONS(other)
-		{
-		}
 
 		inline bool operator==(const global_pose_t& other) const
 		{
@@ -419,7 +412,7 @@ class CNetworkOfPoses
 	void extractSubGraph(
 		const std::set<TNodeID>& node_IDs, self_t* sub_graph,
 		const TNodeID root_node_in = INVALID_NODEID,
-		const bool& auto_expand_set = true) const
+		bool auto_expand_set = true) const
 	{
 		using namespace std;
 		using namespace mrpt;
@@ -720,7 +713,7 @@ class CNetworkOfPoses
 		const bool hypots_from_other_to_self = true,
 		std::map<TNodeID, TNodeID>* old_to_new_nodeID_mappings_out = nullptr)
 	{
-		MRPT_START;
+		MRPT_START
 		using namespace mrpt::graphs;
 		using namespace mrpt::graphs::detail;
 		using namespace std;
@@ -839,7 +832,7 @@ class CNetworkOfPoses
 		// run Dijkstra to update the node positions
 		this->dijkstra_nodes_estimate();
 
-		MRPT_END;
+		MRPT_END
 	}
 
 	/**\brief Add an edge between the last node of the group with the lower

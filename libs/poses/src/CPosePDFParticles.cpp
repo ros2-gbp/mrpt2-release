@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -17,6 +17,7 @@
 #include <mrpt/random.h>
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/os.h>
+#include <fstream>
 
 using namespace mrpt;
 using namespace mrpt::bayes;
@@ -104,10 +105,12 @@ void CPosePDFParticles::getMean(CPose2D& est_) const
 	}
 }
 
-void CPosePDFParticles::getCovarianceAndMean(
-	CMatrixDouble33& cov, CPose2D& mean) const
+std::tuple<CMatrixDouble33, CPose2D> CPosePDFParticles::getCovarianceAndMean()
+	const
 {
-	cov.zeros();
+	CMatrixDouble33 cov;
+	CPose2D mean;
+	cov.setZero();
 	getMean(mean);
 
 	size_t i, n = m_particles.size();
@@ -140,7 +143,7 @@ void CPosePDFParticles::getCovarianceAndMean(
 
 	if (n < 2)
 	{
-		// Not enought information to estimate the variance:
+		// Not enough information to estimate the variance:
 	}
 	else
 	{
@@ -153,6 +156,7 @@ void CPosePDFParticles::getCovarianceAndMean(
 		cov(2, 0) = cov(0, 2) = var_xp;
 		cov(1, 2) = cov(2, 1) = var_yp;
 	}
+	return {cov, mean};
 }
 
 uint8_t CPosePDFParticles::serializeGetVersion() const { return 1; }
@@ -255,7 +259,7 @@ void CPosePDFParticles::resetAroundSetOfPoses(
 bool CPosePDFParticles::saveToTextFile(const std::string& file) const
 {
 	std::string buf;
-	buf += mrpt::format("%% x  y  yaw[rad] log_weight\n");
+	buf += "%% x  y  yaw[rad] log_weight\n";
 
 	for (const auto& p : m_particles)
 		buf += mrpt::format("%f %f %f %e\n", p.d.x, p.d.y, p.d.phi, p.log_w);
@@ -338,13 +342,9 @@ mrpt::math::TPose2D CPosePDFParticles::getMostLikelyParticle() const
 }
 
 void CPosePDFParticles::bayesianFusion(
-	const CPosePDF& p1, const CPosePDF& p2,
-	const double minMahalanobisDistToDrop)
+	[[maybe_unused]] const CPosePDF& p1, [[maybe_unused]] const CPosePDF& p2,
+	[[maybe_unused]] const double minMahalanobisDistToDrop)
 {
-	MRPT_UNUSED_PARAM(p1);
-	MRPT_UNUSED_PARAM(p2);
-	MRPT_UNUSED_PARAM(minMahalanobisDistToDrop);
-
 	THROW_EXCEPTION("Not implemented yet!");
 }
 

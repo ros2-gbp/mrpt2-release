@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -23,7 +23,7 @@ CICPCriteriaERD<GRAPH_T>::CICPCriteriaERD()
 	  m_laser_scans_color(0, 20, 255)
 
 {
-	MRPT_START;
+	MRPT_START
 
 	this->initializeLoggers("CICPCriteriaERD");
 
@@ -36,7 +36,7 @@ CICPCriteriaERD<GRAPH_T>::CICPCriteriaERD()
 
 	MRPT_LOG_DEBUG("Initialized class object");
 
-	MRPT_END;
+	MRPT_END
 }
 
 // Methods implementations
@@ -44,12 +44,11 @@ CICPCriteriaERD<GRAPH_T>::CICPCriteriaERD()
 
 template <class GRAPH_T>
 bool CICPCriteriaERD<GRAPH_T>::updateState(
-	mrpt::obs::CActionCollection::Ptr action,
+	[[maybe_unused]] mrpt::obs::CActionCollection::Ptr action,
 	mrpt::obs::CSensoryFrame::Ptr observations,
 	mrpt::obs::CObservation::Ptr observation)
 {
-	MRPT_START;
-	MRPT_UNUSED_PARAM(action);
+	MRPT_START
 	using namespace mrpt::obs;
 
 	// check possible prior node registration
@@ -64,14 +63,14 @@ bool CICPCriteriaERD<GRAPH_T>::updateState(
 
 	if (observation)
 	{  // observation-only rawlog format
-		if (IS_CLASS(observation, CObservation2DRangeScan))
+		if (IS_CLASS(*observation, CObservation2DRangeScan))
 		{
 			m_last_laser_scan2D =
 				std::dynamic_pointer_cast<mrpt::obs::CObservation2DRangeScan>(
 					observation);
 			m_is_using_3DScan = false;
 		}
-		if (IS_CLASS(observation, CObservation3DRangeScan))
+		if (IS_CLASS(*observation, CObservation3DRangeScan))
 		{
 			m_last_laser_scan3D =
 				std::dynamic_pointer_cast<mrpt::obs::CObservation3DRangeScan>(
@@ -150,14 +149,14 @@ bool CICPCriteriaERD<GRAPH_T>::updateState(
 	}
 
 	return true;
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_T>
 void CICPCriteriaERD<GRAPH_T>::checkRegistrationCondition2D(
 	const std::set<mrpt::graphs::TNodeID>& nodes_set)
 {
-	MRPT_START;
+	MRPT_START
 	using namespace mrpt;
 	using namespace mrpt::obs;
 	using namespace mrpt::math;
@@ -232,13 +231,13 @@ void CICPCriteriaERD<GRAPH_T>::checkRegistrationCondition2D(
 		}
 	}
 
-	MRPT_END;
+	MRPT_END
 }
 template <class GRAPH_T>
 void CICPCriteriaERD<GRAPH_T>::checkRegistrationCondition3D(
 	const std::set<mrpt::graphs::TNodeID>& nodes_set)
 {
-	MRPT_START;
+	MRPT_START
 	using namespace std;
 	using namespace mrpt::obs;
 	using namespace mrpt::math;
@@ -295,7 +294,7 @@ void CICPCriteriaERD<GRAPH_T>::checkRegistrationCondition3D(
 		}
 	}
 
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_T>
@@ -313,7 +312,7 @@ void CICPCriteriaERD<GRAPH_T>::getNearbyNodesOf(
 	std::set<mrpt::graphs::TNodeID>* nodes_set,
 	const mrpt::graphs::TNodeID& cur_nodeID, double distance)
 {
-	MRPT_START;
+	MRPT_START
 
 	if (distance > 0)
 	{
@@ -334,14 +333,14 @@ void CICPCriteriaERD<GRAPH_T>::getNearbyNodesOf(
 		this->m_graph->getAllNodes(*nodes_set);
 	}
 
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_T>
 void CICPCriteriaERD<GRAPH_T>::notifyOfWindowEvents(
 	const std::map<std::string, bool>& events_occurred)
 {
-	MRPT_START;
+	MRPT_START
 	parent_t::notifyOfWindowEvents(events_occurred);
 
 	// I know the key exists - I put it there explicitly
@@ -350,13 +349,13 @@ void CICPCriteriaERD<GRAPH_T>::notifyOfWindowEvents(
 		this->toggleLaserScansVisualization();
 	}
 
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_T>
 void CICPCriteriaERD<GRAPH_T>::toggleLaserScansVisualization()
 {
-	MRPT_START;
+	MRPT_START
 	ASSERTDEBMSG_(this->m_win, "No CDisplayWindow3D* was provided");
 	ASSERTDEBMSG_(this->m_win_manager, "No CWindowManager* was provided");
 
@@ -380,24 +379,24 @@ void CICPCriteriaERD<GRAPH_T>::toggleLaserScansVisualization()
 	this->m_win->unlockAccess3DScene();
 	this->m_win->forceRepaint();
 
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_T>
 void CICPCriteriaERD<GRAPH_T>::getEdgesStats(
 	std::map<std::string, int>* edge_types_to_num) const
 {
-	MRPT_START;
+	MRPT_START
 
 	*edge_types_to_num = m_edge_types_to_nums;
 
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_T>
 void CICPCriteriaERD<GRAPH_T>::initializeVisuals()
 {
-	MRPT_START;
+	MRPT_START
 	using namespace mrpt::opengl;
 	this->logFmt(mrpt::system::LVL_DEBUG, "Initializing visuals");
 	this->m_time_logger.enter("CICPCriteriaERD::Visuals");
@@ -414,7 +413,7 @@ void CICPCriteriaERD<GRAPH_T>::initializeVisuals()
 	{
 		COpenGLScene::Ptr scene = this->m_win->get3DSceneAndLock();
 
-		CDisk::Ptr obj = mrpt::make_aligned_shared<CDisk>();
+		CDisk::Ptr obj = std::make_shared<CDisk>();
 		pose_t initial_pose;
 		obj->setPose(initial_pose);
 		obj->setName("ICP_max_distance");
@@ -433,7 +432,7 @@ void CICPCriteriaERD<GRAPH_T>::initializeVisuals()
 		COpenGLScene::Ptr scene = this->m_win->get3DSceneAndLock();
 
 		CPlanarLaserScan::Ptr laser_scan_viz =
-			mrpt::make_aligned_shared<mrpt::opengl::CPlanarLaserScan>();
+			mrpt::opengl::CPlanarLaserScan::Create();
 		laser_scan_viz->enablePoints(true);
 		laser_scan_viz->enableLine(true);
 		laser_scan_viz->enableSurface(true);
@@ -455,18 +454,18 @@ void CICPCriteriaERD<GRAPH_T>::initializeVisuals()
 			&m_offset_y_search_disk, &m_text_index_search_disk);
 
 		this->m_win_manager->addTextMessage(
-			5, -m_offset_y_search_disk, mrpt::format("ICP Edges search radius"),
+			5, -m_offset_y_search_disk, "ICP Edges search radius",
 			mrpt::img::TColorf(m_search_disk_color),
 			/* unique_index = */ m_text_index_search_disk);
 	}
 
 	this->m_time_logger.leave("CICPCriteriaERD::Visuals");
-	MRPT_END;
+	MRPT_END
 }
 template <class GRAPH_T>
 void CICPCriteriaERD<GRAPH_T>::updateVisuals()
 {
-	MRPT_START;
+	MRPT_START
 	this->m_time_logger.enter("CICPCriteriaERD::Visuals");
 	using namespace mrpt::opengl;
 	using namespace mrpt::math;
@@ -527,14 +526,14 @@ void CICPCriteriaERD<GRAPH_T>::updateVisuals()
 	}
 
 	this->m_time_logger.leave("CICPCriteriaERD::Visuals");
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_T>
 void CICPCriteriaERD<GRAPH_T>::dumpVisibilityErrorMsg(
 	std::string viz_flag, int sleep_time /* = 500 milliseconds */)
 {
-	MRPT_START;
+	MRPT_START
 	using namespace mrpt;
 
 	MRPT_LOG_ERROR_FMT(
@@ -544,13 +543,13 @@ void CICPCriteriaERD<GRAPH_T>::dumpVisibilityErrorMsg(
 		viz_flag.c_str());
 	std::this_thread::sleep_for(std::chrono::milliseconds(sleep_time));
 
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_T>
 void CICPCriteriaERD<GRAPH_T>::loadParams(const std::string& source_fname)
 {
-	MRPT_START;
+	MRPT_START
 	parent_t::loadParams(source_fname);
 
 	params.loadFromConfigFileName(
@@ -563,23 +562,23 @@ void CICPCriteriaERD<GRAPH_T>::loadParams(const std::string& source_fname)
 		"EdgeRegistrationDeciderParameters", "class_verbosity", 1, false);
 	this->setMinLoggingLevel(mrpt::system::VerbosityLevel(min_verbosity_level));
 
-	MRPT_END;
+	MRPT_END
 }
 template <class GRAPH_T>
 void CICPCriteriaERD<GRAPH_T>::printParams() const
 {
-	MRPT_START;
+	MRPT_START
 	parent_t::printParams();
 	params.dumpToConsole();
 
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_T>
 void CICPCriteriaERD<GRAPH_T>::getDescriptiveReport(
 	std::string* report_str) const
 {
-	MRPT_START;
+	MRPT_START
 	using namespace std;
 
 	const std::string report_sep(2, '\n');
@@ -608,7 +607,7 @@ void CICPCriteriaERD<GRAPH_T>::getDescriptiveReport(
 	*report_str += output_res;
 	*report_str += report_sep;
 
-	MRPT_END;
+	MRPT_END
 }
 
 // TParameter
@@ -627,11 +626,10 @@ template <class GRAPH_T>
 void CICPCriteriaERD<GRAPH_T>::TParams::dumpToTextStream(
 	std::ostream& out) const
 {
-	MRPT_START;
+	MRPT_START
 
-	out << mrpt::format(
-		"------------------[ Goodness-based ICP Edge Registration "
-		"]------------------\n");
+	out << "------------------[ Goodness-based ICP Edge Registration "
+		   "]------------------\n";
 	out << mrpt::format(
 		"ICP goodness threshold         = %.2f%% \n",
 		ICP_goodness_thresh * 100);
@@ -645,13 +643,13 @@ void CICPCriteriaERD<GRAPH_T>::TParams::dumpToTextStream(
 		"3DScans Image Directory        = %s\n",
 		scans_img_external_dir.c_str());
 
-	MRPT_END;
+	MRPT_END
 }
 template <class GRAPH_T>
 void CICPCriteriaERD<GRAPH_T>::TParams::loadFromConfigFile(
 	const mrpt::config::CConfigFileBase& source, const std::string& section)
 {
-	MRPT_START;
+	MRPT_START
 
 	LC_min_nodeid_diff = source.read_int(
 		"GeneralConfiguration", "LC_min_nodeid_diff", 30, false);
@@ -666,6 +664,6 @@ void CICPCriteriaERD<GRAPH_T>::TParams::loadFromConfigFile(
 
 	has_read_config = true;
 
-	MRPT_END;
+	MRPT_END
 }
 }  // namespace mrpt::graphslam::deciders

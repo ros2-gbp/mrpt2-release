@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -108,7 +108,7 @@ void xRawLogViewerFrame::OnMenuCompactRawlog(wxCommandEvent& event)
 				if (onlyOnePerLabel && lastSF)
 				{
 					CSensoryFrame::Ptr newSF =
-						mrpt::make_aligned_shared<CSensoryFrame>();
+						std::make_shared<CSensoryFrame>();
 					set<string> knownLabels;
 
 					for (auto o = lastSF->begin(); o != lastSF->end(); ++o)
@@ -266,8 +266,7 @@ void xRawLogViewerFrame::OnMenuLossLessDecimate(wxCommandEvent& event)
 			// ---------------------------
 
 			// Add observations to the accum. SF:
-			if (!accum_sf)
-				accum_sf = mrpt::make_aligned_shared<CSensoryFrame>();
+			if (!accum_sf) accum_sf = std::make_shared<CSensoryFrame>();
 
 			// Copy pointers to observations only (fast):
 			*accum_sf =
@@ -278,7 +277,7 @@ void xRawLogViewerFrame::OnMenuLossLessDecimate(wxCommandEvent& event)
 				SF_counter = 0;
 
 				// INSERT OBSERVATIONS:
-				newRawLog.addObservationsMemoryReference(accum_sf);
+				newRawLog.insert(accum_sf);
 				accum_sf.reset();
 
 				// INSERT ACTIONS:
@@ -292,7 +291,7 @@ void xRawLogViewerFrame::OnMenuLossLessDecimate(wxCommandEvent& event)
 					// Reset odometry accumulation:
 					accumMovement = CPose2D(0, 0, 0);
 				}
-				newRawLog.addActions(actsCol);
+				newRawLog.insert(actsCol);
 			}
 		}
 		else
@@ -419,7 +418,7 @@ void xRawLogViewerFrame::OnMenuLossLessDecFILE(wxCommandEvent& event)
 
 					// INSERT ACTIONS:
 					CActionCollection::Ptr actsCol =
-						mrpt::make_aligned_shared<CActionCollection>();
+						std::make_shared<CActionCollection>();
 					if (cummMovementInit)
 					{
 						CActionRobotMovement2D cummMovement;
@@ -749,7 +748,7 @@ void xRawLogViewerFrame::OnMenuConvertObservationOnly(wxCommandEvent& event)
 
 					// Generate "odometry obs":
 					CObservationOdometry::Ptr newO =
-						mrpt::make_aligned_shared<CObservationOdometry>();
+						std::make_shared<CObservationOdometry>();
 					newO->sensorLabel = "odometry";
 					newO->timestamp = actOdom->timestamp != INVALID_TIMESTAMP
 										  ? actOdom->timestamp
@@ -873,7 +872,7 @@ void xRawLogViewerFrame::OnMenuResortByTimestamp(wxCommandEvent& event)
 	for (auto& ordered_time : ordered_times)
 	{
 		size_t idx = ordered_time.second;
-		temp_rawlog.addObservationMemoryReference(rawlog.getAsObservation(idx));
+		temp_rawlog.insert(rawlog.getAsObservation(idx));
 	}
 
 	rawlog = std::move(temp_rawlog);
@@ -1048,7 +1047,7 @@ void xRawLogViewerFrame::OnMenuConvertSF(wxCommandEvent& event)
 				// End SF and start a new one?
 				if (SF_len > maxLengthSF && SF_new.size() != 0)
 				{
-					new_rawlog.addObservations(SF_new);
+					new_rawlog.insert(SF_new);
 
 					// Odometry increments:
 					CActionCollection acts;
@@ -1061,7 +1060,7 @@ void xRawLogViewerFrame::OnMenuConvertSF(wxCommandEvent& event)
 							cur_sf_odo->odometry - last_sf_odo->odometry, opts);
 						acts.insert(act);
 					}
-					new_rawlog.addActions(acts);
+					new_rawlog.insert(acts);
 
 					last_sf_odo = cur_sf_odo;
 					cur_sf_odo.reset();
@@ -1097,7 +1096,7 @@ void xRawLogViewerFrame::OnMenuConvertSF(wxCommandEvent& event)
 	// Remaining obs:
 	if (SF_new.size())
 	{
-		new_rawlog.addObservations(SF_new);
+		new_rawlog.insert(SF_new);
 		SF_new.clear();
 	}
 

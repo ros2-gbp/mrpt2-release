@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/core/bits_math.h>  // DEG2RAD()
+#include <mrpt/core/bits_math.h>  // .0_deg
 #include <mrpt/core/exceptions.h>
 #include <mrpt/system/string_utils.h>  // tokenize
 #include <string>
@@ -39,7 +39,7 @@ int MRPT_SAVE_VALUE_PADDING();
  * of the derived classes.
  *
  * See: \ref config_file_format
- * \ingroup mrpt_base_grp
+ * \ingroup mrpt_config_grp
  */
 class CConfigFileBase
 {
@@ -77,8 +77,29 @@ class CConfigFileBase
 	virtual void getAllKeys(
 		const std::string& section, std::vector<std::string>& keys) const = 0;
 
-	/** Checks if a given section exists (name is case insensitive) */
+	/** Checks if a given section exists (name is case insensitive)
+	 * \sa keyExists() */
 	bool sectionExists(const std::string& section_name) const;
+
+	/** Checks if a given key exists inside a section (case insensitive)
+	 * \sa sectionExists() */
+	bool keyExists(const std::string& section, const std::string& key) const;
+
+	/** Changes the contents of the virtual "config file" from a text block
+	 * containing a YAML configuration text. Refer to unit test
+	 * yaml2config_unittest.cpp for examples of use.
+	 * \sa getContentAsYAML()
+	 */
+	void setContentFromYAML(const std::string& yaml_block);
+
+	/** Returns a text block representing the contents of the config file in
+	 * YAML format.
+	 * \sa setContentFromYAML()
+	 */
+	std::string getContentAsYAML() const;
+
+	/** Empties the "config file" */
+	virtual void clear() = 0;
 
 	template <
 		typename enum_t,
@@ -192,7 +213,8 @@ class CConfigFileBase
 			for (size_t i = 0; i < N; i++)
 			{
 				double val = std::stod(tokens[i]);
-				outValues[i] = val;
+				outValues[i] =
+					static_cast<typename VECTOR_TYPE::value_type>(val);
 			}
 		}
 	}
@@ -299,6 +321,12 @@ class CConfigFileBase
 	variableName, configFileObject, sectionNameStr)                       \
 	{                                                                     \
 		variableName = mrpt::DEG2RAD(configFileObject.read_double(        \
+			sectionNameStr, #variableName, mrpt::RAD2DEG(variableName))); \
+	}
+#define MRPT_LOAD_CONFIG_VAR_DEGREESf(                                    \
+	variableName, configFileObject, sectionNameStr)                       \
+	{                                                                     \
+		variableName = mrpt::DEG2RAD(configFileObject.read_float(         \
 			sectionNameStr, #variableName, mrpt::RAD2DEG(variableName))); \
 	}
 

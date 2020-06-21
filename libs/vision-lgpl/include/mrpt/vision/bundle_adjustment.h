@@ -1,7 +1,7 @@
 /**
  * Copyright (C) 2010  Hauke Strasdat
  *                     Imperial College London
- * Copyright (c) 2005-2019, Individual contributors, see AUTHORS file
+ * Copyright (c) 2005-2020, Individual contributors, see AUTHORS file
  *   See: https://www.mrpt.org/Authors - All rights reserved.
  *
  * bundle_adjuster.h is part of RobotVision.
@@ -24,10 +24,9 @@
 #pragma once
 
 #include <mrpt/img/TCamera.h>
-#include <mrpt/math/lightweight_geom_data.h>
+#include <mrpt/math/CVectorDynamic.h>
 #include <mrpt/system/TParameters.h>
 #include <mrpt/vision/types.h>
-
 #include <array>
 #include <functional>
 

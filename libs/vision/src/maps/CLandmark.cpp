@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -24,24 +24,8 @@ IMPLEMENTS_SERIALIZABLE(CLandmark, CSerializable, mrpt::maps)
 CLandmark::TLandmarkID CLandmark::m_counterIDs =
 	static_cast<CLandmark::TLandmarkID>(0);
 
-/*---------------------------------------------------------------
-						Default constructor
-  ---------------------------------------------------------------*/
-CLandmark::CLandmark()
-	: features(),
-	  pose_mean(),
-	  normal(),
-
-	  ID(INVALID_LANDMARK_ID),
-	  timestampLastSeen(INVALID_TIMESTAMP)
-
-{
-}
-
-/*---------------------------------------------------------------
-						Destructor
-  ---------------------------------------------------------------*/
 CLandmark::~CLandmark() = default;
+
 /*---------------------------------------------------------------
 						Destructor
   ---------------------------------------------------------------*/
@@ -70,12 +54,12 @@ void CLandmark::setPose(const CPointPDFGaussian& pose)
 	pose_mean.y = pose.mean.y();
 	pose_mean.z = pose.mean.z();
 
-	pose_cov_11 = pose.cov(0, 0);
-	pose_cov_22 = pose.cov(1, 1);
-	pose_cov_33 = pose.cov(2, 2);
-	pose_cov_12 = pose.cov(0, 1);
-	pose_cov_13 = pose.cov(0, 2);
-	pose_cov_23 = pose.cov(1, 2);
+	pose_cov_11 = d2f(pose.cov(0, 0));
+	pose_cov_22 = d2f(pose.cov(1, 1));
+	pose_cov_33 = d2f(pose.cov(2, 2));
+	pose_cov_12 = d2f(pose.cov(0, 1));
+	pose_cov_13 = d2f(pose.cov(0, 2));
+	pose_cov_23 = d2f(pose.cov(1, 2));
 }
 
 uint8_t CLandmark::serializeGetVersion() const { return 4; }

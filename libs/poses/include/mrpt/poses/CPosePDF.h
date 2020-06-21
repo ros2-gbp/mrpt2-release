@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixTemplateNumeric.h>
+#include <mrpt/math/CMatrixDynamic.h>
 #include <mrpt/math/CProbabilityDensityFunction.h>
 #include <mrpt/poses/CPose2D.h>
 #include <mrpt/serialization/CSerializable.h>
@@ -128,7 +128,6 @@ class CPosePDF : public mrpt::serialization::CSerializable,
 	}
 
    public:
-	MRPT_MAKE_ALIGNED_OPERATOR_NEW
 };  // End of class def.
 
 }  // namespace mrpt::poses

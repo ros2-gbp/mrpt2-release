@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)               |
    |                          https://www.mrpt.org/                            |
    |                                                                           |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file        |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file        |
    | See: https://www.mrpt.org/Authors - All rights reserved.                  |
    | Released under BSD License. See details in https://www.mrpt.org/License   |
    +---------------------------------------------------------------------------+
@@ -95,9 +95,9 @@ inline void getPoseFromString</*QUAT_REPR=*/true, /*TUM_FORMAT=*/false>(
 
 }  // namespace mrpt::poses::internal
 
-/**\name Parsing of textfiles with poses */
-/**\{*/
-/**\brief Parse the textfile and fill in the corresponding \a poses vector.
+/** \name Parsing of textfiles with poses */
+/** \{ */
+/** \brief Parse the textfile and fill in the corresponding \a poses vector.
  *
  * The file to be parsed is to contain 2D or 3D poses along with their
  * corresponding timestamps, one line for each.
@@ -128,7 +128,7 @@ inline void getPoseFromString</*QUAT_REPR=*/true, /*TUM_FORMAT=*/false>(
  * \sa
  * https://www.mrpt.org/Collection_of_Kinect_RGBD_datasets_with_ground_truth_CVPR_TUM_2011
  *
- * \ingroup mrpt_base_grp
+ * \ingroup mrpt_poses_grp
  */
 template <class POSE_T>
 void readFileWithPoses(
@@ -136,7 +136,7 @@ void readFileWithPoses(
 	std::vector<mrpt::system::TTimeStamp>* timestamps = NULL,
 	bool substract_init_offset = false)
 {
-	MRPT_START;
+	MRPT_START
 
 	using namespace std;
 	using namespace mrpt::system;
@@ -212,5 +212,5 @@ void readFileWithPoses(
 
 	file_GT.close();
 
-	MRPT_END;
+	MRPT_END
 }

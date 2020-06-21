@@ -2,7 +2,7 @@
 |                     Mobile Robot Programming Toolkit (MRPT)            |
 |                          https://www.mrpt.org/                         |
 |                                                                        |
-| Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+| Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
 | See: https://www.mrpt.org/Authors - All rights reserved.               |
 | Released under BSD License. See: https://www.mrpt.org/License          |
 +------------------------------------------------------------------------+ */
@@ -11,6 +11,7 @@
 
 #include <mrpt/core/bits_mem.h>
 #include <mrpt/io/CFileGZInputStream.h>
+#include <mrpt/io/CFileGZOutputStream.h>
 #include <mrpt/io/CFileInputStream.h>
 #include <mrpt/maps/CPointsMapXYZI.h>
 #include <mrpt/obs/CObservation3DRangeScan.h>
@@ -33,7 +34,8 @@ using namespace mrpt::math;
 using namespace mrpt::config;
 
 //  =========== Begin of Map definition ============
-MAP_DEFINITION_REGISTER("CPointsMapXYZI", mrpt::maps::CPointsMapXYZI)
+MAP_DEFINITION_REGISTER(
+	"mrpt::maps::CPointsMapXYZI", mrpt::maps::CPointsMapXYZI)
 
 CPointsMapXYZI::TMapDefinition::TMapDefinition() = default;
 
@@ -66,11 +68,6 @@ mrpt::maps::CMetricMap* CPointsMapXYZI::internal_CreateFromMapDefinition(
 //  =========== End of Map definition Block =========
 
 IMPLEMENTS_SERIALIZABLE(CPointsMapXYZI, CPointsMap, mrpt::maps)
-
-#if MRPT_HAS_PCL
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
-#endif
 
 void CPointsMapXYZI::reserve(size_t newLength)
 {
@@ -194,7 +191,7 @@ void CPointsMapXYZI::insertPointFast(float x, float y, float z)
 	m_y.push_back(y);
 	m_z.push_back(z);
 	m_intensity.push_back(0);
-	// mark_as_modified(); -> Fast
+	// mark_as_modified(); Don't, this is the "XXXFast()" method
 }
 
 void CPointsMapXYZI::insertPointRGB(
@@ -252,6 +249,40 @@ bool CPointsMapXYZI::saveXYZI_to_text_file(const std::string& file) const
 	return true;
 }
 
+bool CPointsMapXYZI::loadXYZI_from_text_file(const std::string& file)
+{
+	MRPT_START
+
+	// Clear current map:
+	mark_as_modified();
+	this->clear();
+
+	std::ifstream f;
+	f.open(file);
+	if (!f.is_open()) return false;
+
+	while (!f.eof())
+	{
+		std::string line;
+		std::getline(f, line);
+
+		std::stringstream ss(line);
+
+		float x, y, z, i;
+		if (!(ss >> x >> y >> z >> i))
+		{
+			break;
+		}
+
+		insertPointFast(x, y, z);
+		m_intensity.push_back(i);
+	}
+
+	return true;
+
+	MRPT_END
+}
+
 /*---------------------------------------------------------------
 addFrom_classSpecific
 ---------------------------------------------------------------*/
@@ -269,39 +300,6 @@ void CPointsMapXYZI::addFrom_classSpecific(
 		for (size_t i = 0, j = nPreviousPoints; i < nOther; i++, j++)
 			m_intensity[j] = anotheMap_col->m_intensity[i];
 	}
-}
-
-/** Save the point cloud as a PCL PCD file, in either ASCII or binary format
- * \return false on any error */
-bool CPointsMapXYZI::savePCDFile(
-	const std::string& filename, bool save_as_binary) const
-{
-#if MRPT_HAS_PCL
-	pcl::PointCloud<pcl::PointXYZI> cloud;
-
-	const size_t nThis = this->size();
-
-	// Fill in the cloud data
-	cloud.width = nThis;
-	cloud.height = 1;
-	cloud.is_dense = false;
-	cloud.points.resize(cloud.width * cloud.height);
-
-	for (size_t i = 0; i < nThis; ++i)
-	{
-		cloud.points[i].x = m_x[i];
-		cloud.points[i].y = m_y[i];
-		cloud.points[i].z = m_z[i];
-		cloud.points[i].intensity = this->m_intensity[i];
-	}
-
-	return 0 == pcl::io::savePCDFile(filename, cloud, save_as_binary);
-
-#else
-	MRPT_UNUSED_PARAM(filename);
-	MRPT_UNUSED_PARAM(save_as_binary);
-	THROW_EXCEPTION("Operation not available: MRPT was built without PCL");
-#endif
 }
 
 namespace mrpt::maps::detail
@@ -325,12 +323,10 @@ struct pointmap_traits<CPointsMapXYZI>
 	/** Helper method fot the generic implementation of
 	 * CPointsMap::loadFromRangeScan(), to be called once per range data */
 	inline static void internal_loadFromRangeScan2D_prepareOneRange(
-		CPointsMapXYZI& me, const float gx, const float gy, const float gz,
+		CPointsMapXYZI& me, [[maybe_unused]] const float gx,
+		[[maybe_unused]] const float gy, [[maybe_unused]] const float gz,
 		mrpt::maps::CPointsMap::TLaserRange2DInsertContext& lric)
 	{
-		MRPT_UNUSED_PARAM(gx);
-		MRPT_UNUSED_PARAM(gy);
-		MRPT_UNUSED_PARAM(gz);
 	}
 	/** Helper method fot the generic implementation of
 	 * CPointsMap::loadFromRangeScan(), to be called after each
@@ -357,12 +353,10 @@ struct pointmap_traits<CPointsMapXYZI>
 	/** Helper method fot the generic implementation of
 	 * CPointsMap::loadFromRangeScan(), to be called once per range data */
 	inline static void internal_loadFromRangeScan3D_prepareOneRange(
-		CPointsMapXYZI& me, const float gx, const float gy, const float gz,
+		CPointsMapXYZI& me, [[maybe_unused]] const float gx,
+		[[maybe_unused]] const float gy, [[maybe_unused]] const float gz,
 		mrpt::maps::CPointsMap::TLaserRange3DInsertContext& lric)
 	{
-		MRPT_UNUSED_PARAM(gx);
-		MRPT_UNUSED_PARAM(gy);
-		MRPT_UNUSED_PARAM(gz);
 	}
 
 	/** Helper method fot the generic implementation of
@@ -478,6 +472,28 @@ bool CPointsMapXYZI::loadFromKittiVelodyneFile(const std::string& filename)
 	catch (const std::exception& e)
 	{
 		std::cerr << "[loadFromKittiVelodyneFile] " << e.what() << std::endl;
+		return false;
+	}
+}
+
+bool CPointsMapXYZI::saveToKittiVelodyneFile(const std::string& filename) const
+{
+	try
+	{
+		mrpt::io::CFileGZOutputStream f(filename);
+
+		for (size_t i = 0; i < m_x.size(); i++)
+		{
+			const float xyzi[4] = {m_x[i], m_y[i], m_z[i], m_intensity[i]};
+			const auto toWrite = sizeof(float) * 4;
+			std::size_t nWr = f.Write(&xyzi, toWrite);
+			ASSERT_EQUAL_(nWr, toWrite);
+		}
+		return true;
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << "[saveToKittiVelodyneFile] " << e.what() << std::endl;
 		return false;
 	}
 }

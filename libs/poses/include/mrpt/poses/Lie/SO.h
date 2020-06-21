@@ -2,15 +2,15 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
 #include <mrpt/core/optional_ref.h>
-#include <mrpt/math/CArrayNumeric.h>
-#include <mrpt/math/CMatrixFixedNumeric.h>
+#include <mrpt/math/CMatrixFixed.h>
+#include <mrpt/math/CVectorFixed.h>
 
 namespace mrpt::poses::Lie
 {
@@ -27,7 +27,7 @@ template <>
 struct SO<3>
 {
 	constexpr static size_t DOFs = 3;
-	using tangent_vector = mrpt::math::CArrayDouble<DOFs>;
+	using tangent_vector = mrpt::math::CVectorFixedDouble<DOFs>;
 	using type = mrpt::math::CMatrixDouble33;
 
 	/** Type for Jacobian: tangent space -> SO(n) matrix */
@@ -88,13 +88,13 @@ template <>
 struct SO<2>
 {
 	constexpr static size_t DOFs = 1;
-	using tangent_vector = mrpt::math::CArrayDouble<DOFs>;
+	using tangent_vector = mrpt::math::CVectorFixedDouble<DOFs>;
 	using type = double;
 
 	/** Type for Jacobian: tangent space to SO(n) matrix */
-	using tang2mat_jacob = mrpt::math::CMatrixFixedNumeric<double, 1, 1>;
+	using tang2mat_jacob = mrpt::math::CMatrixFixed<double, 1, 1>;
 	/** Type for Jacobian: SO(n) matrix to tangent space */
-	using mat2tang_jacob = mrpt::math::CMatrixFixedNumeric<double, 1, 1>;
+	using mat2tang_jacob = mrpt::math::CMatrixFixed<double, 1, 1>;
 
 	/** SO(2) exponential map \f$ x \rightarrow \exp(x^\wedge) \f$.
 	 * - Input: 1-len vector in Lie algebra so(3)

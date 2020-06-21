@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,6 +10,7 @@
 #include "math-precomp.h"  // Precompiled headers
 
 #include <mrpt/math/CSparseMatrix.h>
+#include <cstring>
 #include <iostream>
 #include <string>
 
@@ -47,9 +48,9 @@ void CSparseMatrix::copy(const cs* const sm)
 
 	// Do it in a different way depending on it being triplet or compressed
 	// format:
-	::memcpy(sparse_matrix.i, sm->i, sizeof(int) * sm->nzmax);
-	::memcpy(sparse_matrix.p, sm->p, sizeof(int) * (sm->n + 1));
-	::memcpy(sparse_matrix.x, sm->x, sizeof(double) * sm->nzmax);
+	std::memcpy(sparse_matrix.i, sm->i, sizeof(int) * sm->nzmax);
+	std::memcpy(sparse_matrix.p, sm->p, sizeof(int) * (sm->n + 1));
+	std::memcpy(sparse_matrix.x, sm->x, sizeof(double) * sm->nzmax);
 }
 
 /** Fast copy the data from an existing "cs" CSparse data structure, copying the
@@ -171,9 +172,9 @@ void CSparseMatrix::insert_entry(
 }
 
 /** Copy operator from another existing object */
-void CSparseMatrix::operator=(const CSparseMatrix& other)
+CSparseMatrix& CSparseMatrix::operator=(const CSparseMatrix& other)
 {
-	if (&other == this) return;
+	if (&other == this) return *this;
 
 	cs_free(sparse_matrix.i);
 	cs_free(sparse_matrix.p);
@@ -184,6 +185,7 @@ void CSparseMatrix::operator=(const CSparseMatrix& other)
 	sparse_matrix.x =
 		(double*)malloc(sizeof(double) * other.sparse_matrix.nzmax);
 	copy(&other.sparse_matrix);
+	return *this;
 }
 
 void CSparseMatrix::add_AB(const CSparseMatrix& A, const CSparseMatrix& B)
@@ -206,7 +208,7 @@ void CSparseMatrix::multiply_AB(const CSparseMatrix& A, const CSparseMatrix& B)
 	cs_spfree(sm);
 }
 
-void CSparseMatrix::multiply_Ab(
+void CSparseMatrix::matProductOf_Ab(
 	const mrpt::math::CVectorDouble& b,
 	mrpt::math::CVectorDouble& out_res) const
 {
@@ -231,7 +233,7 @@ CSparseMatrix CSparseMatrix::transpose() const
  */
 void CSparseMatrix::cs2dense(const cs& SM, CMatrixDouble& d_M)
 {
-	d_M.zeros(SM.m, SM.n);
+	d_M.setZero(SM.m, SM.n);
 	if (SM.nz >= 0)  // isTriplet ??
 	{  // It's in triplet form.
 		for (int idx = 0; idx < SM.nz; ++idx)
@@ -389,7 +391,7 @@ void CSparseMatrix::CholeskyDecomp::get_L(CMatrixDouble& L) const
 
 /** Return the vector from a back-substitution step that solves: Ux=b   */
 void CSparseMatrix::CholeskyDecomp::backsub(
-	const Eigen::VectorXd& b, Eigen::VectorXd& sol) const
+	const CVectorDouble& b, CVectorDouble& sol) const
 {
 	ASSERT_(b.size() > 0);
 	sol.resize(b.size());

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -47,7 +47,7 @@ extern std::string global_fileToOpen;
 #include <mrpt/io/CFileGZInputStream.h>
 #include <mrpt/io/CFileGZOutputStream.h>
 #include <mrpt/io/CFileOutputStream.h>
-#include <mrpt/opengl/CEllipsoid.h>
+#include <mrpt/opengl/CEllipsoid3D.h>
 #include <mrpt/opengl/CGridPlaneXY.h>
 #include <mrpt/opengl/CSetOfLines.h>
 #include <mrpt/opengl/stock_objects.h>
@@ -461,40 +461,27 @@ hmtMapViewerFrame::hmtMapViewerFrame(wxWindow* parent, wxWindowID id)
 	SetToolBar(ToolBar1);
 	Center();
 
-	Connect(
-		ID_TREECTRL1, wxEVT_COMMAND_TREE_SEL_CHANGED,
-		(wxObjectEventFunction)&hmtMapViewerFrame::OntreeViewSelectionChanged);
-	Connect(
-		ID_MENUITEM1, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&hmtMapViewerFrame::OnMenuLoad);
-	Connect(
-		ID_MENUITEM4, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&hmtMapViewerFrame::
-			OnmenuExportLocalMapsSelected);
-	Connect(
-		idMenuQuit, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&hmtMapViewerFrame::OnQuit);
-	Connect(
-		ID_MENUITEM2, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&hmtMapViewerFrame::OnMenuTranslationBtw2);
-	Connect(
-		ID_MENUITEM3, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&hmtMapViewerFrame::OnMenuOverlapBtw2);
-	Connect(
-		ID_MENUITEM6, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&hmtMapViewerFrame::OnTopologicalModel_Gridmap);
-	Connect(
-		ID_MENUITEM7, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&hmtMapViewerFrame::OnTopologicalModel_Fabmap);
-	Connect(
-		idMenuAbout, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&hmtMapViewerFrame::OnAbout);
-	Connect(
-		ID_TOOLBARITEM1, wxEVT_COMMAND_TOOL_CLICKED,
-		(wxObjectEventFunction)&hmtMapViewerFrame::OnMenuLoad);
-	Connect(
-		ID_TOOLBARITEM2, wxEVT_COMMAND_TOOL_CLICKED,
-		(wxObjectEventFunction)&hmtMapViewerFrame::OnQuit);
+	Bind(
+		wxEVT_COMMAND_TREE_SEL_CHANGED,
+		&hmtMapViewerFrame::OntreeViewSelectionChanged, this, ID_TREECTRL1);
+	Bind(wxEVT_MENU, &hmtMapViewerFrame::OnMenuLoad, this, ID_MENUITEM1);
+	Bind(
+		wxEVT_MENU, &hmtMapViewerFrame::OnmenuExportLocalMapsSelected, this,
+		ID_MENUITEM4);
+	Bind(wxEVT_MENU, &hmtMapViewerFrame::OnQuit, this, idMenuQuit);
+	Bind(
+		wxEVT_MENU, &hmtMapViewerFrame::OnMenuTranslationBtw2, this,
+		ID_MENUITEM2);
+	Bind(wxEVT_MENU, &hmtMapViewerFrame::OnMenuOverlapBtw2, this, ID_MENUITEM3);
+	Bind(
+		wxEVT_MENU, &hmtMapViewerFrame::OnTopologicalModel_Gridmap, this,
+		ID_MENUITEM6);
+	Bind(
+		wxEVT_MENU, &hmtMapViewerFrame::OnTopologicalModel_Fabmap, this,
+		ID_MENUITEM7);
+	Bind(wxEVT_MENU, &hmtMapViewerFrame::OnAbout, this, idMenuAbout);
+	Bind(wxEVT_TOOL, &hmtMapViewerFrame::OnMenuLoad, this, ID_TOOLBARITEM1);
+	Bind(wxEVT_TOOL, &hmtMapViewerFrame::OnQuit, this, ID_TOOLBARITEM2);
 	//*)
 
 	// Fix sizes:
@@ -511,7 +498,7 @@ hmtMapViewerFrame::hmtMapViewerFrame(wxWindow* parent, wxWindowID id)
 	Panel6->SetMinSize(wxSize(200, 200));
 	m_canvas_HMAP->SetMinSize(wxSize(200, 200));
 	m_canvas_HMAP->getOpenGLSceneRef()->insert(
-		mrpt::make_aligned_shared<opengl::CGridPlaneXY>());
+		std::make_shared<opengl::CGridPlaneXY>());
 
 	FlexGridSizer6->Add(
 		m_canvas_HMAP, 1, wxALL | wxEXPAND | wxALIGN_LEFT | wxALIGN_TOP, 0);
@@ -521,7 +508,7 @@ hmtMapViewerFrame::hmtMapViewerFrame(wxWindow* parent, wxWindowID id)
 	Panel7->SetMinSize(wxSize(200, 200));
 	m_canvas_LMH->SetMinSize(wxSize(200, 200));
 	m_canvas_LMH->getOpenGLSceneRef()->insert(
-		mrpt::make_aligned_shared<opengl::CGridPlaneXY>());
+		std::make_shared<opengl::CGridPlaneXY>());
 	FlexGridSizer7->Add(
 		m_canvas_LMH, 1, wxALL | wxEXPAND | wxALIGN_LEFT | wxALIGN_TOP, 0);
 
@@ -542,9 +529,9 @@ hmtMapViewerFrame::hmtMapViewerFrame(wxWindow* parent, wxWindowID id)
 	timAutoLoad.SetOwner(this, ID_TIMER1);
 	if (!global_fileToOpen.empty())
 	{
-		Connect(
-			ID_TIMER1, wxEVT_TIMER,
-			(wxObjectEventFunction)&hmtMapViewerFrame::OntimAutoLoadTrigger);
+		Bind(
+			wxEVT_TIMER, &hmtMapViewerFrame::OntimAutoLoadTrigger, this,
+			ID_TIMER1);
 		timAutoLoad.Start(250, true);
 	}
 }
@@ -724,14 +711,14 @@ void hmtMapViewerFrame::updateLocalMapView()
 	{
 		// The 3D view:
 		opengl::CSetOfObjects::Ptr objs =
-			mrpt::make_aligned_shared<opengl::CSetOfObjects>();
+			std::make_shared<opengl::CSetOfObjects>();
 
 		// -------------------------------------------
 		// Draw a grid on the ground:
 		// -------------------------------------------
 		{
 			auto o = opengl::CGridPlaneXY::Create(-100, 100, -100, 100, 0, 5);
-			o->setColor(0.4, 0.4, 0.4);
+			o->setColor(0.4f, 0.4f, 0.4f);
 			objs->insert(o);  // it will free the memory
 		}
 
@@ -788,7 +775,7 @@ void hmtMapViewerFrame::updateLocalMapView()
 				if (nRound == 0)
 				{
 					opengl::CSetOfObjects::Ptr objMap =
-						mrpt::make_aligned_shared<opengl::CSetOfObjects>();
+						std::make_shared<opengl::CSetOfObjects>();
 					obj_mmap->getAs3DObject(objMap);
 					objMap->setPose(refPoseThisArea.mean);
 					objs->insert(objMap);
@@ -842,8 +829,8 @@ void hmtMapViewerFrame::updateLocalMapView()
 					if (refPoseThisArea.cov(0, 0) != 0 ||
 						refPoseThisArea.cov(1, 1) != 0)
 					{
-						opengl::CEllipsoid::Ptr ellip =
-							mrpt::make_aligned_shared<opengl::CEllipsoid>();
+						opengl::CEllipsoid3D::Ptr ellip =
+							std::make_shared<opengl::CEllipsoid3D>();
 						ellip->setPose(refPoseThisArea.mean);
 						ellip->enableDrawSolid3D(false);
 

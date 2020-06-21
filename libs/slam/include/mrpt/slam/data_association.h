@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixTemplate.h>  // mrpt::math::CMatrixBool
+#include <mrpt/math/CMatrixDynamic.h>  // mrpt::math::CMatrixBool
 #include <mrpt/poses/CPoint2DPDFGaussian.h>
 #include <mrpt/poses/CPointPDFGaussian.h>
 #include <mrpt/typemeta/TEnumType.h>

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -114,7 +114,7 @@ namespace mrpt::hwdrivers
  *
  *  \code
  *    mrpt::opengl::CPointCloudColoured::Ptr gl_points =
- *mrpt::make_aligned_shared<mrpt::opengl::CPointCloudColoured>();
+ *mrpt::opengl::CPointCloudColoured::Create();
  *    gl_points->loadFromPointsMap(&pntsMap);
  *  \endcode
  *
@@ -370,7 +370,7 @@ class COpenNI2Sensor : public mrpt::hwdrivers::CGenericSensor,
 
 	/** Sensor max range (meters)
 	 */
-	double m_maxRange;
+	double m_maxRange = 5.0;
 
 	/** Number of device to open (0:first,...)
 	 */

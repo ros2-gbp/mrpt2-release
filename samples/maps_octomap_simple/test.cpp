@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -67,21 +67,20 @@ void TestOctoMap()
 	{
 		CObservation2DRangeScan scan1;
 		stock_observations::example2DRangeScan(scan1);
-		map.insertObservation(&scan1);
+		map.insertObservation(scan1);
 	}
 
 	mrpt::gui::CDisplayWindow3D win("OctoMap demo", 640, 480);
 
 	mrpt::opengl::COctoMapVoxels::Ptr gl_map =
-		mrpt::make_aligned_shared<mrpt::opengl::COctoMapVoxels>();
+		mrpt::opengl::COctoMapVoxels::Create();
 
 	{
 		mrpt::opengl::COpenGLScene::Ptr& scene = win.get3DSceneAndLock();
 
 		{
 			mrpt::opengl::CGridPlaneXY::Ptr gl_grid =
-				mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
-					-20, 20, -20, 20, 0, 1);
+				mrpt::opengl::CGridPlaneXY::Create(-20, 20, -20, 20, 0, 1);
 			gl_grid->setColor_u8(mrpt::img::TColor(0x80, 0x80, 0x80));
 			scene->insert(gl_grid);
 		}
@@ -159,8 +158,7 @@ void TestOctoMap()
 					gl_map->areVoxelsVisible(VOXEL_SET_FREESPACE) ? "YES"
 																  : "NO",
 					gl_map->areVoxelsVisible(VOXEL_SET_OCCUPIED) ? "YES" : "NO",
-					gl_map->areLightsEnabled() ? "YES" : "NO"),
-				mrpt::img::TColorf(1, 1, 1), "sans", 15);
+					gl_map->areLightsEnabled() ? "YES" : "NO"));
 
 			win.repaint();
 		}

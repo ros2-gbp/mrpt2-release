@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -46,8 +46,7 @@ mrpt::gui::CDisplayWindow3D::Ptr win;  // This is global such as an exception
 // ------------------------------------------------------
 int DoTrackingDemo(CCameraSensor::Ptr cam, bool DO_SAVE_VIDEO)
 {
-	win = mrpt::make_aligned_shared<mrpt::gui::CDisplayWindow3D>(
-		"Tracked features", 800, 600);
+	win = mrpt::gui::CDisplayWindow3D::Create("Tracked features", 800, 600);
 
 	mrpt::vision::CVideoFileWriter vidWritter;
 
@@ -55,7 +54,7 @@ int DoTrackingDemo(CCameraSensor::Ptr cam, bool DO_SAVE_VIDEO)
 	TCamera cameraParams;  // For now, will only hold the image resolution on
 	// the arrive of the first frame.
 
-	TSimpleFeatureList trackedFeats;
+	TKeyPointList trackedFeats;
 
 	unsigned int step_num = 0;
 
@@ -160,17 +159,17 @@ int DoTrackingDemo(CCameraSensor::Ptr cam, bool DO_SAVE_VIDEO)
 
 		CImage theImg;  // The grabbed image:
 
-		if (IS_CLASS(obs, CObservationImage))
+		if (IS_CLASS(*obs, CObservationImage))
 		{
 			auto o = std::dynamic_pointer_cast<CObservationImage>(obs);
 			theImg = std::move(o->image);
 		}
-		else if (IS_CLASS(obs, CObservationStereoImages))
+		else if (IS_CLASS(*obs, CObservationStereoImages))
 		{
 			auto o = std::dynamic_pointer_cast<CObservationStereoImages>(obs);
 			theImg = std::move(o->imageLeft);
 		}
-		else if (IS_CLASS(obs, CObservation3DRangeScan))
+		else if (IS_CLASS(*obs, CObservation3DRangeScan))
 		{
 			auto o = std::dynamic_pointer_cast<CObservation3DRangeScan>(obs);
 			if (o->hasIntensityImage) theImg = std::move(o->intensityImage);
@@ -462,7 +461,7 @@ int main(int argc, char** argv)
 			const string ext = mrpt::system::lowerCase(
 				mrpt::system::extractFileExtension(fil, true));
 
-			cam = CCameraSensor::Ptr(new CCameraSensor);
+			cam = std::make_shared<CCameraSensor>();
 			if (ext == "rawlog")
 			{
 				// It's a rawlog:

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -27,12 +27,13 @@
 
 #include <mrpt/gui/about_box.h>
 #include <mrpt/io/CFileGZOutputStream.h>
+#include <mrpt/io/vector_loadsave.h>
+#include <mrpt/math/ops_matrices.h>
 #include <mrpt/math/wrap2pi.h>
 #include <mrpt/obs/CObservationComment.h>
 #include <mrpt/opengl/COpenGLScene.h>
 #include <mrpt/random.h>
 #include <mrpt/serialization/CArchive.h>
-#include <mrpt/system/vector_loadsave.h>
 
 #include <mrpt/serialization/CArchive.h>
 #include <memory>
@@ -766,72 +767,37 @@ slamdemoFrame::slamdemoFrame(wxWindow* parent, wxWindowID id)
 	FlexGridSizer1->Fit(this);
 	FlexGridSizer1->SetSizeHints(this);
 
-	Connect(
-		ID_MENUITEM1, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&slamdemoFrame::OnbtnResetClicked);
-	Connect(
-		ID_MENUITEM2, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&slamdemoFrame::OnbtnOneStepClicked);
-	Connect(
-		ID_MENUITEM3, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&slamdemoFrame::OnbtnRunClicked);
-	Connect(
-		ID_MENUITEM6, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&slamdemoFrame::OnbtnStopClicked);
-	Connect(
-		ID_MENUITEM4, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&slamdemoFrame::OnbtnRunBatchClicked);
-	Connect(
-		ID_MENUITEM5, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&slamdemoFrame::OnConfigClicked);
-	Connect(
-		idMenuQuit, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&slamdemoFrame::OnQuit);
-	Connect(
-		ID_MENUITEM8, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&slamdemoFrame::OnMenuSaveFilterState);
-	Connect(
-		ID_MENUITEM11, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&slamdemoFrame::OnmnuSaveLastDASelected);
-	Connect(
-		ID_MENUITEM_SAVE_RAWLOG, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&slamdemoFrame::OnmnuItemSaveRawlogSelected);
-	Connect(
-		ID_MENUITEM9, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&slamdemoFrame::OnMenuProfilerViewStats);
-	Connect(
-		ID_MENUITEM10, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&slamdemoFrame::OnMenuProfilerReset);
-	Connect(
-		idMenuAbout, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&slamdemoFrame::OnAbout);
-	Connect(
-		ID_TOOLBARITEM1, wxEVT_COMMAND_TOOL_CLICKED,
-		(wxObjectEventFunction)&slamdemoFrame::OnbtnResetClicked);
-	Connect(
-		ID_TOOLBARITEM2, wxEVT_COMMAND_TOOL_CLICKED,
-		(wxObjectEventFunction)&slamdemoFrame::OnbtnOneStepClicked);
-	Connect(
-		ID_BTNRUN, wxEVT_COMMAND_TOOL_CLICKED,
-		(wxObjectEventFunction)&slamdemoFrame::OnbtnRunClicked);
-	Connect(
-		ID_BTNSTOP, wxEVT_COMMAND_TOOL_CLICKED,
-		(wxObjectEventFunction)&slamdemoFrame::OnbtnStopClicked);
-	Connect(
-		ID_TOOLBARITEM4, wxEVT_COMMAND_TOOL_CLICKED,
-		(wxObjectEventFunction)&slamdemoFrame::OnbtnRunBatchClicked);
-	Connect(
-		ID_TOOLBARITEM3, wxEVT_COMMAND_TOOL_CLICKED,
-		(wxObjectEventFunction)&slamdemoFrame::OnConfigClicked);
-	Connect(
-		ID_TOOLBARITEM6, wxEVT_COMMAND_TOOL_CLICKED,
-		(wxObjectEventFunction)&slamdemoFrame::OnAbout);
-	Connect(
-		ID_TOOLBARITEM7, wxEVT_COMMAND_TOOL_CLICKED,
-		(wxObjectEventFunction)&slamdemoFrame::OnQuit);
-	Connect(
-		ID_TIMER1, wxEVT_TIMER,
-		(wxObjectEventFunction)&slamdemoFrame::OntimSimulTrigger);
+	Bind(wxEVT_MENU, &slamdemoFrame::OnbtnResetClicked, this, ID_MENUITEM1);
+	Bind(wxEVT_MENU, &slamdemoFrame::OnbtnOneStepClicked, this, ID_MENUITEM2);
+	Bind(wxEVT_MENU, &slamdemoFrame::OnbtnRunClicked, this, ID_MENUITEM3);
+	Bind(wxEVT_MENU, &slamdemoFrame::OnbtnStopClicked, this, ID_MENUITEM6);
+	Bind(wxEVT_MENU, &slamdemoFrame::OnbtnRunBatchClicked, this, ID_MENUITEM4);
+	Bind(wxEVT_MENU, &slamdemoFrame::OnConfigClicked, this, ID_MENUITEM5);
+	Bind(wxEVT_MENU, &slamdemoFrame::OnQuit, this, idMenuQuit);
+	Bind(wxEVT_MENU, &slamdemoFrame::OnMenuSaveFilterState, this, ID_MENUITEM8);
+	Bind(
+		wxEVT_MENU, &slamdemoFrame::OnmnuSaveLastDASelected, this,
+		ID_MENUITEM11);
+	Bind(
+		wxEVT_MENU, &slamdemoFrame::OnmnuItemSaveRawlogSelected, this,
+		ID_MENUITEM_SAVE_RAWLOG);
+	Bind(
+		wxEVT_MENU, &slamdemoFrame::OnMenuProfilerViewStats, this,
+		ID_MENUITEM9);
+	Bind(wxEVT_MENU, &slamdemoFrame::OnMenuProfilerReset, this, ID_MENUITEM10);
+	Bind(wxEVT_MENU, &slamdemoFrame::OnAbout, this, idMenuAbout);
+	Bind(wxEVT_TOOL, &slamdemoFrame::OnbtnResetClicked, this, ID_TOOLBARITEM1);
+	Bind(
+		wxEVT_TOOL, &slamdemoFrame::OnbtnOneStepClicked, this, ID_TOOLBARITEM2);
+	Bind(wxEVT_TOOL, &slamdemoFrame::OnbtnRunClicked, this, ID_BTNRUN);
+	Bind(wxEVT_TOOL, &slamdemoFrame::OnbtnStopClicked, this, ID_BTNSTOP);
+	Bind(
+		wxEVT_TOOL, &slamdemoFrame::OnbtnRunBatchClicked, this,
+		ID_TOOLBARITEM4);
+	Bind(wxEVT_TOOL, &slamdemoFrame::OnConfigClicked, this, ID_TOOLBARITEM3);
+	Bind(wxEVT_TOOL, &slamdemoFrame::OnAbout, this, ID_TOOLBARITEM6);
+	Bind(wxEVT_TOOL, &slamdemoFrame::OnQuit, this, ID_TOOLBARITEM7);
+	Bind(wxEVT_TIMER, &slamdemoFrame::OntimSimulTrigger, this, ID_TIMER1);
 	//*)
 
 	gridDA->SetSelectionMode(wxGrid::wxGridSelectCells);
@@ -1022,7 +988,7 @@ slamdemoFrame::slamdemoFrame(wxWindow* parent, wxWindowID id)
 
 	options.sensor_max_range = 5;
 	options.sensor_min_range = 0.50;
-	options.sensor_fov = DEG2RAD(140);
+	options.sensor_fov = 140.0_deg;
 
 	options.sensorDistingishesLandmarks = false;
 
@@ -1374,8 +1340,7 @@ void slamdemoFrame::updateAllGraphs(bool alsoGTMap)
 		dyn_dhn(1, 0) = sphi_0sa;
 		dyn_dhn(1, 1) = hr * cphi_0sa;
 
-		CMatrixDouble22 COV;  // COV = H * NOISE * H^T
-		dyn_dhn.multiply_HCHt(NOISE, COV);
+		const CMatrixDouble22 COV = mrpt::math::multiply_HCHt(dyn_dhn, NOISE);
 
 		cov->SetQuantiles(3);
 		cov->SetCoordinateBase(lm_xy.x(), lm_xy.y());
@@ -1897,7 +1862,7 @@ void slamdemoFrame::executeOneStep()
 		{  // Ok, move:
 			const double PATH_SQUARE_LEN = options.path_square_len;
 
-			if (fabs(fmod(m_GT_pose.phi(), DEG2RAD(90.0))) < 1e-2)
+			if (fabs(fmod(m_GT_pose.phi(), 90.0_deg)) < 1e-2)
 			{
 				int dir = mrpt::round(m_GT_pose.phi() / Aphi);
 
@@ -1906,7 +1871,7 @@ void slamdemoFrame::executeOneStep()
 					 m_GT_pose.y() < PATH_SQUARE_LEN && dir == 0) ||
 					(m_GT_pose.x() > PATH_SQUARE_LEN &&
 					 m_GT_pose.y() > PATH_SQUARE_LEN && dir == turnSteps) ||
-					(m_GT_pose.x() <= 0 && abs(dir) == 2 * turnSteps) ||
+					(m_GT_pose.x() <= 0 && std::abs(dir) == 2 * turnSteps) ||
 					(m_GT_pose.y() <= 0 && dir == -turnSteps))
 				{  // Turn
 					poseIncr = CPose2D(0, 0, Aphi);
@@ -2386,7 +2351,7 @@ void slamdemoFrame::OnmnuSaveLastDASelected(wxCommandEvent& event)
 		if (dialog.ShowModal() != wxID_OK) return;
 		string filName(dialog.GetPath().mb_str());
 
-		mrpt::system::vectorToTextFile(da.predictions_IDs, filName);
+		mrpt::io::vectorToTextFile(da.predictions_IDs, filName);
 	}
 	{
 		wxFileDialog dialog(

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -88,37 +88,32 @@ void TestRANSACPlanes()
 
 	// Show GUI
 	// --------------------------
-	win = mrpt::gui::CDisplayWindow3D::Ptr(
-		new mrpt::gui::CDisplayWindow3D("RANSAC: 3D planes", 500, 500));
+	win = mrpt::gui::CDisplayWindow3D::Create("RANSAC: 3D planes", 500, 500);
 
-	opengl::COpenGLScene::Ptr scene =
-		mrpt::make_aligned_shared<opengl::COpenGLScene>();
+	opengl::COpenGLScene::Ptr scene = opengl::COpenGLScene::Create();
 
-	scene->insert(mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
-		-20, 20, -20, 20, 0, 1));
+	scene->insert(opengl::CGridPlaneXY::Create(-20, 20, -20, 20, 0, 1));
 	scene->insert(opengl::stock_objects::CornerXYZ());
 
 	for (vector<pair<size_t, TPlane>>::iterator p = detectedPlanes.begin();
 		 p != detectedPlanes.end(); ++p)
 	{
-		opengl::CTexturedPlane::Ptr glPlane =
-			mrpt::make_aligned_shared<opengl::CTexturedPlane>(-10, 10, -10, 10);
+		auto glPlane = opengl::CTexturedPlane::Create(-10, 10, -10, 10);
 
 		TPose3D glPlanePose;
 		p->second.getAsPose3D(glPlanePose);
 		glPlane->setPose(glPlanePose);
 
 		glPlane->setColor(
-			getRandomGenerator().drawUniform(0, 1),
-			getRandomGenerator().drawUniform(0, 1),
-			getRandomGenerator().drawUniform(0, 1), 0.6);
+			getRandomGenerator().drawUniform<float>(0, 1),
+			getRandomGenerator().drawUniform<float>(0, 1),
+			getRandomGenerator().drawUniform<float>(0, 1), 0.6f);
 
 		scene->insert(glPlane);
 	}
 
 	{
-		opengl::CPointCloud::Ptr points =
-			mrpt::make_aligned_shared<opengl::CPointCloud>();
+		auto points = opengl::CPointCloud::Create();
 		points->setColor(0, 0, 1);
 		points->setPointSize(3);
 		points->enableColorFromZ();

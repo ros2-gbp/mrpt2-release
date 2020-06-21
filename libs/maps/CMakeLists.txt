@@ -29,17 +29,8 @@ define_mrpt_lib(
 	)
 
 if(BUILD_mrpt-maps)
-	if (CMAKE_MRPT_HAS_PCL)
-		target_link_libraries(maps PRIVATE ${PCL_LIBRARIES})
-	endif()
-
 	if(CMAKE_MRPT_HAS_LIBLAS)
 		target_link_libraries(maps PRIVATE ${LAS_LIBS})
-	endif()
-
-	if (CMAKE_MRPT_HAS_VTK)
-		include(${VTK_USE_FILE})
-		target_link_libraries(maps PRIVATE ${VTK_LIBRARIES})
 	endif()
 
 	if (CMAKE_MRPT_HAS_OCTOMAP)
@@ -53,4 +44,11 @@ if(BUILD_mrpt-maps)
 	endif()
 
 	target_link_libraries(maps PRIVATE ${MRPT_OPENGL_LIBS})
+
+
+	# Windows only: the mxplus lib internally requires linking with opencv (sigh...)
+	# Perhaps there is a better way to solve this, someday.
+	if (BUILD_MATLAB)
+		target_link_libraries(maps PRIVATE imp_opencv)
+	endif()
 endif()

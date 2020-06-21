@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -55,7 +55,7 @@ class CClientTCPSocket : public mrpt::io::CStream
 	/** The IP address of the remote part of the connection. */
 	std::string m_remotePartIP;
 	/** The TCP port of the remote part of the connection. */
-	unsigned short m_remotePartPort;
+	unsigned short m_remotePartPort = 0;
 
 	/** Introduces a virtual method responsible for reading from the stream
 	 * (This method BLOCKS)
@@ -232,7 +232,7 @@ class CClientTCPSocket : public mrpt::io::CStream
 	 * \param newValue New value (0 enable Nagle algorithm, 1 disable).
 	 * \return Return a number lower than 0 if any error occurred.
 	 */
-	int setTCPNoDelay(const int& newValue);
+	int setTCPNoDelay(int newValue);
 
 	/** Return the value of the TCPNoDelay option. */
 	int getTCPNoDelay();
@@ -242,7 +242,7 @@ class CClientTCPSocket : public mrpt::io::CStream
 	 * \param newValue New size of the SO send buffer.
 	 * \return Return a number lower than 0 if any error occurred.
 	 */
-	int setSOSendBufffer(const int& newValue);
+	int setSOSendBufffer(int newValue);
 
 	/** Return the current size of the SO send buffer. */
 	int getSOSendBufffer();

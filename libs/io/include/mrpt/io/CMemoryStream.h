@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -61,11 +61,7 @@ class CMemoryStream : public CStream
 	~CMemoryStream() override;
 
 	/** Clears the memory buffer. */
-	void Clear();
-
-	/** Change size. This would be rarely used. Use ">>" operators for writing
-	 * to stream \sa Stream */
-	void changeSize(uint64_t newSize);
+	void clear();
 
 	// See docs in base class
 	uint64_t Seek(

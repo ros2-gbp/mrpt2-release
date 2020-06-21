@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -29,7 +29,7 @@ using namespace std;
 
 //  =========== Begin of Map definition ============
 MAP_DEFINITION_REGISTER(
-	"CReflectivityGridMap2D,reflectivityMap",
+	"mrpt::maps::CReflectivityGridMap2D,reflectivityMap",
 	mrpt::maps::CReflectivityGridMap2D)
 
 CReflectivityGridMap2D::TMapDefinition::TMapDefinition()
@@ -107,7 +107,7 @@ bool CReflectivityGridMap2D::isEmpty() const { return false; }
 						insertObservation
   ---------------------------------------------------------------*/
 bool CReflectivityGridMap2D::internal_insertObservation(
-	const CObservation* obs, const CPose3D* robotPose)
+	const CObservation& obs, const CPose3D* robotPose)
 {
 	MRPT_START
 
@@ -129,20 +129,19 @@ bool CReflectivityGridMap2D::internal_insertObservation(
 		/********************************************************************
 					OBSERVATION TYPE: CObservationReflectivity
 		********************************************************************/
-		const auto* o = static_cast<const CObservationReflectivity*>(obs);
+		const auto& o = dynamic_cast<const CObservationReflectivity&>(obs);
 
-		if (o->channel != -1 && insertionOptions.channel != -1 &&
-			o->channel != insertionOptions.channel)
+		if (o.channel != -1 && insertionOptions.channel != -1 &&
+			o.channel != insertionOptions.channel)
 		{
 			return false;  // Incorrect channel
 		}
 
 		CPose3D sensor_pose;
-		sensor_pose.composeFrom(robotPose3D, o->sensorPose);
+		sensor_pose.composeFrom(robotPose3D, o.sensorPose);
 
 		// log-odd increment due to the observation:
-		const cell_t logodd_observation =
-			m_logodd_lut.p2l(o->reflectivityLevel);
+		const cell_t logodd_observation = m_logodd_lut.p2l(o.reflectivityLevel);
 
 		// Update cell, with saturation:
 		cell_t* cell = cellByPos(sensor_pose.x(), sensor_pose.y());
@@ -185,7 +184,7 @@ bool CReflectivityGridMap2D::internal_insertObservation(
 						computeObservationLikelihood
   ---------------------------------------------------------------*/
 double CReflectivityGridMap2D::internal_computeObservationLikelihood(
-	const CObservation* obs, const CPose3D& takenFrom)
+	const CObservation& obs, const CPose3D& takenFrom)
 {
 	MRPT_START
 
@@ -194,27 +193,27 @@ double CReflectivityGridMap2D::internal_computeObservationLikelihood(
 		/********************************************************************
 					OBSERVATION TYPE: CObservationReflectivity
 		********************************************************************/
-		const auto* o = static_cast<const CObservationReflectivity*>(obs);
+		const auto& o = dynamic_cast<const CObservationReflectivity&>(obs);
 
-		if (o->channel != -1 && insertionOptions.channel != -1 &&
-			o->channel != insertionOptions.channel)
+		if (o.channel != -1 && insertionOptions.channel != -1 &&
+			o.channel != insertionOptions.channel)
 		{
 			return 0;  // Incorrect channel
 		}
 
 		CPose3D sensor_pose;
-		sensor_pose.composeFrom(takenFrom, o->sensorPose);
+		sensor_pose.composeFrom(takenFrom, o.sensorPose);
 
 		cell_t* cell = cellByPos(sensor_pose.x(), sensor_pose.y());
 		if (!cell)
 			return 0;  // out of the map..
 		else
 		{
-			ASSERT_ABOVEEQ_(o->reflectivityLevel, 0);
-			ASSERT_BELOWEQ_(o->reflectivityLevel, 1);
+			ASSERT_ABOVEEQ_(o.reflectivityLevel, 0);
+			ASSERT_BELOWEQ_(o.reflectivityLevel, 1);
 			return -0.5 * square(
-							  (m_logodd_lut.l2p(*cell) - o->reflectivityLevel) /
-							  o->sensorStdNoise);
+							  (m_logodd_lut.l2p(*cell) - o.reflectivityLevel) /
+							  o.sensorStdNoise);
 		}
 	}
 	else
@@ -276,23 +275,21 @@ CReflectivityGridMap2D::TInsertionOptions::TInsertionOptions() = default;
 void CReflectivityGridMap2D::TInsertionOptions::dumpToTextStream(
 	std::ostream& out) const
 {
-	out << mrpt::format(
-		"\n----------- [CReflectivityGridMap2D::TInsertionOptions] "
-		"------------ \n\n");
+	out << "\n----------- [CReflectivityGridMap2D::TInsertionOptions] "
+		   "------------ \n\n";
 
 	LOADABLEOPTS_DUMP_VAR(channel, int);
 
-	out << mrpt::format("\n");
+	out << "\n";
 }
 
 /*---------------------------------------------------------------
 					loadFromConfigFile
   ---------------------------------------------------------------*/
 void CReflectivityGridMap2D::TInsertionOptions::loadFromConfigFile(
-	const mrpt::config::CConfigFileBase& iniFile, const std::string& section)
+	[[maybe_unused]] const mrpt::config::CConfigFileBase& iniFile,
+	[[maybe_unused]] const std::string& section)
 {
-	MRPT_UNUSED_PARAM(iniFile);
-	MRPT_UNUSED_PARAM(section);
 	MRPT_LOAD_CONFIG_VAR(channel, int, iniFile, section);
 }
 
@@ -362,7 +359,7 @@ void CReflectivityGridMap2D::getAs3DObject(
 	MRPT_START
 
 	opengl::CTexturedPlane::Ptr outObj =
-		mrpt::make_aligned_shared<opengl::CTexturedPlane>();
+		std::make_shared<opengl::CTexturedPlane>();
 
 	outObj->setPlaneCorners(m_x_min, m_x_max, m_y_min, m_y_max);
 
@@ -388,19 +385,16 @@ void CReflectivityGridMap2D::getAs3DObject(
 		}
 	}
 
-	outObj->assignImage_fast(imgColor, imgTrans);
+	outObj->assignImage(imgColor, imgTrans);
 	outSetOfObj->insert(outObj);
 
 	MRPT_END
 }
 
 float CReflectivityGridMap2D::compute3DMatchingRatio(
-	const mrpt::maps::CMetricMap* otherMap,
-	const mrpt::poses::CPose3D& otherMapPose,
-	const TMatchingRatioParams& params) const
+	[[maybe_unused]] const mrpt::maps::CMetricMap* otherMap,
+	[[maybe_unused]] const mrpt::poses::CPose3D& otherMapPose,
+	[[maybe_unused]] const TMatchingRatioParams& params) const
 {
-	MRPT_UNUSED_PARAM(otherMap);
-	MRPT_UNUSED_PARAM(otherMapPose);
-	MRPT_UNUSED_PARAM(params);
 	return 0;
 }

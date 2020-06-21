@@ -2,13 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "hmtslam-precomp.h"  // Precomp header
 
+#include <mrpt/core/aligned_allocator.h>
 #include <mrpt/graphslam/levmarq.h>
 #include <mrpt/hmtslam/CRobotPosesGraph.h>
 #include <mrpt/math/ops_containers.h>
@@ -125,12 +126,10 @@ CHMHMapNode::Ptr CHierarchicalMapMHPartition::getFirstNode()
 					saveAreasDiagramForMATLAB
   ---------------------------------------------------------------*/
 void CHierarchicalMapMHPartition::saveAreasDiagramForMATLAB(
-	const std::string& filName, const CHMHMapNode::TNodeID& idReferenceNode,
-	const THypothesisID& hypothesisID) const
+	[[maybe_unused]] const std::string& filName,
+	[[maybe_unused]] const CHMHMapNode::TNodeID& idReferenceNode,
+	[[maybe_unused]] const THypothesisID& hypothesisID) const
 {
-	MRPT_UNUSED_PARAM(filName);
-	MRPT_UNUSED_PARAM(idReferenceNode);
-	MRPT_UNUSED_PARAM(hypothesisID);
 	/*
 		MRPT_START
 		unsigned int	nAreaNodes=0;
@@ -304,16 +303,13 @@ void CHierarchicalMapMHPartition::saveAreasDiagramForMATLAB(
 				saveAreasDiagramWithEllipsedForMATLAB
   ---------------------------------------------------------------*/
 void CHierarchicalMapMHPartition::saveAreasDiagramWithEllipsedForMATLAB(
-	const std::string& filName, const CHMHMapNode::TNodeID& idReferenceNode,
-	const THypothesisID& hypothesisID, float uncertaintyExagerationFactor,
-	bool drawArcs, unsigned int numberOfIterationsForOptimalGlobalPoses) const
+	[[maybe_unused]] const std::string& filName,
+	[[maybe_unused]] const CHMHMapNode::TNodeID& idReferenceNode,
+	[[maybe_unused]] const THypothesisID& hypothesisID,
+	[[maybe_unused]] float uncertaintyExagerationFactor,
+	[[maybe_unused]] bool drawArcs,
+	[[maybe_unused]] unsigned int numberOfIterationsForOptimalGlobalPoses) const
 {
-	MRPT_UNUSED_PARAM(filName);
-	MRPT_UNUSED_PARAM(idReferenceNode);
-	MRPT_UNUSED_PARAM(hypothesisID);
-	MRPT_UNUSED_PARAM(uncertaintyExagerationFactor);
-	MRPT_UNUSED_PARAM(drawArcs);
-	MRPT_UNUSED_PARAM(numberOfIterationsForOptimalGlobalPoses);
 	/*	MRPT_START
 
 		const CHMHMapNode	*refNode = getNodeByID( idReferenceNode );
@@ -401,7 +397,7 @@ void CHierarchicalMapMHPartition::saveAreasDiagramWithEllipsedForMATLAB(
 		{
 			const CHMHMapNode			*node = getNodeByID( it->first );
 			CPosePDFGaussian	posePDF = it->second;
-			CMatrix				C( posePDF.cov );
+			CMatrixF				C( posePDF.cov );
 			CPose2D				pose( posePDF.mean );
 
 			if (C.det()==0)
@@ -483,13 +479,10 @@ void CHierarchicalMapMHPartition::saveAreasDiagramWithEllipsedForMATLAB(
 					saveGlobalMapForMATLAB
   ---------------------------------------------------------------*/
 void CHierarchicalMapMHPartition::saveGlobalMapForMATLAB(
-	const std::string& filName, const THypothesisID& hypothesisID,
-	const CHMHMapNode::TNodeID& idReferenceNode) const
+	[[maybe_unused]] const std::string& filName,
+	[[maybe_unused]] const THypothesisID& hypothesisID,
+	[[maybe_unused]] const CHMHMapNode::TNodeID& idReferenceNode) const
 {
-	MRPT_UNUSED_PARAM(filName);
-	MRPT_UNUSED_PARAM(hypothesisID);
-	MRPT_UNUSED_PARAM(idReferenceNode);
-	MRPT_START
 	/*
 		unsigned int	nAreaNodes=0;
 
@@ -703,8 +696,8 @@ void CHierarchicalMapMHPartition::saveGlobalMapForMATLAB(
 		os::fprintf(f,"axis equal; zoom on;");
 
 		os::fclose(f);
-	*/
 	MRPT_END
+	*/
 }
 
 // Variables:
@@ -873,7 +866,7 @@ void CHierarchicalMapMHPartition::computeCoordinatesTransformationBetweenNodes(
 	CHMHMapNode::TNodeID lastNode, nextNode;
 	size_t pathLength;
 
-	using TPose3DList = mrpt::aligned_std_vector<CPose3D>;
+	using TPose3DList = std::vector<CPose3D>;
 	std::vector<TPose3DList> listSamples;
 	std::vector<TPose3DList>::iterator lstIt;
 	TPose3DList dummyList;
@@ -989,16 +982,13 @@ void CHierarchicalMapMHPartition::computeCoordinatesTransformationBetweenNodes(
 			computeMatchProbabilityBetweenNodes
   ---------------------------------------------------------------*/
 float CHierarchicalMapMHPartition::computeMatchProbabilityBetweenNodes(
-	const CHMHMapNode::TNodeID& nodeFrom, const CHMHMapNode::TNodeID& nodeTo,
-	float& maxMatchProb, CPose3DPDFSOG& estimatedRelativePose,
-	const THypothesisID& hypothesisID, unsigned int monteCarloSamplesPose)
+	[[maybe_unused]] const CHMHMapNode::TNodeID& nodeFrom,
+	[[maybe_unused]] const CHMHMapNode::TNodeID& nodeTo,
+	[[maybe_unused]] float& maxMatchProb,
+	[[maybe_unused]] CPose3DPDFSOG& estimatedRelativePose,
+	[[maybe_unused]] const THypothesisID& hypothesisID,
+	[[maybe_unused]] unsigned int monteCarloSamplesPose)
 {
-	MRPT_UNUSED_PARAM(nodeFrom);
-	MRPT_UNUSED_PARAM(nodeTo);
-	MRPT_UNUSED_PARAM(maxMatchProb);
-	MRPT_UNUSED_PARAM(estimatedRelativePose);
-	MRPT_UNUSED_PARAM(hypothesisID);
-	MRPT_UNUSED_PARAM(monteCarloSamplesPose);
 	MRPT_START
 	THROW_EXCEPTION("TO DO");
 	MRPT_END
@@ -1105,7 +1095,7 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 	COpenGLScene& outScene, const CHMHMapNode::TNodeID& idReferenceNode,
 	const THypothesisID& hypothesisID,
 	const unsigned int& numberOfIterationsForOptimalGlobalPoses,
-	const bool& showRobotPoseIDs) const
+	bool showRobotPoseIDs) const
 {
 	MRPT_START
 
@@ -1113,26 +1103,19 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 	outScene.clear();
 	{
 		mrpt::opengl::CGridPlaneXY::Ptr obj =
-			mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
-				-500, 500, -500, 500, 0, 5);
-		obj->setColor(0.3, 0.3, 0.3);
+			mrpt::opengl::CGridPlaneXY::Create(-500, 500, -500, 500, 0, 5);
+		obj->setColor(0.3f, 0.3f, 0.3f);
 		outScene.insert(obj);
 	}
 
-	using TMapID2PosePDF = std::map<
-		CHMHMapNode::TNodeID, CPose3DPDFGaussian,
-		std::less<CHMHMapNode::TNodeID>,
-		Eigen::aligned_allocator<
-			std::pair<const CHMHMapNode::TNodeID, CPose3DPDFGaussian>>>;
-	TMapID2PosePDF nodesPoses;  // The ref. pose of each area
+	using TMapID2PosePDF = std::map<CHMHMapNode::TNodeID, CPose3DPDFGaussian>;
+	// The ref. pose of each area
+	TMapID2PosePDF nodesPoses;
 	TMapID2PosePDF::iterator it;
 
-	using TMapID2Pose2D = std::map<
-		CHMHMapNode::TNodeID, CPose2D, std::less<CHMHMapNode::TNodeID>,
-		Eigen::aligned_allocator<
-			std::pair<const CHMHMapNode::TNodeID, CPose2D>>>;
-	TMapID2Pose2D
-		nodesMeanPoses;  // The mean pose of the observations in the area
+	using TMapID2Pose2D = std::map<CHMHMapNode::TNodeID, CPose2D>;
+	// The mean pose of the observations in the area
+	TMapID2Pose2D nodesMeanPoses;
 	TMapID2Pose2D::iterator it2;
 
 	// Only those nodes in the "hypothesisID" are computed.
@@ -1186,7 +1169,7 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 		if (metricMap)  // ASSERT_(metricMap);
 		{
 			mrpt::opengl::CSetOfObjects::Ptr objTex =
-				mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+				mrpt::opengl::CSetOfObjects::Create();
 			metricMap->getAs3DObject(objTex);
 			objTex->setPose(pose);
 			outScene.insert(objTex);
@@ -1206,8 +1189,7 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 		const CPose3D meanPose = CPose3D(it2->second);
 
 		// The sphere of the node:
-		mrpt::opengl::CSphere::Ptr objSphere =
-			mrpt::make_aligned_shared<mrpt::opengl::CSphere>();
+		mrpt::opengl::CSphere::Ptr objSphere = mrpt::opengl::CSphere::Create();
 
 		objSphere->setName(node->m_label);
 		objSphere->setColor(0, 0, 1);
@@ -1217,13 +1199,10 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 		objSphere->setNumberDivsLongitude(16);
 		objSphere->setNumberDivsLatitude(16);
 
-		objSphere->enableRadiusIndependentOfEyeDistance();
-
 		outScene.insert(objSphere);
 
 		// The label with the name of the node:
-		mrpt::opengl::CText::Ptr objText =
-			mrpt::make_aligned_shared<mrpt::opengl::CText>();
+		mrpt::opengl::CText::Ptr objText = mrpt::opengl::CText::Create();
 		//	objText->m_str = node->m_label;
 		objText->setString(format("%li", (long int)node->getID()));
 		// objText->m_fontHeight = 20;
@@ -1249,8 +1228,7 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 
 				CPose3D auxPose(pose + SF_pose);
 
-				mrpt::opengl::CDisk::Ptr glObj =
-					mrpt::make_aligned_shared<mrpt::opengl::CDisk>();
+				mrpt::opengl::CDisk::Ptr glObj = mrpt::opengl::CDisk::Create();
 
 				glObj->setColor(1, 0, 0);
 
@@ -1259,7 +1237,6 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 
 				glObj->setDiskRadius(0.05f);
 				glObj->setSlicesCount(20);
-				glObj->setLoopsCount(10);
 
 				if (showRobotPoseIDs)
 				{
@@ -1271,7 +1248,7 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 
 				// And a line up-to the node:
 				mrpt::opengl::CSimpleLine::Ptr objLine =
-					mrpt::make_aligned_shared<mrpt::opengl::CSimpleLine>();
+					mrpt::opengl::CSimpleLine::Create();
 
 				objLine->setColor(1, 0, 0, 0.2);
 				objLine->setLineWidth(1.5);
@@ -1298,7 +1275,7 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 
 				// Draw the line:
 				mrpt::opengl::CSimpleLine::Ptr objLine =
-					mrpt::make_aligned_shared<mrpt::opengl::CSimpleLine>();
+					mrpt::opengl::CSimpleLine::Create();
 
 				objLine->setColor(0, 1, 0, 0.5);
 				objLine->setLineWidth(5);
@@ -1315,15 +1292,8 @@ void CHierarchicalMapMHPartition::getAs3DScene(
 	MRPT_END
 }
 
-/*---------------------------------------------------------------
-			computeGloballyConsistentNodeCoordinates
-  ---------------------------------------------------------------*/
 void CHierarchicalMapMHPartition::computeGloballyConsistentNodeCoordinates(
-	std::map<
-		CHMHMapNode::TNodeID, CPose3DPDFGaussian,
-		std::less<CHMHMapNode::TNodeID>,
-		Eigen::aligned_allocator<std::pair<
-			const CHMHMapNode::TNodeID, CPose3DPDFGaussian>>>& nodePoses,
+	std::map<CHMHMapNode::TNodeID, mrpt::poses::CPose3DPDFGaussian>& nodePoses,
 	const CHMHMapNode::TNodeID& idReferenceNode,
 	const THypothesisID& hypothesisID,
 	const unsigned int& numberOfIterations) const
@@ -1570,7 +1540,7 @@ CHMHMapArc::Ptr CHierarchicalMapMHPartition::findArcOfTypeBetweenNodes(
   ---------------------------------------------------------------*/
 double CHierarchicalMapMHPartition::computeOverlapProbabilityBetweenNodes(
 	const CHMHMapNode::TNodeID& nodeFrom, const CHMHMapNode::TNodeID& nodeTo,
-	const THypothesisID& hypothesisID, const size_t& monteCarloSamples,
+	const THypothesisID& hypothesisID, size_t monteCarloSamples,
 	const float margin_to_substract) const
 {
 	MRPT_START

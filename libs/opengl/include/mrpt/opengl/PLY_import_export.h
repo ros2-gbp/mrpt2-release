@@ -2,14 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
 #include <mrpt/img/TColor.h>
-#include <mrpt/math/lightweight_geom_data.h>
+#include <mrpt/math/TPoint3D.h>
 #include <string>
 #include <vector>
 
@@ -19,7 +19,7 @@ namespace mrpt::opengl
  * clouds and faces from a file in the Stanford PLY format.
  * \sa https://www.mrpt.org/Support_for_the_Stanford_3D_models_file_format_PLY
  * \sa PLY_Exporter
- * \ingroup mrpt_base_grp
+ * \ingroup mrpt_opengl_grp
  */
 class PLY_Importer
 {

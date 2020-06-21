@@ -2,14 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
+#include <mrpt/math/CVectorDynamic.h>
 #include <mrpt/obs/CObservation2DRangeScan.h>
-#include <vector>
 
 namespace mrpt::obs
 {
@@ -21,11 +21,11 @@ class CObservation2DRangeScanWithUncertainty
    public:
 	/** The observation with the mean ranges in the scan field */
 	CObservation2DRangeScan rangeScan;
-	/** The same ranges than in rangeScan.scan[], for convenience as an Eigen
-	 * container, and with `double` precision */
-	Eigen::VectorXd rangesMean;
-	/** The covariance matrix for all the ranges in rangeScan.scan[] */
-	Eigen::MatrixXd rangesCovar;
+	/** The same ranges than in rangeScan.getScanRange(), for convenience as a
+	 * math vector container, and with `double` precision */
+	mrpt::math::CVectorDouble rangesMean;
+	/** The covariance matrix for all the ranges in rangeScan.getScanRange() */
+	mrpt::math::CMatrixDouble rangesCovar;
 
 	struct TEvalParams
 	{

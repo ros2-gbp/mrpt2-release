@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -151,13 +151,13 @@ void TArcList::read(mrpt::serialization::CArchive& in)
 	BASE::clear();
 	for (i = 0; i < n; i++)
 	{
-		CHMHMapArc::Ptr theObj = mrpt::make_aligned_shared<CHMHMapArc>();
+		CHMHMapArc::Ptr theObj = std::make_shared<CHMHMapArc>();
 		in >> *theObj;
 		this->push_back(theObj);
 	}
 }
 void TArcList::write(mrpt::serialization::CArchive& out) const
 {
-	out << static_cast<uint32_t>(this->size());
+	out.WriteAs<uint32_t>(this->size());
 	for (const auto& i : *this) out << *i;
 }

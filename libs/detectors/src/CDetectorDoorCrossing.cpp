@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -58,8 +58,8 @@ void CDetectorDoorCrossing::process(
 
 	// 1) Add new pair to the list:
 	// -----------------------------------------
-	lastObs.addAction(in_poseChange);
-	lastObs.addObservations(in_sf);
+	lastObs.insert(in_poseChange);
+	lastObs.insert(in_sf);
 
 	// 2) Remove oldest pair:
 	// -----------------------------------------
@@ -74,8 +74,8 @@ void CDetectorDoorCrossing::process(
 
 	if (lastObs.size() < options.windowSize * 2)
 	{
-		// Not enought old data yet:
-		out_estimation.enoughtInformation = false;
+		// Not enough old data yet:
+		out_estimation.enoughInformation = false;
 		return;
 	}
 
@@ -127,13 +127,13 @@ void CDetectorDoorCrossing::process(
 
 	if (!lastEntropyValid)
 	{
-		out_estimation.enoughtInformation = false;
+		out_estimation.enoughInformation = false;
 	}
 	else
 	{
 		// 5) Fill output data
 		// ---------------------------------
-		out_estimation.enoughtInformation = true;
+		out_estimation.enoughInformation = true;
 
 		out_estimation.informationGain = entropy.I - lastEntropy.I;
 		out_estimation.pointsMap = *auxMap.mapByClass<CSimplePointsMap>();

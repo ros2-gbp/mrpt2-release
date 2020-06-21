@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,8 +10,8 @@
 
 #include <mrpt/config.h>
 #include <mrpt/gui/gui_frwds.h>
-#include <mrpt/math/lightweight_geom_data.h>
-#include <mrpt/math/types_math.h>
+#include <mrpt/math/CVectorDynamic.h>
+#include <mrpt/math/TPoint2D.h>
 #include <mrpt/opengl/opengl_fonts.h>
 #include <future>
 #include <map>
@@ -47,7 +47,7 @@
 #include <wx/toolbar.h>
 
 // The wxMathPlot library
-#include <mrpt/otherlibs/mathplot/mathplot.h>
+#include <mrpt/3rdparty/mathplot/mathplot.h>
 
 #if 0
 // The wxFreeChart library
@@ -240,11 +240,9 @@ class WxSubsystem
 		 *     - 303: Change size to x,y
 		 *     - 304: Change title to "str"
 		 *		- 350: Force refresh
-		 *		- 360: Add a 2D text message: vector_x: [0]:x, [1]:y, [2,3,4]:R
-		 *G
-		 *B, "x": enum of desired font. "y": unique index, "str": String.
-		 *		- 361: Clear all 2D text messages.
-		 *		- 362: Add a 2D text message (vectorized fonts)
+		 *		- [Removed in MRPT2] 360: Add a 2D text message:
+		 *		- [Removed in MRPT2] 361: Clear all 2D text messages.
+		 *		- [Removed in MRPT2] 362: Add a 2D text message (vector font)
 		 *		- 370: Change min/max range: min=vector_x[0], max=vector_x[1]
 		 *     - 399: Delete the window associated with this source object.
 		 *
@@ -322,9 +320,9 @@ class CWindowDialog : public wxFrame
 	class wxMRPTImageControl : public wxPanel
 	{
 	   protected:
-		wxBitmap* m_img;
+		std::unique_ptr<wxBitmap> m_img;
 		std::mutex m_img_cs;
-		CDisplayWindow* m_win2D;
+		CDisplayWindow* m_win2D = nullptr;
 
 	   public:
 		wxMRPTImageControl(
@@ -358,7 +356,7 @@ class CWindowDialog : public wxFrame
 		wxSize initialSize = wxDefaultSize);
 	~CWindowDialog() override;
 
-	CDisplayWindow* m_win2D;
+	CDisplayWindow* m_win2D = nullptr;
 	WxSubsystem::CWXMainFrame* m_mainFrame;
 
 	// wxStaticBitmap      *m_image;
@@ -396,19 +394,6 @@ class C3DWindowDialog : public wxFrame
 	WxSubsystem::CWXMainFrame* m_mainFrame;
 
 	CMyGLCanvas_DisplayWindow3D* m_canvas;
-
-	void clearTextMessages();
-	void addTextMessage(
-		const double x_frac, const double y_frac, const std::string& text,
-		const mrpt::img::TColorf& color, const size_t unique_index,
-		const mrpt::opengl::TOpenGLFont font);
-	void addTextMessage(
-		const double x_frac, const double y_frac, const std::string& text,
-		const mrpt::img::TColorf& color, const std::string& font_name,
-		const double font_size, const mrpt::opengl::TOpenGLFontStyle font_style,
-		const size_t unique_index, const double font_spacing,
-		const double font_kerning, const bool has_shadow,
-		const mrpt::img::TColorf& shadow_color);
 
    private:
 	void OnClose(wxCloseEvent& event);
@@ -470,8 +455,8 @@ class CWindowDialogPlots : public wxFrame
 	/** Redirected from CDisplayWindowPlots::image
 	 */
 	void image(
-		void* theWxImage, const float& x0, const float& y0, const float& w,
-		const float& h, const std::string& plotName);
+		void* theWxImage, float x0, float y0, float w, float h,
+		const std::string& plotName);
 
    private:
 	void OnClose(wxCloseEvent& event);

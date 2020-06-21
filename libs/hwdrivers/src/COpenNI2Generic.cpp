@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -14,7 +14,7 @@
 #include <mrpt/system/CTimeLogger.h>
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 #include <atomic>
 #include <mutex>
@@ -241,7 +241,7 @@ void COpenNI2Generic::kill()
 #endif  // MRPT_HAS_OPENNI2
 }
 
-bool COpenNI2Generic::isOpen(const unsigned sensor_id) const
+bool COpenNI2Generic::isOpen([[maybe_unused]] const unsigned sensor_id) const
 {
 #if MRPT_HAS_OPENNI2
 	std::lock_guard<std::recursive_mutex> lock(vDevices_mx);
@@ -251,12 +251,11 @@ bool COpenNI2Generic::isOpen(const unsigned sensor_id) const
 	}
 	return vDevices[sensor_id]->isOpen();
 #else
-	MRPT_UNUSED_PARAM(sensor_id);
-	THROW_EXCEPTION("MRPT was built without OpenNI2 support");
+	return false;
 #endif  // MRPT_HAS_OPENNI2
 }
 
-void COpenNI2Generic::open(unsigned sensor_id)
+void COpenNI2Generic::open([[maybe_unused]] unsigned sensor_id)
 {
 #if MRPT_HAS_OPENNI2
 	std::lock_guard<std::recursive_mutex> lock(vDevices_mx);
@@ -296,13 +295,12 @@ void COpenNI2Generic::open(unsigned sensor_id)
 	}
 	std::this_thread::sleep_for(1000ms);  // Sleep
 #else
-	MRPT_UNUSED_PARAM(sensor_id);
 	THROW_EXCEPTION("MRPT was built without OpenNI2 support");
 #endif  // MRPT_HAS_OPENNI2
 }
 
-unsigned int COpenNI2Generic::openDevicesBySerialNum(
-	const std::set<unsigned>& serial_required)
+unsigned int COpenNI2Generic::openDevicesBySerialNum([
+	[maybe_unused]] const std::set<unsigned>& serial_required)
 {
 #if MRPT_HAS_OPENNI2
 	std::lock_guard<std::recursive_mutex> lock(vDevices_mx);
@@ -352,7 +350,6 @@ unsigned int COpenNI2Generic::openDevicesBySerialNum(
 	}
 	return num_open_dev;
 #else
-	MRPT_UNUSED_PARAM(serial_required);
 	THROW_EXCEPTION("MRPT was built without OpenNI2 support");
 #endif  // MRPT_HAS_OPENNI2
 }
@@ -366,7 +363,8 @@ unsigned int COpenNI2Generic::openDeviceBySerial(
 }
 
 bool COpenNI2Generic::getDeviceIDFromSerialNum(
-	const unsigned int SerialRequired, int& sensor_id) const
+	[[maybe_unused]] const unsigned int SerialRequired,
+	[[maybe_unused]] int& sensor_id) const
 {
 #if MRPT_HAS_OPENNI2
 	std::lock_guard<std::recursive_mutex> lock(vDevices_mx);
@@ -385,13 +383,11 @@ bool COpenNI2Generic::getDeviceIDFromSerialNum(
 	}
 	return false;
 #else
-	MRPT_UNUSED_PARAM(SerialRequired);
-	MRPT_UNUSED_PARAM(sensor_id);
 	THROW_EXCEPTION("MRPT was built without OpenNI2 support");
 #endif  // MRPT_HAS_OPENNI2
 }
 
-void COpenNI2Generic::close(unsigned sensor_id)
+void COpenNI2Generic::close([[maybe_unused]] unsigned sensor_id)
 {
 #if MRPT_HAS_OPENNI2
 	std::lock_guard<std::recursive_mutex> lock(vDevices_mx);
@@ -407,7 +403,6 @@ void COpenNI2Generic::close(unsigned sensor_id)
 	}
 	vDevices[sensor_id]->close();
 #else
-	MRPT_UNUSED_PARAM(sensor_id);
 	THROW_EXCEPTION("MRPT was built without OpenNI2 support");
 #endif  // MRPT_HAS_OPENNI2
 }
@@ -422,8 +417,10 @@ void COpenNI2Generic::close(unsigned sensor_id)
  *
  */
 void COpenNI2Generic::getNextFrameRGB(
-	mrpt::img::CImage& rgb_img, mrpt::system::TTimeStamp& timestamp,
-	bool& there_is_obs, bool& hardware_error, unsigned sensor_id)
+	[[maybe_unused]] mrpt::img::CImage& rgb_img,
+	[[maybe_unused]] mrpt::system::TTimeStamp& timestamp,
+	[[maybe_unused]] bool& there_is_obs, [[maybe_unused]] bool& hardware_error,
+	[[maybe_unused]] unsigned sensor_id)
 {
 #if MRPT_HAS_OPENNI2
 	// Sensor index validation.
@@ -444,28 +441,15 @@ void COpenNI2Generic::getNextFrameRGB(
 		showLog(std::string(" ") + vDevices[sensor_id]->getLog() + "\n");
 	}
 #else
-	MRPT_UNUSED_PARAM(rgb_img);
-	MRPT_UNUSED_PARAM(timestamp);
-	MRPT_UNUSED_PARAM(there_is_obs);
-	MRPT_UNUSED_PARAM(hardware_error);
-	MRPT_UNUSED_PARAM(sensor_id);
 	THROW_EXCEPTION("MRPT was built without OpenNI2 support");
 #endif  // MRPT_HAS_OPENNI2
 }
 
-/** The main data retrieving function, to be called after calling loadConfig()
- * and initialize().
- *  \param depth_img The output retrieved depth image (only if
- * there_is_obs=true).
- *  \param timestamp The timestamp of the capture (only if there_is_obs=true).
- *  \param there_is_obs If set to false, there was no new observation.
- *  \param hardware_error True on hardware/comms error.
- *  \param sensor_id The index of the sensor accessed.
- *
- */
 void COpenNI2Generic::getNextFrameD(
-	mrpt::math::CMatrix& depth_img, mrpt::system::TTimeStamp& timestamp,
-	bool& there_is_obs, bool& hardware_error, unsigned sensor_id)
+	[[maybe_unused]] mrpt::math::CMatrix_u16& depth_img_mm,
+	[[maybe_unused]] mrpt::system::TTimeStamp& timestamp,
+	[[maybe_unused]] bool& there_is_obs, [[maybe_unused]] bool& hardware_error,
+	[[maybe_unused]] unsigned sensor_id)
 {
 #if MRPT_HAS_OPENNI2
 	// Sensor index validation.
@@ -479,18 +463,13 @@ void COpenNI2Generic::getNextFrameD(
 			"Sensor index is higher than the number of connected devices.");
 	}
 	if (vDevices[sensor_id]->getNextFrameD(
-			depth_img, timestamp, there_is_obs, hardware_error) == false)
+			depth_img_mm, timestamp, there_is_obs, hardware_error) == false)
 	{
 		showLog(mrpt::format("[%s]\n", __FUNCTION__));
 		showLog(mrpt::format(" Error [%d]th Sensor.\n", sensor_id));
 		showLog(std::string(" ") + vDevices[sensor_id]->getLog() + "\n");
 	}
 #else
-	MRPT_UNUSED_PARAM(depth_img);
-	MRPT_UNUSED_PARAM(timestamp);
-	MRPT_UNUSED_PARAM(there_is_obs);
-	MRPT_UNUSED_PARAM(hardware_error);
-	MRPT_UNUSED_PARAM(sensor_id);
 	THROW_EXCEPTION("MRPT was built without OpenNI2 support");
 #endif  // MRPT_HAS_OPENNI2
 }
@@ -504,8 +483,9 @@ void COpenNI2Generic::getNextFrameD(
  *
  */
 void COpenNI2Generic::getNextFrameRGBD(
-	mrpt::obs::CObservation3DRangeScan& out_obs, bool& there_is_obs,
-	bool& hardware_error, unsigned sensor_id)
+	[[maybe_unused]] mrpt::obs::CObservation3DRangeScan& out_obs,
+	[[maybe_unused]] bool& there_is_obs, [[maybe_unused]] bool& hardware_error,
+	[[maybe_unused]] unsigned sensor_id)
 {
 #if MRPT_HAS_OPENNI2
 	// Sensor index validation.
@@ -526,16 +506,13 @@ void COpenNI2Generic::getNextFrameRGBD(
 		showLog(std::string(" ") + vDevices[sensor_id]->getLog() + "\n");
 	}
 #else
-	MRPT_UNUSED_PARAM(out_obs);
-	MRPT_UNUSED_PARAM(there_is_obs);
-	MRPT_UNUSED_PARAM(hardware_error);
-	MRPT_UNUSED_PARAM(sensor_id);
 	THROW_EXCEPTION("MRPT was built without OpenNI2 support");
 #endif  // MRPT_HAS_OPENNI2
 }
 
 bool COpenNI2Generic::getColorSensorParam(
-	mrpt::img::TCamera& param, unsigned sensor_id) const
+	[[maybe_unused]] mrpt::img::TCamera& param,
+	[[maybe_unused]] unsigned sensor_id) const
 {
 #if MRPT_HAS_OPENNI2
 	std::lock_guard<std::recursive_mutex> lock(vDevices_mx);
@@ -545,14 +522,13 @@ bool COpenNI2Generic::getColorSensorParam(
 	}
 	return vDevices[sensor_id]->getCameraParam(CDevice::COLOR_STREAM, param);
 #else
-	MRPT_UNUSED_PARAM(param);
-	MRPT_UNUSED_PARAM(sensor_id);
 	THROW_EXCEPTION("MRPT was built without OpenNI2 support");
 #endif  // MRPT_HAS_OPENNI2
 }
 
 bool COpenNI2Generic::getDepthSensorParam(
-	mrpt::img::TCamera& param, unsigned sensor_id) const
+	[[maybe_unused]] mrpt::img::TCamera& param,
+	[[maybe_unused]] unsigned sensor_id) const
 {
 #if MRPT_HAS_OPENNI2
 	std::lock_guard<std::recursive_mutex> lock(vDevices_mx);
@@ -562,8 +538,6 @@ bool COpenNI2Generic::getDepthSensorParam(
 	}
 	return vDevices[sensor_id]->getCameraParam(CDevice::DEPTH_STREAM, param);
 #else
-	MRPT_UNUSED_PARAM(param);
-	MRPT_UNUSED_PARAM(sensor_id);
 	THROW_EXCEPTION("MRPT was built without OpenNI2 support");
 #endif  // MRPT_HAS_OPENNI2
 }
@@ -862,7 +836,7 @@ bool COpenNI2Generic::CDevice::getNextFrameRGB(
 }
 
 bool COpenNI2Generic::CDevice::getNextFrameD(
-	mrpt::math::CMatrix& img, mrpt::system::TTimeStamp& timestamp,
+	mrpt::math::CMatrix_u16& depth_mm, mrpt::system::TTimeStamp& timestamp,
 	bool& there_is_obs, bool& hardware_error)
 {
 	MRPT_START
@@ -876,7 +850,7 @@ bool COpenNI2Generic::CDevice::getNextFrameD(
 	{
 		return false;
 	}
-	copyFrame<openni::DepthPixel, mrpt::math::CMatrix>(frame, img);
+	copyFrame<openni::DepthPixel, mrpt::math::CMatrix_u16>(frame, depth_mm);
 
 	return true;
 	MRPT_END
@@ -966,7 +940,7 @@ COpenNI2Generic::CDevice::Ptr COpenNI2Generic::CDevice::create(
 	const openni::DeviceInfo& info, openni::PixelFormat rgb,
 	openni::PixelFormat depth, bool verbose)
 {
-	return Ptr(new CDevice(info, rgb, depth, verbose));
+	return std::make_shared<CDevice>(info, rgb, depth, verbose);
 }
 
 bool COpenNI2Generic::CDevice::getSerialNumber(std::string& sn)
@@ -1198,7 +1172,7 @@ COpenNI2Generic::CDevice::CStream::Ptr
 		openni::Device& device, openni::SensorType type,
 		openni::PixelFormat format, std::ostream& log, bool verbose)
 {
-	return Ptr(new CStream(device, type, format, log, verbose));
+	return std::make_shared<CStream>(device, type, format, log, verbose);
 }
 
 bool COpenNI2Generic::CDevice::CStream::getFrame(

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,17 +10,19 @@
 
 #include <mrpt/config/CLoadableOptions.h>
 #include <mrpt/core/aligned_std_vector.h>
+#include <mrpt/core/optional_ref.h>
 #include <mrpt/core/safe_pointers.h>
 #include <mrpt/img/color_maps.h>
 #include <mrpt/maps/CMetricMap.h>
-#include <mrpt/math/CMatrixFixedNumeric.h>
+#include <mrpt/math/CMatrixFixed.h>
 #include <mrpt/math/KDTreeCapable.h>
-#include <mrpt/math/lightweight_geom_data.h>
+#include <mrpt/math/TPoint3D.h>
 #include <mrpt/obs/CSinCosLookUpTableFor2DScans.h>
 #include <mrpt/obs/obs_frwds.h>
 #include <mrpt/opengl/PLY_import_export.h>
 #include <mrpt/opengl/pointcloud_adapters.h>
 #include <mrpt/serialization/CSerializable.h>
+#include <iosfwd>
 
 // Add for declaration of mexplus::from template specialization
 DECLARE_MEXPLUS_FROM(mrpt::maps::CPointsMap)
@@ -122,8 +124,10 @@ class CPointsMap : public CMetricMap,
 		this->impl_copyFrom(o);
 		return *this;
 	}
-	// CPointsMap(const CPointsMap& o): Don't define this one to avoid calling
-	// a virtual method during copy ctors.
+	/** Don't define this one as we cannot call the virtual method
+	 * impl_copyFrom() during copy ctors. Redefine in derived classes as needed
+	 * instead. */
+	CPointsMap(const CPointsMap& o) = delete;
 
 	// --------------------------------------------
 	/** @name Pure virtual interfaces to be implemented by any class derived
@@ -208,8 +212,7 @@ class CPointsMap : public CMetricMap,
 	inline float squareDistanceToClosestCorrespondenceT(
 		const mrpt::math::TPoint2D& p0) const
 	{
-		return squareDistanceToClosestCorrespondence(
-			static_cast<float>(p0.x), static_cast<float>(p0.y));
+		return squareDistanceToClosestCorrespondence(d2f(p0.x), d2f(p0.y));
 	}
 
 	/** With this struct options are provided to the observation insertion
@@ -321,7 +324,7 @@ class CPointsMap : public CMetricMap,
 		/** Binary dump to stream - used in derived classes' serialization */
 		void readFromStream(mrpt::serialization::CArchive& in);
 
-		float point_size{3.0f};
+		float point_size{1.0f};
 		/** Color of points. Superseded by colormap if the latter is set. */
 		mrpt::img::TColorf color{.0f, .0f, 1.0f};
 		/** Colormap for points (index is "z" coordinates) */
@@ -370,6 +373,12 @@ class CPointsMap : public CMetricMap,
 	{
 		return load2Dor3D_from_text_file(file, false);
 	}
+	inline bool load2D_from_text_stream(
+		std::istream& in,
+		mrpt::optional_ref<std::string> outErrorMsg = std::nullopt)
+	{
+		return load2Dor3D_from_text_stream(in, outErrorMsg, false);
+	}
 
 	/** Load from a text file. Each line should contain an "X Y Z" coordinate
 	 * tuple, separated by whitespaces.
@@ -379,20 +388,31 @@ class CPointsMap : public CMetricMap,
 	{
 		return load2Dor3D_from_text_file(file, true);
 	}
+	inline bool load3D_from_text_stream(
+		std::istream& in,
+		mrpt::optional_ref<std::string> outErrorMsg = std::nullopt)
+	{
+		return load2Dor3D_from_text_stream(in, outErrorMsg, true);
+	}
 
 	/** 2D or 3D generic implementation of \a load2D_from_text_file and
 	 * load3D_from_text_file */
 	bool load2Dor3D_from_text_file(const std::string& file, const bool is_3D);
+	bool load2Dor3D_from_text_stream(
+		std::istream& in, mrpt::optional_ref<std::string> outErrorMsg,
+		const bool is_3D);
 
 	/**  Save to a text file. Each line will contain "X Y" point coordinates.
 	 *		Returns false if any error occured, true elsewere.
 	 */
 	bool save2D_to_text_file(const std::string& file) const;
+	bool save2D_to_text_stream(std::ostream& out) const;
 
 	/**  Save to a text file. Each line will contain "X Y Z" point coordinates.
 	 *     Returns false if any error occured, true elsewere.
 	 */
 	bool save3D_to_text_file(const std::string& file) const;
+	bool save3D_to_text_stream(std::ostream& out) const;
 
 	/** This virtual method saves the map to a file "filNamePrefix"+<
 	 * some_file_extension >, as an image or in any other applicable way (Notice
@@ -406,13 +426,30 @@ class CPointsMap : public CMetricMap,
 	}
 
 	/** Save the point cloud as a PCL PCD file, in either ASCII or binary format
-	 * (requires MRPT built against PCL) \return false on any error */
-	virtual bool savePCDFile(
-		const std::string& filename, bool save_as_binary) const;
+	 * \note This method requires user code to include PCL before MRPT headers.
+	 * \return false on any error */
+#if defined(PCL_LINEAR_VERSION)
+	inline bool savePCDFile(
+		const std::string& filename, bool save_as_binary) const
+	{
+		pcl::PointCloud<pcl::PointXYZ> cloud;
+		this->getPCLPointCloud(cloud);
+		return 0 == pcl::io::savePCDFile(filename, cloud, save_as_binary);
+	}
+#endif
 
-	/** Load the point cloud from a PCL PCD file (requires MRPT built against
-	 * PCL) \return false on any error */
-	virtual bool loadPCDFile(const std::string& filename);
+	/** Load the point cloud from a PCL PCD file.
+	 * \note This method requires user code to include PCL before MRPT headers.
+	 * \return false on any error */
+#if defined(PCL_LINEAR_VERSION)
+	inline bool loadPCDFile(const std::string& filename)
+	{
+		pcl::PointCloud<pcl::PointXYZ> cloud;
+		if (0 != pcl::io::loadPCDFile(filename, cloud)) return false;
+		this->getPCLPointCloud(cloud);
+		return true;
+	}
+#endif
 
 	/** @} */  // End of: File input/output methods
 	// --------------------------------------------------
@@ -480,12 +517,12 @@ class CPointsMap : public CMetricMap,
 	/// \overload
 	inline void setPoint(size_t index, const mrpt::math::TPoint2D& p)
 	{
-		setPoint(index, p.x, p.y, 0);
+		setPoint(index, d2f(p.x), d2f(p.y), 0);
 	}
 	/// \overload
 	inline void setPoint(size_t index, const mrpt::math::TPoint3D& p)
 	{
-		setPoint(index, p.x, p.y, p.z);
+		setPoint(index, d2f(p.x), d2f(p.y), d2f(p.z));
 	}
 	/// \overload
 	inline void setPoint(size_t index, float x, float y)
@@ -494,28 +531,24 @@ class CPointsMap : public CMetricMap,
 	}
 	/// overload (RGB data is ignored in classes without color information)
 	virtual void setPointRGB(
-		size_t index, float x, float y, float z, float R, float G, float B)
+		size_t index, float x, float y, float z, [[maybe_unused]] float R,
+		[[maybe_unused]] float G, [[maybe_unused]] float B)
 	{
-		MRPT_UNUSED_PARAM(R);
-		MRPT_UNUSED_PARAM(G);
-		MRPT_UNUSED_PARAM(B);
 		setPoint(index, x, y, z);
 	}
 
 	/// Sets the point weight, which is ignored in all classes but those which
 	/// actually store that field (Note: No checks are done for out-of-bounds
 	/// index). \sa getPointWeight
-	virtual void setPointWeight(size_t index, unsigned long w)
+	virtual void setPointWeight(
+		[[maybe_unused]] size_t index, [[maybe_unused]] unsigned long w)
 	{
-		MRPT_UNUSED_PARAM(index);
-		MRPT_UNUSED_PARAM(w);
 	}
 	/// Gets the point weight, which is ignored in all classes (defaults to 1)
 	/// but in those which actually store that field (Note: No checks are done
 	/// for out-of-bounds index).  \sa setPointWeight
-	virtual unsigned int getPointWeight(size_t index) const
+	virtual unsigned int getPointWeight([[maybe_unused]] size_t index) const
 	{
-		MRPT_UNUSED_PARAM(index);
 		return 1;
 	}
 
@@ -630,15 +663,13 @@ class CPointsMap : public CMetricMap,
 	/// \overload
 	inline void insertPoint(const mrpt::math::TPoint3D& p)
 	{
-		insertPoint(p.x, p.y, p.z);
+		insertPoint(d2f(p.x), d2f(p.y), d2f(p.z));
 	}
 	/// overload (RGB data is ignored in classes without color information)
 	virtual void insertPointRGB(
-		float x, float y, float z, float R, float G, float B)
+		float x, float y, float z, [[maybe_unused]] float R,
+		[[maybe_unused]] float G, [[maybe_unused]] float B)
 	{
-		MRPT_UNUSED_PARAM(R);
-		MRPT_UNUSED_PARAM(G);
-		MRPT_UNUSED_PARAM(B);
 		insertPoint(x, y, z);
 	}
 
@@ -928,8 +959,8 @@ class CPointsMap : public CMetricMap,
 	 */
 	void extractPoints(
 		const mrpt::math::TPoint3D& corner1,
-		const mrpt::math::TPoint3D& corner2, CPointsMap* outMap,
-		const double& R = 1, const double& G = 1, const double& B = 1);
+		const mrpt::math::TPoint3D& corner2, CPointsMap* outMap, double R = 1,
+		double G = 1, double B = 1);
 
 	/** @name Filter-by-height stuff
 		@{ */
@@ -965,7 +996,7 @@ class CPointsMap : public CMetricMap,
 
 	// See docs in base class
 	double internal_computeObservationLikelihood(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D& takenFrom) override;
 
 	double internal_computeObservationLikelihoodPointCloud3D(
@@ -1127,7 +1158,7 @@ class CPointsMap : public CMetricMap,
 	 * See mrpt::maps::CPointsMap for the enumeration of types of observations
 	 * which are accepted. */
 	bool internal_insertObservation(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D* robotPose) override;
 
 	/** Helper method for ::copyFrom() */
@@ -1137,10 +1168,7 @@ class CPointsMap : public CMetricMap,
 		@{ */
 	/** In a base class, reserve memory to prepare subsequent calls to
 	 * PLY_import_set_face */
-	void PLY_import_set_face_count(const size_t N) override
-	{
-		MRPT_UNUSED_PARAM(N);
-	}
+	void PLY_import_set_face_count([[maybe_unused]] const size_t N) override {}
 
 	/** In a base class, will be called after PLY_import_set_vertex_count() once
 	 * for each loaded point.
@@ -1210,7 +1238,7 @@ class PointCloudAdapter<mrpt::maps::CPointsMap>
 	/** Set number of points (to uninitialized values) */
 	inline void resize(const size_t N) { m_obj.resize(N); }
 	/** Does nothing as of now */
-	inline void setDimensions(const size_t& height, const size_t& width) {}
+	inline void setDimensions(size_t height, size_t width) {}
 	/** Get XYZ coordinates of i'th point */
 	template <typename T>
 	inline void getPointXYZ(const size_t idx, T& x, T& y, T& z) const
@@ -1222,6 +1250,11 @@ class PointCloudAdapter<mrpt::maps::CPointsMap>
 		const size_t idx, const coords_t x, const coords_t y, const coords_t z)
 	{
 		m_obj.setPointFast(idx, x, y, z);
+	}
+	/** Set XYZ coordinates of i'th point */
+	inline void setInvalidPoint(const size_t idx)
+	{
+		m_obj.setPointFast(idx, 0, 0, 0);
 	}
 };  // end of PointCloudAdapter<mrpt::maps::CPointsMap>
 }  // namespace opengl

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -15,10 +15,10 @@
 #include <mrpt/poses/CPose3DPDFGaussian.h>
 #include <mrpt/poses/CPose3DQuatPDFGaussian.h>
 #include <mrpt/random.h>
+#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::poses;
-
 using namespace mrpt::math;
 using namespace std;
 
@@ -45,7 +45,7 @@ class Pose3DQuatPDFGaussTests : public ::testing::Test
 		mrpt::random::getRandomGenerator().drawGaussian1DMatrix(
 			r, 0, std_scale);
 		CMatrixDouble66 cov;
-		cov.multiply_AAt(r);  // random semi-definite positive matrix:
+		cov.matProductOf_AAt(r);  // random semi-definite positive matrix:
 		for (int i = 0; i < 6; i++) cov(i, i) += 1e-7;
 		CPose3DPDFGaussian p6pdf(CPose3D(x, y, z, yaw, pitch, roll), cov);
 		return p6pdf;
@@ -61,7 +61,7 @@ class Pose3DQuatPDFGaussTests : public ::testing::Test
 		// Convert back to a 6x6 representation:
 		CPose3DPDFGaussian p2ypr = CPose3DPDFGaussian(p1quat);
 
-		EXPECT_NEAR(0, (p2ypr.cov - p1ypr.cov).array().abs().mean(), 1e-2)
+		EXPECT_NEAR(0, (p2ypr.cov - p1ypr.cov).array().abs().maxCoeff(), 1e-6)
 			<< "p1ypr: " << endl
 			<< p1ypr << endl
 			<< "p1quat : " << endl
@@ -71,9 +71,9 @@ class Pose3DQuatPDFGaussTests : public ::testing::Test
 	}
 
 	static void func_compose(
-		const CArrayDouble<2 * 7>& x, const double& dummy, CArrayDouble<7>& Y)
+		const CVectorFixedDouble<2 * 7>& x,
+		[[maybe_unused]] const double& dummy, CVectorFixedDouble<7>& Y)
 	{
-		MRPT_UNUSED_PARAM(dummy);
 		const CPose3DQuat p1(
 			x[0], x[1], x[2], CQuaternionDouble(x[3], x[4], x[5], x[6]));
 		const CPose3DQuat p2(
@@ -84,11 +84,12 @@ class Pose3DQuatPDFGaussTests : public ::testing::Test
 	}
 
 	static void func_inv_compose(
-		const CArrayDouble<2 * 7>& x, const double& dummy, CArrayDouble<7>& Y)
+		const CVectorFixedDouble<2 * 7>& x,
+		[[maybe_unused]] const double& dummy, CVectorFixedDouble<7>& Y)
 	{
-		MRPT_UNUSED_PARAM(dummy);
-		const CPose3DQuat p1(
-			x[0], x[1], x[2], CQuaternionDouble(x[3], x[4], x[5], x[6]));
+		CQuaternionDouble q(x[3], x[4], x[5], x[6]);
+		q.normalize();
+		const CPose3DQuat p1(x[0], x[1], x[2], q);
 		const CPose3DQuat p2(
 			x[7 + 0], x[7 + 1], x[7 + 2],
 			CQuaternionDouble(x[7 + 3], x[7 + 4], x[7 + 5], x[7 + 6]));
@@ -109,25 +110,25 @@ class Pose3DQuatPDFGaussTests : public ::testing::Test
 		CPose3DQuatPDFGaussian p7_comp = p7pdf1 + p7pdf2;
 
 		// Numeric approximation:
-		CArrayDouble<7> y_mean;
-		CMatrixFixedNumeric<double, 7, 7> y_cov;
+		CVectorFixedDouble<7> y_mean;
+		CMatrixFixed<double, 7, 7> y_cov;
 		{
-			CArrayDouble<2 * 7> x_mean;
+			CVectorFixedDouble<2 * 7> x_mean;
 			for (int i = 0; i < 7; i++) x_mean[i] = p7pdf1.mean[i];
 			for (int i = 0; i < 7; i++) x_mean[7 + i] = p7pdf2.mean[i];
 
-			CMatrixFixedNumeric<double, 14, 14> x_cov;
+			CMatrixFixed<double, 14, 14> x_cov;
 			x_cov.insertMatrix(0, 0, p7pdf1.cov);
 			x_cov.insertMatrix(7, 7, p7pdf2.cov);
 
 			double DUMMY = 0;
-			CArrayDouble<2 * 7> x_incrs;
-			x_incrs.assign(1e-6);
+			CVectorFixedDouble<2 * 7> x_incrs;
+			x_incrs.fill(1e-6);
 			transform_gaussian_linear(
 				x_mean, x_cov, func_compose, DUMMY, y_mean, y_cov, x_incrs);
 		}
 		// Compare:
-		EXPECT_NEAR(0, (y_cov - p7_comp.cov).array().abs().mean(), 1e-2)
+		EXPECT_NEAR(0, (y_cov - p7_comp.cov).array().abs().maxCoeff(), 1e-3)
 			<< "p1 mean: " << p7pdf1.mean << endl
 			<< "p2 mean: " << p7pdf2.mean << endl
 			<< "Numeric approximation of covariance: " << endl
@@ -137,11 +138,12 @@ class Pose3DQuatPDFGaussTests : public ::testing::Test
 	}
 
 	static void func_inverse(
-		const CArrayDouble<7>& x, const double& dummy, CArrayDouble<7>& Y)
+		const CVectorFixedDouble<7>& x, [[maybe_unused]] const double& dummy,
+		CVectorFixedDouble<7>& Y)
 	{
-		MRPT_UNUSED_PARAM(dummy);
-		const CPose3DQuat p1(
-			x[0], x[1], x[2], CQuaternionDouble(x[3], x[4], x[5], x[6]));
+		CQuaternionDouble q(x[3], x[4], x[5], x[6]);
+		q.normalize();
+		const CPose3DQuat p1(x[0], x[1], x[2], q);
 		const CPose3DQuat p1_inv(-p1);
 		for (int i = 0; i < 7; i++) Y[i] = p1_inv[i];
 	}
@@ -166,27 +168,27 @@ class Pose3DQuatPDFGaussTests : public ::testing::Test
 		CMatrixDouble77 num_df_dx(UNINITIALIZED_MATRIX),
 			num_df_du(UNINITIALIZED_MATRIX);
 		{
-			CArrayDouble<2 * 7> x_mean;
+			CVectorFixedDouble<2 * 7> x_mean;
 			for (int i = 0; i < 7; i++) x_mean[i] = q1[i];
 			for (int i = 0; i < 7; i++) x_mean[7 + i] = q2[i];
 
 			double DUMMY = 0;
-			CArrayDouble<2 * 7> x_incrs;
-			x_incrs.assign(1e-7);
+			CVectorFixedDouble<2 * 7> x_incrs;
+			x_incrs.fill(1e-7);
 			CMatrixDouble numJacobs;
 			mrpt::math::estimateJacobian(
 				x_mean,
 				std::function<void(
-					const CArrayDouble<2 * 7>& x, const double& dummy,
-					CArrayDouble<7>& Y)>(&func_compose),
+					const CVectorFixedDouble<2 * 7>& x, const double& dummy,
+					CVectorFixedDouble<7>& Y)>(&func_compose),
 				x_incrs, DUMMY, numJacobs);
 
-			numJacobs.extractMatrix(0, 0, num_df_dx);
-			numJacobs.extractMatrix(0, 7, num_df_du);
+			num_df_dx = numJacobs.block<7, 7>(0, 0);
+			num_df_du = numJacobs.block<7, 7>(0, 7);
 		}
 
 		// Compare:
-		EXPECT_NEAR(0, (df_dx - num_df_dx).array().abs().sum(), 3e-3)
+		EXPECT_NEAR(0, (df_dx - num_df_dx).array().abs().maxCoeff(), 1e-6)
 			<< "q1: " << q1 << endl
 			<< "q2: " << q2 << endl
 			<< "Numeric approximation of df_dx: " << endl
@@ -196,7 +198,7 @@ class Pose3DQuatPDFGaussTests : public ::testing::Test
 			<< "Error: " << endl
 			<< df_dx - num_df_dx << endl;
 
-		EXPECT_NEAR(0, (df_du - num_df_du).array().abs().sum(), 3e-3)
+		EXPECT_NEAR(0, (df_du - num_df_du).array().abs().maxCoeff(), 1e-6)
 			<< "q1: " << q1 << endl
 			<< "q2: " << q2 << endl
 			<< "Numeric approximation of df_du: " << endl
@@ -217,24 +219,24 @@ class Pose3DQuatPDFGaussTests : public ::testing::Test
 		CPose3DQuatPDFGaussian p7_inv = -p7pdf1;
 
 		// Numeric approximation:
-		CArrayDouble<7> y_mean;
-		CMatrixFixedNumeric<double, 7, 7> y_cov;
+		CVectorFixedDouble<7> y_mean;
+		CMatrixFixed<double, 7, 7> y_cov;
 		{
-			CArrayDouble<7> x_mean;
+			CVectorFixedDouble<7> x_mean;
 			for (int i = 0; i < 7; i++) x_mean[i] = p7pdf1.mean[i];
 
-			CMatrixFixedNumeric<double, 7, 7> x_cov;
+			CMatrixFixed<double, 7, 7> x_cov;
 			x_cov.insertMatrix(0, 0, p7pdf1.cov);
 
 			double DUMMY = 0;
-			CArrayDouble<7> x_incrs;
-			x_incrs.assign(1e-6);
+			CVectorFixedDouble<7> x_incrs;
+			x_incrs.fill(1e-6);
 			transform_gaussian_linear(
 				x_mean, x_cov, func_inverse, DUMMY, y_mean, y_cov, x_incrs);
 		}
 
 		// Compare:
-		EXPECT_NEAR(0, (y_cov - p7_inv.cov).array().abs().mean(), 1e-2)
+		EXPECT_NEAR(0, (y_cov - p7_inv.cov).array().abs().maxCoeff(), 1e-6)
 			<< "p1 mean: " << p7pdf1.mean << endl
 			<< "inv mean: " << p7_inv.mean << endl
 			<< "Numeric approximation of covariance: " << endl
@@ -258,25 +260,25 @@ class Pose3DQuatPDFGaussTests : public ::testing::Test
 		CPose3DQuatPDFGaussian p7_comp = p7pdf1 - p7pdf2;
 
 		// Numeric approximation:
-		CArrayDouble<7> y_mean;
-		CMatrixFixedNumeric<double, 7, 7> y_cov;
+		CVectorFixedDouble<7> y_mean;
+		CMatrixFixed<double, 7, 7> y_cov;
 		{
-			CArrayDouble<2 * 7> x_mean;
+			CVectorFixedDouble<2 * 7> x_mean;
 			for (int i = 0; i < 7; i++) x_mean[i] = p7pdf1.mean[i];
 			for (int i = 0; i < 7; i++) x_mean[7 + i] = p7pdf2.mean[i];
 
-			CMatrixFixedNumeric<double, 14, 14> x_cov;
+			CMatrixFixed<double, 14, 14> x_cov;
 			x_cov.insertMatrix(0, 0, p7pdf1.cov);
 			x_cov.insertMatrix(7, 7, p7pdf2.cov);
 
 			double DUMMY = 0;
-			CArrayDouble<2 * 7> x_incrs;
-			x_incrs.assign(1e-6);
+			CVectorFixedDouble<2 * 7> x_incrs;
+			x_incrs.fill(1e-6);
 			transform_gaussian_linear(
 				x_mean, x_cov, func_inv_compose, DUMMY, y_mean, y_cov, x_incrs);
 		}
 		// Compare:
-		EXPECT_NEAR(0, (y_cov - p7_comp.cov).array().abs().mean(), 1e-2)
+		EXPECT_NEAR(0, (y_cov - p7_comp.cov).array().abs().maxCoeff(), 1e-6)
 			<< "p1 mean: " << p7pdf1.mean << endl
 			<< "p2 mean: " << p7pdf2.mean << endl
 			<< "Numeric approximation of covariance: " << endl
@@ -303,13 +305,13 @@ class Pose3DQuatPDFGaussTests : public ::testing::Test
 
 		// Compare:
 		EXPECT_NEAR(
-			0, (p7_new_base_pdf.cov - p7pdf1.cov).array().abs().mean(), 1e-2)
+			0, (p7_new_base_pdf.cov - p7pdf1.cov).array().abs().maxCoeff(),
+			1e-2)
 			<< "p1 mean: " << p7pdf1.mean << endl
 			<< "new_base: " << new_base << endl;
 		EXPECT_NEAR(
 			0,
-			(p7_new_base_pdf.mean.getAsVectorVal() -
-			 p7pdf1.mean.getAsVectorVal())
+			(p7_new_base_pdf.mean.asVectorVal() - p7pdf1.mean.asVectorVal())
 				.array()
 				.abs()
 				.mean(),
@@ -321,167 +323,166 @@ class Pose3DQuatPDFGaussTests : public ::testing::Test
 
 TEST_F(Pose3DQuatPDFGaussTests, ToYPRGaussPDFAndBack)
 {
-	test_toFromYPRGauss(DEG2RAD(-30), DEG2RAD(10), DEG2RAD(60));
-	test_toFromYPRGauss(DEG2RAD(30), DEG2RAD(88), DEG2RAD(0));
-	test_toFromYPRGauss(DEG2RAD(30), DEG2RAD(89.5), DEG2RAD(0));
+	test_toFromYPRGauss(-30.0_deg, 10.0_deg, 60.0_deg);
+	test_toFromYPRGauss(30.0_deg, 88.0_deg, 0.0_deg);
+	test_toFromYPRGauss(30.0_deg, 89.5_deg, 0.0_deg);
 	// The formulas break at pitch=90, but this we cannot avoid...
 }
 
 TEST_F(Pose3DQuatPDFGaussTests, CompositionJacobian)
 {
 	testCompositionJacobian(
-		0, 0, 0, DEG2RAD(2), DEG2RAD(0), DEG2RAD(0), 0, 0, 0, DEG2RAD(0),
-		DEG2RAD(0), DEG2RAD(0));
+		0, 0, 0, 2.0_deg, 0.0_deg, 0.0_deg, 0, 0, 0, 0.0_deg, 0.0_deg, 0.0_deg);
 	testCompositionJacobian(
-		1, 2, 3, DEG2RAD(2), DEG2RAD(0), DEG2RAD(0), -8, 45, 10, DEG2RAD(0),
-		DEG2RAD(0), DEG2RAD(0));
+		1, 2, 3, 2.0_deg, 0.0_deg, 0.0_deg, -8, 45, 10, 0.0_deg, 0.0_deg,
+		0.0_deg);
 	testCompositionJacobian(
-		1, -2, 3, DEG2RAD(2), DEG2RAD(0), DEG2RAD(0), -8, 45, 10, DEG2RAD(0),
-		DEG2RAD(0), DEG2RAD(0));
+		1, -2, 3, 2.0_deg, 0.0_deg, 0.0_deg, -8, 45, 10, 0.0_deg, 0.0_deg,
+		0.0_deg);
 	testCompositionJacobian(
-		1, 2, -3, DEG2RAD(2), DEG2RAD(0), DEG2RAD(0), -8, 45, 10, DEG2RAD(0),
-		DEG2RAD(0), DEG2RAD(0));
+		1, 2, -3, 2.0_deg, 0.0_deg, 0.0_deg, -8, 45, 10, 0.0_deg, 0.0_deg,
+		0.0_deg);
 	testCompositionJacobian(
-		1, 2, 3, DEG2RAD(20), DEG2RAD(80), DEG2RAD(70), -8, 45, 10, DEG2RAD(50),
-		DEG2RAD(-10), DEG2RAD(30));
+		1, 2, 3, 20.0_deg, 80.0_deg, 70.0_deg, -8, 45, 10, 50.0_deg, -10.0_deg,
+		30.0_deg);
 	testCompositionJacobian(
-		1, 2, 3, DEG2RAD(20), DEG2RAD(-80), DEG2RAD(70), -8, 45, 10,
-		DEG2RAD(50), DEG2RAD(-10), DEG2RAD(30));
+		1, 2, 3, 20.0_deg, -80.0_deg, 70.0_deg, -8, 45, 10, 50.0_deg, -10.0_deg,
+		30.0_deg);
 	testCompositionJacobian(
-		1, 2, 3, DEG2RAD(20), DEG2RAD(80), DEG2RAD(-70), -8, 45, 10,
-		DEG2RAD(50), DEG2RAD(-10), DEG2RAD(30));
+		1, 2, 3, 20.0_deg, 80.0_deg, -70.0_deg, -8, 45, 10, 50.0_deg, -10.0_deg,
+		30.0_deg);
 	testCompositionJacobian(
-		1, 2, 3, DEG2RAD(20), DEG2RAD(80), DEG2RAD(70), -8, 45, 10,
-		DEG2RAD(-50), DEG2RAD(-10), DEG2RAD(30));
+		1, 2, 3, 20.0_deg, 80.0_deg, 70.0_deg, -8, 45, 10, -50.0_deg, -10.0_deg,
+		30.0_deg);
 	testCompositionJacobian(
-		1, 2, 3, DEG2RAD(20), DEG2RAD(80), DEG2RAD(70), -8, 45, 10, DEG2RAD(50),
-		DEG2RAD(10), DEG2RAD(30));
+		1, 2, 3, 20.0_deg, 80.0_deg, 70.0_deg, -8, 45, 10, 50.0_deg, 10.0_deg,
+		30.0_deg);
 	testCompositionJacobian(
-		1, 2, 3, DEG2RAD(20), DEG2RAD(80), DEG2RAD(70), -8, 45, 10, DEG2RAD(50),
-		DEG2RAD(-10), DEG2RAD(-30));
+		1, 2, 3, 20.0_deg, 80.0_deg, 70.0_deg, -8, 45, 10, 50.0_deg, -10.0_deg,
+		-30.0_deg);
 }
 
 TEST_F(Pose3DQuatPDFGaussTests, Inverse)
 {
-	testInverse(0, 0, 0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1);
-	testInverse(0, 0, 0, DEG2RAD(10), DEG2RAD(0), DEG2RAD(0), 0.1);
-	testInverse(0, 0, 0, DEG2RAD(0), DEG2RAD(10), DEG2RAD(0), 0.1);
-	testInverse(0, 0, 0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(10), 0.1);
+	testInverse(0, 0, 0, 0.0_deg, 0.0_deg, 0.0_deg, 0.1);
+	testInverse(0, 0, 0, 10.0_deg, 0.0_deg, 0.0_deg, 0.1);
+	testInverse(0, 0, 0, 0.0_deg, 10.0_deg, 0.0_deg, 0.1);
+	testInverse(0, 0, 0, 0.0_deg, 0.0_deg, 10.0_deg, 0.1);
 
-	testInverse(1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1);
-	testInverse(1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.2);
+	testInverse(1, 2, 3, 0.0_deg, 0.0_deg, 0.0_deg, 0.1);
+	testInverse(1, 2, 3, 0.0_deg, 0.0_deg, 0.0_deg, 0.2);
 
-	testInverse(1, 2, 3, DEG2RAD(30), DEG2RAD(0), DEG2RAD(0), 0.1);
-	testInverse(-1, 2, 3, DEG2RAD(30), DEG2RAD(0), DEG2RAD(0), 0.1);
-	testInverse(1, 2, -3, DEG2RAD(30), DEG2RAD(0), DEG2RAD(0), 0.1);
-	testInverse(-1, 2, -3, DEG2RAD(30), DEG2RAD(0), DEG2RAD(0), 0.1);
-	testInverse(1, 2, 3, DEG2RAD(-30), DEG2RAD(0), DEG2RAD(0), 0.1);
-	testInverse(-1, 2, 3, DEG2RAD(-30), DEG2RAD(0), DEG2RAD(0), 0.1);
-	testInverse(1, 2, -3, DEG2RAD(-30), DEG2RAD(0), DEG2RAD(0), 0.1);
-	testInverse(-1, 2, -3, DEG2RAD(-30), DEG2RAD(0), DEG2RAD(0), 0.1);
-	testInverse(1, 2, 3, DEG2RAD(0), DEG2RAD(30), DEG2RAD(0), 0.1);
-	testInverse(-1, 2, 3, DEG2RAD(0), DEG2RAD(30), DEG2RAD(0), 0.1);
-	testInverse(1, 2, -3, DEG2RAD(0), DEG2RAD(30), DEG2RAD(0), 0.1);
-	testInverse(-1, 2, -3, DEG2RAD(0), DEG2RAD(30), DEG2RAD(0), 0.1);
-	testInverse(1, 2, 3, DEG2RAD(0), DEG2RAD(-30), DEG2RAD(0), 0.1);
-	testInverse(-1, 2, 3, DEG2RAD(0), DEG2RAD(-30), DEG2RAD(0), 0.1);
-	testInverse(1, 2, -3, DEG2RAD(0), DEG2RAD(-30), DEG2RAD(0), 0.1);
-	testInverse(-1, 2, -3, DEG2RAD(0), DEG2RAD(-30), DEG2RAD(0), 0.1);
-	testInverse(1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(30), 0.1);
-	testInverse(-1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(30), 0.1);
-	testInverse(1, 2, -3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(30), 0.1);
-	testInverse(-1, 2, -3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(30), 0.1);
-	testInverse(1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(-30), 0.1);
-	testInverse(-1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(-30), 0.1);
-	testInverse(1, 2, -3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(-30), 0.1);
-	testInverse(-1, 2, -3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(-30), 0.1);
+	testInverse(1, 2, 3, 30.0_deg, 0.0_deg, 0.0_deg, 0.1);
+	testInverse(-1, 2, 3, 30.0_deg, 0.0_deg, 0.0_deg, 0.1);
+	testInverse(1, 2, -3, 30.0_deg, 0.0_deg, 0.0_deg, 0.1);
+	testInverse(-1, 2, -3, 30.0_deg, 0.0_deg, 0.0_deg, 0.1);
+	testInverse(1, 2, 3, -30.0_deg, 0.0_deg, 0.0_deg, 0.1);
+	testInverse(-1, 2, 3, -30.0_deg, 0.0_deg, 0.0_deg, 0.1);
+	testInverse(1, 2, -3, -30.0_deg, 0.0_deg, 0.0_deg, 0.1);
+	testInverse(-1, 2, -3, -30.0_deg, 0.0_deg, 0.0_deg, 0.1);
+	testInverse(1, 2, 3, 0.0_deg, 30.0_deg, 0.0_deg, 0.1);
+	testInverse(-1, 2, 3, 0.0_deg, 30.0_deg, 0.0_deg, 0.1);
+	testInverse(1, 2, -3, 0.0_deg, 30.0_deg, 0.0_deg, 0.1);
+	testInverse(-1, 2, -3, 0.0_deg, 30.0_deg, 0.0_deg, 0.1);
+	testInverse(1, 2, 3, 0.0_deg, -30.0_deg, 0.0_deg, 0.1);
+	testInverse(-1, 2, 3, 0.0_deg, -30.0_deg, 0.0_deg, 0.1);
+	testInverse(1, 2, -3, 0.0_deg, -30.0_deg, 0.0_deg, 0.1);
+	testInverse(-1, 2, -3, 0.0_deg, -30.0_deg, 0.0_deg, 0.1);
+	testInverse(1, 2, 3, 0.0_deg, 0.0_deg, 30.0_deg, 0.1);
+	testInverse(-1, 2, 3, 0.0_deg, 0.0_deg, 30.0_deg, 0.1);
+	testInverse(1, 2, -3, 0.0_deg, 0.0_deg, 30.0_deg, 0.1);
+	testInverse(-1, 2, -3, 0.0_deg, 0.0_deg, 30.0_deg, 0.1);
+	testInverse(1, 2, 3, 0.0_deg, 0.0_deg, -30.0_deg, 0.1);
+	testInverse(-1, 2, 3, 0.0_deg, 0.0_deg, -30.0_deg, 0.1);
+	testInverse(1, 2, -3, 0.0_deg, 0.0_deg, -30.0_deg, 0.1);
+	testInverse(-1, 2, -3, 0.0_deg, 0.0_deg, -30.0_deg, 0.1);
 }
 
 TEST_F(Pose3DQuatPDFGaussTests, Composition)
 {
 	testPoseComposition(
-		0, 0, 0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1, 0, 0, 0, DEG2RAD(0),
-		DEG2RAD(0), DEG2RAD(0), 0.1);
+		0, 0, 0, 0.0_deg, 0.0_deg, 0.0_deg, 0.1, 0, 0, 0, 0.0_deg, 0.0_deg,
+		0.0_deg, 0.1);
 	testPoseComposition(
-		1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1, -8, 45, 10,
-		DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1);
+		1, 2, 3, 0.0_deg, 0.0_deg, 0.0_deg, 0.1, -8, 45, 10, 0.0_deg, 0.0_deg,
+		0.0_deg, 0.1);
 
 	testPoseComposition(
-		1, 2, 3, DEG2RAD(20), DEG2RAD(80), DEG2RAD(70), 0.1, -8, 45, 10,
-		DEG2RAD(50), DEG2RAD(-10), DEG2RAD(30), 0.1);
+		1, 2, 3, 20.0_deg, 80.0_deg, 70.0_deg, 0.1, -8, 45, 10, 50.0_deg,
+		-10.0_deg, 30.0_deg, 0.1);
 	testPoseComposition(
-		1, 2, 3, DEG2RAD(20), DEG2RAD(80), DEG2RAD(70), 0.2, -8, 45, 10,
-		DEG2RAD(50), DEG2RAD(-10), DEG2RAD(30), 0.2);
+		1, 2, 3, 20.0_deg, 80.0_deg, 70.0_deg, 0.2, -8, 45, 10, 50.0_deg,
+		-10.0_deg, 30.0_deg, 0.2);
 
 	testPoseComposition(
-		1, 2, 3, DEG2RAD(10), DEG2RAD(0), DEG2RAD(0), 0.1, -8, 45, 10,
-		DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1);
+		1, 2, 3, 10.0_deg, 0.0_deg, 0.0_deg, 0.1, -8, 45, 10, 0.0_deg, 0.0_deg,
+		0.0_deg, 0.1);
 	testPoseComposition(
-		1, 2, 3, DEG2RAD(0), DEG2RAD(10), DEG2RAD(0), 0.1, -8, 45, 10,
-		DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1);
+		1, 2, 3, 0.0_deg, 10.0_deg, 0.0_deg, 0.1, -8, 45, 10, 0.0_deg, 0.0_deg,
+		0.0_deg, 0.1);
 	testPoseComposition(
-		1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(10), 0.1, -8, 45, 10,
-		DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1);
+		1, 2, 3, 0.0_deg, 0.0_deg, 10.0_deg, 0.1, -8, 45, 10, 0.0_deg, 0.0_deg,
+		0.0_deg, 0.1);
 	testPoseComposition(
-		1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1, -8, 45, 10,
-		DEG2RAD(10), DEG2RAD(0), DEG2RAD(0), 0.1);
+		1, 2, 3, 0.0_deg, 0.0_deg, 0.0_deg, 0.1, -8, 45, 10, 10.0_deg, 0.0_deg,
+		0.0_deg, 0.1);
 	testPoseComposition(
-		1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1, -8, 45, 10,
-		DEG2RAD(0), DEG2RAD(10), DEG2RAD(0), 0.1);
+		1, 2, 3, 0.0_deg, 0.0_deg, 0.0_deg, 0.1, -8, 45, 10, 0.0_deg, 10.0_deg,
+		0.0_deg, 0.1);
 	testPoseComposition(
-		1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1, -8, 45, 10,
-		DEG2RAD(0), DEG2RAD(0), DEG2RAD(10), 0.1);
+		1, 2, 3, 0.0_deg, 0.0_deg, 0.0_deg, 0.1, -8, 45, 10, 0.0_deg, 0.0_deg,
+		10.0_deg, 0.1);
 }
 
 TEST_F(Pose3DQuatPDFGaussTests, InverseComposition)
 {
 	testPoseInverseComposition(
-		0, 0, 0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1, 0, 0, 0, DEG2RAD(0),
-		DEG2RAD(0), DEG2RAD(0), 0.1);
+		0, 0, 0, 0.0_deg, 0.0_deg, 0.0_deg, 0.1, 0, 0, 0, 0.0_deg, 0.0_deg,
+		0.0_deg, 0.1);
 	testPoseInverseComposition(
-		1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1, -8, 45, 10,
-		DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1);
+		1, 2, 3, 0.0_deg, 0.0_deg, 0.0_deg, 0.1, -8, 45, 10, 0.0_deg, 0.0_deg,
+		0.0_deg, 0.1);
 
 	testPoseInverseComposition(
-		1, 2, 3, DEG2RAD(20), DEG2RAD(80), DEG2RAD(70), 0.1, -8, 45, 10,
-		DEG2RAD(50), DEG2RAD(-10), DEG2RAD(30), 0.1);
+		1, 2, 3, 20.0_deg, 80.0_deg, 70.0_deg, 0.1, -8, 45, 10, 50.0_deg,
+		-10.0_deg, 30.0_deg, 0.1);
 	testPoseInverseComposition(
-		1, 2, 3, DEG2RAD(20), DEG2RAD(80), DEG2RAD(70), 0.2, -8, 45, 10,
-		DEG2RAD(50), DEG2RAD(-10), DEG2RAD(30), 0.2);
+		1, 2, 3, 20.0_deg, 80.0_deg, 70.0_deg, 0.2, -8, 45, 10, 50.0_deg,
+		-10.0_deg, 30.0_deg, 0.2);
 
 	testPoseInverseComposition(
-		1, 2, 3, DEG2RAD(10), DEG2RAD(0), DEG2RAD(0), 0.1, -8, 45, 10,
-		DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1);
+		1, 2, 3, 10.0_deg, 0.0_deg, 0.0_deg, 0.1, -8, 45, 10, 0.0_deg, 0.0_deg,
+		0.0_deg, 0.1);
 	testPoseInverseComposition(
-		1, 2, 3, DEG2RAD(0), DEG2RAD(10), DEG2RAD(0), 0.1, -8, 45, 10,
-		DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1);
+		1, 2, 3, 0.0_deg, 10.0_deg, 0.0_deg, 0.1, -8, 45, 10, 0.0_deg, 0.0_deg,
+		0.0_deg, 0.1);
 	testPoseInverseComposition(
-		1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(10), 0.1, -8, 45, 10,
-		DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1);
+		1, 2, 3, 0.0_deg, 0.0_deg, 10.0_deg, 0.1, -8, 45, 10, 0.0_deg, 0.0_deg,
+		0.0_deg, 0.1);
 	testPoseInverseComposition(
-		1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1, -8, 45, 10,
-		DEG2RAD(10), DEG2RAD(0), DEG2RAD(0), 0.1);
+		1, 2, 3, 0.0_deg, 0.0_deg, 0.0_deg, 0.1, -8, 45, 10, 10.0_deg, 0.0_deg,
+		0.0_deg, 0.1);
 	testPoseInverseComposition(
-		1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1, -8, 45, 10,
-		DEG2RAD(0), DEG2RAD(10), DEG2RAD(0), 0.1);
+		1, 2, 3, 0.0_deg, 0.0_deg, 0.0_deg, 0.1, -8, 45, 10, 0.0_deg, 10.0_deg,
+		0.0_deg, 0.1);
 	testPoseInverseComposition(
-		1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1, -8, 45, 10,
-		DEG2RAD(0), DEG2RAD(0), DEG2RAD(10), 0.1);
+		1, 2, 3, 0.0_deg, 0.0_deg, 0.0_deg, 0.1, -8, 45, 10, 0.0_deg, 0.0_deg,
+		10.0_deg, 0.1);
 }
 
 TEST_F(Pose3DQuatPDFGaussTests, ChangeCoordsRef)
 {
 	testChangeCoordsRef(
-		0, 0, 0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1, 0, 0, 0, DEG2RAD(0),
-		DEG2RAD(0), DEG2RAD(0));
+		0, 0, 0, 0.0_deg, 0.0_deg, 0.0_deg, 0.1, 0, 0, 0, 0.0_deg, 0.0_deg,
+		0.0_deg);
 	testChangeCoordsRef(
-		1, 2, 3, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0), 0.1, -8, 45, 10,
-		DEG2RAD(0), DEG2RAD(0), DEG2RAD(0));
+		1, 2, 3, 0.0_deg, 0.0_deg, 0.0_deg, 0.1, -8, 45, 10, 0.0_deg, 0.0_deg,
+		0.0_deg);
 
 	testChangeCoordsRef(
-		1, 2, 3, DEG2RAD(20), DEG2RAD(80), DEG2RAD(70), 0.1, -8, 45, 10,
-		DEG2RAD(50), DEG2RAD(-10), DEG2RAD(30));
+		1, 2, 3, 20.0_deg, 80.0_deg, 70.0_deg, 0.1, -8, 45, 10, 50.0_deg,
+		-10.0_deg, 30.0_deg);
 	testChangeCoordsRef(
-		1, 2, 3, DEG2RAD(20), DEG2RAD(80), DEG2RAD(70), 0.2, -8, 45, 10,
-		DEG2RAD(50), DEG2RAD(-10), DEG2RAD(30));
+		1, 2, 3, 20.0_deg, 80.0_deg, 70.0_deg, 0.2, -8, 45, 10, 50.0_deg,
+		-10.0_deg, 30.0_deg);
 }

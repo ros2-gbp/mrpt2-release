@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,6 +12,7 @@
 #include <mrpt/bayes/CProbabilityParticle.h>
 #include <mrpt/core/bits_math.h>
 #include <mrpt/core/exceptions.h>
+
 #include <algorithm>
 #include <cmath>
 #include <deque>
@@ -162,7 +163,7 @@ struct CParticleFilterDataImpl : public CParticleFilterCapable
 		MRPT_END
 	}
 
-};  // end CParticleFilterDataImpl<>
+};	// end CParticleFilterDataImpl<>
 
 /** This template class declares the array of particles and its internal data,
  * managing some memory-related issues and providing an easy implementation of
@@ -273,12 +274,12 @@ class CParticleFilterData
 		const CParticleData* ret = nullptr;
 		ASSERT_(m_particles.size() > 0);
 
-		for (const auto p : m_particles)
+		for (const auto& p : m_particles)
 			if (ret == nullptr || p.log_w > ret->log_w) ret = &p;
 		return ret;
 		MRPT_END
 	}
 
-};  // End of class def.
+};	// End of class def.
 
 }  // namespace mrpt::bayes

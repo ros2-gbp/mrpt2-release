@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -132,7 +132,7 @@ void CSwissRanger3DCamera::doProcess()
 	bool thereIs, hwError;
 
 	CObservation3DRangeScan::Ptr newObs =
-		mrpt::make_aligned_shared<CObservation3DRangeScan>();
+		std::make_shared<CObservation3DRangeScan>();
 
 	getNextObservation(*newObs, thereIs, hwError);
 
@@ -215,7 +215,8 @@ void CSwissRanger3DCamera::loadConfig_sensorSpecific(
 	}
 }
 
-bool CSwissRanger3DCamera::getMesaLibVersion(std::string& out_version) const
+bool CSwissRanger3DCamera::getMesaLibVersion([
+	[maybe_unused]] std::string& out_version) const
 {
 #if MRPT_HAS_SWISSRANGE
 	unsigned short version[4];
@@ -225,7 +226,6 @@ bool CSwissRanger3DCamera::getMesaLibVersion(std::string& out_version) const
 		format("%d.%d.%d.%d", version[3], version[2], version[1], version[0]);
 	return true;
 #else
-	MRPT_UNUSED_PARAM(out_version);
 	return false;
 #endif
 }
@@ -345,8 +345,8 @@ void CSwissRanger3DCamera::internal_resendParamsToCamera() const
  * \sa doProcess
  */
 void CSwissRanger3DCamera::getNextObservation(
-	mrpt::obs::CObservation3DRangeScan& _out_obs, bool& there_is_obs,
-	bool& hardware_error)
+	[[maybe_unused]] mrpt::obs::CObservation3DRangeScan& m_out_obs,
+	[[maybe_unused]] bool& there_is_obs, [[maybe_unused]] bool& hardware_error)
 {
 	there_is_obs = false;
 	hardware_error = false;
@@ -403,9 +403,10 @@ void CSwissRanger3DCamera::getNextObservation(
 					const uint16_t* data_ptr =
 						reinterpret_cast<const uint16_t*>(img->data);
 
+					obs.rangeUnits = K;
 					for (size_t y = 0; y < img->height; y++)
 						for (size_t x = 0; x < img->width; x++)
-							obs.rangeImage.set_unsafe(y, x, K * (*data_ptr++));
+							obs.rangeImage(y, x) = (*data_ptr++);
 				}
 
 				if (this->m_save_3d)
@@ -458,7 +459,7 @@ void CSwissRanger3DCamera::getNextObservation(
 						reinterpret_cast<const uint16_t*>(img->data);
 					for (size_t y = 0; y < img->height; y++)
 					{
-						uint8_t* row = obs.intensityImage.get_unsafe(0, y, 0);
+						uint8_t* row = obs.intensityImage(0, y, 0);
 						for (size_t x = 0; x < img->width; x++)
 							// Convert 16u -> 8u
 							(*row++) = table_16u_to_8u[*data_ptr++];
@@ -500,7 +501,7 @@ void CSwissRanger3DCamera::getNextObservation(
 						reinterpret_cast<const uint16_t*>(img->data);
 					for (size_t y = 0; y < img->height; y++)
 					{
-						uint8_t* row = obs.confidenceImage.get_unsafe(0, y, 0);
+						uint8_t* row = obs.confidenceImage(0, y, 0);
 						for (size_t x = 0; x < img->width; x++)
 							(*row++) = (*data_ptr++) >> 8;  // Convert 16u -> 8u
 					}
@@ -529,14 +530,14 @@ void CSwissRanger3DCamera::getNextObservation(
 	}
 
 	// Save the observation to the user's object:
-	_out_obs.swap(obs);
+	m_out_obs.swap(obs);
 
 	there_is_obs = true;
 
 	// preview in real-time?
 	if (m_preview_window)
 	{
-		if (_out_obs.hasRangeImage)
+		if (m_out_obs.hasRangeImage)
 		{
 			static int decim = 0;
 			if (++decim > 10)
@@ -545,20 +546,19 @@ void CSwissRanger3DCamera::getNextObservation(
 				if (!m_win_range)
 				{
 					m_win_range =
-						mrpt::make_aligned_shared<mrpt::gui::CDisplayWindow>(
-							"Preview RANGE");
+						mrpt::gui::CDisplayWindow::Create("Preview RANGE");
 					m_win_range->setPos(5, 5);
 				}
 
 				mrpt::img::CImage img;
 				// Normalize the image
-				math::CMatrixFloat range2D = _out_obs.rangeImage;
+				math::CMatrixFloat range2D = m_out_obs.rangeImage;
 				range2D *= 1.0 / m_maxRange;
 				img.setFromMatrix(range2D);
 				m_win_range->showImage(img);
 			}
 		}
-		if (_out_obs.hasIntensityImage)
+		if (m_out_obs.hasIntensityImage)
 		{
 			static int decim = 0;
 			if (++decim > 10)
@@ -567,11 +567,10 @@ void CSwissRanger3DCamera::getNextObservation(
 				if (!m_win_int)
 				{
 					m_win_int =
-						mrpt::make_aligned_shared<mrpt::gui::CDisplayWindow>(
-							"Preview INTENSITY");
+						mrpt::gui::CDisplayWindow::Create("Preview INTENSITY");
 					m_win_int->setPos(300, 5);
 				}
-				m_win_int->showImage(_out_obs.intensityImage);
+				m_win_int->showImage(m_out_obs.intensityImage);
 			}
 		}
 	}
@@ -582,18 +581,14 @@ void CSwissRanger3DCamera::getNextObservation(
 	}
 
 	return;
-#else
-	MRPT_UNUSED_PARAM(_out_obs);
-	MRPT_UNUSED_PARAM(there_is_obs);
-	MRPT_UNUSED_PARAM(hardware_error);
 #endif
 }
 
 /* -----------------------------------------------------
 				setPathForExternalImages
 ----------------------------------------------------- */
-void CSwissRanger3DCamera::setPathForExternalImages(
-	const std::string& directory)
+void CSwissRanger3DCamera::setPathForExternalImages([
+	[maybe_unused]] const std::string& directory)
 {
 	return;
 	// Ignore for now. It seems performance is better grabbing everything

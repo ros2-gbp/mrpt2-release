@@ -2,13 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include <mrpt/graphslam/levmarq.h>
-#include <mrpt/gui.h>
+#include <mrpt/gui/CDisplayWindow3D.h>
+#include <mrpt/gui/CDisplayWindowPlots.h>
 #include <mrpt/img/TColor.h>
 #include <mrpt/opengl/COpenGLScene.h>
 #include <mrpt/opengl/CSetOfObjects.h>
@@ -31,11 +32,11 @@ using namespace mrpt::system;
 
 // Level of noise in nodes initial positions:
 const double STD_NOISE_NODE_XYZ = 0.5;
-const double STD_NOISE_NODE_ANG = DEG2RAD(5);
+const double STD_NOISE_NODE_ANG = 5.0_deg;
 
 // Level of noise in edges:
 const double STD_NOISE_EDGE_XYZ = 0.001;
-const double STD_NOISE_EDGE_ANG = DEG2RAD(0.01);
+const double STD_NOISE_EDGE_ANG = 0.01_deg;
 
 const double STD4EDGES_COV_MATRIX = 10;
 const double ERROR_IN_INCOMPATIBLE_EDGE = 0.3;  // ratio [0,1]
@@ -56,7 +57,7 @@ template <class GRAPH>
 struct EdgeAdders<GRAPH, false>
 {
 	static const int DIM = GRAPH::edge_t::type_value::static_size;
-	typedef CMatrixFixedNumeric<double, DIM, DIM> cov_t;
+	typedef CMatrixFixed<double, DIM, DIM> cov_t;
 
 	static void addEdge(
 		TNodeID from, TNodeID to,
@@ -80,7 +81,7 @@ template <class GRAPH>
 struct EdgeAdders<GRAPH, true>
 {
 	static const int DIM = GRAPH::edge_t::type_value::static_size;
-	typedef CMatrixFixedNumeric<double, DIM, DIM> cov_t;
+	typedef CMatrixFixed<double, DIM, DIM> cov_t;
 
 	static void addEdge(
 		TNodeID from, TNodeID to,
@@ -165,7 +166,7 @@ struct ExampleDemoGraphSLAM
 		 */
 		typedef EdgeAdders<my_graph_t> edge_adder_t;
 		typename edge_adder_t::cov_t inf_matrix;
-		inf_matrix.unit(
+		inf_matrix.setDiagonal(
 			edge_adder_t::cov_t::RowsAtCompileTime,
 			square(1.0 / STD4EDGES_COV_MATRIX));
 
@@ -186,7 +187,7 @@ struct ExampleDemoGraphSLAM
 		// Add an additional edge to deform the graph?
 		if (add_extra_tightening_edge)
 		{
-			// inf_matrix.unit(square(1.0/(STD4EDGES_COV_MATRIX)));
+			// inf_matrix.setIdentity(square(1.0/(STD4EDGES_COV_MATRIX)));
 			edge_adder_t::addEdge(
 				0, N_VERTEX / 2, real_node_poses, graph, inf_matrix);
 
@@ -292,8 +293,7 @@ struct ExampleDemoGraphSLAM
 		// ----------------------------
 		//  Display results:
 		// ----------------------------
-		CDisplayWindow3D win("graph-slam demo results");
-		CDisplayWindow3D win2("graph-slam demo initial state");
+		CDisplayWindow3D win("graph-slam demo");
 
 		// The final optimized graph:
 		TParametersDouble graph_render_params1;
@@ -335,26 +335,14 @@ struct ExampleDemoGraphSLAM
 				graph_initial, graph_render_params3);
 
 		win.addTextMessage(
-			5, 5, "Ground truth: Big corners & thick edges", TColorf(0, 0, 0),
-			1000 /* arbitrary, unique text label ID */,
-			MRPT_GLUT_BITMAP_HELVETICA_12);
+			5, 5, "Ground truth: Big corners & thick edges",
+			1000 /* arbitrary, unique text label ID */);
 		win.addTextMessage(
-			5, 5 + 15, "Initial graph: Gray thick points.", TColorf(0, 0, 0),
-			1001 /* arbitrary, unique text label ID */,
-			MRPT_GLUT_BITMAP_HELVETICA_12);
+			5, 5 + 15, "Initial graph: Gray thick points.",
+			1001 /* arbitrary, unique text label ID */);
 		win.addTextMessage(
 			5, 5 + 30, "Final graph: Small corners & thin edges",
-			TColorf(0, 0, 0), 1002 /* arbitrary, unique text label ID */,
-			MRPT_GLUT_BITMAP_HELVETICA_12);
-
-		win2.addTextMessage(
-			5, 5, "Ground truth: Big corners & thick edges", TColorf(0, 0, 0),
-			1000 /* arbitrary, unique text label ID */,
-			MRPT_GLUT_BITMAP_HELVETICA_12);
-		win2.addTextMessage(
-			5, 5 + 15, "Initial graph: Small corners & thin edges",
-			TColorf(0, 0, 0), 1001 /* arbitrary, unique text label ID */,
-			MRPT_GLUT_BITMAP_HELVETICA_12);
+			1002 /* arbitrary, unique text label ID */);
 
 		{
 			COpenGLScene::Ptr& scene = win.get3DSceneAndLock();
@@ -366,14 +354,6 @@ struct ExampleDemoGraphSLAM
 			win.repaint();
 		}
 
-		{
-			COpenGLScene::Ptr& scene = win2.get3DSceneAndLock();
-			scene->insert(gl_graph3);
-			scene->insert(gl_graph4);
-			win2.unlockAccess3DScene();
-			win2.repaint();
-		}
-
 		// Show progress of error:
 		CDisplayWindowPlots win_err("Evolution of log(sq. error)");
 		win_err.plot(log_sq_err_evolution, "-b");
@@ -381,8 +361,7 @@ struct ExampleDemoGraphSLAM
 
 		// wait end:
 		cout << "Close any window to end...\n";
-		while (win.isOpen() && win2.isOpen() && win_err.isOpen() &&
-			   !mrpt::system::os::kbhit())
+		while (win.isOpen() && win_err.isOpen() && !mrpt::system::os::kbhit())
 		{
 			std::this_thread::sleep_for(10ms);
 		}

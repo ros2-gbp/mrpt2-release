@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -45,16 +45,14 @@ void TestSLERP()
 	// Modify the scene:
 	// ------------------------------------------------------
 	{
-		opengl::CGridPlaneXY::Ptr obj =
-			mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
-				-20, 20, -20, 20, 0, 1);
-		obj->setColor(0.4, 0.4, 0.4);
+		auto obj = opengl::CGridPlaneXY::Create(-20, 20, -20, 20, 0, 1);
+		obj->setColor(0.4f, 0.4f, 0.4f);
 		theScene->insert(obj);
 	}
 
 	// Initialize the start, end pose of the animation
-	const TPose3D pose_a(0, 0, 0, DEG2RAD(0), DEG2RAD(0), DEG2RAD(0));
-	const TPose3D pose_b(3, 4, 1, DEG2RAD(120), DEG2RAD(40), DEG2RAD(50));
+	const TPose3D pose_a(0, 0, 0, 0.0_deg, 0.0_deg, 0.0_deg);
+	const TPose3D pose_b(3, 4, 1, 120.0_deg, 40.0_deg, 50.0_deg);
 
 	{
 		// XYZ corner at A:
@@ -108,9 +106,7 @@ void TestSLERP()
 		obj1->setPose(pose_interp);
 
 		// Show text:
-		win.addTextMessage(
-			5, 5, format("t=%.03f", t), TColorf(1, 1, 1), 0,
-			MRPT_GLUT_BITMAP_TIMES_ROMAN_24);
+		win.addTextMessage(5, 5, format("t=%.03f", t), 0 /*id*/);
 
 		// IMPORTANT!!! IF NOT UNLOCKED, THE WINDOW WILL NOT BE UPDATED!
 		win.unlockAccess3DScene();

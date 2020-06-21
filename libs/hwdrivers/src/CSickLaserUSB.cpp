@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -34,17 +34,8 @@ CSickLaserUSB::CSickLaserUSB() : m_serialNumber("LASER001")
 {
 	MRPT_START
 	m_sensorLabel = "SICKLMS";
-	m_usbConnection = new CInterfaceFTDI();
+	m_usbConnection = std::make_unique<CInterfaceFTDI>();
 	MRPT_END
-}
-
-/*-------------------------------------------------------------
-						~CSickLaserUSB
--------------------------------------------------------------*/
-CSickLaserUSB::~CSickLaserUSB()
-{
-	delete m_usbConnection;
-	m_usbConnection = nullptr;
 }
 
 /*-------------------------------------------------------------

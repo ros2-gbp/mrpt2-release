@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,6 +12,7 @@
 #include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/thread.h>
+
 #include <cstdio>
 #include <functional>
 #include <iostream>
@@ -45,6 +46,7 @@ class CMyRedirector : public std::streambuf
 
 	wxCriticalSection m_cs;
 	std::string m_strbuf;
+	std::vector<char> m_buf;
 
    public:
 	CMyRedirector(
@@ -59,8 +61,8 @@ class CMyRedirector : public std::streambuf
 	{
 		if (bufferSize)
 		{
-			char* ptr = new char[bufferSize];
-			setp(ptr, ptr + bufferSize);
+			m_buf.resize(bufferSize);
+			setp(m_buf.data(), m_buf.data() + bufferSize);
 		}
 		else
 			setp(nullptr, nullptr);
@@ -83,8 +85,6 @@ class CMyRedirector : public std::streambuf
 		std::cout.rdbuf(sbOld);
 
 		if (m_also_cerr) std::cerr.rdbuf(sbOldErr);
-
-		delete[] pbase();
 	}
 
 	void flush() { sync(); }

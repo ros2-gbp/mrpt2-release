@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -61,8 +61,8 @@
 
 #pragma once
 
+#include <mrpt/3rdparty/do_opencv_includes.h>
 #include <mrpt/config.h>
-#include <mrpt/otherlibs/do_opencv_includes.h>
 
 #if MRPT_HAS_OPENCV
 //#include <opencv2/core/core_c.h>

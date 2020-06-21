@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -20,7 +20,7 @@
 #include <mrpt/graphslam/levmarq.h>
 #include <mrpt/gui.h>
 
-#include <mrpt/otherlibs/tclap/CmdLine.h>
+#include <mrpt/3rdparty/tclap/CmdLine.h>
 
 using namespace mrpt;
 using namespace mrpt::graphslam;
@@ -121,7 +121,7 @@ TCLAP::SwitchArg arg_no_span(
 // ======================================================================
 int main(int argc, char** argv)
 {
-	vector<TCLAP::Arg*> arg_ops;  // to be destroyed on exit.
+	vector<std::unique_ptr<TCLAP::Arg>> arg_ops;
 	int ret_val = 0;
 
 	try
@@ -130,7 +130,7 @@ int main(int argc, char** argv)
 		// Only one of the following operators have to be specified by the user
 		map<string, TOperationFunctor> ops_functors;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "levmarq",
 			"Op: Optimizes the graph with sparse Levenberg-Marquartd using "
 			"global coordinates (via "
@@ -140,7 +140,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["levmarq"] = &op_levmarq;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "dijkstra",
 			"Op: Executes CNetworkOfPoses::dijkstra_nodes_estimate() to "
 			"estimate the global pose of nodes from a Dijkstra tree and "
@@ -149,7 +149,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["dijkstra"] = &op_dijkstra;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "info",
 			"Op: Loads the graph and displays statistics and information "
 			"on it.\n",
@@ -229,9 +229,6 @@ int main(int argc, char** argv)
 		ret_val = -1;
 	}
 
-	// Free mem:
-	for (auto& arg_op : arg_ops) delete arg_op;
-
 	// end:
 	return ret_val;
 }
@@ -246,9 +243,6 @@ int main(int argc, char** argv)
 // -----------------------------------------------------------------------------------
 IMPLEMENT_OP_FUNCTION(op_view)
 {
-	MRPT_UNUSED_PARAM(is3D);
-	MRPT_UNUSED_PARAM(cmdline);
-	MRPT_UNUSED_PARAM(verbose);
 	// Load:
 	GRAPHTYPE g;
 	g.loadFromTextFile(in_file);
@@ -263,9 +257,6 @@ IMPLEMENT_OP_FUNCTION(op_view)
 // -----------------------------------------------------------------------------------
 IMPLEMENT_OP_FUNCTION(op_info)
 {
-	MRPT_UNUSED_PARAM(is3D);
-	MRPT_UNUSED_PARAM(cmdline);
-	MRPT_UNUSED_PARAM(verbose);
 	// Load:
 	GRAPHTYPE g;
 	g.loadFromTextFile(in_file);
@@ -286,9 +277,6 @@ IMPLEMENT_OP_FUNCTION(op_info)
 // -----------------------------------------------------------------------------------
 IMPLEMENT_OP_FUNCTION(op_dijkstra)
 {
-	MRPT_UNUSED_PARAM(is3D);
-	MRPT_UNUSED_PARAM(cmdline);
-	MRPT_UNUSED_PARAM(verbose);
 	const bool save_to_file = arg_output_file.isSet();  // Output to file??
 	const bool display_3D = arg_view.isSet();  // Output to 3D view??
 
@@ -340,8 +328,6 @@ IMPLEMENT_OP_FUNCTION(op_dijkstra)
 // -----------------------------------------------------------------------------------
 IMPLEMENT_OP_FUNCTION(op_levmarq)
 {
-	MRPT_UNUSED_PARAM(is3D);
-	MRPT_UNUSED_PARAM(cmdline);
 	const bool save_to_file = arg_output_file.isSet();  // Output to file??
 	const bool display_3D = arg_view.isSet();  // Output to 3D view??
 	const bool skip_dijkstra = arg_no_span.isSet();

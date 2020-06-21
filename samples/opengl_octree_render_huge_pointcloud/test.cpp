@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -25,11 +25,12 @@ void insertRandomPoints_uniform(
 	const size_t N, opengl::CPointCloud::Ptr& gl, const TPoint3D& p_min,
 	const TPoint3D& p_max)
 {
+	auto& rnd = random::getRandomGenerator();
 	for (size_t i = 0; i < N; i++)
 		gl->insertPoint(
-			random::getRandomGenerator().drawUniform(p_min.x, p_max.x),
-			random::getRandomGenerator().drawUniform(p_min.y, p_max.y),
-			random::getRandomGenerator().drawUniform(p_min.z, p_max.z));
+			rnd.drawUniform<float>(p_min.x, p_max.x),
+			rnd.drawUniform<float>(p_min.y, p_max.y),
+			rnd.drawUniform<float>(p_min.z, p_max.z));
 }
 
 void insertRandomPoints_screw(
@@ -49,7 +50,8 @@ void insertRandomPoints_screw(
 	{
 		const double ang = i * 0.01;
 		TPoint3D pp = p + up * 30 * cos(ang) + lat * 30 * sin(ang);
-		gl->insertPoint(pp.x, pp.y, pp.z);
+		const auto ppf = TPoint3Df(pp);
+		gl->insertPoint(ppf.x, ppf.y, ppf.z);
 		p += d;
 	}
 }
@@ -58,11 +60,12 @@ void insertRandomPoints_gauss(
 	const size_t N, opengl::CPointCloud::Ptr& gl, const TPoint3D& p_mean,
 	const TPoint3D& p_stddevs)
 {
+	auto& rnd = random::getRandomGenerator();
 	for (size_t i = 0; i < N; i++)
 		gl->insertPoint(
-			random::getRandomGenerator().drawGaussian1D(p_mean.x, p_stddevs.x),
-			random::getRandomGenerator().drawGaussian1D(p_mean.y, p_stddevs.y),
-			random::getRandomGenerator().drawGaussian1D(p_mean.z, p_stddevs.z));
+			rnd.drawGaussian1D<float>(p_mean.x, p_stddevs.x),
+			rnd.drawGaussian1D<float>(p_mean.y, p_stddevs.y),
+			rnd.drawGaussian1D<float>(p_mean.z, p_stddevs.z));
 }
 
 // ------------------------------------------------------
@@ -78,12 +81,10 @@ void TestOctreeRenderHugePointCloud()
 	COpenGLScene::Ptr& theScene = win.get3DSceneAndLock();
 
 	// CPointCloud
-	opengl::CPointCloud::Ptr gl_pointcloud =
-		mrpt::make_aligned_shared<opengl::CPointCloud>();
+	opengl::CPointCloud::Ptr gl_pointcloud = opengl::CPointCloud::Create();
 	theScene->insert(gl_pointcloud);
 
 	gl_pointcloud->setPointSize(3.0);
-	gl_pointcloud->enablePointSmooth();
 	gl_pointcloud->enableColorFromZ();
 
 	// Set the list of all points:
@@ -126,7 +127,7 @@ void TestOctreeRenderHugePointCloud()
 
 	// Draw the octree bounding boxes:
 	mrpt::opengl::CSetOfObjects::Ptr gl_bb =
-		mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+		mrpt::opengl::CSetOfObjects::Create();
 	gl_pointcloud->octree_get_graphics_boundingboxes(*gl_bb);
 	theScene->insert(gl_bb);
 
@@ -135,7 +136,7 @@ void TestOctreeRenderHugePointCloud()
 	win.setCameraZoom(600);
 	{
 		mrpt::opengl::COpenGLViewport::Ptr view = theScene->getViewport("main");
-		view->setViewportClipDistances(0.1, 1e6);
+		view->setViewportClipDistances(0.1f, 1e6f);
 	}
 
 	// IMPORTANT!!! IF NOT UNLOCKED, THE WINDOW WILL NOT BE UPDATED!
@@ -173,11 +174,9 @@ void TestOctreeRenderHugePointCloud()
 			(unsigned int)gl_pointcloud->octree_get_node_count());
 
 		win.get3DSceneAndLock();
+		win.addTextMessage(5, 5, s, 0);
 		win.addTextMessage(
-			5, 5, s, TColorf(1, 1, 1), 0, MRPT_GLUT_BITMAP_HELVETICA_18);
-		win.addTextMessage(
-			5, 35, "'b': switch bounding-boxes visible, 'q': quit",
-			TColorf(1, 1, 1), 1, MRPT_GLUT_BITMAP_HELVETICA_18);
+			5, 35, "'b': switch bounding-boxes visible, 'q': quit", 1);
 		win.unlockAccess3DScene();
 		win.repaint();
 	}

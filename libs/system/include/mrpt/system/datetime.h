@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -147,11 +147,11 @@ inline mrpt::system::TTimeStamp timestampAdd(
 	const mrpt::system::TTimeStamp tim, const double num_seconds)
 {
 	return tim +
-		   std::chrono::microseconds(static_cast<uint64_t>(num_seconds * 1e6));
+		   std::chrono::microseconds(static_cast<int64_t>(num_seconds * 1e6));
 }
 
 /** Returns a formated string with the given time difference (passed as the
- * number of seconds), as a string [H]H:MM:SS.MILISECS
+ * number of seconds), as a string [H]H:MM:SS.MILLISECONDS
  * \sa unitsFormat
  */
 std::string formatTimeInterval(const double timeSeconds);

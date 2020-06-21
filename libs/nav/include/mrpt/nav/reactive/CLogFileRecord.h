@@ -2,17 +2,17 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/core/aligned_std_vector.h>
 #include <mrpt/io/CMemoryStream.h>
 #include <mrpt/maps/CSimplePointsMap.h>
 #include <mrpt/serialization/CSerializable.h>
 #include <mrpt/system/TParameters.h>
+#include <vector>
 
 #include <mrpt/kinematics/CVehicleVelCmd.h>
 #include <mrpt/nav/holonomic/CHolonomicLogFileRecord.h>
@@ -28,7 +28,7 @@ namespace mrpt::nav
  */
 class CLogFileRecord : public mrpt::serialization::CSerializable
 {
-	DEFINE_SERIALIZABLE(CLogFileRecord)
+	DEFINE_SERIALIZABLE(CLogFileRecord, mrpt::nav)
 
    public:
 	/** Constructor, builds an empty record. */
@@ -71,7 +71,7 @@ class CLogFileRecord : public mrpt::serialization::CSerializable
 	uint32_t nPTGs{0};
 	/** The info for each applied PTG: must contain "nPTGs * nSecDistances"
 	 * elements */
-	mrpt::aligned_std_vector<TInfoPerPTG> infoPerPTG;
+	std::vector<TInfoPerPTG> infoPerPTG;
 	/** The selected PTG. */
 	int32_t nSelectedPTG{-1};
 

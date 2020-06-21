@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -38,7 +38,7 @@ struct RobustKernel<rkLeastSquares, T>
 {
 	/** The kernel parameter (the "threshold") squared [Not used in this class,
 	 * provided for consistency with the other classes] */
-	T param_sq;
+	T param_sq = 1;
 
 	/** Evaluates the kernel function for the squared error r2 and returns
 	 * robustified squared error and derivatives of sqrt(2*rho(r)) at this
@@ -57,7 +57,7 @@ template <typename T>
 struct RobustKernel<rkPseudoHuber, T>
 {
 	/** The kernel parameter (the "threshold") squared. */
-	T param_sq;
+	T param_sq = 1;
 
 	/** Evaluates the kernel function for the squared error r2 and returns
 	 * robustified squared error and derivatives of sqrt(2*rho(r)) at this

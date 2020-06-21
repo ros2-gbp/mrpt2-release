@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -39,7 +39,7 @@ namespace mrpt::nav
  */
 class CPTG_DiffDrive_C : public CPTG_DiffDrive_CollisionGridBased
 {
-	DEFINE_SERIALIZABLE(CPTG_DiffDrive_C)
+	DEFINE_SERIALIZABLE(CPTG_DiffDrive_C, mrpt::nav)
    public:
 	CPTG_DiffDrive_C() = default;
 	CPTG_DiffDrive_C(

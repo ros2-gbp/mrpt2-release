@@ -2,14 +2,15 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #include "bindings.h"
 
 /* MRPT */
-#include <mrpt/opengl/CEllipsoid.h>
+#include <mrpt/opengl/CEllipsoid2D.h>
+#include <mrpt/opengl/CEllipsoid3D.h>
 #include <mrpt/opengl/CGridPlaneXY.h>
 #include <mrpt/opengl/COpenGLScene.h>
 #include <mrpt/opengl/CRenderizable.h>
@@ -22,7 +23,7 @@
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/poses/CPose3DPDF.h>
 
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 
 // #include <mrpt/img/TColor.h>
 
@@ -89,33 +90,32 @@ void CSetOfLines_appendLine(
 
 CSetOfLines::Ptr CSetOfLines_Create()
 {
-	return mrpt::make_aligned_shared<CSetOfLines>();
+	return std::make_shared<CSetOfLines>();
 }
 // end of CSetOfLines
 
-// CEllipsoid
-CEllipsoid::Ptr CEllipsoid_Create()
+// CEllipsoid3D
+CEllipsoid3D::Ptr CEllipsoid3D_Create()
 {
-	return mrpt::make_aligned_shared<CEllipsoid>();
+	return std::make_shared<CEllipsoid3D>();
 }
-void CEllipsoid_setFromPosePDF(CEllipsoid& self, CPose3DPDF& posePDF)
+void CEllipsoid3D_setFromPosePDF(CEllipsoid3D& self, CPose3DPDF& posePDF)
 {
 	CPose3D meanPose;
 	CMatrixDouble66 COV;
 	posePDF.getCovarianceAndMean(COV, meanPose);
-	CMatrixDouble33 COV3 = COV.block(0, 0, 3, 3);
+	CMatrixDouble33 COV3 = COV.extractMatrix<3, 3>(0, 0);
 	self.setLocation(meanPose.x(), meanPose.y(), meanPose.z() + 0.001);
-	self.setCovMatrix(COV3, COV3(2, 2) == 0 ? 2 : 3);
+	self.setCovMatrix(COV3);
 }
-// end of CEllipsoid
+// end of CEllipsoid3D
 
 // CGridPlaneXY
 CGridPlaneXY::Ptr CGridPlaneXY_Create(
 	float xMin = -10.0, float xMax = 10.0, float yMin = -10.0,
 	float yMax = 10.0, float z = 0.0, float frequency = 1.0)
 {
-	return mrpt::make_aligned_shared<CGridPlaneXY>(
-		xMin, xMax, yMin, yMax, z, frequency);
+	return std::make_shared<CGridPlaneXY>(xMin, xMax, yMin, yMax, z, frequency);
 }
 
 BOOST_PYTHON_FUNCTION_OVERLOADS(
@@ -127,7 +127,7 @@ MAKE_PTR_CTX(COpenGLScene)
 MAKE_PTR_CTX(CRenderizable)
 MAKE_PTR_CTX(CSetOfObjects)
 MAKE_PTR_CTX(CSetOfLines)
-MAKE_PTR_CTX(CEllipsoid)
+MAKE_PTR_CTX(CEllipsoid3D)
 MAKE_PTR_CTX(CGridPlaneXY)
 
 // exporter
@@ -231,20 +231,20 @@ void export_opengl()
 				"bounds.");
 	}
 
-	// CEllipsoid
+	// CEllipsoid3D
 	{
-		MAKE_PTR(CEllipsoid)
+		MAKE_PTR(CEllipsoid3D)
 
-		class_<CEllipsoid, boost::noncopyable, bases<CRenderizable>>(
-			"CEllipsoid",
+		class_<CEllipsoid3D, boost::noncopyable, bases<CRenderizable>>(
+			"CEllipsoid3D",
 			"A 2D ellipse or 3D ellipsoid, depending on the size of the m_cov "
 			"matrix (2x2 or 3x3).",
 			no_init)
 			.def(
-				"Create", &CEllipsoid_Create,
+				"Create", &CEllipsoid3D_Create,
 				"Create smart pointer from class.")
 			.staticmethod("Create")
-			.def("setFromPosePDF", CEllipsoid_setFromPosePDF);
+			.def("setFromPosePDF", CEllipsoid3D_setFromPosePDF);
 	}
 
 	// COpenGLScene

@@ -2,13 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "maps-precomp.h"  // Precomp header
 
+#include <mrpt/core/round.h>
 #include <mrpt/maps/CHeightGridMap2D_Base.h>
 #include <mrpt/maps/CSimplePointsMap.h>
 #include <mrpt/math/geometry.h>
@@ -41,12 +42,12 @@ bool CHeightGridMap2D_Base::getMinMaxHeight(float& z_min, float& z_max) const
 				{
 					// First:
 					any = true;
-					z_min = z_max = z;
+					z_min = z_max = mrpt::d2f(z);
 				}
 				else
 				{
-					mrpt::keep_max(z_max, z);
-					mrpt::keep_min(z_min, z);
+					mrpt::keep_max<float>(z_max, z);
+					mrpt::keep_min<float>(z_min, z);
 				}
 			}
 		}
@@ -94,7 +95,7 @@ bool CHeightGridMap2D_Base::intersectLine3D(
 	TPoint3D Apt_half = Apt;
 	Apt_half *= 0.5;
 
-	const size_t N = ceil(totalDist / resolution);
+	const size_t N = mrpt::round(ceil(totalDist / resolution));
 
 	for (size_t i = 0; i < N; i++)
 	{
@@ -125,7 +126,7 @@ bool CHeightGridMap2D_Base::intersectLine3D(
 }
 
 bool CHeightGridMap2D_Base::dem_internal_insertObservation(
-	const mrpt::obs::CObservation* obs, const mrpt::poses::CPose3D* robotPose)
+	const mrpt::obs::CObservation& obs, const mrpt::poses::CPose3D* robotPose)
 {
 	using namespace mrpt::poses;
 	using namespace mrpt::obs;
@@ -144,12 +145,12 @@ bool CHeightGridMap2D_Base::dem_internal_insertObservation(
 		/********************************************************************
 					OBSERVATION TYPE: CObservation2DRangeScan
 		********************************************************************/
-		const auto* o = static_cast<const CObservation2DRangeScan*>(obs);
+		const auto& o = static_cast<const CObservation2DRangeScan&>(obs);
 
 		// Create points map, if not created yet:
 		CPointsMap::TInsertionOptions opts;
 		const auto* thePoints =
-			o->buildAuxPointsMap<mrpt::maps::CPointsMap>(&opts);
+			o.buildAuxPointsMap<mrpt::maps::CPointsMap>(&opts);
 
 		// And rotate to the robot pose:
 		thePointsMoved.changeCoordinatesReference(*thePoints, robotPose3D);
@@ -159,10 +160,10 @@ bool CHeightGridMap2D_Base::dem_internal_insertObservation(
 		/********************************************************************
 					OBSERVATION TYPE: CObservationVelodyneScan
 		********************************************************************/
-		const auto* o = static_cast<const CObservationVelodyneScan*>(obs);
+		const auto& o = static_cast<const CObservationVelodyneScan&>(obs);
 
 		// Create points map, if not created yet:
-		thePointsMoved.loadFromVelodyneScan(*o, &robotPose3D);
+		thePointsMoved.loadFromVelodyneScan(o, &robotPose3D);
 	}
 
 	// Factorized insertion of points, for different observation classes:

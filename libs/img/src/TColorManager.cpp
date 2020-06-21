@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -15,11 +15,10 @@ using namespace mrpt::img;
 using namespace std;
 
 TColorManager::TColorManager(bool use_standard_colors_first_in /* = true */)
-
+	: use_standard_colors_first(use_standard_colors_first_in)
 {
 	this->reset();
-	this->use_standard_colors_first = use_standard_colors_first_in;
-}  // end of TColorManager (ctor)
+}
 
 TColorManager::~TColorManager() = default;
 TColor TColorManager::getNextTColor()

@@ -2,20 +2,25 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
+#include <mrpt/core/bits_math.h>
 #include <mrpt/serialization/serialization_frwds.h>
+#include <mrpt/typemeta/TTypeName.h>
 #include <cstdint>
 #include <iosfwd>
 #include <iostream>
 
 namespace mrpt::img
 {
-/** A RGB color - 8bit
+// Ensure 1-byte memory alignment, no additional stride bytes.
+#pragma pack(push, 1)
+
+/** A RGB color - 8bit. Struct pack=1 is ensured.
  * \ingroup mrpt_img_grp */
 struct TColor
 {
@@ -52,6 +57,7 @@ struct TColor
 		return (((unsigned int)R) << 16) | (((unsigned int)G) << 8) | B;
 	}
 
+	TColor(const TColor& other) { *this = other; }
 	TColor& operator=(const TColor& other);
 	TColor& operator+=(const TColor& other);
 	TColor& operator-=(const TColor& other);
@@ -64,6 +70,8 @@ struct TColor
 	static constexpr TColor white() { return TColor(255, 255, 255); }
 	static constexpr TColor gray() { return TColor(127, 127, 127); }
 };
+#pragma pack(pop)
+
 // Text streaming:
 std::ostream& operator<<(std::ostream& o, const TColor& c);
 // Binary streaming:
@@ -72,7 +80,10 @@ mrpt::serialization::CArchive& operator<<(
 mrpt::serialization::CArchive& operator>>(
 	mrpt::serialization::CArchive& i, TColor& c);
 
-/** A RGB color - floats in the range [0,1]
+// Ensure 1-byte memory alignment, no additional stride bytes.
+#pragma pack(push, 1)
+
+/** An RGBA color - floats in the range [0,1]
  * \ingroup mrpt_img_grp */
 struct TColorf
 {
@@ -82,15 +93,20 @@ struct TColorf
 	}
 
 	explicit TColorf(const TColor& col)
-		: R(col.R * (1.f / 255)),
-		  G(col.G * (1.f / 255)),
-		  B(col.B * (1.f / 255)),
-		  A(col.A * (1.f / 255))
+		: R(u8tof(col.R)), G(u8tof(col.G)), B(u8tof(col.B)), A(u8tof(col.A))
 	{
+	}
+
+	/** Returns the 0-255 integer version of this color: RGBA_u8  */
+	TColor asTColor() const
+	{
+		return TColor(
+			mrpt::f2u8(R), mrpt::f2u8(G), mrpt::f2u8(B), mrpt::f2u8(A));
 	}
 
 	float R, G, B, A;
 };
+#pragma pack(pop)
 
 /**\brief Pairwise addition of their corresponding RGBA members
  */
@@ -110,3 +126,10 @@ mrpt::serialization::CArchive& operator>>(
 	mrpt::serialization::CArchive& i, TColorf& c);
 
 }  // namespace mrpt::img
+
+namespace mrpt::typemeta
+{
+// Specialization must occur in the same namespace
+MRPT_DECLARE_TTYPENAME_NO_NAMESPACE(TColor, mrpt::img)
+MRPT_DECLARE_TTYPENAME_NO_NAMESPACE(TColorf, mrpt::img)
+}  // namespace mrpt::typemeta

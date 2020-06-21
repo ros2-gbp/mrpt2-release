@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -104,7 +104,7 @@ void CGillAnemometer::doProcess()
 	}
 
 	mrpt::obs::CObservationWindSensor::Ptr obsPtr =
-		mrpt::make_aligned_shared<mrpt::obs::CObservationWindSensor>();
+		mrpt::obs::CObservationWindSensor::Create();
 	bool have_reading = false;
 	std::string wind_reading;
 	bool time_out = false;

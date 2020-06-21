@@ -8,7 +8,6 @@ set(sampleName vision_feature_extraction)
 project(EXAMPLE_${sampleName})
 
 cmake_minimum_required(VERSION 3.1)
-cmake_policy(SET CMP0003 NEW)  # Required by CMake 2.7+
 
 # ---------------------------------------------------------------------------
 # Set the output directory of each example to its corresponding subdirectory
@@ -59,5 +58,5 @@ endif()
 # This part can be removed if you are compiling this program outside of
 #  the MRPT tree:
 if(DEFINED MRPT_LIBS_ROOT) # Fails if build outside of MRPT project.
-	DeclareAppDependencies(${sampleName} mrpt-vision;mrpt-gui) # Dependencies
+	DeclareAppDependencies(${sampleName} mrpt::vision;mrpt::gui) # Dependencies
 endif()

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -27,22 +27,21 @@ CFixedIntervalsNRD<GRAPH_T>::CFixedIntervalsNRD()
 template <class GRAPH_T>
 bool CFixedIntervalsNRD<GRAPH_T>::updateState(
 	mrpt::obs::CActionCollection::Ptr action,
-	mrpt::obs::CSensoryFrame::Ptr observations,
+	[[maybe_unused]] mrpt::obs::CSensoryFrame::Ptr observations,
 	mrpt::obs::CObservation::Ptr observation)
 {
-	MRPT_START;
+	// don't use the measurements in this implementation
+
+	MRPT_START
 	using namespace mrpt::obs;
 	using namespace mrpt::math;
 	using namespace mrpt::poses;
-
-	// don't use the measurements in this implementation
-	MRPT_UNUSED_PARAM(observations);
 
 	if (observation)
 	{  // FORMAT #2 - observation-only format
 		m_observation_only_rawlog = true;
 
-		if (IS_CLASS(observation, CObservationOdometry))
+		if (IS_CLASS(*observation, CObservationOdometry))
 		{
 			CObservationOdometry::Ptr obs_odometry =
 				std::dynamic_pointer_cast<CObservationOdometry>(observation);
@@ -88,13 +87,13 @@ bool CFixedIntervalsNRD<GRAPH_T>::updateState(
 
 	return registered;
 
-	MRPT_END;
+	MRPT_END
 }  // end of updateState
 
 template <class GRAPH_T>
 bool CFixedIntervalsNRD<GRAPH_T>::checkRegistrationCondition()
 {
-	MRPT_START;
+	MRPT_START
 
 	// check that a node has already been registered - if not, default to
 	// (0,0,0)
@@ -113,7 +112,7 @@ bool CFixedIntervalsNRD<GRAPH_T>::checkRegistrationCondition()
 	}
 
 	return registered;
-	MRPT_END;
+	MRPT_END
 }  // end of checkRegistrationCondition
 
 template <class GRAPH_T>
@@ -155,7 +154,7 @@ bool CFixedIntervalsNRD<GRAPH_T>::checkRegistrationCondition(
 template <class GRAPH_T>
 void CFixedIntervalsNRD<GRAPH_T>::loadParams(const std::string& source_fname)
 {
-	MRPT_START;
+	MRPT_START
 	parent_t::loadParams(source_fname);
 
 	params.loadFromConfigFileName(
@@ -168,24 +167,24 @@ void CFixedIntervalsNRD<GRAPH_T>::loadParams(const std::string& source_fname)
 	this->setMinLoggingLevel(mrpt::system::VerbosityLevel(min_verbosity_level));
 
 	MRPT_LOG_DEBUG("Successfully loaded parameters.");
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_T>
 void CFixedIntervalsNRD<GRAPH_T>::printParams() const
 {
-	MRPT_START;
+	MRPT_START
 	parent_t::printParams();
 	params.dumpToConsole();
 
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_T>
 void CFixedIntervalsNRD<GRAPH_T>::getDescriptiveReport(
 	std::string* report_str) const
 {
-	MRPT_START;
+	MRPT_START
 	using namespace std;
 
 	const std::string report_sep(2, '\n');
@@ -219,22 +218,22 @@ void CFixedIntervalsNRD<GRAPH_T>::getDescriptiveReport(
 	*report_str += output_res;
 	*report_str += report_sep;
 
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_T>
 void CFixedIntervalsNRD<GRAPH_T>::TParams::dumpToTextStream(
 	std::ostream& out) const
 {
-	MRPT_START;
+	MRPT_START
 	out << mrpt::format("%s", this->getAsString().c_str());
-	MRPT_END;
+	MRPT_END
 }
 template <class GRAPH_T>
 void CFixedIntervalsNRD<GRAPH_T>::TParams::loadFromConfigFile(
 	const mrpt::config::CConfigFileBase& source, const std::string& section)
 {
-	MRPT_START;
+	MRPT_START
 	using namespace mrpt::math;
 
 	registration_max_distance = source.read_double(
@@ -243,14 +242,14 @@ void CFixedIntervalsNRD<GRAPH_T>::TParams::loadFromConfigFile(
 		section, "registration_max_angle", 60 /* degrees */, false);
 	registration_max_angle = DEG2RAD(registration_max_angle);
 
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_T>
 void CFixedIntervalsNRD<GRAPH_T>::TParams::getAsString(
 	std::string* params_out) const
 {
-	MRPT_START;
+	MRPT_START
 	using namespace mrpt::math;
 
 	double max_angle_deg = RAD2DEG(registration_max_angle);
@@ -264,17 +263,17 @@ void CFixedIntervalsNRD<GRAPH_T>::TParams::getAsString(
 	*params_out += mrpt::format(
 		"Max angle for registration    = %.2f deg\n", max_angle_deg);
 
-	MRPT_END;
+	MRPT_END
 }
 template <class GRAPH_T>
 std::string CFixedIntervalsNRD<GRAPH_T>::TParams::getAsString() const
 {
-	MRPT_START;
+	MRPT_START
 
 	std::string str;
 	this->getAsString(&str);
 	return str;
 
-	MRPT_END;
+	MRPT_END
 }
 }  // namespace mrpt::graphslam::deciders

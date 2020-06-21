@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -13,7 +13,7 @@
 #include <mrpt/vision/pinhole.h>
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 using namespace mrpt;
 using namespace mrpt::vision;
@@ -61,7 +61,6 @@ void mrpt::vision::pinhole::projectPoints_with_distortion(
 
 	ASSERT_(intrinsicParams.rows() == 3);
 	ASSERT_(intrinsicParams.cols() == 3);
-	ASSERT_(distortionParams.size() == 4 || distortionParams.size() == 5);
 
 	const size_t N = in_points_3D.size();
 	projectedPoints.resize(N);
@@ -84,11 +83,11 @@ void mrpt::vision::pinhole::projectPoints_with_distortion(
 	//   0 1 2
 	//   3 4 5
 	//   6 7 8
-	CVectorDouble proj_matrix(9);
-	proj_matrix[0] = intrinsicParams.get_unsafe(0, 0);
-	proj_matrix[4] = intrinsicParams.get_unsafe(1, 1);
-	proj_matrix[2] = intrinsicParams.get_unsafe(0, 2);
-	proj_matrix[5] = intrinsicParams.get_unsafe(1, 2);
+	std::vector<double> proj_matrix(9);
+	proj_matrix[0] = intrinsicParams(0, 0);
+	proj_matrix[4] = intrinsicParams(1, 1);
+	proj_matrix[2] = intrinsicParams(0, 2);
+	proj_matrix[5] = intrinsicParams(1, 2);
 
 	// Do the projection:
 	cv::Mat object_points = cv::Mat(N, 1, CV_64FC3, &objPoints[0]);
@@ -98,8 +97,9 @@ void mrpt::vision::pinhole::projectPoints_with_distortion(
 
 	cv::Mat _translation_vector = cv::Mat(3, 1, CV_64FC1, translation_vector);
 	cv::Mat camera_matrix = cv::Mat(3, 3, CV_64FC1, &proj_matrix[0]);
-	cv::Mat dist_coeffs =
-		cv::Mat(5, 1, CV_64FC1, const_cast<double*>(&distortionParams[0]));
+	cv::Mat dist_coeffs = cv::Mat(
+		distortionParams.size(), 1, CV_64FC1,
+		const_cast<double*>(&distortionParams[0]));
 
 	vector<cv::Point2d> image_points;
 
@@ -111,8 +111,8 @@ void mrpt::vision::pinhole::projectPoints_with_distortion(
 	{
 		if (accept_points_behind || objPoints[i].z > 0)
 		{  // Valid point or we accept them:
-			projectedPoints[i].x = image_points[i].x;
-			projectedPoints[i].y = image_points[i].y;
+			projectedPoints[i].x = d2f(image_points[i].x);
+			projectedPoints[i].y = d2f(image_points[i].y);
 		}
 		else
 		{  // Invalid point behind the camera:
@@ -189,8 +189,8 @@ void mrpt::vision::pinhole::undistort_points(
 		}
 
 		// Save undistorted pixel coords:
-		out_pixels[i].x = x * fx + cx;
-		out_pixels[i].y = y * fy + cy;
+		out_pixels[i].x = d2f(x * fx + cx);
+		out_pixels[i].y = d2f(y * fy + cy);
 
 	}  // end for i
 
@@ -241,8 +241,8 @@ void mrpt::vision::pinhole::undistort_point(
 	}
 
 	// Save undistorted pixel coords:
-	outPt.x = x * fx + cx;
-	outPt.y = y * fy + cy;
+	outPt.x = d2f(x * fx + cx);
+	outPt.y = d2f(y * fy + cy);
 
 	MRPT_END
 }
@@ -280,12 +280,14 @@ void mrpt::vision::pinhole::projectPoints_with_distortion(
 		const double B = 2 * x * y;
 		if (A > 0 && (accept_points_behind || nP.z > 0))
 		{
-			itPixels->x = params.cx() +
-						  params.fx() * (x * A + params.dist[2] * B +
-										 params.dist[3] * (r2 + 2 * square(x)));
-			itPixels->y = params.cy() +
-						  params.fy() * (y * A + params.dist[3] * B +
-										 params.dist[2] * (r2 + 2 * square(y)));
+			itPixels->x =
+				d2f(params.cx() +
+					params.fx() * (x * A + params.dist[2] * B +
+								   params.dist[3] * (r2 + 2 * square(x))));
+			itPixels->y =
+				d2f(params.cy() +
+					params.fy() * (y * A + params.dist[3] * B +
+								   params.dist[2] * (r2 + 2 * square(y))));
 		}
 		else
 		{
@@ -302,9 +304,8 @@ void mrpt::vision::pinhole::projectPoints_with_distortion(
    ------------------------------------------------------- */
 void mrpt::vision::pinhole::projectPoint_with_distortion(
 	const mrpt::math::TPoint3D& P, const mrpt::img::TCamera& params,
-	mrpt::img::TPixelCoordf& pixel, bool accept_points_behind)
+	mrpt::img::TPixelCoordf& pixel, [[maybe_unused]] bool accept_points_behind)
 {
-	MRPT_UNUSED_PARAM(accept_points_behind);
 	// Pinhole model:
 	const double x = P.x / P.z;
 	const double y = P.y / P.z;
@@ -314,16 +315,18 @@ void mrpt::vision::pinhole::projectPoint_with_distortion(
 	const double r4 = square(r2);
 	const double r6 = r2 * r4;
 
-	pixel.x = params.cx() +
-			  params.fx() * (x * (1 + params.dist[0] * r2 +
-								  params.dist[1] * r4 + params.dist[4] * r6) +
-							 2 * params.dist[2] * x * y +
-							 params.dist[3] * (r2 + 2 * square(x)));
-	pixel.y = params.cy() +
-			  params.fy() * (y * (1 + params.dist[0] * r2 +
-								  params.dist[1] * r4 + params.dist[4] * r6) +
-							 2 * params.dist[3] * x * y +
-							 params.dist[2] * (r2 + 2 * square(y)));
+	pixel.x =
+		d2f(params.cx() +
+			params.fx() * (x * (1 + params.dist[0] * r2 + params.dist[1] * r4 +
+								params.dist[4] * r6) +
+						   2 * params.dist[2] * x * y +
+						   params.dist[3] * (r2 + 2 * square(x))));
+	pixel.y =
+		d2f(params.cy() +
+			params.fy() * (y * (1 + params.dist[0] * r2 + params.dist[1] * r4 +
+								params.dist[4] * r6) +
+						   2 * params.dist[3] * x * y +
+						   params.dist[2] * (r2 + 2 * square(y))));
 }
 
 /* -------------------------------------------------------
@@ -373,7 +376,7 @@ void mrpt::vision::pinhole::projectPoint_with_distortion(
 //	const double cx = intrinsicParams(0,2);
 //	const double cy = intrinsicParams(1,2);
 //
-//	CMatrixFixedNumeric<double,43,43> dx, dy;
+//	CMatrixFixed<double,43,43> dx, dy;
 //
 //	// Compute the undistortion params according to Heittilä code.
 //	// Generate a regular meshgrid of size 43x43 and distort them

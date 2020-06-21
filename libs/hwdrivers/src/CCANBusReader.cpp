@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -85,7 +85,7 @@ CCANBusReader::~CCANBusReader()
 void CCANBusReader::doProcess()
 {
 	mrpt::obs::CObservationCANBusJ1939::Ptr obs =
-		mrpt::make_aligned_shared<mrpt::obs::CObservationCANBusJ1939>();
+		mrpt::obs::CObservationCANBusJ1939::Create();
 	bool thereIsObservation;
 	bool hardwareError;
 
@@ -141,10 +141,10 @@ void CCANBusReader::doProcessSimple(
 	outObservation.m_pgn = out_pgn;
 	outObservation.m_data_length = out_data_length;
 	outObservation.m_data.resize(out_data.size());
-	for (uint8_t k = 0; k < out_data.size(); ++k)
+	for (size_t k = 0; k < out_data.size(); ++k)
 		outObservation.m_data[k] = out_data[k];
 	outObservation.m_raw_frame.resize(out_raw_frame.size());
-	for (uint8_t k = 0; k < out_raw_frame.size(); ++k)
+	for (size_t k = 0; k < out_raw_frame.size(); ++k)
 		outObservation.m_raw_frame[k] = out_raw_frame[k];
 
 	// we've got a new observation
@@ -158,15 +158,6 @@ void CCANBusReader::loadConfig_sensorSpecific(
 	const mrpt::config::CConfigFileBase& configSource,
 	const std::string& iniSection)
 {
-	//	m_sensorPose = CPose3D(
-	//		configSource.read_float(iniSection,"pose_x",0),
-	//		configSource.read_float(iniSection,"pose_y",0),
-	//		configSource.read_float(iniSection,"pose_z",0),
-	//		DEG2RAD( configSource.read_float(iniSection,"pose_yaw",0) ),
-	//		DEG2RAD( configSource.read_float(iniSection,"pose_pitch",0) ),
-	//		DEG2RAD( configSource.read_float(iniSection,"pose_roll",0) )
-	//		);  // irrelevant
-
 	m_canbus_speed =
 		configSource.read_int(iniSection, "CANBusSpeed", m_canbus_speed);
 	m_canreader_timestamp = configSource.read_bool(
@@ -605,7 +596,7 @@ bool CCANBusReader::waitACK(uint16_t timeout_ms)
 	} while (tictac.Tac() < timeout_ms * 1e-3);
 
 	if (b == 0x07)  // [BELL]
-		RET_ERROR(format("ERROR received."))
+		RET_ERROR("ERROR received.")
 	else if (b != 0)
 		RET_ERROR(format("Unexpected code received: 0x%02X", b))
 	else
@@ -716,9 +707,8 @@ bool CCANBusReader::waitIncomingFrame(uint16_t timeout)
 }
 
 bool CCANBusReader::sendCommandToCANReader(
-	const uint8_t* cmd, const uint16_t cmd_len, bool wait)
+	const uint8_t* cmd, const uint16_t cmd_len, [[maybe_unused]] bool wait)
 {
-	MRPT_UNUSED_PARAM(wait);
 	uint8_t cmd_full[1024];
 	ASSERT_(sizeof(cmd_full) > cmd_len);
 

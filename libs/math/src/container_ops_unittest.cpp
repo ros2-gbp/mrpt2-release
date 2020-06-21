@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include <gtest/gtest.h>
-#include <mrpt/math/types_math.h>
+#include <mrpt/math/CVectorDynamic.h>
 
 using namespace mrpt;
 using namespace mrpt::math;
@@ -48,9 +48,6 @@ TEST(CVectorDouble, resize)
 			v.push_back(double(i));
 			EXPECT_TRUE(v.size() == (i + 1));
 		}
-		for (int i = 0; i < 10; i++)
-		{
-			EXPECT_TRUE(v[i] == i);
-		}
+		for (int i = 0; i < 10; i++) EXPECT_NEAR(v[i], i, 1e-10);
 	}
 }

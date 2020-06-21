@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -34,11 +34,12 @@ class CWirelessPower : public mrpt::hwdrivers::CGenericSensor
 
 	/** Handle to the WLAN server (Windows)
 	 */
-	void* hClient;
+	void* hClient{nullptr};
 
 	/** Poses
 	 */
-	float pose_x, pose_y, pose_z, pose_yaw, pose_pitch, pose_roll;
+	float pose_x{0}, pose_y{0}, pose_z{0}, pose_yaw{0}, pose_pitch{0},
+		pose_roll{0};
 
    public:
 	/** Default constructor.

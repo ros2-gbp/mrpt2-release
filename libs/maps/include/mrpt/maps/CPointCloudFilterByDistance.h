@@ -2,17 +2,17 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
 #include <mrpt/config/CLoadableOptions.h>
-#include <mrpt/core/aligned_std_map.h>
 #include <mrpt/maps/CPointCloudFilterBase.h>
 #include <mrpt/maps/CSimplePointsMap.h>
 #include <mrpt/poses/CPose3D.h>
+#include <map>
 
 namespace mrpt::maps
 {
@@ -73,10 +73,8 @@ class CPointCloudFilterByDistance : public mrpt::maps::CPointCloudFilterBase
 	{
 		mrpt::poses::CPose3D pose;
 		mrpt::maps::CSimplePointsMap::Ptr pc;
-
-		MRPT_MAKE_ALIGNED_OPERATOR_NEW
 	};
 
-	mrpt::aligned_std_map<mrpt::system::TTimeStamp, FrameInfo> m_last_frames;
+	std::map<mrpt::system::TTimeStamp, FrameInfo> m_last_frames;
 };
 }  // namespace mrpt::maps

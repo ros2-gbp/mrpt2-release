@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -19,7 +19,7 @@
 #include <mrpt/system/filesystem.h>
 #include <mrpt/system/os.h>
 
-#include <mrpt/otherlibs/tclap/CmdLine.h>
+#include <mrpt/3rdparty/tclap/CmdLine.h>
 
 using namespace mrpt;
 using namespace mrpt::system;
@@ -196,7 +196,7 @@ void do_simulation()
 		act.computeFromOdometry(CPose2D(0, 0, 0), odo_opts);
 		act.timestamp = mrpt::system::now();
 		acts.insert(act);
-		rawlog.addActions(acts);
+		rawlog.insert(acts);
 
 		// Create a rawlog from scratch:
 		for (size_t i = 1; i < N; i++)
@@ -204,17 +204,17 @@ void do_simulation()
 			// simulate scan:
 			real_pose = CPose2D(GT(i, 1), GT(i, 2), GT(i, 3));
 
-			CSensoryFrame::Ptr sf = mrpt::make_aligned_shared<CSensoryFrame>();
+			CSensoryFrame::Ptr sf = std::make_shared<CSensoryFrame>();
 
 			CObservation2DRangeScan::Ptr the_scan =
-				mrpt::make_aligned_shared<CObservation2DRangeScan>();
+				std::make_shared<CObservation2DRangeScan>();
 			the_scan->aperture = M_PIf;
 			the_scan->timestamp = mrpt::system::now();
 			the_grid.laserScanSimulator(
 				*the_scan, real_pose, 0.5f, LASER_N_RANGES, LASER_STD_ERROR, 1,
 				LASER_BEARING_STD_ERROR);
 			sf->insert(the_scan);
-			rawlog.addObservationsMemoryReference(sf);
+			rawlog.insert(sf);
 
 			// Robot moves:
 			simulOdometry(real_pose, last_pose, Apose, odo_opts);
@@ -222,7 +222,7 @@ void do_simulation()
 			act.timestamp = mrpt::system::now();
 			acts.clear();
 			acts.insert(act);
-			rawlog.addActions(acts);
+			rawlog.insert(acts);
 		}
 	}
 

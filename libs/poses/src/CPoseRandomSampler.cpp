@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
-#include "poses-precomp.h"  // Precompiled headers
-
+#include "poses-precomp.h"	// Precompiled headers
+//
 #include <mrpt/poses/CPose3DPDFGaussian.h>
 #include <mrpt/poses/CPose3DPDFParticles.h>
 #include <mrpt/poses/CPose3DPDFSOG.h>
@@ -18,10 +18,12 @@
 #include <mrpt/poses/CPoseRandomSampler.h>
 #include <mrpt/random.h>
 
+#include <Eigen/Dense>
+
+
 using namespace mrpt;
 using namespace mrpt::math;
 using namespace mrpt::poses;
-
 using namespace mrpt::random;
 
 /*---------------------------------------------------------------
@@ -30,14 +32,7 @@ using namespace mrpt::random;
 CPoseRandomSampler::CPoseRandomSampler() = default;
 CPoseRandomSampler::CPoseRandomSampler(const CPoseRandomSampler& o)
 {
-	if (o.m_pdf2D)
-		m_pdf2D.reset(dynamic_cast<const CPosePDF*>(o.m_pdf2D->clone()));
-	if (o.m_pdf3D)
-		m_pdf3D.reset(dynamic_cast<const CPose3DPDF*>(o.m_pdf3D->clone()));
-	m_fastdraw_gauss_Z3 = o.m_fastdraw_gauss_Z3;
-	m_fastdraw_gauss_Z6 = o.m_fastdraw_gauss_Z6;
-	m_fastdraw_gauss_M_2D = o.m_fastdraw_gauss_M_2D;
-	m_fastdraw_gauss_M_3D = o.m_fastdraw_gauss_M_3D;
+	*this = o;
 }
 
 CPoseRandomSampler& CPoseRandomSampler::operator=(const CPoseRandomSampler& o)
@@ -45,10 +40,8 @@ CPoseRandomSampler& CPoseRandomSampler::operator=(const CPoseRandomSampler& o)
 	if (&o == this) return *this;
 	m_pdf2D.reset();
 	m_pdf3D.reset();
-	if (o.m_pdf2D)
-		m_pdf2D.reset(dynamic_cast<const CPosePDF*>(o.m_pdf2D->clone()));
-	if (o.m_pdf3D)
-		m_pdf3D.reset(dynamic_cast<const CPose3DPDF*>(o.m_pdf3D->clone()));
+	if (o.m_pdf2D) m_pdf2D.reset(dynamic_cast<CPosePDF*>(o.m_pdf2D->clone()));
+	if (o.m_pdf3D) m_pdf3D.reset(dynamic_cast<CPose3DPDF*>(o.m_pdf3D->clone()));
 	m_fastdraw_gauss_Z3 = o.m_fastdraw_gauss_Z3;
 	m_fastdraw_gauss_Z6 = o.m_fastdraw_gauss_Z6;
 	m_fastdraw_gauss_M_2D = o.m_fastdraw_gauss_M_2D;
@@ -107,36 +100,33 @@ void CPoseRandomSampler::clear()
 /*---------------------------------------------------------------
 						setPosePDF
   ---------------------------------------------------------------*/
-void CPoseRandomSampler::setPosePDF(const CPosePDF* pdf)
+void CPoseRandomSampler::setPosePDF(const CPosePDF& pdf)
 {
 	MRPT_START
 
 	clear();
-	m_pdf2D.reset(dynamic_cast<CPosePDF*>(pdf->clone()));
+	m_pdf2D.reset(dynamic_cast<CPosePDF*>(pdf.clone()));
 
 	// According to the PDF type:
-	if (IS_CLASS(m_pdf2D.get(), CPosePDFGaussian))
+	if (IS_CLASS(pdf, CPosePDFGaussian))
 	{
-		const auto* gPdf = dynamic_cast<const CPosePDFGaussian*>(pdf);
-		const CMatrixDouble33& cov = gPdf->cov;
+		const auto& gPdf = dynamic_cast<const CPosePDFGaussian&>(pdf);
+		const CMatrixDouble33& cov = gPdf.cov;
 
-		m_fastdraw_gauss_M_2D = gPdf->mean;
+		m_fastdraw_gauss_M_2D = gPdf.mean;
 
-		/** Computes the eigenvalues/eigenvector decomposition of this matrix,
-		 *    so that: M = Z · D · Z<sup>T</sup>, where columns in Z are the
-		 *	  eigenvectors and the diagonal matrix D contains the eigenvalues
-		 *    as diagonal elements, sorted in <i>ascending</i> order.
-		 */
-		CMatrixDouble33 D;
-		cov.eigenVectors(m_fastdraw_gauss_Z3, D);
+		std::vector<double> eigVals;
+		cov.eig_symmetric(m_fastdraw_gauss_Z3, eigVals);
 
 		// Scale eigenvectors with eigenvalues:
-		D = D.array().sqrt().matrix();
-		m_fastdraw_gauss_Z3.multiply(m_fastdraw_gauss_Z3, D);
+		mrpt::math::CMatrixDouble33 D;
+		D.setDiagonal(eigVals);
+		D = D.asEigen().array().sqrt().matrix();
+		m_fastdraw_gauss_Z3.matProductOf_AB(m_fastdraw_gauss_Z3, D);
 	}
-	else if (IS_CLASS(m_pdf2D.get(), CPosePDFParticles))
+	else if (IS_CLASS(pdf, CPosePDFParticles))
 	{
-		return;  // Nothing to prepare.
+		return;	 // Nothing to prepare.
 	}
 	else
 	{
@@ -150,36 +140,35 @@ void CPoseRandomSampler::setPosePDF(const CPosePDF* pdf)
 /*---------------------------------------------------------------
 						setPosePDF
   ---------------------------------------------------------------*/
-void CPoseRandomSampler::setPosePDF(const CPose3DPDF* pdf)
+void CPoseRandomSampler::setPosePDF(const CPose3DPDF& pdf)
 {
 	MRPT_START
 
 	clear();
-	m_pdf3D.reset(dynamic_cast<CPose3DPDF*>(pdf->clone()));
+	m_pdf3D.reset(dynamic_cast<CPose3DPDF*>(pdf.clone()));
 
 	// According to the PDF type:
-	if (IS_CLASS(m_pdf3D.get(), CPose3DPDFGaussian))
+	if (IS_CLASS(pdf, CPose3DPDFGaussian))
 	{
-		const auto* gPdf = dynamic_cast<const CPose3DPDFGaussian*>(pdf);
-		const CMatrixDouble66& cov = gPdf->cov;
+		const auto& gPdf = dynamic_cast<const CPose3DPDFGaussian&>(pdf);
+		const CMatrixDouble66& cov = gPdf.cov;
 
-		m_fastdraw_gauss_M_3D = gPdf->mean;
+		m_fastdraw_gauss_M_3D = gPdf.mean;
 
-		/** Computes the eigenvalues/eigenvector decomposition of this matrix,
-		 *    so that: M = Z · D · Z<sup>T</sup>, where columns in Z are the
-		 *	  eigenvectors and the diagonal matrix D contains the eigenvalues
-		 *    as diagonal elements, sorted in <i>ascending</i> order.
-		 */
-		CMatrixDouble66 D;
-		cov.eigenVectors(m_fastdraw_gauss_Z6, D);
+		std::vector<double> eigVals;
+		cov.eig_symmetric(m_fastdraw_gauss_Z6, eigVals);
 
 		// Scale eigenvectors with eigenvalues:
-		D = D.array().sqrt().matrix();
-		m_fastdraw_gauss_Z6.multiply(m_fastdraw_gauss_Z6, D);
+		mrpt::math::CMatrixDouble66 D;
+		D.setDiagonal(eigVals);
+
+		// Scale eigenvectors with eigenvalues:
+		D = D.asEigen().array().sqrt().matrix();
+		m_fastdraw_gauss_Z6.matProductOf_AB(m_fastdraw_gauss_Z6, D);
 	}
-	else if (IS_CLASS(m_pdf3D.get(), CPose3DPDFParticles))
+	else if (IS_CLASS(pdf, CPose3DPDFParticles))
 	{
-		return;  // Nothing to prepare.
+		return;	 // Nothing to prepare.
 	}
 	else
 	{
@@ -188,16 +177,6 @@ void CPoseRandomSampler::setPosePDF(const CPose3DPDF* pdf)
 	}
 
 	MRPT_END
-}
-
-void CPoseRandomSampler::setPosePDF(const CPose3DPDF::Ptr& pdf)
-{
-	setPosePDF(pdf.get());
-}
-
-void CPoseRandomSampler::setPosePDF(const CPosePDF::Ptr& pdf)
-{
-	setPosePDF(pdf.get());
 }
 
 /*---------------------------------------------------------------
@@ -259,7 +238,7 @@ void CPoseRandomSampler::do_sample_2D(CPose2D& p) const
 	ASSERT_(m_pdf2D);
 
 	// According to the PDF type:
-	if (IS_CLASS(m_pdf2D.get(), CPosePDFGaussian))
+	if (IS_CLASS(*m_pdf2D, CPosePDFGaussian))
 	{
 		// ------------------------------
 		//      A single gaussian:
@@ -270,7 +249,7 @@ void CPoseRandomSampler::do_sample_2D(CPose2D& p) const
 		{
 			double rnd = getRandomGenerator().drawGaussian1D_normalized();
 			for (size_t d = 0; d < 3; d++)
-				rndVector[d] += (m_fastdraw_gauss_Z3.get_unsafe(d, i) * rnd);
+				rndVector[d] += (m_fastdraw_gauss_Z3(d, i) * rnd);
 		}
 
 		p.x(m_fastdraw_gauss_M_2D.x() + rndVector[0]);
@@ -278,20 +257,20 @@ void CPoseRandomSampler::do_sample_2D(CPose2D& p) const
 		p.phi(m_fastdraw_gauss_M_2D.phi() + rndVector[2]);
 		p.normalizePhi();
 	}
-	else if (IS_CLASS(m_pdf2D.get(), CPosePDFSOG))
+	else if (IS_CLASS(*m_pdf2D, CPosePDFSOG))
 	{
 		// -------------------------------------
 		//      			SOG
 		// -------------------------------------
 		THROW_EXCEPTION("TODO");
 	}
-	else if (IS_CLASS(m_pdf2D.get(), CPosePDFParticles))
+	else if (IS_CLASS(*m_pdf2D, CPosePDFParticles))
 	{
 		// -------------------------------------
 		//      Particles: just sample as usual
 		// -------------------------------------
-		const auto* pdf = dynamic_cast<const CPosePDFParticles*>(m_pdf2D.get());
-		pdf->drawSingleSample(p);
+		const auto& pdf = dynamic_cast<const CPosePDFParticles&>(*m_pdf2D);
+		pdf.drawSingleSample(p);
 	}
 	else
 		THROW_EXCEPTION_FMT(
@@ -309,7 +288,7 @@ void CPoseRandomSampler::do_sample_3D(CPose3D& p) const
 	ASSERT_(m_pdf3D);
 
 	// According to the PDF type:
-	if (IS_CLASS(m_pdf3D.get(), CPose3DPDFGaussian))
+	if (IS_CLASS(*m_pdf3D, CPose3DPDFGaussian))
 	{
 		// ------------------------------
 		//      A single gaussian:
@@ -320,7 +299,7 @@ void CPoseRandomSampler::do_sample_3D(CPose3D& p) const
 		{
 			double rnd = getRandomGenerator().drawGaussian1D_normalized();
 			for (size_t d = 0; d < 6; d++)
-				rndVector[d] += (m_fastdraw_gauss_Z6.get_unsafe(d, i) * rnd);
+				rndVector[d] += (m_fastdraw_gauss_Z6(d, i) * rnd);
 		}
 
 		p.setFromValues(
@@ -331,21 +310,20 @@ void CPoseRandomSampler::do_sample_3D(CPose3D& p) const
 			m_fastdraw_gauss_M_3D.pitch() + rndVector[4],
 			m_fastdraw_gauss_M_3D.roll() + rndVector[5]);
 	}
-	else if (IS_CLASS(m_pdf3D.get(), CPose3DPDFSOG))
+	else if (IS_CLASS(*m_pdf3D, CPose3DPDFSOG))
 	{
 		// -------------------------------------
 		//      			SOG
 		// -------------------------------------
 		THROW_EXCEPTION("TODO");
 	}
-	else if (IS_CLASS(m_pdf3D.get(), CPose3DPDFParticles))
+	else if (IS_CLASS(*m_pdf3D, CPose3DPDFParticles))
 	{
 		// -------------------------------------
 		//      Particles: just sample as usual
 		// -------------------------------------
-		const auto* pdf =
-			dynamic_cast<const CPose3DPDFParticles*>(m_pdf3D.get());
-		pdf->drawSingleSample(p);
+		const auto& pdf = dynamic_cast<const CPose3DPDFParticles&>(*m_pdf3D);
+		pdf.drawSingleSample(p);
 	}
 	else
 		THROW_EXCEPTION_FMT(
@@ -437,4 +415,20 @@ CPose3D& CPoseRandomSampler::getSamplingMean3D(CPose3D& out_mean) const
 
 	return out_mean;
 	MRPT_END
+}
+
+void CPoseRandomSampler::getOriginalPDFCov2D(
+	mrpt::math::CMatrixDouble& cov3x3) const
+{
+	mrpt::math::CMatrixDouble33 M;
+	this->getOriginalPDFCov2D(M);
+	cov3x3 = mrpt::math::CMatrixDouble(M);
+}
+
+void CPoseRandomSampler::getOriginalPDFCov3D(
+	mrpt::math::CMatrixDouble& cov6x6) const
+{
+	mrpt::math::CMatrixDouble66 M;
+	this->getOriginalPDFCov3D(M);
+	cov6x6 = M;
 }

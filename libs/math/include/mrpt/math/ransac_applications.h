@@ -2,13 +2,15 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/geometry.h>
+#include <mrpt/math/CVectorDynamic.h>
+#include <mrpt/math/TLine2D.h>
+#include <mrpt/math/TPlane.h>
 #include <mrpt/math/ransac.h>
 
 namespace mrpt::math
@@ -34,9 +36,8 @@ using std::vector;
  */
 template <typename NUMTYPE>
 void ransac_detect_3D_planes(
-	const Eigen::Matrix<NUMTYPE, Eigen::Dynamic, 1>& x,
-	const Eigen::Matrix<NUMTYPE, Eigen::Dynamic, 1>& y,
-	const Eigen::Matrix<NUMTYPE, Eigen::Dynamic, 1>& z,
+	const CVectorDynamic<NUMTYPE>& x, const CVectorDynamic<NUMTYPE>& y,
+	const CVectorDynamic<NUMTYPE>& z,
 	std::vector<std::pair<size_t, TPlane>>& out_detected_planes,
 	const double threshold, const size_t min_inliers_for_valid_plane = 10);
 
@@ -52,8 +53,7 @@ void ransac_detect_3D_planes(
  */
 template <typename NUMTYPE>
 void ransac_detect_2D_lines(
-	const Eigen::Matrix<NUMTYPE, Eigen::Dynamic, 1>& x,
-	const Eigen::Matrix<NUMTYPE, Eigen::Dynamic, 1>& y,
+	const CVectorDynamic<NUMTYPE>& x, const CVectorDynamic<NUMTYPE>& y,
 	std::vector<std::pair<size_t, TLine2D>>& out_detected_lines,
 	const double threshold, const size_t min_inliers_for_valid_line = 5);
 

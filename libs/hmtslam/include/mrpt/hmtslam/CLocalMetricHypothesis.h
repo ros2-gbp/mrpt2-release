@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,13 +11,13 @@
 #include <mrpt/bayes/CParticleFilterCapable.h>
 
 #include <mrpt/bayes/CParticleFilterData.h>
-#include <mrpt/core/aligned_std_map.h>
 #include <mrpt/hmtslam/CHMHMapNode.h>
 #include <mrpt/hmtslam/HMT_SLAM_common.h>
 #include <mrpt/maps/CMultiMetricMap.h>
 #include <mrpt/obs/CActionRobotMovement2D.h>
 #include <mrpt/opengl/opengl_frwds.h>
 #include <mrpt/slam/CIncrementalMapPartitioner.h>
+#include <map>
 
 #include <list>
 #include <mutex>
@@ -31,7 +31,7 @@ class CPose3DPDFParticles;
 
 namespace hmtslam
 {
-using TMapPoseID2Pose3D = mrpt::aligned_std_map<TPoseID, mrpt::poses::CPose3D>;
+using TMapPoseID2Pose3D = std::map<TPoseID, mrpt::poses::CPose3D>;
 
 class CHMTSLAM;
 class CLSLAM_RBPF_2DLASER;
@@ -43,7 +43,7 @@ class CLSLAM_RBPF_2DLASER;
  */
 class CLSLAMParticleData : public mrpt::serialization::CSerializable
 {
-	DEFINE_SERIALIZABLE(CLSLAMParticleData)
+	DEFINE_SERIALIZABLE(CLSLAMParticleData, mrpt::hmtslam)
 
    public:
 	CLSLAMParticleData(
@@ -71,20 +71,13 @@ class CLocalMetricHypothesis
 {
 	friend class CLSLAM_RBPF_2DLASER;
 
-	DEFINE_SERIALIZABLE(CLocalMetricHypothesis)
+	DEFINE_SERIALIZABLE(CLocalMetricHypothesis, mrpt::hmtslam)
 
    public:
-	/** Constructor (Default param only used from STL classes)
-	 */
+	/** Constructor (Default param only used from STL classes)  */
 	CLocalMetricHypothesis(CHMTSLAM* parent = nullptr);
-
-	/** Destructor
-	 */
 	~CLocalMetricHypothesis() override;
 
-	MRPT_TODO(
-		"Separate the serializable class from this code, so we don't have to "
-		"worry about copying locks")
 	struct ThreadLocks
 	{
 		// Don't really copy mutexes
@@ -209,10 +202,10 @@ class CLocalMetricHypothesis
 	void clearRobotPoses();
 
 	/** Returns the i'th particle hypothesis for the current robot pose.  */
-	const mrpt::poses::CPose3D* getCurrentPose(const size_t& particleIdx) const;
+	const mrpt::poses::CPose3D* getCurrentPose(size_t particleIdx) const;
 
 	/** Returns the i'th particle hypothesis for the current robot pose.  */
-	mrpt::poses::CPose3D* getCurrentPose(const size_t& particleIdx);
+	mrpt::poses::CPose3D* getCurrentPose(size_t particleIdx);
 
 	/** Removes a given area from the LMH:
 	 *	- The corresponding node in the HMT map is updated with the robot poses
@@ -273,14 +266,13 @@ class CLocalMetricHypothesis
 	mutable std::vector<double> m_maxLikelihood;
 
 	/** Auxiliary variable used in the "pfAuxiliaryPFOptimal" algorithm. */
-	mutable mrpt::aligned_std_vector<mrpt::poses::CPose2D> m_movementDraws;
+	mutable std::vector<mrpt::poses::CPose2D> m_movementDraws;
 
 	/** Auxiliary variable used in the "pfAuxiliaryPFOptimal" algorithm. */
 	mutable unsigned int m_movementDrawsIdx;
 
 	/** Auxiliary variable used in the "pfAuxiliaryPFOptimal" algorithm. */
-	mutable mrpt::aligned_std_vector<mrpt::poses::CPose2D>
-		m_movementDrawMaximumLikelihood;
+	mutable std::vector<mrpt::poses::CPose2D> m_movementDrawMaximumLikelihood;
 
 };  // End of class def.
 

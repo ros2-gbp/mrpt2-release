@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)               |
    |                          https://www.mrpt.org/                            |
    |                                                                           |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file        |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file        |
    | See: https://www.mrpt.org/Authors - All rights reserved.                  |
    | Released under BSD License. See details in https://www.mrpt.org/License   |
    +---------------------------------------------------------------------------+
@@ -13,6 +13,9 @@
 Communication utilities: serial ports, networking (TCP, DNS,...), pub/sub
 nodelets.
 
+<small> <a href="index.html#libs">Back to list of all libraries</a> | <a
+href="modules.html" >See all modules</a> </small> <br>
+
 [TOC]
 
 # Library `mrpt-comms`
@@ -22,6 +25,8 @@ This C++ library is part of MRPT and can be installed in Debian-based systems
 with:
 
 		sudo apt install libmrpt-comms-dev
+
+See: \ref mrpt_from_cmake
 
 Find below some examples of use.
 

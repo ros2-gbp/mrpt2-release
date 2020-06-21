@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -23,7 +23,6 @@ using namespace mrpt;
 using namespace mrpt::gui;
 using namespace mrpt::opengl;
 using namespace mrpt::img;
-
 using namespace std::literals;
 
 // ------------------------------------------------------
@@ -37,30 +36,29 @@ void TestDisplay3D()
 	// ------------------------------------------------------
 	{
 		opengl::CGridPlaneXY::Ptr obj =
-			mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
-				-20, 20, -20, 20, 0, 1);
-		obj->setColor(0.4, 0.4, 0.4);
+			opengl::CGridPlaneXY::Create(-20, 20, -20, 20, 0, 1);
+		obj->setColor(0.4f, 0.4f, 0.4f);
 		scene.insert(obj);
 	}
 	{
-		opengl::CAxis::Ptr obj = mrpt::make_aligned_shared<opengl::CAxis>();
+		opengl::CAxis::Ptr obj = opengl::CAxis::Create();
 		obj->setFrequency(5);
 		obj->enableTickMarks();
 		obj->setAxisLimits(-10, -10, -10, 10, 10, 10);
 		scene.insert(obj);
 	}
 	{
-		opengl::CSphere::Ptr obj = mrpt::make_aligned_shared<opengl::CSphere>();
+		opengl::CSphere::Ptr obj = opengl::CSphere::Create();
 		obj->setColor(0, 0, 1);
-		obj->setRadius(0.3);
+		obj->setRadius(0.3f);
 		obj->setLocation(0, 0, 1);
 		obj->setName("ball_1");
 		scene.insert(obj);
 	}
 	{
-		opengl::CSphere::Ptr obj = mrpt::make_aligned_shared<opengl::CSphere>();
+		opengl::CSphere::Ptr obj = opengl::CSphere::Create();
 		obj->setColor(1, 0, 0);
-		obj->setRadius(0.3);
+		obj->setRadius(0.3f);
 		obj->setLocation(-1, -1, 1);
 		obj->setName("ball_2");
 		scene.insert(obj);

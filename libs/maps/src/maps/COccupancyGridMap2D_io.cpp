@@ -2,20 +2,22 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "maps-precomp.h"  // Precomp header
 
+#include <mrpt/config.h>
 #include <mrpt/core/round.h>  // round()
 #include <mrpt/img/CEnhancedMetaFile.h>
 #include <mrpt/maps/COccupancyGridMap2D.h>
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/random.h>
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/os.h>
+#include <iostream>
 
 using namespace mrpt;
 using namespace mrpt::maps;
@@ -34,11 +36,17 @@ using namespace std;
 bool COccupancyGridMap2D::saveAsBitmapFile(const std::string& file) const
 {
 	MRPT_START
+#if MRPT_HAS_OPENCV
 
 	CImage img;
 	getAsImage(img);
 	return img.saveToFile(file);
 
+#else
+	std::cerr << "[COccupancyGridMap2D::saveAsBitmapFile] Doing nothing, since "
+				 "MRPT was built without OpenCV.\n";
+	return true;
+#endif
 	MRPT_END
 }
 
@@ -132,8 +140,6 @@ void COccupancyGridMap2D::serializeFrom(
 			uint32_t new_size_x, new_size_y;
 			float new_x_min, new_x_max, new_y_min, new_y_max;
 			float new_resolution;
-
-			// resetFeaturesCache();
 
 			in >> new_size_x >> new_size_y >> new_x_min >> new_x_max >>
 				new_y_min >> new_y_max >> new_resolution;
@@ -521,7 +527,7 @@ void COccupancyGridMap2D::saveMetricMapRepresentationToFile(
 	saveAsBitmapFile(fil);
 
 	fil = filNamePrefix + std::string("_limits.txt");
-	CMatrix LIMITS(1, 4);
+	CMatrixF LIMITS(1, 4);
 	LIMITS(0, 0) = x_min;
 	LIMITS(0, 1) = x_max;
 	LIMITS(0, 2) = y_min;

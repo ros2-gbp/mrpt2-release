@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,7 +10,7 @@
 
 #include <mrpt/comms/CSerialPort.h>
 #include <mrpt/hwdrivers/C2DRangeFinderAbstract.h>
-#include <mrpt/math/lightweight_geom_data.h>
+#include <mrpt/math/TPose3D.h>
 
 namespace mrpt::hwdrivers
 {
@@ -116,7 +116,7 @@ class CSickLaserSerial : public C2DRangeFinderAbstract
 	std::string m_com_port;
 	/** Will be !=nullptr only if I created it, so I must destroy it at the end.
 	 */
-	mrpt::comms::CSerialPort* m_mySerialPort{nullptr};
+	std::shared_ptr<mrpt::comms::CSerialPort> m_mySerialPort;
 	/** Baudrate: 9600, 38400, 500000 */
 	int m_com_baudRate{38400};
 	/** Default = 1 */

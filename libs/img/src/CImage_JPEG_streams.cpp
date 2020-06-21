@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -14,7 +14,7 @@
 #include "CImage_impl.h"
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 using namespace mrpt;
 using namespace mrpt::img;
@@ -294,9 +294,8 @@ skip_input_data(j_decompress_ptr cinfo, long num_bytes)
  */
 
 METHODDEF(void)
-term_source(j_decompress_ptr cinfo)
+term_source([[maybe_unused]] j_decompress_ptr cinfo)
 {
-	MRPT_UNUSED_PARAM(cinfo);
 	/* no work necessary here */
 }
 

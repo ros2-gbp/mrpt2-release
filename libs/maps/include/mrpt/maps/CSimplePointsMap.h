@@ -2,14 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
 #include <mrpt/maps/CPointsMap.h>
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/obs/obs_frwds.h>
 #include <mrpt/serialization/CSerializable.h>
 
@@ -29,18 +29,24 @@ namespace maps
  */
 class CSimplePointsMap : public CPointsMap
 {
-	DEFINE_SERIALIZABLE(CSimplePointsMap)
+	DEFINE_SERIALIZABLE(CSimplePointsMap, mrpt::maps)
 
    public:
 	/** Default constructor */
-	CSimplePointsMap();
-	CSimplePointsMap(const CPointsMap& o) : CSimplePointsMap()
+	CSimplePointsMap() = default;
+	CSimplePointsMap(const CPointsMap& o) { CPointsMap::operator=(o); }
+	CSimplePointsMap(const CSimplePointsMap& o) : CPointsMap()
 	{
 		CPointsMap::operator=(o);
 	}
-	CSimplePointsMap operator=(const CPointsMap& o)
+	CSimplePointsMap& operator=(const CPointsMap& o)
 	{
 		CPointsMap::operator=(o);
+		return *this;
+	}
+	CSimplePointsMap& operator=(const CSimplePointsMap& o)
+	{
+		impl_copyFrom(o);
 		return *this;
 	}
 
@@ -93,10 +99,9 @@ class CSimplePointsMap : public CPointsMap
    protected:
 	void impl_copyFrom(const CPointsMap& obj) override;
 	void addFrom_classSpecific(
-		const CPointsMap& anotherMap, const size_t nPreviousPoints) override
+		[[maybe_unused]] const CPointsMap& anotherMap,
+		[[maybe_unused]] const size_t nPreviousPoints) override
 	{
-		MRPT_UNUSED_PARAM(anotherMap);
-		MRPT_UNUSED_PARAM(nPreviousPoints);
 		// No extra data.
 	}
 
@@ -168,7 +173,7 @@ class PointCloudAdapter<mrpt::maps::CSimplePointsMap>
 	/** Set number of points (to uninitialized values) */
 	inline void resize(const size_t N) { m_obj.resize(N); }
 	/** Does nothing as of now */
-	inline void setDimensions(const size_t& height, const size_t& width) {}
+	inline void setDimensions(size_t height, size_t width) {}
 	/** Get XYZ coordinates of i'th point */
 	template <typename T>
 	inline void getPointXYZ(const size_t idx, T& x, T& y, T& z) const
@@ -185,7 +190,7 @@ class PointCloudAdapter<mrpt::maps::CSimplePointsMap>
 	/** Set XYZ coordinates of i'th point */
 	inline void setInvalidPoint(const size_t idx)
 	{
-		THROW_EXCEPTION("mrpt::maps::CSimplePointsMap needs to be dense");
+		m_obj.setPointFast(idx, 0, 0, 0);
 	}
 };  // end of PointCloudAdapter<mrpt::maps::CPointsMap>
 }  // namespace opengl

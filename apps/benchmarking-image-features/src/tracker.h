@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -25,7 +25,7 @@
 #endif  // MRPT_TRACKER_H
 
 /// OpenCV includes
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 /// standard C++ includes
 #include <ctype.h>
@@ -60,7 +60,7 @@ class Tracker
 	bool hasResolution;
 	TCamera cameraParams;  // For now, will only hold the image resolution on
 	// the arrive of the first frame.
-	TSimpleFeatureList trackedFeats;
+	TKeyPointList trackedFeats;
 	unsigned int step_num;
 	bool SHOW_FEAT_IDS;
 	bool SHOW_RESPONSES;

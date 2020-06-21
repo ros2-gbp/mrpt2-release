@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,7 +12,7 @@
 #include <mrpt/vision/CFeatureExtraction.h>
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 using namespace mrpt;
 using namespace mrpt::img;
@@ -46,8 +46,6 @@ void CFeatureExtraction::extractFeaturesKLT(
 
 	const auto nPts = (nDesiredFeatures <= 0) ? MAX_COUNT : nDesiredFeatures;
 
-	const auto count = nPts;  // Number of points to find
-
 	// -----------------------------------------------------------------
 	// Select good features with subpixel accuracy (USING HARRIS OR KLT)
 	// -----------------------------------------------------------------
@@ -69,6 +67,8 @@ void CFeatureExtraction::extractFeaturesKLT(
 		options.harrisOptions.k);
 
 	profiler.leave("extractFeaturesKLT.goodFeaturesToTrack");
+
+	const unsigned int count = points.size();
 
 	if (nDesiredFeatures > 0 && count < nPts)
 		cout << "\n[WARNING][selectGoodFeaturesKLT]: Only " << count << " of "
@@ -97,43 +97,45 @@ void CFeatureExtraction::extractFeaturesKLT(
 	unsigned int imgH = inImg.getHeight();
 	unsigned int imgW = inImg.getWidth();
 
-	while (i < limit)
+	const float W = options.patchSize * 0.5f;
+
+	for (; i < limit; i++)
 	{
-		const int xBorderInf = (int)floor(points[i].x - options.patchSize / 2);
-		const int xBorderSup = (int)floor(points[i].x + options.patchSize / 2);
-		const int yBorderInf = (int)floor(points[i].y - options.patchSize / 2);
-		const int yBorderSup = (int)floor(points[i].y + options.patchSize / 2);
+		const int xBorderInf = (int)floor(points[i].x - W);
+		const int xBorderSup = (int)floor(points[i].x + W);
+		const int yBorderInf = (int)floor(points[i].y - W);
+		const int yBorderSup = (int)floor(points[i].y + W);
 
-		if (options.patchSize == 0 ||
-			((xBorderSup < (int)imgW) && (xBorderInf > 0) &&
-			 (yBorderSup < (int)imgH) && (yBorderInf > 0)))
+		if (options.patchSize != 0 &&
+			((xBorderSup >= (int)imgW) || (xBorderInf < 0) ||
+			 (yBorderSup >= (int)imgH) || (yBorderInf < 0)))
 		{
-			CFeature::Ptr ft = mrpt::make_aligned_shared<CFeature>();
-
-			ft->type = featKLT;
-			ft->x = points[i].x;  // X position
-			ft->y = points[i].y;  // Y position
-			ft->track_status = status_TRACKED;  // Feature Status
-			ft->response = 0.0;  // A value proportional to the quality of the
-			// feature (unused yet)
-			ft->ID = nCFeats++;  // Feature ID into extraction
-			ft->patchSize = options.patchSize;  // The size of the feature patch
-
-			if (options.patchSize > 0)
-			{
-				inImg.extract_patch(
-					ft->patch, round(ft->x) - offset, round(ft->y) - offset,
-					options.patchSize,
-					options.patchSize);  // Image patch surronding the feature
-			}
-
-			feats.push_back(ft);
-
-		}  // end if
-		else
 			borderFeats++;
+			continue;
+		}
 
-		i++;
+		CFeature ft;
+
+		ft.type = featKLT;
+		ft.keypoint.pt.x = points[i].x;  // X position
+		ft.keypoint.pt.y = points[i].y;  // Y position
+		ft.track_status = status_TRACKED;  // Feature Status
+		ft.response = 0.0;  // A value proportional to the quality of the
+		// feature (unused yet)
+		ft.keypoint.ID = nCFeats++;  // Feature ID into extraction
+		ft.patchSize = options.patchSize;  // The size of the feature patch
+
+		if (options.patchSize > 0)
+		{
+			ft.patch.emplace();
+			inImg.extract_patch(
+				*ft.patch, round(ft.keypoint.pt.x) - offset,
+				round(ft.keypoint.pt.y) - offset, options.patchSize,
+				options.patchSize);  // Image patch surronding the feature
+		}
+
+		feats.emplace_back(std::move(ft));
+
 	}  // end while
 
 #else

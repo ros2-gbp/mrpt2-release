@@ -2,13 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "poses-precomp.h"  // Precompiled headers
 
+#include <mrpt/math/TPose3D.h>
 #include <mrpt/poses/CPoses3DSequence.h>
 #include <mrpt/serialization/CArchive.h>
 
@@ -104,29 +105,18 @@ CPose3D CPoses3DSequence::absolutePoseAfterAll()
 	return absolutePoseOf(posesCount());
 }
 
-/*---------------------------------------------------------------
-	Returns the traveled distance after moving "n" poses, so for "n=0" it
- returns 0, for "n=1" the first traveled distance, and for "n=posesCount()", the
- total
-	distance after ALL movements.
- ---------------------------------------------------------------*/
-float CPoses3DSequence::computeTraveledDistanceAfter(unsigned int n)
+double CPoses3DSequence::computeTraveledDistanceAfter(size_t n)
 {
-	unsigned int i;
-	float dist = 0;
+	double dist = 0;
 
 	if (n > m_poses.size())
 		THROW_EXCEPTION("computeTraveledDistanceAfter: Index out of range!!");
 
-	for (i = 0; i < n; i++) dist += m_poses[i].norm();
+	for (size_t i = 0; i < n; i++) dist += m_poses[i].norm();
 	return dist;
 }
 
-/*---------------------------------------------------------------
-	Returns the traveled distance after ALL movements.
-	A shortcut for "computeTraveledDistanceAfter( posesCount() )".
- ---------------------------------------------------------------*/
-float CPoses3DSequence::computeTraveledDistanceAfterAll()
+double CPoses3DSequence::computeTraveledDistanceAfterAll()
 {
 	return computeTraveledDistanceAfter(posesCount());
 }

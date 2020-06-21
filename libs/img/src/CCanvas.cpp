@@ -2,20 +2,23 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "img-precomp.h"  // Precompiled headers
 
-#include <mrpt/core/bit_cast.h>
+#include <mrpt/core/reverse_bytes.h>
 #include <mrpt/core/round.h>
 #include <mrpt/img/CCanvas.h>
 #include <mrpt/img/CImage.h>
 #include <mrpt/io/zip.h>
+#include <mrpt/math/CMatrixFixed.h>
 #include <mrpt/system/os.h>
 #include <mrpt/system/string_utils.h>
+#include <Eigen/Dense>
+#include <cstring>  // memcpy
 #include <map>
 
 // Include the MRPT bitmap fonts:
@@ -42,11 +45,14 @@ using namespace mrpt;
 using namespace mrpt::img;
 using namespace std;
 
-// map<string,const uint32_t*>   list_registered_fonts;
-map<string, std::vector<uint8_t>>
-	list_registered_fonts;  // Each vector is the target
-// place where to uncompress
-// each font.
+struct FontData
+{
+	std::vector<uint8_t> data;
+	bool prepared_to_big_endian = false;
+};
+
+// Each vector is the target place where to uncompress each font.
+map<string, FontData> list_registered_fonts;
 bool list_fonts_init = false;
 
 void init_fonts_list()
@@ -93,7 +99,7 @@ void init_fonts_list()
 			&tmpBuf[0], mrpt_font_gz_##FONTNAME,                      \
 			sizeof(mrpt_font_gz_##FONTNAME));                         \
 		mrpt::io::zip::decompress_gz_data_block(                      \
-			tmpBuf, list_registered_fonts[#FONTNAME]);                \
+			tmpBuf, list_registered_fonts[#FONTNAME].data);           \
 	}
 
 		LOAD_FONT(5x7)
@@ -114,28 +120,12 @@ void init_fonts_list()
 }
 
 /*---------------------------------------------------------------
-						Constructor
----------------------------------------------------------------*/
-CCanvas::CCanvas() : m_selectedFont("9x15") {}
-/*---------------------------------------------------------------
 						line
 ---------------------------------------------------------------*/
 void CCanvas::line(
 	int x0, int y0, int x1, int y1, const mrpt::img::TColor color,
-	unsigned int width, TPenStyle penStyle)
+	[[maybe_unused]] unsigned int width, [[maybe_unused]] TPenStyle penStyle)
 {
-	MRPT_UNUSED_PARAM(width);
-	MRPT_UNUSED_PARAM(penStyle);
-
-	/*	// JL: worthy annoying so much?
-		static bool warningFirst = true;
-		if (warningFirst)
-		{
-			warningFirst=false;
-			printf("[CCanvas::line] WARNING: Using default drawing method,
-	   ignoring 'width' and 'penStyle'!!\n");
-		}*/
-
 	float x, y;
 
 	auto Ax = (float)(x1 - x0);
@@ -242,9 +232,20 @@ void CCanvas::selectTextFont(const std::string& fontName)
 	}
 	else
 	{
-		m_selectedFontBitmaps =
-			reinterpret_cast<const uint32_t*>(&it->second[0]);
+		FontData& fd = it->second;
+		m_selectedFontBitmaps = reinterpret_cast<const uint32_t*>(&fd.data[0]);
 		m_selectedFont = fontName;
+
+#if MRPT_IS_BIG_ENDIAN
+		// Fix endianness of char tables:
+		if (!fd.prepared_to_big_endian)
+		{
+			fd.prepared_to_big_endian = true;  // Only do once
+			uint32_t* ptr = reinterpret_cast<uint32_t*>(&fd.data[0]);
+			for (size_t i = 0; i < fd.data.size() / sizeof(uint32_t); i++)
+				mrpt::reverseBytesInPlace(ptr[i]);
+		}
+#endif
 	}
 }
 
@@ -289,14 +290,10 @@ void CCanvas::drawImage(int x, int y, const mrpt::img::CImage& img)
 						drawImage
 ---------------------------------------------------------------*/
 void CCanvas::drawImage(
-	int x, int y, const mrpt::img::CImage& img, float rotation, float scale)
+	[[maybe_unused]] int x, [[maybe_unused]] int y,
+	[[maybe_unused]] const mrpt::img::CImage& img,
+	[[maybe_unused]] float rotation, [[maybe_unused]] float scale)
 {
-	MRPT_UNUSED_PARAM(x);
-	MRPT_UNUSED_PARAM(y);
-	MRPT_UNUSED_PARAM(img);
-	MRPT_UNUSED_PARAM(rotation);
-	MRPT_UNUSED_PARAM(scale);
-
 	MRPT_START
 
 	THROW_EXCEPTION("Not implemented yet!! Try yourself! ;-)");
@@ -395,8 +392,8 @@ void CCanvas::textOut(
 	int py = y0;
 
 	// Char size:
-	uint32_t char_w = m_selectedFontBitmaps[0];
-	uint32_t char_h = m_selectedFontBitmaps[1];
+	int char_w = m_selectedFontBitmaps[0];
+	int char_h = m_selectedFontBitmaps[1];
 
 	for (unsigned short unichar : uniStr)
 	{
@@ -411,19 +408,22 @@ void CCanvas::textOut(
 			if (unichar <= charset_end && unichar >= charset_ini)
 			{
 				// Draw this character:
-				unsigned pyy = y_axis_reversed ? (py + char_h - 1) : py;
-				unsigned pxx;
+				int pyy = y_axis_reversed ? (py + char_h - 1) : py;
 
 				const uint32_t* char_bitmap =
 					table_ptr + 2 + char_h * (unichar - charset_ini);
 
-				for (unsigned y = 0; y < char_h;
+				for (int y = 0; y < char_h;
 					 y++, pyy += y_axis_reversed ? -1 : 1)
 				{
-					pxx = px;
-					const uint32_t& row = *char_bitmap++;
-					for (unsigned x = 0; x < char_w; x++, pxx++)
-						if (row & (1 << x)) setPixel(pxx, pyy, color);
+					// Use memcpy() here since directly dereferencing is an
+					// invalid operation in architectures (S390X) where
+					// unaligned accesses are forbiden:
+					uint32_t row;
+					memcpy(&row, char_bitmap, sizeof(row));
+					char_bitmap++;
+					for (int x = 0, pxx = px; x < char_w; x++, pxx++)
+						if (!!(row & (1 << x))) setPixel(pxx, pyy, color);
 				}
 
 				// Advance the raster cursor:
@@ -447,4 +447,48 @@ void CCanvas::textOut(
 	}
 
 	MRPT_END
+}
+
+void CCanvas::ellipseGaussian(
+	const mrpt::math::CMatrixFixed<double, 2, 2>& cov2D, const double mean_x,
+	const double mean_y, double confIntervalStds,
+	const mrpt::img::TColor& color, unsigned int width, int nEllipsePoints)
+{
+	MRPT_START
+	int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+	double ang;
+	mrpt::math::CMatrixFixed<double, 2, 2> eigVec, eigVals;
+	std::vector<double> eVals;
+	int i;
+
+	// Compute the eigen-vectors & values:
+	cov2D.eig(eigVec, eVals);
+	eigVals.setDiagonal(eVals);
+
+	eigVals.asEigen() = eigVals.array().sqrt().matrix();
+
+	mrpt::math::CMatrixFixed<double, 2, 2> M;
+	M.asEigen() = eigVals.asEigen() * eigVec.transpose();
+
+	// Compute the points of the 2D ellipse:
+	for (i = 0, ang = 0; i < nEllipsePoints;
+		 i++, ang += (M_2PI / (nEllipsePoints - 1)))
+	{
+		double ccos = cos(ang);
+		double ssin = sin(ang);
+
+		x2 = round(
+			mean_x + confIntervalStds * (ccos * M(0, 0) + ssin * M(1, 0)));
+		y2 = round(
+			mean_y + confIntervalStds * (ccos * M(0, 1) + ssin * M(1, 1)));
+
+		if (i > 0) line(x1, y1, x2, y2, color, width);
+
+		x1 = x2;
+		y1 = y2;
+	}  // end for points on ellipse
+
+	MRPT_END_WITH_CLEAN_UP(std::cout << "Covariance matrix leading to error is:"
+									 << std::endl
+									 << cov2D << std::endl;);
 }

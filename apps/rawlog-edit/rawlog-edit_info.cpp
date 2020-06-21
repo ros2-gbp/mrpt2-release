@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -119,7 +119,7 @@ DECLARE_OP_FUNCTION(op_info)
 		 << format(
 				"%.02f%%\n", 100.0 * double(proc.m_filSize) /
 								 double(in_rawlog.getPosition()));
-	cout << "Overall number of objects         : " << proc.m_rawlogEntry
+	cout << "Overall number of objects         : " << (proc.m_rawlogEntry + 1)
 		 << "\n";
 	cout << "Actions/SensoryFrame format       : "
 		 << (proc.has_actSF_format ? "Yes" : "No") << "\n";

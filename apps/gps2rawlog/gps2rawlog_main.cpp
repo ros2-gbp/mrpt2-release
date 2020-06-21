@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -21,7 +21,7 @@
 #include <mrpt/system/filesystem.h>
 #include <mrpt/system/os.h>
 
-#include <mrpt/otherlibs/tclap/CmdLine.h>
+#include <mrpt/3rdparty/tclap/CmdLine.h>
 
 using namespace mrpt;
 using namespace mrpt::hwdrivers;
@@ -67,9 +67,9 @@ int main(int argc, char** argv)
 		ASSERT_FILE_EXISTS_(input_gps_file);
 
 		// Open input rawlog:
-		CFileGZInputStream fil_input;
+		auto fil_input = std::make_shared<CFileGZInputStream>();
 		cout << "Opening for reading: '" << input_gps_file << "'...\n";
-		fil_input.open(input_gps_file);
+		fil_input->open(input_gps_file);
 		cout << "Open OK.\n";
 
 		// Open output:
@@ -88,14 +88,14 @@ int main(int argc, char** argv)
 
 		// GPS object:
 		CGPSInterface gps_if;
-		gps_if.bindStream(&fil_input);
+		gps_if.bindStream(fil_input);
 
 		auto arch = archiveFrom(fil_out);
 
 		// ------------------------------------
 		//  Parse:
 		// ------------------------------------
-		while (!fil_input.checkEOF())
+		while (!fil_input->checkEOF())
 		{
 			gps_if.doProcess();
 
@@ -104,7 +104,7 @@ int main(int argc, char** argv)
 
 			printf(
 				"%u bytes parsed, %u new observations identified...\n",
-				(unsigned)fil_input.getPosition(), (unsigned)lst_obs.size());
+				(unsigned)fil_input->getPosition(), (unsigned)lst_obs.size());
 			for (auto it = lst_obs.begin(); it != lst_obs.end(); ++it)
 			{
 				arch << *it->second;

@@ -2,14 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #pragma once
 
-#include <mrpt/math/lightweight_geom_data.h>
+#include <mrpt/math/TTwist2D.h>
 #include <mrpt/obs/CObservation.h>
 #include <mrpt/poses/CPose2D.h>
 #include <mrpt/poses/CPose3D.h>
@@ -28,7 +28,7 @@ namespace mrpt::obs
  */
 class CObservationOdometry : public CObservation
 {
-	DEFINE_SERIALIZABLE(CObservationOdometry)
+	DEFINE_SERIALIZABLE(CObservationOdometry, mrpt::obs)
 
    public:
 	/** Default ctor */

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,15 +11,16 @@
 
 #include <mrpt/maps/CBeacon.h>
 #include <mrpt/maps/CBeaconMap.h>
-#include <mrpt/obs/CObservation.h>
-#include <mrpt/serialization/CArchive.h>
-
 #include <mrpt/math/geometry.h>
-#include <mrpt/opengl/CEllipsoid.h>
+#include <mrpt/math/ops_matrices.h>
+#include <mrpt/obs/CObservation.h>
+#include <mrpt/opengl/CEllipsoid3D.h>
 #include <mrpt/opengl/CPointCloud.h>
 #include <mrpt/opengl/CSetOfObjects.h>
 #include <mrpt/opengl/CText.h>
+#include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/os.h>
+#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::maps;
@@ -79,23 +80,17 @@ void CBeacon::getMean(CPoint3D& p) const
 	MRPT_END
 }
 
-/*---------------------------------------------------------------
-					getCovarianceAndMean
-  ---------------------------------------------------------------*/
-void CBeacon::getCovarianceAndMean(CMatrixDouble33& COV, CPoint3D& p) const
+std::tuple<CMatrixDouble33, CPoint3D> CBeacon::getCovarianceAndMean() const
 {
 	MRPT_START
 	switch (m_typePDF)
 	{
 		case pdfMonteCarlo:
-			m_locationMC.getCovarianceAndMean(COV, p);
-			break;
+			return m_locationMC.getCovarianceAndMean();
 		case pdfGauss:
-			m_locationGauss.getCovarianceAndMean(COV, p);
-			break;
+			return m_locationGauss.getCovarianceAndMean();
 		case pdfSOG:
-			m_locationSOG.getCovarianceAndMean(COV, p);
-			break;
+			return m_locationSOG.getCovarianceAndMean();
 		default:
 			THROW_EXCEPTION("ERROR: Invalid 'm_typePDF' value");
 	};
@@ -231,7 +226,7 @@ void CBeacon::getAs3DObject(mrpt::opengl::CSetOfObjects::Ptr& outObj) const
 		case pdfMonteCarlo:
 		{
 			opengl::CPointCloud::Ptr obj =
-				mrpt::make_aligned_shared<opengl::CPointCloud>();
+				std::make_shared<opengl::CPointCloud>();
 			obj->setColor(1, 0, 0);
 
 			obj->setPointSize(2.5);
@@ -250,20 +245,19 @@ void CBeacon::getAs3DObject(mrpt::opengl::CSetOfObjects::Ptr& outObj) const
 		break;
 		case pdfGauss:
 		{
-			opengl::CEllipsoid::Ptr obj =
-				mrpt::make_aligned_shared<opengl::CEllipsoid>();
+			opengl::CEllipsoid3D::Ptr obj =
+				std::make_shared<opengl::CEllipsoid3D>();
 
 			obj->setPose(m_locationGauss.mean);
 			obj->setLineWidth(3);
 
 			CMatrixDouble C = CMatrixDouble(m_locationGauss.cov);
-			if (C(2, 2) == 0) C.setSize(2, 2);
 			obj->setCovMatrix(C);
 
 			obj->setQuantiles(3);
 			obj->enableDrawSolid3D(false);
 
-			obj->setColor(1, 0, 0, 0.85);
+			obj->setColor(1, 0, 0, 0.85f);
 			outObj->insert(obj);
 		}
 		break;
@@ -276,7 +270,7 @@ void CBeacon::getAs3DObject(mrpt::opengl::CSetOfObjects::Ptr& outObj) const
 			THROW_EXCEPTION("ERROR: Invalid 'm_typePDF' value");
 	};
 
-	opengl::CText::Ptr obj2 = mrpt::make_aligned_shared<opengl::CText>();
+	opengl::CText::Ptr obj2 = std::make_shared<opengl::CText>();
 	obj2->setString(format("#%d", static_cast<int>(m_ID)));
 
 	CPoint3D meanP;
@@ -399,32 +393,34 @@ densities such as they represent the position of the robot, not the sensor.
 
   ---------------------------------------------------------------*/
 void CBeacon::generateObservationModelDistribution(
-	const float& sensedRange, CPointPDFSOG& outPDF,
-	const CBeaconMap* myBeaconMap, const CPoint3D& sensorPntOnRobot,
-	const CPoint3D& centerPoint, const float& maxDistanceFromCenter) const
+	float sensedRange, CPointPDFSOG& outPDF, const CBeaconMap* myBeaconMap,
+	const CPoint3D& sensorPntOnRobot, const CPoint3D& centerPoint,
+	float maxDistanceFromCenter) const
 {
 	MRPT_START
 
-	const CPointPDFSOG* beaconPos = nullptr;
+	std::unique_ptr<CPointPDFSOG> beaconPos;
+	const CPointPDFSOG* beaconPosToUse = nullptr;
 
 	if (m_typePDF == pdfGauss)
 	{
 		// Copy the gaussian to the SOG:
-		auto* new_beaconPos = new CPointPDFSOG(1);
+		auto new_beaconPos = std::make_unique<CPointPDFSOG>(1);
 		new_beaconPos->push_back(CPointPDFSOG::TGaussianMode());
 		new_beaconPos->get(0).log_w = 0;
 		new_beaconPos->get(0).val = m_locationGauss;
-		beaconPos = new_beaconPos;
+		beaconPos = std::move(new_beaconPos);
+		beaconPosToUse = beaconPos.get();
 	}
 	else
 	{
 		ASSERT_(m_typePDF == pdfSOG);
-		beaconPos = static_cast<const CPointPDFSOG*>(&m_locationSOG);
+		beaconPosToUse = static_cast<const CPointPDFSOG*>(&m_locationSOG);
 	}
 
 	outPDF.clear();
 
-	for (const auto& beaconPo : *beaconPos)
+	for (const auto& beaconPo : *beaconPosToUse)
 	{
 		// The center of the ring to be generated
 		CPoint3D ringCenter(
@@ -452,8 +448,6 @@ void CBeacon::generateObservationModelDistribution(
 			outPDF.get(k).log_w = beaconPo.log_w;
 	}
 
-	if (m_typePDF == pdfGauss) delete beaconPos;
-
 	MRPT_END
 }
 
@@ -461,19 +455,21 @@ void CBeacon::generateObservationModelDistribution(
 					generateRingSOG
   ---------------------------------------------------------------*/
 void CBeacon::generateRingSOG(
-	const float& R, CPointPDFSOG& outPDF, const CBeaconMap* myBeaconMap,
+	float R, CPointPDFSOG& outPDF, const CBeaconMap* myBeaconMap,
 	const CPoint3D& sensorPnt,
 	const CMatrixDouble33* covarianceCompositionToAdd,
 	bool clearPreviousContentsOutPDF, const CPoint3D& centerPoint,
-	const float& maxDistanceFromCenter)
+	float maxDistanceFromCenter)
 {
 	MRPT_START
 
 	ASSERT_(myBeaconMap);
 
 	// Compute the number of Gaussians:
-	const float minEl = DEG2RAD(myBeaconMap->insertionOptions.minElevation_deg);
-	const float maxEl = DEG2RAD(myBeaconMap->insertionOptions.maxElevation_deg);
+	const double minEl =
+		DEG2RAD(myBeaconMap->insertionOptions.minElevation_deg);
+	const double maxEl =
+		DEG2RAD(myBeaconMap->insertionOptions.maxElevation_deg);
 	ASSERT_(
 		myBeaconMap->insertionOptions.minElevation_deg <=
 		myBeaconMap->insertionOptions.maxElevation_deg);
@@ -560,21 +556,19 @@ void CBeacon::generateRingSOG(
 
 				// Compute the covariance:
 				dir = dir - sensorPnt;
-				CMatrixDouble33 H =
-					CMatrixDouble33(math::generateAxisBaseFromDirection(
-						dir.x(), dir.y(),
-						dir.z()));  // 3 perpendicular & normalized vectors.
+				// 3 perpendicular & normalized vectors.
+				CMatrixDouble33 H = math::generateAxisBaseFromDirection(
+					dir.x(), dir.y(), dir.z());
 
-				H.multiply_HCHt(
-					S,
-					outPDF.get(modeIdx).val.cov);  // out = H * S * ~H;
-				if (minEl == maxEl)
+				// out = H * S * H';
+				outPDF.get(modeIdx).val.cov = mrpt::math::multiply_HCHt(H, S);
+
+				if (std::abs(minEl - maxEl) < 1e-6)
 				{  // We are in 2D:
 					// 3rd column/row = 0
 					CMatrixDouble33& C33 = outPDF.get(modeIdx).val.cov;
-					C33.get_unsafe(0, 2) = C33.get_unsafe(2, 0) =
-						C33.get_unsafe(1, 2) = C33.get_unsafe(2, 1) =
-							C33.get_unsafe(2, 2) = 0;
+					C33(0, 2) = C33(2, 0) = C33(1, 2) = C33(2, 1) = C33(2, 2) =
+						0;
 				}
 
 				// Add covariance for uncertainty composition?

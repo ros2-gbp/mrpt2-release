@@ -2,18 +2,19 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
-#include <mrpt/core/aligned_std_vector.h>
 #include <mrpt/gui/CDisplayWindowPlots.h>
-#include <mrpt/math/CArrayNumeric.h>
+#include <mrpt/math/CVectorFixed.h>
+#include <mrpt/math/TPoint2D.h>
 #include <mrpt/math/kmeans.h>
 #include <mrpt/random.h>
 #include <mrpt/system/CTicTac.h>
 #include <iostream>
+#include <vector>
 
 using namespace mrpt::math;
 using namespace mrpt::gui;
@@ -26,8 +27,8 @@ using namespace std;
 // ------------------------------------------------------
 void TestKMeans()
 {
-	typedef CArrayDouble<2> CPointType;
-	// typedef CArrayFloat<2>  CPointType;
+	typedef CVectorFixedDouble<2> CPointType;
+	// typedef CVectorFixedFloat<2>  CPointType;
 
 	getRandomGenerator().randomize();
 	CTicTac tictac;
@@ -39,13 +40,13 @@ void TestKMeans()
 	while (win.isOpen())
 	{
 		// Generate N clusters of random points:
-		mrpt::aligned_std_vector<CPointType> points;
+		std::vector<CPointType> points;
 		const size_t nClusters =
 			2 + (getRandomGenerator().drawUniform32bit() % 4);
 
 		for (size_t cl = 0; cl < nClusters; cl++)
 		{
-			const size_t nPts = getRandomGenerator().drawUniform(5, 50);
+			const size_t nPts = getRandomGenerator().drawUniform<size_t>(5, 50);
 
 			TPoint2D clCenter;
 			clCenter.x = getRandomGenerator().drawUniform(0, 10);
@@ -61,7 +62,7 @@ void TestKMeans()
 		}
 
 		// do k-means
-		mrpt::aligned_std_vector<CPointType> centers;
+		std::vector<CPointType> centers;
 		vector<int> assignments;
 		tictac.Tic();
 

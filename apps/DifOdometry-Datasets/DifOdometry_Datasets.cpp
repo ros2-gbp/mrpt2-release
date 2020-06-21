@@ -2,14 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "DifOdometry_Datasets.h"
 #include <mrpt/opengl/CBox.h>
-#include <mrpt/opengl/CEllipsoid.h>
+#include <mrpt/opengl/CEllipsoid3D.h>
 #include <mrpt/opengl/CFrustum.h>
 #include <mrpt/opengl/CGridPlaneXY.h>
 #include <mrpt/opengl/CPointCloud.h>
@@ -23,7 +23,6 @@ using namespace Eigen;
 using namespace std;
 using namespace mrpt;
 using namespace mrpt::opengl;
-
 using namespace mrpt::gui;
 using namespace mrpt::img;
 using namespace mrpt::obs;
@@ -48,6 +47,7 @@ void CDifodoDatasets::loadConfiguration(
 
 	//						Open Rawlog File
 	//==================================================================
+	std::cout << "Loading dataset from: " << filename << std::endl;
 	if (!dataset.loadFromRawLogFile(filename))
 		throw std::runtime_error(
 			"\nCouldn't open rawlog dataset file for input...");
@@ -114,18 +114,18 @@ void CDifodoDatasets::loadConfiguration(
 		depth[i].resize(rows_i, cols_i);
 		depth_inter[i].resize(rows_i, cols_i);
 		depth_old[i].resize(rows_i, cols_i);
-		depth[i].assign(0.0f);
-		depth_old[i].assign(0.0f);
+		depth[i].fill(0.0f);
+		depth_old[i].fill(0.0f);
 		xx[i].resize(rows_i, cols_i);
 		xx_inter[i].resize(rows_i, cols_i);
 		xx_old[i].resize(rows_i, cols_i);
-		xx[i].assign(0.0f);
-		xx_old[i].assign(0.0f);
+		xx[i].fill(0.0f);
+		xx_old[i].fill(0.0f);
 		yy[i].resize(rows_i, cols_i);
 		yy_inter[i].resize(rows_i, cols_i);
 		yy_old[i].resize(rows_i, cols_i);
-		yy[i].assign(0.0f);
-		yy_old[i].assign(0.0f);
+		yy[i].fill(0.0f);
+		yy_old[i].fill(0.0f);
 		transformations[i].resize(4, 4);
 
 		if (cols_i <= cols)
@@ -183,14 +183,8 @@ void CDifodoDatasets::initializeScene()
 
 	scene = window.get3DSceneAndLock();
 
-	// Lights:
-	scene->getViewport()->setNumberOfLights(1);
-	CLight& light0 = scene->getViewport()->getLight(0);
-	light0.light_ID = 0;
-	light0.setPosition(0, 0, 1, 1);
-
 	// Grid (ground)
-	CGridPlaneXY::Ptr ground = mrpt::make_aligned_shared<CGridPlaneXY>();
+	CGridPlaneXY::Ptr ground = std::make_shared<CGridPlaneXY>();
 	scene->insert(ground);
 
 	// Reference
@@ -201,21 +195,21 @@ void CDifodoDatasets::initializeScene()
 	//------------------------------------------------------
 
 	// DifOdo camera
-	CBox::Ptr camera_odo = mrpt::make_aligned_shared<CBox>(
+	CBox::Ptr camera_odo = std::make_shared<CBox>(
 		math::TPoint3D(-0.02, -0.1, -0.01), math::TPoint3D(0.02, 0.1, 0.01));
 	camera_odo->setPose(cam_pose + rel_lenspose);
 	camera_odo->setColor(0, 1, 0);
 	scene->insert(camera_odo);
 
 	// Groundtruth camera
-	CBox::Ptr camera_gt = mrpt::make_aligned_shared<CBox>(
+	CBox::Ptr camera_gt = std::make_shared<CBox>(
 		math::TPoint3D(-0.02, -0.1, -0.01), math::TPoint3D(0.02, 0.1, 0.01));
 	camera_gt->setPose(gt_pose + rel_lenspose);
 	camera_gt->setColor(1, 0, 0);
 	scene->insert(camera_gt);
 
 	// Frustum
-	opengl::CFrustum::Ptr FOV = mrpt::make_aligned_shared<opengl::CFrustum>(
+	opengl::CFrustum::Ptr FOV = std::make_shared<opengl::CFrustum>(
 		0.3f, 2, 57.3f * fovh, 57.3f * fovv, 1.f, true, false);
 	FOV->setColor(0.7, 0.7, 0.7);
 	FOV->setPose(gt_pose);
@@ -229,10 +223,9 @@ void CDifodoDatasets::initializeScene()
 
 	// Camera points
 	CPointCloudColoured::Ptr cam_points =
-		mrpt::make_aligned_shared<CPointCloudColoured>();
+		std::make_shared<CPointCloudColoured>();
 	cam_points->setColor(1, 0, 0);
 	cam_points->setPointSize(2);
-	cam_points->enablePointSmooth(true);
 	cam_points->setPose(cam_pose);
 	scene->insert(cam_points);
 
@@ -240,33 +233,31 @@ void CDifodoDatasets::initializeScene()
 	//-------------------------------------------------------------
 
 	// Dif Odometry
-	CSetOfLines::Ptr traj_lines_odo = mrpt::make_aligned_shared<CSetOfLines>();
+	CSetOfLines::Ptr traj_lines_odo = std::make_shared<CSetOfLines>();
 	traj_lines_odo->setLocation(0, 0, 0);
 	traj_lines_odo->setColor(0, 0.6, 0);
 	traj_lines_odo->setLineWidth(6);
 	scene->insert(traj_lines_odo);
-	CPointCloud::Ptr traj_points_odo = mrpt::make_aligned_shared<CPointCloud>();
+	CPointCloud::Ptr traj_points_odo = std::make_shared<CPointCloud>();
 	traj_points_odo->setColor(0, 0.6, 0);
 	traj_points_odo->setPointSize(4);
-	traj_points_odo->enablePointSmooth(true);
 	scene->insert(traj_points_odo);
 
 	// Groundtruth
-	CSetOfLines::Ptr traj_lines_gt = mrpt::make_aligned_shared<CSetOfLines>();
+	CSetOfLines::Ptr traj_lines_gt = std::make_shared<CSetOfLines>();
 	traj_lines_gt->setLocation(0, 0, 0);
 	traj_lines_gt->setColor(0.6, 0, 0);
 	traj_lines_gt->setLineWidth(6);
 	scene->insert(traj_lines_gt);
-	CPointCloud::Ptr traj_points_gt = mrpt::make_aligned_shared<CPointCloud>();
+	CPointCloud::Ptr traj_points_gt = std::make_shared<CPointCloud>();
 	traj_points_gt->setColor(0.6, 0, 0);
 	traj_points_gt->setPointSize(4);
-	traj_points_gt->enablePointSmooth(true);
 	scene->insert(traj_points_gt);
 
 	// Ellipsoid showing covariance
-	math::CMatrixFloat33 cov3d = 20.f * est_cov.topLeftCorner(3, 3);
-	CEllipsoid::Ptr ellip = mrpt::make_aligned_shared<CEllipsoid>();
-	ellip->setCovMatrix(cov3d);
+	const auto cov3d = math::CMatrixFloat33(20.f * est_cov.block<3, 3>(0, 0));
+	auto ellip = CEllipsoid3D::Create();
+	ellip->setCovMatrix(cov3d.cast_double());
 	ellip->setQuantiles(2.0);
 	ellip->setColor(1.0, 1.0, 1.0, 0.5);
 	ellip->enableDrawSolid3D(true);
@@ -342,9 +333,9 @@ void CDifodoDatasets::updateScene()
 	}
 
 	// Ellipsoid showing covariance
-	math::CMatrixFloat33 cov3d = 20.f * est_cov.topLeftCorner(3, 3);
-	CEllipsoid::Ptr ellip = scene->getByClass<CEllipsoid>(0);
-	ellip->setCovMatrix(cov3d);
+	const auto cov3d = math::CMatrixFloat33(20.f * est_cov.block<3, 3>(0, 0));
+	CEllipsoid3D::Ptr ellip = scene->getByClass<CEllipsoid3D>(0);
+	ellip->setCovMatrix(cov3d.cast_double());
 	ellip->setPose(cam_pose + rel_lenspose);
 
 	window.unlockAccess3DScene();
@@ -355,7 +346,7 @@ void CDifodoDatasets::loadFrame()
 {
 	CObservation::Ptr alfa = dataset.getAsObservation(rawlog_count);
 
-	while (!IS_CLASS(alfa, CObservation3DRangeScan))
+	while (!IS_CLASS(*alfa, CObservation3DRangeScan))
 	{
 		rawlog_count++;
 		if (dataset.size() <= rawlog_count)
@@ -369,7 +360,8 @@ void CDifodoDatasets::loadFrame()
 	CObservation3DRangeScan::Ptr obs3D =
 		std::dynamic_pointer_cast<CObservation3DRangeScan>(alfa);
 	obs3D->load();
-	const CMatrix range = obs3D->rangeImage;
+	const auto& range = obs3D->rangeImage;
+	const auto rangeUnits = obs3D->rangeUnits;
 	const unsigned int height = range.rows();
 	const unsigned int width = range.cols();
 
@@ -377,7 +369,8 @@ void CDifodoDatasets::loadFrame()
 		for (unsigned int i = 0; i < rows; i++)
 		{
 			const float z =
-				range(height - downsample * i - 1, width - downsample * j - 1);
+				range(height - downsample * i - 1, width - downsample * j - 1) *
+				rangeUnits;
 			if (z < 4.5f)
 				depth_wf(i, j) = z;
 			else
@@ -415,7 +408,7 @@ void CDifodoDatasets::loadFrame()
 
 	// Read the inmediatly previous groundtruth
 	double x0, y0, z0, qx0, qy0, qz0, w0, t0;
-	if (new_data == 1)
+	if (new_data)
 	{
 		f_gt >> x0;
 		f_gt >> y0;
@@ -477,8 +470,9 @@ void CDifodoDatasets::loadFrame()
 		}
 
 		// Sometimes the quaternion sign changes in the groundtruth
-		if (abs(qx0 + last_gt_data[3]) + abs(qy0 + last_gt_data[4]) +
-				abs(qz0 + last_gt_data[5]) + abs(w0 + last_gt_data[6]) <
+		if (std::abs(qx0 + last_gt_data[3]) + std::abs(qy0 + last_gt_data[4]) +
+				std::abs(qz0 + last_gt_data[5]) +
+				std::abs(w0 + last_gt_data[6]) <
 			0.05)
 		{
 			qx0 = -qx0;
@@ -551,7 +545,7 @@ void CDifodoDatasets::writeTrajectoryFile()
 {
 	// Don't take into account those iterations with consecutive equal depth
 	// images
-	if (abs(dt.sumAll()) > 0)
+	if (std::abs(dt.sum()) > 0)
 	{
 		mrpt::math::CQuaternionDouble quat;
 		CPose3D auxpose, transf;
@@ -566,9 +560,9 @@ void CDifodoDatasets::writeTrajectoryFile()
 		f_res << cam_pose[0] << " ";
 		f_res << cam_pose[1] << " ";
 		f_res << cam_pose[2] << " ";
-		f_res << quat(2) << " ";
-		f_res << quat(3) << " ";
-		f_res << -quat(1) << " ";
-		f_res << -quat(0) << endl;
+		f_res << quat[2] << " ";
+		f_res << quat[3] << " ";
+		f_res << -quat[1] << " ";
+		f_res << -quat[0] << endl;
 	}
 }

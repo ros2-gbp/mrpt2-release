@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -204,7 +204,7 @@ int main(int argc, char** argv)
 
 				// Add:
 				LM.createOneFeature();
-				LM.features[0]->type = featBeacon;
+				LM.features[0].type = featBeacon;
 				LM.ID = uniqueIds++;
 				LM.setPose(pt3D);
 
@@ -257,16 +257,13 @@ int main(int argc, char** argv)
 			{
 				if (random6DPath)
 				{  // 3D path
-					const double Ar = DEG2RAD(3);
+					const double Ar = 3.0_deg;
 					TPose3D Ap =
 						TPose3D(0.20 * cos(Ar), 0.20 * sin(Ar), 0, Ar, 0, 0);
 					// Ap.z  += getRandomGenerator().drawGaussian1D(0,0.05);
-					Ap.yaw +=
-						getRandomGenerator().drawGaussian1D(0, DEG2RAD(0.2));
-					Ap.pitch +=
-						getRandomGenerator().drawGaussian1D(0, DEG2RAD(2));
-					Ap.roll +=
-						getRandomGenerator().drawGaussian1D(0, DEG2RAD(4));
+					Ap.yaw += getRandomGenerator().drawGaussian1D(0, 0.2_deg);
+					Ap.pitch += getRandomGenerator().drawGaussian1D(0, 2.0_deg);
+					Ap.roll += getRandomGenerator().drawGaussian1D(0, 4.0_deg);
 
 					incPose3D = CPose3D(Ap);
 				}
@@ -275,7 +272,7 @@ int main(int argc, char** argv)
 					if (circularPath)
 					{
 						// Circular path:
-						float Ar = DEG2RAD(5);
+						float Ar = 5.0_deg;
 						incPose3D = CPose3D(
 							CPose2D(0.20f * cos(Ar), 0.20f * sin(Ar), Ar));
 					}
@@ -298,7 +295,7 @@ int main(int argc, char** argv)
 
 			// Simulate observations:
 			CObservationBearingRange::Ptr obs =
-				mrpt::make_aligned_shared<CObservationBearingRange>();
+				std::make_shared<CObservationBearingRange>();
 
 			obs->minSensorDistance = minSensorDistance;
 			obs->maxSensorDistance = maxSensorDistance;
@@ -374,7 +371,7 @@ int main(int argc, char** argv)
 				}
 
 				act.poseChange.mean = noisyIncPose;
-				act.poseChange.cov.eye();
+				act.poseChange.cov.setIdentity();
 
 				act.poseChange.cov(0, 0) = act.poseChange.cov(1, 1) =
 					act.poseChange.cov(2, 2) = square(odometryNoiseXY_std);
@@ -418,7 +415,7 @@ int main(int argc, char** argv)
 
 			mrpt::opengl::COpenGLScene::Ptr& scene = win.get3DSceneAndLock();
 
-			scene->insert(mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
+			scene->insert(mrpt::opengl::CGridPlaneXY::Create(
 				min_x - 10, max_x + 10, min_y - 10, max_y + 10, 0));
 			scene->insert(mrpt::opengl::stock_objects::CornerXYZ());
 
@@ -426,8 +423,7 @@ int main(int argc, char** argv)
 			for (auto it = landmarkMap.landmarks.begin();
 				 it != landmarkMap.landmarks.end(); ++it)
 			{
-				mrpt::opengl::CSphere::Ptr lm =
-					mrpt::make_aligned_shared<mrpt::opengl::CSphere>();
+				mrpt::opengl::CSphere::Ptr lm = mrpt::opengl::CSphere::Create();
 				lm->setColor(1, 0, 0);
 				lm->setRadius(0.1f);
 				lm->setLocation(it->pose_mean);
@@ -439,7 +435,7 @@ int main(int argc, char** argv)
 			// Insert all robot poses:
 			const size_t N = GT_path.rows();
 			mrpt::opengl::CSetOfLines::Ptr pathLines =
-				mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
+				mrpt::opengl::CSetOfLines::Create();
 			pathLines->setColor(0, 0, 1, 0.5);
 			pathLines->setLineWidth(3.0);
 			pathLines->resize(N - 1);

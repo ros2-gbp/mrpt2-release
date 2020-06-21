@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -135,7 +135,7 @@ void CIbeoLuxETH::dataCollection()
 			case SaveData:
 				// Create new observation object pointer
 				CObservation3DRangeScan::Ptr newObs =
-					mrpt::make_aligned_shared<CObservation3DRangeScan>();
+					std::make_shared<CObservation3DRangeScan>();
 				newObs->hasPoints3D = true;
 				newObs->maxRange = 200.00;
 

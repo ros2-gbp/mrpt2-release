@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/poses/CPointPDF.h>
 
 namespace mrpt::poses
@@ -21,7 +21,7 @@ namespace mrpt::poses
  */
 class CPointPDFGaussian : public CPointPDF
 {
-	DEFINE_SERIALIZABLE(CPointPDFGaussian)
+	DEFINE_SERIALIZABLE(CPointPDFGaussian, mrpt::poses)
 	DEFINE_SCHEMA_SERIALIZABLE()
 
    public:
@@ -43,14 +43,11 @@ class CPointPDFGaussian : public CPointPDF
 	/** The 3x3 covariance matrix */
 	mrpt::math::CMatrixDouble33 cov;
 
-	/** Returns an estimate of the point, (the mean, or mathematical expectation
-	 * of the PDF) */
 	void getMean(CPoint3D& p) const override;
-
-	/** Returns an estimate of the point covariance matrix (3x3 cov matrix) and
-	 * the mean, both at once.  \sa getMean */
-	void getCovarianceAndMean(
-		mrpt::math::CMatrixDouble33& cov, CPoint3D& mean_point) const override;
+	std::tuple<cov_mat_t, type_value> getCovarianceAndMean() const override
+	{
+		return {cov, mean};
+	}
 
 	/** Copy operator, translating if necesary (for example, between particles
 	 * and gaussian representations) */

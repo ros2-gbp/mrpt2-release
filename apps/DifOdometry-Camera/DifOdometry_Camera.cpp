@@ -2,15 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "DifOdometry_Camera.h"
-#include <mrpt/math/types_math.h>  // Eigen (with MRPT "plugin" in BaseMatrix<>)
 #include <mrpt/opengl/CBox.h>
-#include <mrpt/opengl/CEllipsoid.h>
+#include <mrpt/opengl/CEllipsoid3D.h>
 #include <mrpt/opengl/CFrustum.h>
 #include <mrpt/opengl/CGridPlaneXY.h>
 #include <mrpt/opengl/CPointCloud.h>
@@ -18,6 +17,7 @@
 #include <mrpt/opengl/CSetOfLines.h>
 #include <mrpt/opengl/stock_objects.h>
 #include <mrpt/system/filesystem.h>
+#include <Eigen/Dense>
 
 using namespace Eigen;
 using namespace std;
@@ -67,18 +67,18 @@ void CDifodoCamera::loadConfiguration(const mrpt::config::CConfigFileBase& ini)
 		depth[i].resize(rows_i, cols_i);
 		depth_inter[i].resize(rows_i, cols_i);
 		depth_old[i].resize(rows_i, cols_i);
-		depth[i].assign(0.0f);
-		depth_old[i].assign(0.0f);
+		depth[i].fill(0.0f);
+		depth_old[i].fill(0.0f);
 		xx[i].resize(rows_i, cols_i);
 		xx_inter[i].resize(rows_i, cols_i);
 		xx_old[i].resize(rows_i, cols_i);
-		xx[i].assign(0.0f);
-		xx_old[i].assign(0.0f);
+		xx[i].fill(0.0f);
+		xx_old[i].fill(0.0f);
 		yy[i].resize(rows_i, cols_i);
 		yy_inter[i].resize(rows_i, cols_i);
 		yy_old[i].resize(rows_i, cols_i);
-		yy[i].assign(0.0f);
-		yy_old[i].assign(0.0f);
+		yy[i].fill(0.0f);
+		yy_old[i].fill(0.0f);
 		transformations[i].resize(4, 4);
 
 		if (cols_i <= cols)
@@ -234,14 +234,8 @@ void CDifodoCamera::initializeScene()
 
 	scene = window.get3DSceneAndLock();
 
-	// Lights:
-	scene->getViewport()->setNumberOfLights(1);
-	CLight& light0 = scene->getViewport()->getLight(0);
-	light0.light_ID = 0;
-	light0.setPosition(0, 0, 1, 1);
-
 	// Grid (ground)
-	CGridPlaneXY::Ptr ground = mrpt::make_aligned_shared<CGridPlaneXY>();
+	CGridPlaneXY::Ptr ground = std::make_shared<CGridPlaneXY>();
 	scene->insert(ground);
 
 	// Reference
@@ -252,14 +246,14 @@ void CDifodoCamera::initializeScene()
 	//------------------------------------------------------
 
 	// DifOdo camera
-	CBox::Ptr camera_odo = mrpt::make_aligned_shared<CBox>(
+	CBox::Ptr camera_odo = std::make_shared<CBox>(
 		math::TPoint3D(-0.02, -0.1, -0.01), math::TPoint3D(0.02, 0.1, 0.01));
 	camera_odo->setPose(cam_pose + rel_lenspose);
 	camera_odo->setColor(0, 1, 0);
 	scene->insert(camera_odo);
 
 	// Frustum
-	opengl::CFrustum::Ptr FOV = mrpt::make_aligned_shared<opengl::CFrustum>(
+	opengl::CFrustum::Ptr FOV = std::make_shared<opengl::CFrustum>(
 		0.3, 2, 57.3 * fovh, 57.3 * fovv, 1.f, true, false);
 	FOV->setColor(0.7, 0.7, 0.7);
 	FOV->setPose(cam_pose);
@@ -273,9 +267,8 @@ void CDifodoCamera::initializeScene()
 
 	// Camera points
 	CPointCloudColoured::Ptr cam_points =
-		mrpt::make_aligned_shared<CPointCloudColoured>();
+		std::make_shared<CPointCloudColoured>();
 	cam_points->setPointSize(2);
-	cam_points->enablePointSmooth(true);
 	cam_points->setPose(cam_pose);
 	scene->insert(cam_points);
 
@@ -283,21 +276,22 @@ void CDifodoCamera::initializeScene()
 	//-------------------------------------------------------------
 
 	// Dif Odometry
-	CSetOfLines::Ptr traj_lines_odo = mrpt::make_aligned_shared<CSetOfLines>();
+	CSetOfLines::Ptr traj_lines_odo = std::make_shared<CSetOfLines>();
 	traj_lines_odo->setLocation(0, 0, 0);
 	traj_lines_odo->setColor(0, 0.6, 0);
 	traj_lines_odo->setLineWidth(6);
 	scene->insert(traj_lines_odo);
-	CPointCloud::Ptr traj_points_odo = mrpt::make_aligned_shared<CPointCloud>();
+	CPointCloud::Ptr traj_points_odo = std::make_shared<CPointCloud>();
 	traj_points_odo->setColor(0, 0.6, 0);
 	traj_points_odo->setPointSize(4);
-	traj_points_odo->enablePointSmooth(true);
 	scene->insert(traj_points_odo);
 
 	// Ellipsoid showing covariance
-	math::CMatrixFloat33 cov3d = 20.f * est_cov.topLeftCorner(3, 3);
-	CEllipsoid::Ptr ellip = mrpt::make_aligned_shared<CEllipsoid>();
-	ellip->setCovMatrix(cov3d);
+	math::CMatrixFloat33 cov3d = est_cov.extractMatrix<3, 3>(0, 0);
+	cov3d *= 20.f;
+
+	CEllipsoid3D::Ptr ellip = std::make_shared<CEllipsoid3D>();
+	ellip->setCovMatrix(cov3d.cast_double());
 	ellip->setQuantiles(2.0);
 	ellip->setColor(1.0, 1.0, 1.0, 0.5);
 	ellip->enableDrawSolid3D(true);
@@ -356,9 +350,9 @@ void CDifodoCamera::updateScene()
 	traj_points_odo->insertPoint(cam_pose.x(), cam_pose.y(), cam_pose.z());
 
 	// Ellipsoid showing covariance
-	math::CMatrixFloat33 cov3d = 20.f * est_cov.topLeftCorner(3, 3);
-	CEllipsoid::Ptr ellip = scene->getByClass<CEllipsoid>(0);
-	ellip->setCovMatrix(cov3d);
+	const auto cov3d = math::CMatrixFloat33(20.f * est_cov.block<3, 3>(0, 0));
+	CEllipsoid3D::Ptr ellip = scene->getByClass<CEllipsoid3D>(0);
+	ellip->setCovMatrix(cov3d.cast_double());
 	ellip->setPose(cam_pose + rel_lenspose);
 
 	window.unlockAccess3DScene();
@@ -409,8 +403,8 @@ void CDifodoCamera::writeTrajectoryFile()
 	f_res << cam_pose[0] << " ";
 	f_res << cam_pose[1] << " ";
 	f_res << cam_pose[2] << " ";
-	f_res << quat(2) << " ";
-	f_res << quat(3) << " ";
-	f_res << -quat(1) << " ";
-	f_res << -quat(0) << endl;
+	f_res << quat[2] << " ";
+	f_res << quat[3] << " ";
+	f_res << -quat[1] << " ";
+	f_res << -quat[0] << endl;
 }

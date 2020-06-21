@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -120,7 +120,7 @@ void Run_HMT_SLAM()
 	ASSERT_FILE_EXISTS_(rawlogFileName);
 	CFileGZInputStream rawlogFile(rawlogFileName);
 
-	mapping.logFmt(
+	mapping.logStr(
 		mrpt::system::LVL_INFO,
 		"---------------------------------------------------\n\n");
 
@@ -175,20 +175,20 @@ void Run_HMT_SLAM()
 		{
 			// Process the action and observations:
 			// --------------------------------------------
-			if (IS_CLASS(objFromRawlog, CActionCollection))
+			if (IS_CLASS(*objFromRawlog, CActionCollection))
 			{
 				mapping.pushAction(std::dynamic_pointer_cast<CActionCollection>(
 					objFromRawlog));  // Memory will be freed in mapping
 				// class
 			}
-			else if (IS_CLASS(objFromRawlog, CSensoryFrame))
+			else if (IS_CLASS(*objFromRawlog, CSensoryFrame))
 			{
 				mapping.pushObservations(
 					std::dynamic_pointer_cast<CSensoryFrame>(
 						objFromRawlog));  // Memory will be freed in mapping
 				// class
 			}
-			else if (IS_CLASS(objFromRawlog, CObservation))
+			else if (IS_CLASS(*objFromRawlog, CObservation))
 			{
 				mapping.pushObservation(std::dynamic_pointer_cast<CObservation>(
 					objFromRawlog));  // Memory will be freed in mapping

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)               |
    |                          https://www.mrpt.org/                            |
    |                                                                           |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file        |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file        |
    | See: https://www.mrpt.org/Authors - All rights reserved.                  |
    | Released under BSD License. See details in https://www.mrpt.org/License   |
    +---------------------------------------------------------------------------+
@@ -234,7 +234,7 @@ void CDocument::addMapToRenderizableMaps(
 				std::dynamic_pointer_cast<CMetricMap>(map.get_ptr());
 			if (ptr.get())
 			{
-				auto obj = mrpt::make_aligned_shared<CSetOfObjects>();
+				auto obj = std::make_shared<CSetOfObjects>();
 				ptr->getAs3DObject(obj);
 				renderMaps.emplace(SType(type, index), obj);
 			}

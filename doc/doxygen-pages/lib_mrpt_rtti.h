@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)               |
    |                          https://www.mrpt.org/                            |
    |                                                                           |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file        |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file        |
    | See: https://www.mrpt.org/Authors - All rights reserved.                  |
    | Released under BSD License. See details in https://www.mrpt.org/License   |
    +---------------------------------------------------------------------------+
@@ -21,6 +21,8 @@ registry, class factory, and inheritance information.
 This library is part of MRPT and can be installed in Debian-based systems with:
 
 		sudo apt install libmrpt-rtti-dev
+
+See: \ref mrpt_from_cmake
 
 Any class with RTTI support has to be derived from mrpt::rtti::CObject, either
 directly or via a hierarchy of inheriting classes.

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -346,7 +346,7 @@ bool CPtuDPerception::init(const string& port)
 	{
 		serPort.open(port);
 
-		cout << endl << "[INFO] Start PTU comunication config:" << endl;
+		cout << endl << "[INFO] Start PTU communication config:" << endl;
 
 		cout << "[PTU::OpenSerialPort] Opening serial port...";
 
@@ -646,7 +646,7 @@ bool CPtuDPerception::scan(
 	int initialPos = radToPos(axis, initial);
 	int finalPos = radToPos(axis, final);
 
-	totalSteps = abs(initialPos - finalPos);
+	totalSteps = std::abs(initialPos - finalPos);
 
 	// Performs first sweep
 	for (int i = 0; i < totalSteps / steps; i++)
@@ -816,11 +816,10 @@ void CPtuDPerception::nversion(double& nVersion)
 					   setLimits
 -------------------------------------------------------------*/
 
-bool CPtuDPerception::setLimits(char axis, double& l, double& u)
+bool CPtuDPerception::setLimits(
+	[[maybe_unused]] char axis, [[maybe_unused]] double& l,
+	[[maybe_unused]] double& u)
 {
-	MRPT_UNUSED_PARAM(axis);
-	MRPT_UNUSED_PARAM(l);
-	MRPT_UNUSED_PARAM(u);
 	cout << "[ERROR] Function not defined for this PTU model";
 	return false;
 }

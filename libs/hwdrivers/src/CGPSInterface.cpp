@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -50,17 +50,12 @@ struct TParsersRegistry
    ----------------------------------------------------- */
 CGPSInterface::CGPSInterface()
 	: mrpt::system::COutputLogger("CGPSInterface"),
-
 	  m_customInit(),
 	  m_rx_buffer(0x10000),
-
 	  m_raw_dump_file_prefix(),
 	  m_COMname(),
-
 	  m_last_timestamp(INVALID_TIMESTAMP),
-
 	  m_JAVAD_rtk_src_port(),
-
 	  m_JAVAD_rtk_format("cmr")
 {
 	m_sensorLabel = "GPS";
@@ -144,16 +139,7 @@ void CGPSInterface::loadConfig_sensorSpecific(
 				  iniSection, "outputRate", m_topcon_data_period);
 }
 
-CGPSInterface::~CGPSInterface()
-{
-	OnConnectionShutdown();
-
-	if (!m_data_stream_is_external)
-	{
-		delete m_data_stream;
-		m_data_stream = nullptr;
-	}
-}
+CGPSInterface::~CGPSInterface() { OnConnectionShutdown(); }
 
 void CGPSInterface::setParser(CGPSInterface::PARSERS parser)
 {
@@ -161,18 +147,13 @@ void CGPSInterface::setParser(CGPSInterface::PARSERS parser)
 }
 CGPSInterface::PARSERS CGPSInterface::getParser() const { return m_parser; }
 void CGPSInterface::bindStream(
-	mrpt::io::CStream* external_stream, std::mutex* csOptionalExternalStream)
+	const std::shared_ptr<mrpt::io::CStream>& external_stream,
+	const std::shared_ptr<std::mutex>& csOptionalExternalStream)
 {
-	if (!m_data_stream_is_external)
-	{
-		delete m_data_stream;
-		m_data_stream = nullptr;
-	}
-
 	m_data_stream_is_external = true;
 	m_data_stream = external_stream;
 	m_data_stream_cs = csOptionalExternalStream ? csOptionalExternalStream
-												: &m_data_stream_mine_cs;
+												: m_data_stream_mine_cs;
 }
 void CGPSInterface::setSetupCommandsDelay(const double delay_secs)
 {
@@ -221,7 +202,8 @@ void CGPSInterface::setSerialPortName(const std::string& COM_port)
 	if (m_data_stream)
 	{
 		std::lock_guard<std::mutex> lock(*m_data_stream_cs);
-		auto serial = dynamic_cast<mrpt::comms::CSerialPort*>(m_data_stream);
+		auto serial =
+			dynamic_cast<mrpt::comms::CSerialPort*>(m_data_stream.get());
 		if (serial && serial->isOpen())
 			THROW_EXCEPTION(
 				"Cannot change serial port name when it is already open");
@@ -243,12 +225,12 @@ bool CGPSInterface::tryToOpenTheCOM()
 	// If this is the first use of the COM port, create it:
 	if (!m_data_stream)
 	{
-		m_data_stream = new mrpt::comms::CSerialPort();
+		m_data_stream = std::make_shared<mrpt::comms::CSerialPort>();
 		m_data_stream_is_external = false;
-		m_data_stream_cs = &m_data_stream_mine_cs;
+		m_data_stream_cs = m_data_stream_mine_cs;
 	}
 
-	auto serial = dynamic_cast<CSerialPort*>(m_data_stream);
+	auto serial = dynamic_cast<CSerialPort*>(m_data_stream.get());
 	if (serial)
 	{
 		{
@@ -304,8 +286,8 @@ void CGPSInterface::doProcess()
 		THROW_EXCEPTION("Could not open the input stream");
 	}
 	ASSERT_(m_data_stream != nullptr);
-	auto* stream_serial = dynamic_cast<CSerialPort*>(m_data_stream);
-	auto* stream_tcpip = dynamic_cast<CClientTCPSocket*>(m_data_stream);
+	auto* stream_serial = dynamic_cast<CSerialPort*>(m_data_stream.get());
+	auto* stream_tcpip = dynamic_cast<CClientTCPSocket*>(m_data_stream.get());
 
 	// Read as many bytes as available:
 	uint8_t buf[0x1000];
@@ -436,8 +418,8 @@ void CGPSInterface::doProcess()
 			// a. These GPS data have both synched RMC and GGA data
 			// don't append observation until we have both data
 			do_append_obs =
-				(m_just_parsed_messages.has_GGA_datum &&
-				 m_just_parsed_messages.has_RMC_datum);
+				(m_just_parsed_messages.has_GGA_datum() &&
+				 m_just_parsed_messages.has_RMC_datum());
 		}  // end-else
 
 		if (do_append_obs) flushParsedMessagesNow();
@@ -456,7 +438,7 @@ void CGPSInterface::flushParsedMessagesNow()
 	else
 		m_just_parsed_messages.sensorLabel = m_sensorLabel;
 	// Add observation to the output queue:
-	CObservationGPS::Ptr newObs = mrpt::make_aligned_shared<CObservationGPS>();
+	CObservationGPS::Ptr newObs = std::make_shared<CObservationGPS>();
 	m_just_parsed_messages.swap(*newObs);
 	CGenericSensor::appendObservation(newObs);
 	m_just_parsed_messages.clear();
@@ -541,7 +523,7 @@ void CGPSInterface::JAVAD_sendMessage(const char* str, bool waitForAnswer)
 {
 	if (!str) return;
 	const size_t len = strlen(str);
-	auto* stream_serial = dynamic_cast<CSerialPort*>(m_data_stream);
+	auto* stream_serial = dynamic_cast<CSerialPort*>(m_data_stream.get());
 	if (!stream_serial) return;
 
 	size_t written;
@@ -591,7 +573,7 @@ void CGPSInterface::JAVAD_sendMessage(const char* str, bool waitForAnswer)
 
 bool CGPSInterface::OnConnectionShutdown()
 {
-	auto* stream_serial = dynamic_cast<CSerialPort*>(m_data_stream);
+	auto* stream_serial = dynamic_cast<CSerialPort*>(m_data_stream.get());
 
 	if (stream_serial && !stream_serial->isOpen()) return false;
 
@@ -636,7 +618,7 @@ bool CGPSInterface::OnConnectionEstablished()
 	}
 
 	// Purge input:
-	auto* stream_serial = dynamic_cast<CSerialPort*>(m_data_stream);
+	auto* stream_serial = dynamic_cast<CSerialPort*>(m_data_stream.get());
 	if (stream_serial)
 	{
 		std::lock_guard<std::mutex> lock(*m_data_stream_cs);
@@ -689,7 +671,7 @@ bool CGPSInterface::unsetJAVAD_AIM_mode()
 		std::this_thread::sleep_for(1000ms);
 
 		// Purge input:
-		auto* stream_serial = dynamic_cast<CSerialPort*>(m_data_stream);
+		auto* stream_serial = dynamic_cast<CSerialPort*>(m_data_stream.get());
 		if (stream_serial)
 		{
 			std::lock_guard<std::mutex> lock(*m_data_stream_cs);
@@ -800,7 +782,7 @@ bool CGPSInterface::legacy_topcon_setup_commands()
 	std::this_thread::sleep_for(1000ms);
 
 	// Purge input:
-	auto* stream_serial = dynamic_cast<CSerialPort*>(m_data_stream);
+	auto* stream_serial = dynamic_cast<CSerialPort*>(m_data_stream.get());
 	if (stream_serial)
 	{
 		std::lock_guard<std::mutex> lock(*m_data_stream_cs);

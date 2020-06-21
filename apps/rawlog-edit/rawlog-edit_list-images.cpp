@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -34,8 +34,8 @@ DECLARE_OP_FUNCTION(op_list_images)
 	   public:
 		CRawlogProcessor_ListImages(
 			CFileGZInputStream& in_rawlog, TCLAP::CmdLine& cmdline,
-			bool verbose)
-			: CRawlogProcessorOnEachObservation(in_rawlog, cmdline, verbose)
+			bool Verbose)
+			: CRawlogProcessorOnEachObservation(in_rawlog, cmdline, Verbose)
 		{
 			getArgValue<std::string>(cmdline, "text-file-output", m_out_file);
 			VERBOSE_COUT << "Writing list to: " << m_out_file << endl;
@@ -52,7 +52,7 @@ DECLARE_OP_FUNCTION(op_list_images)
 			const string label_time = format(
 				"%s_%f", obs->sensorLabel.c_str(),
 				timestampTotime_t(obs->timestamp));
-			if (IS_CLASS(obs, CObservationStereoImages))
+			if (IS_CLASS(*obs, CObservationStereoImages))
 			{
 				CObservationStereoImages::Ptr obsSt =
 					std::dynamic_pointer_cast<CObservationStereoImages>(obs);
@@ -65,7 +65,7 @@ DECLARE_OP_FUNCTION(op_list_images)
 					m_out << obsSt->imageRight.getExternalStorageFile()
 						  << std::endl;
 			}
-			else if (IS_CLASS(obs, CObservationImage))
+			else if (IS_CLASS(*obs, CObservationImage))
 			{
 				CObservationImage::Ptr obsIm =
 					std::dynamic_pointer_cast<CObservationImage>(obs);
@@ -73,7 +73,7 @@ DECLARE_OP_FUNCTION(op_list_images)
 				if (obsIm->image.isExternallyStored())
 					m_out << obsIm->image.getExternalStorageFile() << std::endl;
 			}
-			else if (IS_CLASS(obs, CObservation3DRangeScan))
+			else if (IS_CLASS(*obs, CObservation3DRangeScan))
 			{
 				CObservation3DRangeScan::Ptr obs3D =
 					std::dynamic_pointer_cast<CObservation3DRangeScan>(obs);

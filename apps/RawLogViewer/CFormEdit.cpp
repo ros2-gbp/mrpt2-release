@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -475,65 +475,38 @@ CFormEdit::CFormEdit(wxWindow* parent, wxWindowID id)
 	FlexGridSizer1->SetSizeHints(this);
 	Center();
 
-	Connect(
-		ID_RADIOBUTTON1, wxEVT_COMMAND_RADIOBUTTON_SELECTED,
-		(wxObjectEventFunction)&CFormEdit::OnrbLoadedSelect);
-	Connect(
-		ID_RADIOBUTTON2, wxEVT_COMMAND_RADIOBUTTON_SELECTED,
-		(wxObjectEventFunction)&CFormEdit::OnrbFileSelect);
-	Connect(
-		ID_BUTTON9, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormEdit::OnbtnPickInputClick);
-	Connect(
-		ID_BUTTON11, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormEdit::OnbtnPickOutClick);
-	Connect(
-		ID_SLIDER1, wxEVT_SCROLL_THUMBTRACK,
-		(wxObjectEventFunction)&CFormEdit::OnslFirstCmdScrollChanged);
-	Connect(
-		ID_SLIDER1, wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&CFormEdit::OnslFirstCmdScrollChanged);
-	Connect(
-		ID_SLIDER2, wxEVT_SCROLL_THUMBTRACK,
-		(wxObjectEventFunction)&CFormEdit::OnslToCmdScrollChanged);
-	Connect(
-		ID_SLIDER2, wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&CFormEdit::OnslToCmdScrollChanged);
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormEdit::OnbtnKeepClick);
-	Connect(
-		ID_BUTTON2, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormEdit::OnbtnDeleteClick);
-	Connect(
-		ID_BUTTON4, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormEdit::OnbtnDelObsIndxClick);
-	Connect(
-		ID_BUTTON5, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormEdit::OnbtnRemActsIndxClick);
-	Connect(
-		ID_BUTTON7, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormEdit::OnbtnRemoveObsClassClick);
-	Connect(
-		ID_BUTTON8, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormEdit::OnbtnRemoveAllButByClassClick1);
-	Connect(
-		ID_BUTTON10, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormEdit::OnRemoveByLabel);
-	Connect(
-		ID_BUTTON12, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormEdit::OnRemoveButLabel);
-	Connect(
-		ID_BUTTON13, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormEdit::OnbtnLeaveHorizScansClick);
-	Connect(
-		ID_BUTTON3, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormEdit::OnbtnImgSwapClick);
-	Connect(
-		ID_BUTTON6, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormEdit::OnbtnCloseClick);
-	Connect(
-		wxID_ANY, wxEVT_INIT_DIALOG, (wxObjectEventFunction)&CFormEdit::OnInit);
+	Bind(
+		wxEVT_RADIOBUTTON, &CFormEdit::OnrbLoadedSelect, this, ID_RADIOBUTTON1);
+	Bind(wxEVT_RADIOBUTTON, &CFormEdit::OnrbFileSelect, this, ID_RADIOBUTTON2);
+	Bind(wxEVT_BUTTON, &CFormEdit::OnbtnPickInputClick, this, ID_BUTTON9);
+	Bind(wxEVT_BUTTON, &CFormEdit::OnbtnPickOutClick, this, ID_BUTTON11);
+	Bind(
+		wxEVT_SCROLL_THUMBTRACK, &CFormEdit::OnslFirstCmdScrollChanged, this,
+		ID_SLIDER1);
+	Bind(
+		wxEVT_SCROLL_CHANGED, &CFormEdit::OnslFirstCmdScrollChanged, this,
+		ID_SLIDER1);
+	Bind(
+		wxEVT_SCROLL_THUMBTRACK, &CFormEdit::OnslToCmdScrollChanged, this,
+		ID_SLIDER2);
+	Bind(
+		wxEVT_SCROLL_CHANGED, &CFormEdit::OnslToCmdScrollChanged, this,
+		ID_SLIDER2);
+	Bind(wxEVT_BUTTON, &CFormEdit::OnbtnKeepClick, this, ID_BUTTON1);
+	Bind(wxEVT_BUTTON, &CFormEdit::OnbtnDeleteClick, this, ID_BUTTON2);
+	Bind(wxEVT_BUTTON, &CFormEdit::OnbtnDelObsIndxClick, this, ID_BUTTON4);
+	Bind(wxEVT_BUTTON, &CFormEdit::OnbtnRemActsIndxClick, this, ID_BUTTON5);
+	Bind(wxEVT_BUTTON, &CFormEdit::OnbtnRemoveObsClassClick, this, ID_BUTTON7);
+	Bind(
+		wxEVT_BUTTON, &CFormEdit::OnbtnRemoveAllButByClassClick1, this,
+		ID_BUTTON8);
+	Bind(wxEVT_BUTTON, &CFormEdit::OnRemoveByLabel, this, ID_BUTTON10);
+	Bind(wxEVT_BUTTON, &CFormEdit::OnRemoveButLabel, this, ID_BUTTON12);
+	Bind(
+		wxEVT_BUTTON, &CFormEdit::OnbtnLeaveHorizScansClick, this, ID_BUTTON13);
+	Bind(wxEVT_BUTTON, &CFormEdit::OnbtnImgSwapClick, this, ID_BUTTON3);
+	Bind(wxEVT_BUTTON, &CFormEdit::OnbtnCloseClick, this, ID_BUTTON6);
+	Bind(wxEVT_INIT_DIALOG, &CFormEdit::OnInit, this, wxID_ANY);
 	//*)
 }
 
@@ -782,7 +755,7 @@ void filter_swapColors(
 	{
 		for (auto obs : *SF)
 		{
-			if (IS_CLASS(obs, CObservationImage))
+			if (IS_CLASS(*obs, CObservationImage))
 			{
 				auto* o = (CObservationImage*)obs.get();
 				if (o->image.isColor())
@@ -791,7 +764,7 @@ void filter_swapColors(
 					changesCount++;
 				}
 			}
-			else if (IS_CLASS(obs, CObservationStereoImages))
+			else if (IS_CLASS(*obs, CObservationStereoImages))
 			{
 				auto* o = (CObservationStereoImages*)obs.get();
 				if (o->imageLeft.isColor())
@@ -996,6 +969,8 @@ void CFormEdit::executeOperationOnRawlog(
 		wxPD_CAN_ABORT | wxPD_APP_MODAL | wxPD_SMOOTH | wxPD_AUTO_HIDE |
 			wxPD_ELAPSED_TIME | wxPD_ESTIMATED_TIME | wxPD_REMAINING_TIME);
 
+	CRawlogTreeView::RAWLOG_UNDERGOING_CHANGES = true;
+
 	wxTheApp->Yield();  // Let the app. process messages
 
 	unsigned int countLoop = 0;
@@ -1003,7 +978,7 @@ void CFormEdit::executeOperationOnRawlog(
 	string errorMsg;
 	wxString auxStr;
 
-	CSensoryFrame::Ptr dummy_sf = mrpt::make_aligned_shared<CSensoryFrame>();
+	CSensoryFrame::Ptr dummy_sf = std::make_shared<CSensoryFrame>();
 
 	// Apply changes:
 	int changes = 0;
@@ -1134,6 +1109,8 @@ void CFormEdit::executeOperationOnRawlog(
 	if (out_fil) delete out_fil;
 
 	WX_END_TRY
+
+	CRawlogTreeView::RAWLOG_UNDERGOING_CHANGES = false;
 }
 
 // Remove observations by class name:
@@ -1213,7 +1190,7 @@ void CFormEdit::OnRemoveButLabel(wxCommandEvent& event)
 
 void CFormEdit::OnslFromCmdScroll(wxScrollEvent& event) {}
 void CFormEdit::OnslFromCmdScroll1(wxScrollEvent& event) {}
-double minPitchToDeleteLaserScan = DEG2RAD(1.2);
+double minPitchToDeleteLaserScan = 1.2_deg;
 
 void leave_horizontalScans(
 	mrpt::obs::CActionCollection* acts, mrpt::obs::CSensoryFrame* SF,
@@ -1225,7 +1202,7 @@ void leave_horizontalScans(
 		{
 			CObservation::Ptr obs = *it;
 
-			if (IS_CLASS(obs, CObservation2DRangeScan))
+			if (IS_CLASS(*obs, CObservation2DRangeScan))
 			{
 				auto* o = static_cast<CObservation2DRangeScan*>(obs.get());
 

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -18,13 +18,13 @@ using namespace mrpt::slam;
 /*---------------------------------------------------------------
 					TKLDParams
  ---------------------------------------------------------------*/
-TKLDParams::TKLDParams() : KLD_binSize_PHI(DEG2RAD(5)) {}
+TKLDParams::TKLDParams() : KLD_binSize_PHI(5.0_deg) {}
 /*---------------------------------------------------------------
 					dumpToTextStream
   ---------------------------------------------------------------*/
 void TKLDParams::dumpToTextStream(std::ostream& out) const
 {
-	out << mrpt::format("\n----------- [TKLDParams] ------------ \n\n");
+	out << "\n----------- [TKLDParams] ------------ \n\n";
 
 	out << mrpt::format(
 		"KLD_minSampleSize                       = %i\n", KLD_minSampleSize);
@@ -39,7 +39,7 @@ void TKLDParams::dumpToTextStream(std::ostream& out) const
 		"KLD_delta                               = %f\n", KLD_delta);
 	out << mrpt::format(
 		"KLD_epsilon                             = %f\n", KLD_epsilon);
-	out << mrpt::format("\n");
+	out << "\n";
 }
 
 /*---------------------------------------------------------------

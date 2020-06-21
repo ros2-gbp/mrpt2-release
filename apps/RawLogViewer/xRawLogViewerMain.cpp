@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -33,7 +33,6 @@
 #include "xRawLogViewerApp.h"
 
 #include <mrpt/containers/stl_containers_utils.h>
-#include <mrpt/core/aligned_std_map.h>
 #include <mrpt/gui/WxUtils.h>
 #include <mrpt/gui/about_box.h>
 #include <mrpt/io/CFileGZInputStream.h>
@@ -54,6 +53,7 @@
 #include <mrpt/system/filesystem.h>
 #include <mrpt/system/memory.h>
 #include <mrpt/vision/CVideoFileWriter.h>
+#include <map>
 
 #include <mrpt/obs/CObservation2DRangeScan.h>
 #include <mrpt/obs/CObservation3DRangeScan.h>
@@ -159,7 +159,7 @@ double experimentLenght = 0;
 
 xRawLogViewerFrame* theMainWindow = nullptr;
 
-extern CConfigFile* iniFile;
+extern std::unique_ptr<CConfigFile> iniFile;
 
 // As a global variable to keep the user selections in memory.
 CFormRawMap* formRawMap = nullptr;
@@ -1434,298 +1434,213 @@ xRawLogViewerFrame::xRawLogViewerFrame(wxWindow* parent, wxWindowID id)
 	timAutoLoad.Start(50, true);
 	FlexGridSizer1->SetSizeHints(this);
 
-	Connect(
-		ID_BUTTON2, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnFileOpen);
-	Connect(
-		ID_BUTTON3, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnSaveFile);
-	Connect(
-		ID_BUTTON4, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnEditRawlog);
-	Connect(
-		ID_BUTTON5, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnRawMapOdo);
-	Connect(
-		ID_BUTTON6, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnChangeMotionModel);
-	Connect(
-		ID_BUTTON7, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnShowICP);
-	Connect(
-		ID_BUTTON8, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnShowAnimateScans);
-	Connect(
-		ID_BUTTON9, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnShowImagesAsVideo);
-	Connect(
-		ID_BUTTON10, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnAbout);
-	Connect(
-		ID_BUTTON11, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnQuit);
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnbtnEditCommentsClick1);
-	Connect(
-		ID_SLIDER1,
-		wxEVT_SCROLL_TOP | wxEVT_SCROLL_BOTTOM | wxEVT_SCROLL_LINEUP |
-			wxEVT_SCROLL_LINEDOWN | wxEVT_SCROLL_PAGEUP |
-			wxEVT_SCROLL_PAGEDOWN | wxEVT_SCROLL_THUMBTRACK |
-			wxEVT_SCROLL_THUMBRELEASE | wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::
-			Onslid3DcamConfCmdScrollChanged);
-	Connect(
-		ID_SLIDER1, wxEVT_SCROLL_THUMBTRACK,
-		(wxObjectEventFunction)&xRawLogViewerFrame::
-			Onslid3DcamConfCmdScrollChanged);
-	Connect(
-		ID_SLIDER1, wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::
-			Onslid3DcamConfCmdScrollChanged);
-	Connect(
-		ID_NOTEBOOK1, wxEVT_COMMAND_NOTEBOOK_PAGE_CHANGING,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnNotebook1PageChanging);
-	Connect(
-		ID_MENUITEM1, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnFileOpen);
-	Connect(
-		ID_MENUITEM2, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnSaveFile);
-	Connect(
-		ID_MENUITEM76, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuRevert);
-	Connect(
-		ID_MENUITEM7, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnLoadAPartOnly);
-	Connect(
-		ID_MENUITEM8, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnFileCountEntries);
-	Connect(
-		ID_MENUITEM10, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnFileSaveImages);
-	Connect(
-		ID_MENUITEM62, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::
-			OnMenuConvertExternallyStored);
-	Connect(
-		ID_MENUITEM64, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::
-			OnMenuConvertObservationOnly);
-	Connect(
-		ID_MENUITEM13, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::
-			OnFileGenVisualLMFromStereoImages);
-	Connect(
-		ID_MENUITEM60, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuLossLessDecFILE);
-	Connect(
-		ID_MENUITEM61, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenCompactFILE);
-	Connect(
-		ID_MENUITEM5, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnImportCARMEN);
-	Connect(
-		ID_MENUITEM47, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnImportSequenceOfImages);
-	Connect(
-		ID_MENUITEM56, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuImportALOG);
-	Connect(
-		ID_MENUITEM63, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnImportRTL);
-	Connect(
-		ID_MENUITEM87, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::
-			OnMenuItemImportBremenDLRLog);
-	Connect(
-		ID_MENUITEM58, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnGenOdoLaser);
-	Connect(
-		ID_MENUITEM55, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuExportALOG);
-	Connect(
-		idMenuQuit, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnQuit);
-	Connect(
-		ID_MENUITEM14, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnEditRawlog);
-	Connect(
-		ID_MENUITEM51, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuInsertComment);
-	Connect(
-		ID_MENUITEM69, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuRenameSensor);
-	Connect(
-		ID_MENUITEM91, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuRenameSingleObs);
-	Connect(
-		ID_MENUITEM15, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnChangeSensorPositions);
-	Connect(
-		ID_MENUITEM70, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuChangePosesBatch);
-	Connect(
-		ID_MENUITEM16, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnDecimateRecords);
-	Connect(
-		ID_MENUITEM59, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuLossLessDecimate);
-	Connect(
-		ID_MENUITEM57, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuCompactRawlog);
-	Connect(
-		ID_MENUITEM75, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuConvertSF);
-	Connect(
-		ID_MENUITEM67, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuResortByTimestamp);
-	Connect(
-		ID_MENUITEM68, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::
-			OnMenuShiftTimestampsByLabel);
-	Connect(
-		ID_MENUITEM82, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::
-			OnMenuRegenerateTimestampBySF);
-	Connect(
-		ID_MENUITEM20, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnChangeMotionModel);
-	Connect(
-		ID_MENUITEM22, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnRecalculateActionsICP);
-	Connect(
-		ID_MENUITEM53, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::
-			OnMenuModifyICPActionsUncertainty);
-	Connect(
-		ID_MENUITEM23, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnRecomputeOdometry);
-	Connect(
-		ID_MENUITEM41, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnForceEncodersFalse);
-	Connect(
-		ID_MENUITEM84, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::
-			OnMenuRegenerateOdometryTimes);
-	Connect(
-		ID_MENUITEM17, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnShowICP);
-	Connect(
-		ID_MENUITEM44, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnShowAnimateScans);
-	Connect(
-		ID_MENUITEM19, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnCountBadScans);
-	Connect(
-		ID_MENUITEM25, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnFilterErroneousScans);
-	Connect(
-		ID_MENUITEM73, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuMarkLaserScanInvalid);
-	Connect(
-		ID_MENUITEM74, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuChangeMaxRangeLaser);
-	Connect(
-		ID_MENUITEM77, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::
-			OnMenuBatchLaserExclusionZones);
-	Connect(
-		ID_MENUITEM79, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnLaserFilterAngles);
-	Connect(
-		ID_MENUITEM86, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::
-			OnMenuItem3DObsRecoverParams);
-	Connect(
-		ID_MENUITEM29, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnGenerateSeqImgs);
-	Connect(
-		ID_MENUITEM9, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnShowImagesAsVideo);
-	Connect(
-		ID_MENUITEM71, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuMono2Stereo);
-	Connect(
-		ID_MENUITEM72, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuRectifyImages);
-	Connect(
-		ID_MENUITEM78, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuRenameImageFiles);
-	Connect(
-		ID_MENUITEM83, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnmnuCreateAVISelected);
-	Connect(
-		ID_MENUITEM30, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnGenGasTxt);
-	Connect(
-		ID_MENUITEM24, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnFilterSpureousGas);
-	Connect(
-		ID_MENUITEM31, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnGenGPSTxt);
-	Connect(
-		ID_MENUITEM34, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnSummaryGPS);
-	Connect(
-		ID_MENUITEM65, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuDistanceBtwGPSs);
-	Connect(
-		ID_MENUITEM66, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::
-			OnMenuRegenerateGPSTimestamps);
-	Connect(
-		ID_MENUITEM52, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuDrawGPSPath);
-	Connect(
-		ID_MENUITEM80, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuGPSDeleteNaN);
-	Connect(
-		ID_MENUITEM33, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuGenerateBeaconList);
-	Connect(
-		ID_MENUITEM38, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnRemoveSpecificRangeMeas);
-	Connect(
-		ID_MENUITEM40, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::
-			OnGenerateTextFileRangeBearing);
-	Connect(
-		ID_MENUITEM81, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuRangeBearFilterIDs);
-	Connect(
-		ID_MENUITEM46, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnRangeFinder1DGenTextFile);
-	Connect(
-		ID_MENUITEM43, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnGenerateIMUTextFile);
-	Connect(
-		ID_MENUITEM89, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnGenWifiTxt);
-	Connect(
-		ID_MENUITEM26, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnRawMapOdo);
-	Connect(
-		ID_MENUITEM32, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnGenOdoLaser);
-	Connect(
-		ID_MENUITEM27, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuShowTips);
-	Connect(
-		idMenuAbout, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnAbout);
-	Connect(
-		MNU_1, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuItem37Selected);
-	Connect(
-		ID_MENUITEM49, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuItem46Selected);
-	Connect(
-		ID_MENUITEM50, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnMenuItem47Selected);
-	Connect(
-		ID_TIMER1, wxEVT_TIMER,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OntimAutoLoadTrigger);
+	Bind(wxEVT_BUTTON, &xRawLogViewerFrame::OnFileOpen, this, ID_BUTTON2);
+	Bind(wxEVT_BUTTON, &xRawLogViewerFrame::OnSaveFile, this, ID_BUTTON3);
+	Bind(wxEVT_BUTTON, &xRawLogViewerFrame::OnEditRawlog, this, ID_BUTTON4);
+	Bind(wxEVT_BUTTON, &xRawLogViewerFrame::OnRawMapOdo, this, ID_BUTTON5);
+	Bind(
+		wxEVT_BUTTON, &xRawLogViewerFrame::OnChangeMotionModel, this,
+		ID_BUTTON6);
+	Bind(wxEVT_BUTTON, &xRawLogViewerFrame::OnShowICP, this, ID_BUTTON7);
+	Bind(
+		wxEVT_BUTTON, &xRawLogViewerFrame::OnShowAnimateScans, this,
+		ID_BUTTON8);
+	Bind(
+		wxEVT_BUTTON, &xRawLogViewerFrame::OnShowImagesAsVideo, this,
+		ID_BUTTON9);
+	Bind(wxEVT_BUTTON, &xRawLogViewerFrame::OnAbout, this, ID_BUTTON10);
+	Bind(wxEVT_BUTTON, &xRawLogViewerFrame::OnQuit, this, ID_BUTTON11);
+	Bind(
+		wxEVT_BUTTON, &xRawLogViewerFrame::OnbtnEditCommentsClick1, this,
+		ID_BUTTON1);
+	Bind(
+		wxEVT_SLIDER, &xRawLogViewerFrame::Onslid3DcamConfCmdScrollChanged,
+		this, ID_SLIDER1);
+	Bind(
+		wxEVT_COMMAND_NOTEBOOK_PAGE_CHANGING,
+		&xRawLogViewerFrame::OnNotebook1PageChanging, this, ID_NOTEBOOK1);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnFileOpen, this, ID_MENUITEM1);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnSaveFile, this, ID_MENUITEM2);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnMenuRevert, this, ID_MENUITEM76);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnLoadAPartOnly, this, ID_MENUITEM7);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnFileCountEntries, this,
+		ID_MENUITEM8);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnFileSaveImages, this, ID_MENUITEM10);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuConvertExternallyStored, this,
+		ID_MENUITEM62);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuConvertObservationOnly, this,
+		ID_MENUITEM64);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnFileGenVisualLMFromStereoImages,
+		this, ID_MENUITEM13);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuLossLessDecFILE, this,
+		ID_MENUITEM60);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenCompactFILE, this, ID_MENUITEM61);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnImportCARMEN, this, ID_MENUITEM5);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnImportSequenceOfImages, this,
+		ID_MENUITEM47);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuImportALOG, this, ID_MENUITEM56);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnImportRTL, this, ID_MENUITEM63);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuItemImportBremenDLRLog, this,
+		ID_MENUITEM87);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnGenOdoLaser, this, ID_MENUITEM58);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuExportALOG, this, ID_MENUITEM55);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnQuit, this, idMenuQuit);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnEditRawlog, this, ID_MENUITEM14);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuInsertComment, this,
+		ID_MENUITEM51);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuRenameSensor, this,
+		ID_MENUITEM69);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuRenameSingleObs, this,
+		ID_MENUITEM91);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnChangeSensorPositions, this,
+		ID_MENUITEM15);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuChangePosesBatch, this,
+		ID_MENUITEM70);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnDecimateRecords, this,
+		ID_MENUITEM16);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuLossLessDecimate, this,
+		ID_MENUITEM59);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuCompactRawlog, this,
+		ID_MENUITEM57);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnMenuConvertSF, this, ID_MENUITEM75);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuResortByTimestamp, this,
+		ID_MENUITEM67);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuShiftTimestampsByLabel, this,
+		ID_MENUITEM68);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuRegenerateTimestampBySF, this,
+		ID_MENUITEM82);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnChangeMotionModel, this,
+		ID_MENUITEM20);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnRecalculateActionsICP, this,
+		ID_MENUITEM22);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuModifyICPActionsUncertainty,
+		this, ID_MENUITEM53);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnRecomputeOdometry, this,
+		ID_MENUITEM23);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnForceEncodersFalse, this,
+		ID_MENUITEM41);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuRegenerateOdometryTimes, this,
+		ID_MENUITEM84);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnShowICP, this, ID_MENUITEM17);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnShowAnimateScans, this,
+		ID_MENUITEM44);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnCountBadScans, this, ID_MENUITEM19);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnFilterErroneousScans, this,
+		ID_MENUITEM25);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuMarkLaserScanInvalid, this,
+		ID_MENUITEM73);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuChangeMaxRangeLaser, this,
+		ID_MENUITEM74);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuBatchLaserExclusionZones, this,
+		ID_MENUITEM77);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnLaserFilterAngles, this,
+		ID_MENUITEM79);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuItem3DObsRecoverParams, this,
+		ID_MENUITEM86);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnGenerateSeqImgs, this,
+		ID_MENUITEM29);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnShowImagesAsVideo, this,
+		ID_MENUITEM9);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuMono2Stereo, this,
+		ID_MENUITEM71);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuRectifyImages, this,
+		ID_MENUITEM72);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuRenameImageFiles, this,
+		ID_MENUITEM78);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnmnuCreateAVISelected, this,
+		ID_MENUITEM83);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnGenGasTxt, this, ID_MENUITEM30);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnFilterSpureousGas, this,
+		ID_MENUITEM24);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnGenGPSTxt, this, ID_MENUITEM31);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnSummaryGPS, this, ID_MENUITEM34);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuDistanceBtwGPSs, this,
+		ID_MENUITEM65);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuRegenerateGPSTimestamps, this,
+		ID_MENUITEM66);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuDrawGPSPath, this,
+		ID_MENUITEM52);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuGPSDeleteNaN, this,
+		ID_MENUITEM80);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuGenerateBeaconList, this,
+		ID_MENUITEM33);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnRemoveSpecificRangeMeas, this,
+		ID_MENUITEM38);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnGenerateTextFileRangeBearing, this,
+		ID_MENUITEM40);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuRangeBearFilterIDs, this,
+		ID_MENUITEM81);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnRangeFinder1DGenTextFile, this,
+		ID_MENUITEM46);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnGenerateIMUTextFile, this,
+		ID_MENUITEM43);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnGenWifiTxt, this, ID_MENUITEM89);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnRawMapOdo, this, ID_MENUITEM26);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnGenOdoLaser, this, ID_MENUITEM32);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnMenuShowTips, this, ID_MENUITEM27);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnAbout, this, idMenuAbout);
+	Bind(wxEVT_MENU, &xRawLogViewerFrame::OnMenuItem37Selected, this, MNU_1);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuItem46Selected, this,
+		ID_MENUITEM49);
+	Bind(
+		wxEVT_MENU, &xRawLogViewerFrame::OnMenuItem47Selected, this,
+		ID_MENUITEM50);
+	Bind(
+		wxEVT_TIMER, &xRawLogViewerFrame::OntimAutoLoadTrigger, this,
+		ID_TIMER1);
 	//*)
 
 	// "Manually" added code:
@@ -1810,11 +1725,15 @@ xRawLogViewerFrame::xRawLogViewerFrame(wxWindow* parent, wxWindowID id)
 			m_fileHistory.AddFileToHistory(fil.c_str());
 	}
 
+	// 3D view: default view, with +X pointing to the right:
+	m_gl3DRangeScan->setAzimuthDegrees(-80.0f);
+	m_gl3DRangeScan->setElevationDegrees(30.0f);
+
 	// Image directory selector on the toolbar:
 	// --------------------------------------------
-	Connect(
-		ID_COMBO_IMG_DIRS, wxEVT_COMMAND_COMBOBOX_SELECTED,
-		(wxObjectEventFunction)&xRawLogViewerFrame::OnComboImageDirsChange);
+	Bind(
+		wxEVT_COMBOBOX, &xRawLogViewerFrame::OnComboImageDirsChange, this,
+		ID_COMBO_IMG_DIRS);
 
 	// Construction of "global" dialog variables:
 	// ----------------------------------------------
@@ -2186,14 +2105,14 @@ void xRawLogViewerFrame::loadRawlogFile(const string& str, int first, int last)
 			if (newObj->GetRuntimeClass() == CLASS_ID(CSensoryFrame))
 			{
 				if (entryIndex >= first && (last == -1 || entryIndex <= last))
-					rawlog.addObservationsMemoryReference(
+					rawlog.insert(
 						std::dynamic_pointer_cast<CSensoryFrame>(newObj));
 				entryIndex++;
 			}
 			else if (newObj->GetRuntimeClass() == CLASS_ID(CActionCollection))
 			{
 				if (entryIndex >= first && (last == -1 || entryIndex <= last))
-					rawlog.addActionsMemoryReference(
+					rawlog.insert(
 						std::dynamic_pointer_cast<CActionCollection>(newObj));
 				entryIndex++;
 			}
@@ -2202,7 +2121,7 @@ void xRawLogViewerFrame::loadRawlogFile(const string& str, int first, int last)
 						 CLASS_ID(CObservation)))
 			{
 				if (entryIndex >= first && (last == -1 || entryIndex <= last))
-					rawlog.addObservationMemoryReference(
+					rawlog.insert(
 						std::dynamic_pointer_cast<CObservation>(newObj));
 				entryIndex++;
 			}
@@ -2216,13 +2135,13 @@ void xRawLogViewerFrame::loadRawlogFile(const string& str, int first, int last)
 					CPose2D::Ptr poseChange =
 						std::dynamic_pointer_cast<CPose2D>(newObj);
 					CActionCollection::Ptr temp =
-						mrpt::make_aligned_shared<CActionCollection>();
+						std::make_shared<CActionCollection>();
 					CActionRobotMovement2D action;
 					CActionRobotMovement2D::TMotionModelOptions options;
 					action.computeFromOdometry(*poseChange, options);
 					temp->insert(action);
 
-					rawlog.addActionsMemoryReference(temp);
+					rawlog.insert(temp);
 				}
 				entryIndex++;
 			}
@@ -2235,7 +2154,7 @@ void xRawLogViewerFrame::loadRawlogFile(const string& str, int first, int last)
 			{
 				// Unknown class:
 				// New in MRPT v1.5.0: Allow loading some other classes:
-				rawlog.addGenericObject(newObj);
+				rawlog.insert(newObj);
 			}
 
 			// Passed last?
@@ -2337,7 +2256,6 @@ void xRawLogViewerFrame::rebuildTreeView()
 	// straightforward
 	//  implementation runs *very* slow.
 	map<const TRuntimeClassId*, wxString> mapStrings;
-	map<const TRuntimeClassId*, wxString>::iterator it;
 
 	size_t updateProgressBarSteps = (rawlog.size() / 20) + 1;
 
@@ -2354,7 +2272,7 @@ void xRawLogViewerFrame::rebuildTreeView()
 		}
 
 		// Process element:
-		s;
+		s.clear();
 		switch (rawlog.getType(i))
 		{
 			case CRawlog::etActionCollection:
@@ -2494,10 +2412,10 @@ void xRawLogViewerFrame::rebuildTreeView()
 
 	if (experimentLenght == 0) experimentLenght = 1;
 
-	for (auto it = listOfObjects.begin(); it != listOfObjects.end(); ++it)
+	for (const auto& oc : listOfObjects)
 	{
-		const char* className = it->first->className;
-		size_t count = it->second;
+		const char* className = oc.first->className;
+		size_t count = oc.second;
 		memStats->AppendText(format(
 			" %8u %25s : %5.03f Hz\n", (unsigned)count, className,
 			double(count > 1 ? count - 1 : 1) / experimentLenght));
@@ -2508,12 +2426,11 @@ void xRawLogViewerFrame::rebuildTreeView()
 		"\nSummary of 'sensorLabels' found in the "
 		"rawlog:\n-----------------------------------------\n");
 
-	for (auto it = listOfSensorLabels.begin(); it != listOfSensorLabels.end();
-		 ++it)
+	for (const auto& ipsl : listOfSensorLabels)
 	{
-		size_t count = it->second.getOccurences();
-		TTimeStamp tf = it->second.first;
-		TTimeStamp tl = it->second.last;
+		size_t count = ipsl.second.getOccurences();
+		TTimeStamp tf = ipsl.second.first;
+		TTimeStamp tl = ipsl.second.last;
 		double Hz = 0, dur = 0;
 		if (tf != INVALID_TIMESTAMP && tl != INVALID_TIMESTAMP)
 		{
@@ -2524,8 +2441,8 @@ void xRawLogViewerFrame::rebuildTreeView()
 		memStats->AppendText(format(
 			" %8u %25s : %5.03f Hz for %.04f s, with %.03f s max delay "
 			"btw readings.\n",
-			(unsigned)count, it->first.c_str(), Hz, dur,
-			it->second.max_ellapsed_tim_between_obs));
+			(unsigned)count, ipsl.first.c_str(), Hz, dur,
+			ipsl.second.max_ellapsed_tim_between_obs));
 	}
 
 	memStats->ShowPosition(0);
@@ -2579,8 +2496,9 @@ void xRawLogViewerFrame::rebuildTreeView()
 
 // Selection has changed:
 void xRawLogViewerFrame::OntreeViewSelectionChanged(
-	wxWindow* me, CRawlogTreeView* the_tree, TRawlogTreeViewEvent ev,
-	int item_index, const mrpt::serialization::CSerializable::Ptr& item_data)
+	wxWindow* me, CRawlogTreeView* the_tree, TRawlogTreeViewEvent /*ev*/,
+	int /*item_index*/,
+	const mrpt::serialization::CSerializable::Ptr& item_data)
 {
 	auto* win = (xRawLogViewerFrame*)me;
 	win->SelectObjectInTreeView(item_data);
@@ -3019,10 +2937,12 @@ void xRawLogViewerFrame::OnGenOdoLaser(wxCommandEvent& event)
 							files = &lstFiles[obs->sensorLabel];
 						}
 
-						for (size_t j = 0; j < obs->scan.size(); j++)
+						for (size_t j = 0; j < obs->getScanSize(); j++)
 							::fprintf(
 								files->first, "%f ",
-								obs->validRange[j] ? obs->scan[j] : 0);
+								obs->getScanRangeValidity(j)
+									? obs->getScanRange(j)
+									: 0);
 						::fprintf(files->first, "\n");
 
 						nLaser++;
@@ -3052,7 +2972,7 @@ void xRawLogViewerFrame::OnGenOdoLaser(wxCommandEvent& event)
 			{
 				CObservation::Ptr o = rawlog.getAsObservation(i);
 
-				if (IS_CLASS(o, CObservation2DRangeScan))
+				if (IS_CLASS(*o, CObservation2DRangeScan))
 				{
 					CObservation2DRangeScan::Ptr obs =
 						std::dynamic_pointer_cast<CObservation2DRangeScan>(o);
@@ -3087,10 +3007,11 @@ void xRawLogViewerFrame::OnGenOdoLaser(wxCommandEvent& event)
 						files = &lstFiles[obs->sensorLabel];
 					}
 
-					for (size_t j = 0; j < obs->scan.size(); j++)
+					for (size_t j = 0; j < obs->getScanSize(); j++)
 						::fprintf(
 							files->first, "%f ",
-							obs->validRange[j] ? obs->scan[j] : 0);
+							obs->getScanRangeValidity(j) ? obs->getScanRange(j)
+														 : 0);
 					::fprintf(files->first, "\n");
 
 					nLaser++;
@@ -3112,7 +3033,7 @@ void xRawLogViewerFrame::OnGenOdoLaser(wxCommandEvent& event)
 					obs->sensorPose.getYawPitchRoll(y, p, r);
 					::fprintf(files->second.second, "%f\t%f\t%f\n", y, p, r);
 				}
-				else if (IS_CLASS(o, CObservationOdometry))
+				else if (IS_CLASS(*o, CObservationOdometry))
 				{
 					CObservationOdometry::Ptr odo =
 						std::dynamic_pointer_cast<CObservationOdometry>(o);
@@ -3435,12 +3356,12 @@ void wxStaticBitmapPopup::OnPopupSaveImage(wxCommandEvent& event)
 				"class: "
 			 << curSelectedObservation->GetRuntimeClass()->className << endl;
 
-		if (IS_CLASS(curSelectedObservation, CObservationImage))
+		if (IS_CLASS(*curSelectedObservation, CObservationImage))
 		{
 			auto* obs = (CObservationImage*)curSelectedObservation.get();
 			imgToSave = &obs->image;
 		}
-		else if (IS_CLASS(curSelectedObservation, CObservationStereoImages))
+		else if (IS_CLASS(*curSelectedObservation, CObservationStereoImages))
 		{
 			auto* obs = (CObservationStereoImages*)curSelectedObservation.get();
 
@@ -3457,7 +3378,7 @@ void wxStaticBitmapPopup::OnPopupSaveImage(wxCommandEvent& event)
 					break;
 			}
 		}
-		else if (IS_CLASS(curSelectedObservation, CObservation3DRangeScan))
+		else if (IS_CLASS(*curSelectedObservation, CObservation3DRangeScan))
 		{
 			auto* obs = (CObservation3DRangeScan*)curSelectedObservation.get();
 			obs->load();
@@ -3466,16 +3387,8 @@ void wxStaticBitmapPopup::OnPopupSaveImage(wxCommandEvent& event)
 				case 1:
 					if (obs->hasRangeImage)
 					{
-						static CImage auxImg;
-						// Convert to range [0,255]
-						mrpt::math::CMatrix normalized_range = obs->rangeImage;
-						const float max_rang =
-							std::max(obs->maxRange, normalized_range.maximum());
-						if (max_rang > 0) normalized_range *= 255. / max_rang;
-						auxImg.setFromMatrix(
-							normalized_range,
-							false /* it's in range [0,255] */);
-
+						static CImage auxImg = obs->rangeImage_getAsImage(
+							mrpt::img::TColormap::cmHOT);
 						imgToSave = &auxImg;
 					}
 					break;
@@ -3523,12 +3436,12 @@ void wxStaticBitmapPopup::OnPopupLoadImage(wxCommandEvent& event)
 
 		CImage* imgToLoad = nullptr;
 
-		if (IS_CLASS(curSelectedObservation, CObservationImage))
+		if (IS_CLASS(*curSelectedObservation, CObservationImage))
 		{
 			auto* obs = (CObservationImage*)curSelectedObservation.get();
 			imgToLoad = &obs->image;
 		}
-		else if (IS_CLASS(curSelectedObservation, CObservationStereoImages))
+		else if (IS_CLASS(*curSelectedObservation, CObservationStereoImages))
 		{
 			auto* obs = (CObservationStereoImages*)curSelectedObservation.get();
 
@@ -3661,7 +3574,7 @@ void xRawLogViewerFrame::OnDecimateRecords(wxCommandEvent& event)
 				SF_counter = 0;
 
 				// INSERT OBSERVATION:
-				newRawLog.addObservationsMemoryReference(last_sf);
+				newRawLog.insert(last_sf);
 				last_sf.reset();  // = nullptr;
 
 				// INSERT ACTIONS:
@@ -3675,7 +3588,7 @@ void xRawLogViewerFrame::OnDecimateRecords(wxCommandEvent& event)
 					// Reset odometry accumulation:
 					accumMovement = CPose2D(0, 0, 0);
 				}
-				newRawLog.addActions(actsCol);
+				newRawLog.insert(actsCol);
 			}
 		}
 		else
@@ -3744,10 +3657,12 @@ void xRawLogViewerFrame::OnCountBadScans(wxCommandEvent& event)
 							CObservation2DRangeScan::Ptr>(k);
 						bool thisValid = false;
 
-						for (size_t k = 0; k < obsScan->validRange.size(); k++)
+						for (size_t i = 0; i < obsScan->getScanSize(); i++)
 						{
-							if (obsScan->validRange[k]) thisValid = true;
-							if (std::isnan(obsScan->scan[k])) thisValid = false;
+							if (obsScan->getScanRangeValidity(i))
+								thisValid = true;
+							if (std::isnan(obsScan->getScanRange(i)))
+								thisValid = false;
 						}
 
 						if (!thisValid) invalidScans++;
@@ -3764,10 +3679,11 @@ void xRawLogViewerFrame::OnCountBadScans(wxCommandEvent& event)
 						std::dynamic_pointer_cast<CObservation2DRangeScan>(o);
 					bool thisValid = false;
 
-					for (size_t k = 0; k < obsScan->validRange.size(); k++)
+					for (size_t k = 0; k < obsScan->getScanSize(); k++)
 					{
-						if (obsScan->validRange[k]) thisValid = true;
-						if (std::isnan(obsScan->scan[k])) thisValid = false;
+						if (obsScan->getScanRangeValidity(k)) thisValid = true;
+						if (std::isnan(obsScan->getScanRange(k)))
+							thisValid = false;
 					}
 
 					if (!thisValid) invalidScans++;
@@ -3873,33 +3789,33 @@ void xRawLogViewerFrame::OnFilterSpureousGas(wxCommandEvent& event)
 										obs_2->m_readings[j]
 											.readingsVoltage.size());
 
-									for (size_t k = 0;
-										 k < obs->m_readings[j]
+									for (size_t i = 0;
+										 i < obs->m_readings[j]
 												 .readingsVoltage.size();
-										 k++)
+										 i++)
 									{
 										nReadings++;
 										// Compute difference for "t-1":
 										if (fabs(
 												obs_1->m_readings[j]
-													.readingsVoltage[k] -
+													.readingsVoltage[i] -
 												obs->m_readings[j]
-													.readingsVoltage[k]) >
+													.readingsVoltage[i]) >
 												maxChange &&
 											fabs(
 												obs_1->m_readings[j]
-													.readingsVoltage[k] -
+													.readingsVoltage[i] -
 												obs_2->m_readings[j]
-													.readingsVoltage[k]) >
+													.readingsVoltage[i]) >
 												maxChange)
 										{
 											obs_1->m_readings[j]
-												.readingsVoltage[k] =
+												.readingsVoltage[i] =
 												0.5f *
 												(obs->m_readings[j]
-													 .readingsVoltage[k] +
+													 .readingsVoltage[i] +
 												 obs_2->m_readings[j]
-													 .readingsVoltage[k]);
+													 .readingsVoltage[i]);
 											nFilt++;
 										}
 									}
@@ -3918,7 +3834,7 @@ void xRawLogViewerFrame::OnFilterSpureousGas(wxCommandEvent& event)
 				{
 					CObservation::Ptr o = rawlog.getAsObservation(countLoop);
 
-					if (IS_CLASS(o, CObservationGasSensors))
+					if (IS_CLASS(*o, CObservationGasSensors))
 					{
 						CObservationGasSensors::Ptr obs =
 							std::dynamic_pointer_cast<CObservationGasSensors>(
@@ -4043,7 +3959,6 @@ void xRawLogViewerFrame::OnRemoveSpecificRangeMeas(wxCommandEvent& event)
 	int nFilt = 0, nReadings = 0;
 	string errorMsg;
 	CObservationBeaconRanges::Ptr obs_1, obs_2;
-	CObservationBeaconRanges::Ptr obs;
 	size_t q;
 
 	for (i = start_filt; i <= end_filt; i++)
@@ -4053,7 +3968,8 @@ void xRawLogViewerFrame::OnRemoveSpecificRangeMeas(wxCommandEvent& event)
 			case CRawlog::etSensoryFrame:
 			{
 				CSensoryFrame::Ptr sf = rawlog.getAsObservations(i);
-				obs = sf->getObservationByClass<CObservationBeaconRanges>();
+				CObservationBeaconRanges::Ptr obs =
+					sf->getObservationByClass<CObservationBeaconRanges>();
 				if (obs)
 				{
 					ASSERT_(indx_filt < obs->sensedData.size());
@@ -4086,7 +4002,8 @@ void xRawLogViewerFrame::OnRemoveSpecificRangeMeas(wxCommandEvent& event)
 			case CRawlog::etSensoryFrame:
 			{
 				CSensoryFrame::Ptr sf = rawlog.getAsObservations(i);
-				obs = sf->getObservationByClass<CObservationBeaconRanges>();
+				CObservationBeaconRanges::Ptr obs =
+					sf->getObservationByClass<CObservationBeaconRanges>();
 
 				if (obs)
 				{
@@ -4246,28 +4163,37 @@ void doFilterErrScans(
 		// Build a vector: each element is true if
 		//    element[k] is the element[k] -/+ a value in [0.10-2.0], and
 		//    viceversa with [k-1]
-		std::vector<bool> ringing(obsScan->scan.size(), false);
+		std::vector<bool> ringing(obsScan->getScanSize(), false);
 		unsigned int k;
 
-		for (k = 1; k < (obsScan->scan.size() - 1); k++)
+		for (k = 1; k < (obsScan->getScanSize() - 1); k++)
 		{
-			if (obsScan->validRange[k] && obsScan->validRange[k - 1] &&
-				obsScan->validRange[k + 1])
+			if (obsScan->getScanRangeValidity(k) &&
+				obsScan->getScanRangeValidity(k - 1) &&
+				obsScan->getScanRangeValidity(k + 1))
 			{
 				int dirPrior = 0, dirPost = 0;
 
-				if (obsScan->scan[k] > (obsScan->scan[k - 1] + 0.03f) &&
-					obsScan->scan[k] < (obsScan->scan[k - 1] + 2.00f))
+				if (obsScan->getScanRange(k) >
+						(obsScan->getScanRange(k - 1) + 0.03f) &&
+					obsScan->getScanRange(k) <
+						(obsScan->getScanRange(k - 1) + 2.00f))
 					dirPrior = 1;
-				if (obsScan->scan[k] < (obsScan->scan[k - 1] - 0.03f) &&
-					obsScan->scan[k] > (obsScan->scan[k - 1] - 2.00f))
+				if (obsScan->getScanRange(k) <
+						(obsScan->getScanRange(k - 1) - 0.03f) &&
+					obsScan->getScanRange(k) >
+						(obsScan->getScanRange(k - 1) - 2.00f))
 					dirPrior = -1;
 
-				if (obsScan->scan[k] > (obsScan->scan[k + 1] + 0.03f) &&
-					obsScan->scan[k] < (obsScan->scan[k + 1] + 2.00f))
+				if (obsScan->getScanRange(k) >
+						(obsScan->getScanRange(k + 1) + 0.03f) &&
+					obsScan->getScanRange(k) <
+						(obsScan->getScanRange(k + 1) + 2.00f))
 					dirPost = -1;
-				if (obsScan->scan[k] < (obsScan->scan[k + 1] - 0.03f) &&
-					obsScan->scan[k] > (obsScan->scan[k + 1] - 2.00f))
+				if (obsScan->getScanRange(k) <
+						(obsScan->getScanRange(k + 1) - 0.03f) &&
+					obsScan->getScanRange(k) >
+						(obsScan->getScanRange(k + 1) - 2.00f))
 					dirPost = 1;
 
 				if ((dirPrior == 1 && dirPost == -1) ||
@@ -4279,7 +4205,7 @@ void doFilterErrScans(
 		// Look for segments of 'K' consecutive ringing ranges, and mark them as
 		// not valid!!
 		int ringingStart = -1;
-		for (k = 1; k < (obsScan->scan.size() - 1); k++)
+		for (k = 1; k < (obsScan->getScanSize() - 1); k++)
 		{
 			if (ringing[k])
 			{
@@ -4467,7 +4393,6 @@ void xRawLogViewerFrame::OnRecalculateActionsICP(wxCommandEvent& event)
 	CActionCollection::Ptr act_between;  // = nullptr;
 
 	CPosePDF::Ptr poseEst;
-	float runTime;
 
 	// Load ICP options:
 	// ------------------------------------------
@@ -4559,8 +4484,7 @@ void xRawLogViewerFrame::OnRecalculateActionsICP(wxCommandEvent& event)
 						(CMetricMap*)&newMapPt, &newMapRobotPose);
 
 					poseEst = icp.Align(
-						refMap, (CMetricMap*)&newMapPt, initialEst, &runTime,
-						&icpInfo);
+						refMap, (CMetricMap*)&newMapPt, initialEst, icpInfo);
 
 					// The final estimation:
 					// --------------------------------------
@@ -4747,7 +4671,7 @@ void xRawLogViewerFrame::OnMenuItem47Selected(wxCommandEvent& event)
 
 			CPose2D estMean(odo_x, odo_y, odo_phi);
 			CMatrixDouble33 estCov;
-			estCov.unit(3, 1e-6);
+			estCov.setDiagonal(3, 1e-6);
 
 			CActionRobotMovement2D newAct;
 			newAct.estimationMethod = CActionRobotMovement2D::emScan2DMatching;
@@ -4971,7 +4895,7 @@ void xRawLogViewerFrame::OnRangeFinder1DGenTextFile(wxCommandEvent& event)
 			{
 				CObservation::Ptr o = rawlog.getAsObservation(i);
 
-				if (IS_CLASS(o, CObservationRange))
+				if (IS_CLASS(*o, CObservationRange))
 				{
 					CObservationRange::Ptr obs =
 						std::dynamic_pointer_cast<CObservationRange>(o);
@@ -5055,7 +4979,7 @@ void xRawLogViewerFrame::OnMenuModifyICPActionsUncertainty(
 							CPosePDFGaussian::Ptr aux =
 								std::dynamic_pointer_cast<CPosePDFGaussian>(
 									actMov->poseChange.get_ptr());
-							aux->cov.zeros();
+							aux->cov.setZero();
 							aux->cov(0, 0) = aux->cov(1, 1) = std_xy2;
 							aux->cov(2, 2) = std_phi2;
 
@@ -5234,8 +5158,7 @@ void xRawLogViewerFrame::OnMenuChangePosesBatch(wxCommandEvent& event)
 		CConfigFileMemory cfg(string(dialog.edText->GetValue().mb_str()));
 
 		// make a list  "sensor_label -> sensor_pose" by parsing the ini-file:
-		using TSensor2PoseMap =
-			mrpt::aligned_std_map<std::string, mrpt::poses::CPose3D>;
+		using TSensor2PoseMap = std::map<std::string, mrpt::poses::CPose3D>;
 		TSensor2PoseMap desiredSensorPoses;
 		std::map<std::string, mrpt::obs::CObservationImage> desiredCamParams;
 
@@ -5274,7 +5197,7 @@ void xRawLogViewerFrame::OnMenuChangePosesBatch(wxCommandEvent& event)
 
 			CMatrixDouble33& I =
 				desiredCamParams[label].cameraParams.intrinsicParams;
-			I.zeros(3, 3);
+			I.setZero(3, 3);
 			I(2, 2) = 1;
 			I(0, 0) = calib[0];
 			I(1, 1) = calib[1];
@@ -5349,7 +5272,7 @@ void xRawLogViewerFrame::OnMenuChangePosesBatch(wxCommandEvent& event)
 					auto c = desiredCamParams.find(obs->sensorLabel);
 					if (c != desiredCamParams.end())
 					{
-						if (!IS_CLASS(obs, CObservationImage))
+						if (!IS_CLASS(*obs, CObservationImage))
 							THROW_EXCEPTION_FMT(
 								"Camera parameters found for non-image "
 								"observation class: %s",
@@ -5396,8 +5319,8 @@ void doFilterInvalidRange(CObservation::Ptr& obs, size_t& invalidRanges)
 	{
 		CObservation2DRangeScan::Ptr obsScan =
 			std::dynamic_pointer_cast<CObservation2DRangeScan>(obs);
-		for (size_t k = 0; k < obsScan->scan.size(); k++)
-			if (obsScan->scan[k] >= obsScan->maxRange)
+		for (size_t k = 0; k < obsScan->getScanSize(); k++)
+			if (obsScan->getScanRange(k) >= obsScan->maxRange)
 			{
 				obsScan->setScanRangeValidity(k, false);
 				invalidRanges++;
@@ -5522,7 +5445,7 @@ void xRawLogViewerFrame::OnMenuChangeMaxRangeLaser(wxCommandEvent& event)
 				{
 					CObservation::Ptr obs = SF->getObservationByIndex(j);
 					if (obs->sensorLabel == lab &&
-						IS_CLASS(obs, CObservation2DRangeScan))
+						IS_CLASS(*obs, CObservation2DRangeScan))
 					{
 						CObservation2DRangeScan::Ptr o =
 							std::dynamic_pointer_cast<CObservation2DRangeScan>(
@@ -5539,7 +5462,7 @@ void xRawLogViewerFrame::OnMenuChangeMaxRangeLaser(wxCommandEvent& event)
 				// This is a SF:
 				CObservation::Ptr obs = rawlog.getAsObservation(countLoop);
 				if (obs->sensorLabel == lab &&
-					IS_CLASS(obs, CObservation2DRangeScan))
+					IS_CLASS(*obs, CObservation2DRangeScan))
 				{
 					CObservation2DRangeScan::Ptr o =
 						std::dynamic_pointer_cast<CObservation2DRangeScan>(obs);
@@ -5678,7 +5601,7 @@ void xRawLogViewerFrame::OnMenuBatchLaserExclusionZones(wxCommandEvent& event)
 
 				if (it.getType() == CRawlog::etObservation)
 				{
-					if (IS_CLASS(*it, CObservation2DRangeScan))
+					if (IS_CLASS(**it, CObservation2DRangeScan))
 					{
 						obs =
 							std::dynamic_pointer_cast<CObservation2DRangeScan>(
@@ -5852,7 +5775,7 @@ void xRawLogViewerFrame::OnLaserFilterAngles(wxCommandEvent& event)
 
 				if (it.getType() == CRawlog::etObservation)
 				{
-					if (IS_CLASS(*it, CObservation2DRangeScan))
+					if (IS_CLASS(**it, CObservation2DRangeScan))
 					{
 						obs =
 							std::dynamic_pointer_cast<CObservation2DRangeScan>(
@@ -5962,7 +5885,7 @@ void xRawLogViewerFrame::OnMenuRangeBearFilterIDs(wxCommandEvent& event)
 				for (size_t j = 0; j < SF->size(); j++)
 				{
 					CObservation::Ptr obs = SF->getObservationByIndex(j);
-					if (IS_CLASS(obs, CObservationBearingRange))
+					if (IS_CLASS(*obs, CObservationBearingRange))
 					{
 						CObservationBearingRange::Ptr o =
 							std::dynamic_pointer_cast<CObservationBearingRange>(
@@ -5984,7 +5907,7 @@ void xRawLogViewerFrame::OnMenuRangeBearFilterIDs(wxCommandEvent& event)
 			{
 				// This is a SF:
 				CObservation::Ptr obs = rawlog.getAsObservation(countLoop);
-				if (IS_CLASS(obs, CObservationBearingRange))
+				if (IS_CLASS(*obs, CObservationBearingRange))
 				{
 					CObservationBearingRange::Ptr o =
 						std::dynamic_pointer_cast<CObservationBearingRange>(
@@ -6210,14 +6133,14 @@ void xRawLogViewerFrame::OnmnuCreateAVISelected(wxCommandEvent& event)
 			else if (rawlog.getType(countLoop) == CRawlog::etObservation)
 			{
 				CObservation::Ptr o = rawlog.getAsObservation(countLoop);
-				if (IS_CLASS(o, CObservationImage))
+				if (IS_CLASS(*o, CObservationImage))
 				{
 					CObservationImage::Ptr obsImg =
 						std::dynamic_pointer_cast<CObservationImage>(o);
 					imgsForVideo.insert(
 						TImageToSaveData(&obsImg->image, "IMAGE"));
 				}
-				else if (IS_CLASS(o, CObservationStereoImages))
+				else if (IS_CLASS(*o, CObservationStereoImages))
 				{
 					CObservationStereoImages::Ptr obsStereoImg =
 						std::dynamic_pointer_cast<CObservationStereoImages>(o);
@@ -6230,7 +6153,7 @@ void xRawLogViewerFrame::OnmnuCreateAVISelected(wxCommandEvent& event)
 						imgsForVideo.insert(TImageToSaveData(
 							&obsStereoImg->imageDisparity, "DISP"));
 				}
-				else if (IS_CLASS(o, CObservation3DRangeScan))
+				else if (IS_CLASS(*o, CObservation3DRangeScan))
 				{
 					CObservation3DRangeScan::Ptr obs3D =
 						std::dynamic_pointer_cast<CObservation3DRangeScan>(o);
@@ -6433,7 +6356,7 @@ void xRawLogViewerFrame::OnMenuItem3DObsRecoverParams(wxCommandEvent& event)
 			if (rawlog.getType(countLoop) == CRawlog::etObservation)
 			{
 				CObservation::Ptr obs = rawlog.getAsObservation(countLoop);
-				if (IS_CLASS(obs, CObservation3DRangeScan))
+				if (IS_CLASS(*obs, CObservation3DRangeScan))
 				{
 					CObservation3DRangeScan::Ptr o =
 						std::dynamic_pointer_cast<CObservation3DRangeScan>(obs);
@@ -6485,7 +6408,7 @@ void xRawLogViewerFrame::OnMenuItem3DObsRecoverParams(wxCommandEvent& event)
 	WX_END_TRY
 }
 
-void xRawLogViewerFrame::Onslid3DcamConfCmdScrollChanged(wxScrollEvent& event)
+void xRawLogViewerFrame::Onslid3DcamConfCmdScrollChanged(wxCommandEvent&)
 {
 	// Refresh:
 	SelectObjectInTreeView(curSelectedObject);

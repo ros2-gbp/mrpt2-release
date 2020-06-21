@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -38,13 +38,13 @@ class CPose3DQuatPDFGaussian;
  */
 class CPose3DPDFGaussian : public CPose3DPDF
 {
-	DEFINE_SERIALIZABLE(CPose3DPDFGaussian)
+	DEFINE_SERIALIZABLE(CPose3DPDFGaussian, mrpt::poses)
 
    protected:
 	/** Assures the symmetry of the covariance matrix (eventually certain
 	 * operations in the math-coprocessor lead to non-symmetric matrixes!)
 	 */
-	void assureSymmetry();
+	void enforceCovSymmetry();
 
    public:
 	/** Default constructor
@@ -92,12 +92,9 @@ class CPose3DPDFGaussian : public CPose3DPDF
 	 * the mean, both at once.
 	 * \sa getMean
 	 */
-	void getCovarianceAndMean(
-		mrpt::math::CMatrixDouble66& out_cov,
-		CPose3D& mean_point) const override
+	std::tuple<cov_mat_t, type_value> getCovarianceAndMean() const override
 	{
-		out_cov = this->cov;
-		mean_point = this->mean;
+		return {this->cov, this->mean};
 	}
 
 	void asString(std::string& s) const;

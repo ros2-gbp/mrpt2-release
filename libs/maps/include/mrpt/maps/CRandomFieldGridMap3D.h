@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,13 +12,9 @@
 #include <mrpt/config/CLoadableOptions.h>
 #include <mrpt/containers/CDynamicGrid3D.h>
 #include <mrpt/graphs/ScalarFactorGraph.h>
-#include <mrpt/math/lightweight_geom_data.h>
-#include <mrpt/math/types_math.h>
+#include <mrpt/math/TPoint3D.h>
 #include <mrpt/serialization/CSerializable.h>
 #include <mrpt/system/COutputLogger.h>
-
-// Fwdr decl:
-class vtkStructuredGrid;
 
 namespace mrpt::maps
 {
@@ -80,7 +76,7 @@ class CRandomFieldGridMap3D
 {
 	using BASE = mrpt::containers::CDynamicGrid3D<TRandomFieldVoxel>;
 
-	DEFINE_SERIALIZABLE(CRandomFieldGridMap3D)
+	DEFINE_SERIALIZABLE(CRandomFieldGridMap3D, mrpt::maps)
    public:
 	/** [default:false] Enables a profiler to show a performance report at
 	 * application end. */
@@ -105,15 +101,10 @@ class CRandomFieldGridMap3D
 	 * Optionally, std deviations can be also saved to another file with fields
 	 * `x y z stddev_value`, if `filName_stddev` is provided.
 	 * \return false on error writing to file
-	 * \sa saveAsVtkStructuredGrid
 	 */
 	bool saveAsCSV(
 		const std::string& filName_mean,
 		const std::string& filName_stddev = std::string()) const;
-
-	/** Save the current estimated grid to a VTK file (.vts) as a "structured
-	 * grid". \sa saveAsCSV */
-	bool saveAsVtkStructuredGrid(const std::string& fil) const;
 
 	/** Parameters common to any derived class.
 	 *  Derived classes should derive a new struct from this one, plus "public
@@ -224,12 +215,6 @@ class CRandomFieldGridMap3D
 	 * variances are up-to-date with all inserted observations, using parameters
 	 * in insertionOptions */
 	void updateMapEstimation();
-
-	/** Returns the 3D grid contents as an VTK grid. */
-	void getAsVtkStructuredGrid(
-		vtkStructuredGrid* output,
-		const std::string& label_mean = std::string("mean"),
-		const std::string& label_stddev = std::string("stddev")) const;
 
    protected:
 	/** Internal: called called after each change of resolution, size, etc. to

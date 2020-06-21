@@ -2,12 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
+#include <mrpt/img/TColor.h>
 #include <mrpt/typemeta/TEnumType.h>
 
 namespace mrpt::img
@@ -28,7 +29,8 @@ void rgb2hsv(float r, float g, float b, float& h, float& s, float& v);
 /** Different colormaps for use in mrpt::img::colormap() */
 enum TColormap
 {
-	cmNONE = -1, /** Undefined colormap [New in MRPT 2.0] */
+	/** Undefined colormap [New in MRPT 2.0] */
+	cmNONE = -1,
 	cmGRAYSCALE = 0,
 	cmJET,
 	/** [New in MRPT 1.5.0] */
@@ -40,6 +42,9 @@ enum TColormap
 void colormap(
 	const TColormap& color_map, const float color_index, float& r, float& g,
 	float& b);
+
+/// \overload returning mrpt::img::TColor
+mrpt::img::TColor colormap(const TColormap& color_map, const float color_index);
 
 /** Computes the RGB color components (range [0,1]) for the corresponding color
  * index in the range [0,1] using the MATLAB 'jet' colormap.  \sa colormap  */

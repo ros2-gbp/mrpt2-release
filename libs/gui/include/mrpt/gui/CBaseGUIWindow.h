@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -15,26 +15,26 @@
 #include <mrpt/serialization/CSerializable.h>
 #include <mrpt/system/CObservable.h>
 #include <mrpt/system/mrptEvent.h>
-
+#include <atomic>
 #include <future>
 #include <mutex>
 
 namespace mrpt::gui
 {
-/** The base class for GUI window classes.
+/** The base class for GUI window classes based on wxWidgets.
  *
- *   This class can be observed (see mrpt::system::CObserver) for the following
+ * This class can be observed (see mrpt::system::CObserver) for the following
  * events (see mrpt::system::mrptEvent):
- *   - mrpt::gui::mrptEventWindowChar
- *   - mrpt::gui::mrptEventWindowResize
- *   - mrpt::gui::mrptEventMouseDown
- *   - mrpt::gui::mrptEventWindowClosed
+ * - mrpt::gui::mrptEventWindowChar
+ * - mrpt::gui::mrptEventWindowResize
+ * - mrpt::gui::mrptEventMouseDown
+ * - mrpt::gui::mrptEventWindowClosed
  *
- *  See derived classes to check if they emit other additional events.
+ * See derived classes to check if they emit other additional events.
  *
- *  IMPORTANTE NOTICE: Event handlers in your observer class will be invoked
- * from the wxWidgets internal MRPT thread,
- *    so all your code in the handler must be thread safe.
+ * IMPORTANTE NOTICE: Event handlers in your observer class will be invoked
+ * from the wxWidgets internal MRPT thread, so all your code in the handler
+ * must be thread safe.
  * \ingroup mrpt_gui_grp
  */
 class CBaseGUIWindow : public mrpt::system::CObservable
@@ -62,9 +62,9 @@ class CBaseGUIWindow : public mrpt::system::CObservable
 	mrpt::void_ptr_noncopy m_hwnd;
 
 	/* Auxiliary */
-	volatile bool m_keyPushed;
-	volatile int m_keyPushedCode;
-	volatile mrptKeyModifier m_keyPushedModifier;
+	std::atomic_bool m_keyPushed = false;
+	std::atomic_int m_keyPushedCode = 0;
+	std::atomic<mrptKeyModifier> m_keyPushedModifier;
 
 	/** Must be called by child classes just within the constructor. */
 	void createWxWindow(unsigned int initialWidth, unsigned int initialHeight);

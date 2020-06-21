@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -392,51 +392,33 @@ CFormRawMap::CFormRawMap(wxWindow* parent, wxWindowID)
 	FlexGridSizer1->SetSizeHints(this);
 	Center();
 
-	Connect(
-		ID_SLIDER1, wxEVT_SCROLL_THUMBTRACK,
-		(wxObjectEventFunction)&CFormRawMap::OnslFromCmdScrollThumbTrack);
-	Connect(
-		ID_SLIDER1, wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&CFormRawMap::OnslFromCmdScrollThumbTrack);
-	Connect(
-		ID_SLIDER2, wxEVT_SCROLL_THUMBTRACK,
-		(wxObjectEventFunction)&CFormRawMap::OnslToCmdScrollThumbTrack);
-	Connect(
-		ID_SLIDER2, wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&CFormRawMap::OnslToCmdScrollThumbTrack);
-	Connect(
-		ID_SLIDER3, wxEVT_SCROLL_THUMBTRACK,
-		(wxObjectEventFunction)&CFormRawMap::OnslDecimateCmdScrollThumbTrack);
-	Connect(
-		ID_SLIDER3, wxEVT_SCROLL_CHANGED,
-		(wxObjectEventFunction)&CFormRawMap::OnslDecimateCmdScrollThumbTrack);
-	Connect(
-		ID_BUTTON2, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormRawMap::OnbtnGenerateClick);
-	Connect(
-		ID_BUTTON6, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormRawMap::OnGenerateFromRTK);
-	Connect(
-		ID_BUTTON5, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormRawMap::OnbtnGeneratePathsClick);
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormRawMap::OnbtnSaveTxtClick);
-	Connect(
-		ID_BUTTON3, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormRawMap::OnbtnSave3DClick);
-	Connect(
-		ID_BUTTON7, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormRawMap::OnbtnSavePathClick);
-	Connect(
-		ID_BUTTON8, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormRawMap::OnbtnSaveObsPathClick);
-	Connect(
-		ID_BUTTON9, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormRawMap::OnbtnView3DClick);
-	Connect(
-		ID_BUTTON4, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&CFormRawMap::OnbtnCloseClick);
+	Bind(
+		wxEVT_SCROLL_THUMBTRACK, &CFormRawMap::OnslFromCmdScrollThumbTrack,
+		this, ID_SLIDER1);
+	Bind(
+		wxEVT_SCROLL_CHANGED, &CFormRawMap::OnslFromCmdScrollThumbTrack, this,
+		ID_SLIDER1);
+	Bind(
+		wxEVT_SCROLL_THUMBTRACK, &CFormRawMap::OnslToCmdScrollThumbTrack, this,
+		ID_SLIDER2);
+	Bind(
+		wxEVT_SCROLL_CHANGED, &CFormRawMap::OnslToCmdScrollThumbTrack, this,
+		ID_SLIDER2);
+	Bind(
+		wxEVT_SCROLL_THUMBTRACK, &CFormRawMap::OnslDecimateCmdScrollThumbTrack,
+		this, ID_SLIDER3);
+	Bind(
+		wxEVT_SCROLL_CHANGED, &CFormRawMap::OnslDecimateCmdScrollThumbTrack,
+		this, ID_SLIDER3);
+	Bind(wxEVT_BUTTON, &CFormRawMap::OnbtnGenerateClick, this, ID_BUTTON2);
+	Bind(wxEVT_BUTTON, &CFormRawMap::OnGenerateFromRTK, this, ID_BUTTON6);
+	Bind(wxEVT_BUTTON, &CFormRawMap::OnbtnGeneratePathsClick, this, ID_BUTTON5);
+	Bind(wxEVT_BUTTON, &CFormRawMap::OnbtnSaveTxtClick, this, ID_BUTTON1);
+	Bind(wxEVT_BUTTON, &CFormRawMap::OnbtnSave3DClick, this, ID_BUTTON3);
+	Bind(wxEVT_BUTTON, &CFormRawMap::OnbtnSavePathClick, this, ID_BUTTON7);
+	Bind(wxEVT_BUTTON, &CFormRawMap::OnbtnSaveObsPathClick, this, ID_BUTTON8);
+	Bind(wxEVT_BUTTON, &CFormRawMap::OnbtnView3DClick, this, ID_BUTTON9);
+	Bind(wxEVT_BUTTON, &CFormRawMap::OnbtnCloseClick, this, ID_BUTTON4);
 	//*)
 
 	Maximize();
@@ -462,7 +444,7 @@ void loadMapInto3DScene(COpenGLScene& scene)
 		}
 
 		mrpt::opengl::CGridPlaneXY::Ptr gridobj =
-			mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
+			mrpt::opengl::CGridPlaneXY::Create(
 				minC.x - 20, maxC.x + 20, minC.y - 20, maxC.y + 20, minC.z - 2,
 				5);
 		gridobj->setColor(0.3, 0.3, 0.3, 1);
@@ -481,13 +463,13 @@ void loadMapInto3DScene(COpenGLScene& scene)
 	// The robot path:
 	{
 		mrpt::opengl::CSetOfLines::Ptr obj =
-			mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
+			mrpt::opengl::CSetOfLines::Create();
 
 		obj->setColor(0, 1, 0, 0.5);
 		obj->setLineWidth(4);
 
 		mrpt::opengl::CSetOfLines::Ptr obj2 =
-			mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
+			mrpt::opengl::CSetOfLines::Create();
 		obj2->setColor(1, 0, 0, 0.5);
 		obj2->setLineWidth(2);
 
@@ -572,8 +554,7 @@ void loadMapInto3DScene(COpenGLScene& scene)
 
 	// The built maps:
 	// ---------------------------
-	opengl::CSetOfObjects::Ptr objs =
-		mrpt::make_aligned_shared<opengl::CSetOfObjects>();
+	opengl::CSetOfObjects::Ptr objs = std::make_shared<opengl::CSetOfObjects>();
 	theMap.getAs3DObject(objs);
 	scene.insert(objs);
 }
@@ -708,7 +689,7 @@ void CFormRawMap::OnbtnGenerateClick(wxCommandEvent&)
 			{
 				// Always, process odometry:
 				const CObservation* obs = rawlog.getAsObservation(i).get();
-				if (IS_CLASS(obs, CObservationOdometry))
+				if (IS_CLASS(*obs, CObservationOdometry))
 				{
 					const auto* obsOdo =
 						static_cast<const CObservationOdometry*>(obs);
@@ -719,7 +700,7 @@ void CFormRawMap::OnbtnGenerateClick(wxCommandEvent&)
 				{
 					CPose3D dumPose(curPose);
 					theMap.insertObservation(
-						rawlog.getAsObservation(i).get(), &dumPose);
+						*rawlog.getAsObservation(i), &dumPose);
 					last_tim = rawlog.getAsObservation(i)->timestamp;
 				}
 				addNewPathEntry = true;
@@ -1012,9 +993,7 @@ void CFormRawMap::OnbtnGeneratePathsClick(wxCommandEvent&)
 	progDia.Update((int)nComputationSteps);
 
 	// Add a layer with a covariance with the last pose:
-	CMatrixDouble33 COV;
-	CPose2D meanPose;
-	pdfParts.getCovarianceAndMean(COV, meanPose);
+	const auto [COV, meanPose] = pdfParts.getCovarianceAndMean();
 
 	mpCovarianceEllipse* lyCov =
 		new mpCovarianceEllipse(COV(0, 0), COV(1, 1), COV(0, 1));
@@ -1120,7 +1099,7 @@ void CFormRawMap::OnGenerateFromRTK(wxCommandEvent&)
 					size_t& dec_cnt = decim_count[o->sensorLabel];
 
 					if ((++dec_cnt % decimate) == 0)
-						theMap.insertObservation(o.get(), &p);
+						theMap.insertObservation(*o, &p);
 				}
 			}
 			break;
@@ -1349,7 +1328,7 @@ void CFormRawMap::OnbtnSavePathClick(wxCommandEvent&)
 
 		// Standard matrix used for all the sensors on the vehicle:
 		CMatrixDouble COV_sensor_local;
-		COV_sensor_local.zeros(6, 6);
+		COV_sensor_local.setZero(6, 6);
 
 		{
 			CConfigFileMemory cfg;

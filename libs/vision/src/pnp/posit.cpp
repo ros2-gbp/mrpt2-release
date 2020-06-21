@@ -2,12 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
-#include <mrpt/math/types_math.h>  // Eigen must be included first via MRPT to enable the plugin system
+//#include <mrpt/math/types_math.h>  // Eigen must be included first via MRPT to
+// enable the plugin system
 #include <Eigen/Dense>
 #include <Eigen/SVD>
 #include <iostream>
@@ -138,16 +139,15 @@ bool mrpt::vision::pnp::posit::compute_pose(
 
 long mrpt::vision::pnp::posit::get_img_diff()
 {
-	int i, j;
-	long sumOfDiffs = 0;
+	double sumOfDiffs = 0;
 
-	for (i = 0; i < n; i++)
+	for (int i = 0; i < n; i++)
 	{
-		for (j = 0; j < 2; j++)
+		for (int j = 0; j < 2; j++)
 		{
 			sumOfDiffs += std::abs(
 				floor(0.5 + img_vecs(i, j)) - floor(0.5 + img_vecs_old(i, j)));
 		}
 	}
-	return sumOfDiffs;
+	return static_cast<long>(sumOfDiffs);
 }

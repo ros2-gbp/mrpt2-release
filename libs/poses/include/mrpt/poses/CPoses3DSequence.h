@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -22,7 +22,7 @@ namespace mrpt::poses
  */
 class CPoses3DSequence : public mrpt::serialization::CSerializable
 {
-	DEFINE_SERIALIZABLE(CPoses3DSequence)
+	DEFINE_SERIALIZABLE(CPoses3DSequence, mrpt::poses)
    public:
 	/** Returns the poses count in the sequence:
 	 */
@@ -71,13 +71,13 @@ class CPoses3DSequence : public mrpt::serialization::CSerializable
 	 * \exception std::exception On invalid index value
 	 * \sa computeTraveledDistanceAfterAll
 	 */
-	float computeTraveledDistanceAfter(unsigned int n);
+	double computeTraveledDistanceAfter(size_t n);
 
 	/** Returns the traveled distance after ALL movements.
 	 *   A shortcut for "computeTraveledDistanceAfter( posesCount() )".
 	 * \sa computeTraveledDistanceAfter
 	 */
-	float computeTraveledDistanceAfterAll();
+	double computeTraveledDistanceAfterAll();
 
    private:
 	/** The internal sequence of poses, stored as relative, incremental poses,

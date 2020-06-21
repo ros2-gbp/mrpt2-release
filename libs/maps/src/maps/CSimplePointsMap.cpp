@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -24,7 +24,7 @@ using namespace mrpt::math;
 
 //  =========== Begin of Map definition ============
 MAP_DEFINITION_REGISTER(
-	"CSimplePointsMap,pointsMap", mrpt::maps::CSimplePointsMap)
+	"mrpt::maps::CSimplePointsMap,pointsMap", mrpt::maps::CSimplePointsMap)
 
 CSimplePointsMap::TMapDefinition::TMapDefinition() = default;
 void CSimplePointsMap::TMapDefinition::loadFromConfigFile_map_specific(
@@ -57,7 +57,6 @@ mrpt::maps::CMetricMap* CSimplePointsMap::internal_CreateFromMapDefinition(
 //  =========== End of Map definition Block =========
 IMPLEMENTS_SERIALIZABLE(CSimplePointsMap, CPointsMap, mrpt::maps)
 
-CSimplePointsMap::CSimplePointsMap() = default;
 void CSimplePointsMap::reserve(size_t newLength)
 {
 	m_x.reserve(newLength);
@@ -285,33 +284,28 @@ struct pointmap_traits<CSimplePointsMap>
 	 * points - this is the place to reserve memory in lric for extra working
 	 * variables. */
 	inline static void internal_loadFromRangeScan2D_init(
-		CSimplePointsMap& me,
-		mrpt::maps::CPointsMap::TLaserRange2DInsertContext& lric)
+		[[maybe_unused]] CSimplePointsMap& me,
+		[[maybe_unused]] mrpt::maps::CPointsMap::TLaserRange2DInsertContext&
+			lric)
 	{
-		MRPT_UNUSED_PARAM(me);
-		MRPT_UNUSED_PARAM(lric);
 	}
 	/** Helper method fot the generic implementation of
 	 * CPointsMap::loadFromRangeScan(), to be called once per range data */
 	inline static void internal_loadFromRangeScan2D_prepareOneRange(
-		CSimplePointsMap& me, const float gx, const float gy, const float gz,
-		mrpt::maps::CPointsMap::TLaserRange2DInsertContext& lric)
+		[[maybe_unused]] CSimplePointsMap& me, [[maybe_unused]] const float gx,
+		[[maybe_unused]] const float gy, [[maybe_unused]] const float gz,
+		[[maybe_unused]] mrpt::maps::CPointsMap::TLaserRange2DInsertContext&
+			lric)
 	{
-		MRPT_UNUSED_PARAM(me);
-		MRPT_UNUSED_PARAM(gx);
-		MRPT_UNUSED_PARAM(gy);
-		MRPT_UNUSED_PARAM(gz);
-		MRPT_UNUSED_PARAM(lric);
 	}
 	/** Helper method fot the generic implementation of
 	 * CPointsMap::loadFromRangeScan(), to be called after each
 	 * "{x,y,z}.push_back(...);" */
 	inline static void internal_loadFromRangeScan2D_postPushBack(
-		CSimplePointsMap& me,
-		mrpt::maps::CPointsMap::TLaserRange2DInsertContext& lric)
+		[[maybe_unused]] CSimplePointsMap& me,
+		[[maybe_unused]] mrpt::maps::CPointsMap::TLaserRange2DInsertContext&
+			lric)
 	{
-		MRPT_UNUSED_PARAM(me);
-		MRPT_UNUSED_PARAM(lric);
 	}
 
 	/** Helper method fot the generic implementation of
@@ -319,43 +313,37 @@ struct pointmap_traits<CSimplePointsMap>
 	 * points - this is the place to reserve memory in lric for extra working
 	 * variables. */
 	inline static void internal_loadFromRangeScan3D_init(
-		CSimplePointsMap& me,
-		mrpt::maps::CPointsMap::TLaserRange3DInsertContext& lric)
+		[[maybe_unused]] CSimplePointsMap& me,
+		[[maybe_unused]] mrpt::maps::CPointsMap::TLaserRange3DInsertContext&
+			lric)
 	{
-		MRPT_UNUSED_PARAM(me);
-		MRPT_UNUSED_PARAM(lric);
 	}
 	/** Helper method fot the generic implementation of
 	 * CPointsMap::loadFromRangeScan(), to be called once per range data */
 	inline static void internal_loadFromRangeScan3D_prepareOneRange(
-		CSimplePointsMap& me, const float gx, const float gy, const float gz,
-		mrpt::maps::CPointsMap::TLaserRange3DInsertContext& lric)
+		[[maybe_unused]] CSimplePointsMap& me, [[maybe_unused]] const float gx,
+		[[maybe_unused]] const float gy, [[maybe_unused]] const float gz,
+		[[maybe_unused]] mrpt::maps::CPointsMap::TLaserRange3DInsertContext&
+			lric)
 	{
-		MRPT_UNUSED_PARAM(me);
-		MRPT_UNUSED_PARAM(gx);
-		MRPT_UNUSED_PARAM(gy);
-		MRPT_UNUSED_PARAM(gz);
-		MRPT_UNUSED_PARAM(lric);
 	}
 	/** Helper method fot the generic implementation of
 	 * CPointsMap::loadFromRangeScan(), to be called after each
 	 * "{x,y,z}.push_back(...);" */
 	inline static void internal_loadFromRangeScan3D_postPushBack(
-		CSimplePointsMap& me,
-		mrpt::maps::CPointsMap::TLaserRange3DInsertContext& lric)
+		[[maybe_unused]] CSimplePointsMap& me,
+		[[maybe_unused]] mrpt::maps::CPointsMap::TLaserRange3DInsertContext&
+			lric)
 	{
-		MRPT_UNUSED_PARAM(me);
-		MRPT_UNUSED_PARAM(lric);
 	}
 	/** Helper method fot the generic implementation of
 	 * CPointsMap::loadFromRangeScan(), to be called once per range data, at the
 	 * end */
 	inline static void internal_loadFromRangeScan3D_postOneRange(
-		CSimplePointsMap& me,
-		mrpt::maps::CPointsMap::TLaserRange3DInsertContext& lric)
+		[[maybe_unused]] CSimplePointsMap& me,
+		[[maybe_unused]] mrpt::maps::CPointsMap::TLaserRange3DInsertContext&
+			lric)
 	{
-		MRPT_UNUSED_PARAM(me);
-		MRPT_UNUSED_PARAM(lric);
 	}
 };
 }  // namespace mrpt::maps::detail

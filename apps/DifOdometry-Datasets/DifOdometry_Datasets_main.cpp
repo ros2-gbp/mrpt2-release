@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -137,6 +137,7 @@ int main(int num_arg, char* argv[])
 			{
 				// Capture 1 new frame and calculate odometry
 				case 'n':
+				case 'N':
 					if (odo.dataset_finished)
 					{
 						working = false;
@@ -156,19 +157,21 @@ int main(int num_arg, char* argv[])
 
 					break;
 
-				// Start and stop continuous odometry
+					// Start and stop continuous odometry
+				case 'S':
 				case 's':
 					working = !working;
 					break;
 
-				// Close the program
+					// Close the program
+				case 'E':
 				case 'e':
 					stop = true;
 					if (odo.f_res.is_open()) odo.f_res.close();
 					break;
 			}
 
-			if (working == 1)
+			if (working)
 			{
 				if (odo.dataset_finished)
 				{
@@ -187,6 +190,8 @@ int main(int num_arg, char* argv[])
 					odo.updateScene();
 				}
 			}
+			using namespace std::chrono_literals;
+			std::this_thread::sleep_for(5ms);
 		}
 
 		return 0;

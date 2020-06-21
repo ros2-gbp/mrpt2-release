@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -49,10 +49,10 @@ class CDetectorDoorCrossing : public mrpt::system::COutputLogger
 		TDoorCrossingOutParams() = default;
 
 		/** If this is false, all other output fields must not be
-		 *   taken into account since there is not yet enought information
+		 *   taken into account since there is not yet enough information
 		 *   to fill the required observations window size.
 		 */
-		bool enoughtInformation{false};
+		bool enoughInformation{false};
 
 		/** The likelihood of having just entering a new room, in
 		 *   the range [0,1]

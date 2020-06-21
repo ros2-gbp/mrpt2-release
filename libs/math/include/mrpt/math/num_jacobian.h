@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -20,9 +20,10 @@ namespace mrpt::math
  *   If it is not required, set to "int" or any other basic type.
  *
  *  This is a generic template which works with:
- *    VECTORLIKE: vector_float, CVectorDouble, CArrayNumeric<>, double [N],
+ *    VECTORLIKE: vector_float, CVectorDouble, CVectorFixed<>, double [N],
  * ...
- *    MATRIXLIKE: CMatrixTemplateNumeric, CMatrixFixedNumeric
+ *    MATRIXLIKE: CMatrixDynamic, CMatrixFixed
+ *  \ingroup mrpt_math_grp
  */
 template <
 	class VECTORLIKE, class VECTORLIKE2, class VECTORLIKE3, class MATRIXLIKE,
@@ -65,11 +66,11 @@ void estimateJacobian(
 		if (j == 0)
 		{
 			m = f_plus.size();
-			out_Jacobian.setSize(m, n);
+			out_Jacobian.resize(m, n);
 		}
 
 		for (size_t i = 0; i < m; i++)
-			out_Jacobian.get_unsafe(i, j) = Ax_2_inv * (f_plus[i] - f_minus[i]);
+			out_Jacobian(i, j) = Ax_2_inv * (f_plus[i] - f_minus[i]);
 
 	}  // end for j
 

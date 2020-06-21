@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,6 +11,7 @@
 #include <mrpt/serialization/CSerializable.h>
 #include <mrpt/system/string_utils.h>
 #include <cstdio>
+#include <cstring>
 #include <sstream>
 
 namespace mrpt::hmtslam
@@ -30,11 +31,11 @@ struct TPropertyValueIDTriplet
  * associated to a given hypothesis ID.
  * A non multi-hypotheses version exists in CPropertiesValuesList.
  * \sa CSerializable, CPropertiesValuesList
- * \ingroup mrpt_base_grp
+ * \ingroup mrpt_hmtslam_grp
  */
 class CMHPropertiesValuesList : public mrpt::serialization::CSerializable
 {
-	DEFINE_SERIALIZABLE(CMHPropertiesValuesList)
+	DEFINE_SERIALIZABLE(CMHPropertiesValuesList, mrpt::hmtslam)
 
    private:
 	std::vector<TPropertyValueIDTriplet> m_properties;
@@ -133,7 +134,7 @@ class CMHPropertiesValuesList : public mrpt::serialization::CSerializable
 
 		std::string basic_value;
 		basic_value.resize(sizeof(T));
-		::memcpy(&basic_value[0], &data, sizeof(T));
+		std::memcpy(&basic_value[0], &data, sizeof(T));
 
 		for (auto& m_propertie : m_properties)
 		{

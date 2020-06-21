@@ -2,13 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "tfest-precomp.h"  // Precompiled headers
 
+#include <mrpt/core/round.h>
 #include <mrpt/math/distributions.h>
 #include <mrpt/math/geometry.h>
 #include <mrpt/poses/CPoint2DPDFGaussian.h>
@@ -550,9 +551,9 @@ bool tfest::se2_l2_robust(
 					1.0 - std::numeric_limits<double>::epsilon(),
 					pNoOutliers);  // Avoid division by 0.
 				// Number of
-				results.ransac_iters =
+				results.ransac_iters = mrpt::round(
 					log(1 - params.probability_find_good_model) /
-					log(pNoOutliers);
+					log(pNoOutliers));
 
 				results.ransac_iters = std::max(
 					results.ransac_iters, params.ransac_min_nSimulations);

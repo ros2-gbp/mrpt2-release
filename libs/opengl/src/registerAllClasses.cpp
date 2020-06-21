@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -27,12 +27,11 @@ MRPT_INITIALIZER(registerAllClasses_mrpt_opengl)
 	registerClass(CLASS_ID(CColorBar));
 	registerClass(CLASS_ID(CCylinder));
 	registerClass(CLASS_ID(CDisk));
-	registerClass(CLASS_ID(CEllipsoid));
+	registerClass(CLASS_ID(CEllipsoid3D));
 	registerClass(CLASS_ID(CEllipsoidInverseDepth2D));
 	registerClass(CLASS_ID(CEllipsoidInverseDepth3D));
 	registerClass(CLASS_ID(CEllipsoidRangeBearing2D));
 	registerClass(CLASS_ID(CFrustum));
-	registerClass(CLASS_ID(CGeneralizedCylinder));
 	registerClass(CLASS_ID(CGridPlaneXY));
 	registerClass(CLASS_ID(CGridPlaneXZ));
 	registerClass(CLASS_ID(CMesh));

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -17,7 +17,6 @@
 #include <mrpt/math/CMatrixD.h>
 #include <mrpt/serialization/CSerializable.h>
 #include <mrpt/typemeta/TEnumType.h>
-
 #include <list>
 
 namespace mrpt::maps
@@ -38,9 +37,8 @@ struct TRandomFieldCell
 {
 	/** Constructor */
 	TRandomFieldCell(double kfmean_dm_mean = 1e-20, double kfstd_dmmeanw = 0)
-		: kf_mean(kfmean_dm_mean),
-		  kf_std(kfstd_dmmeanw),
-
+		: param1_(kfmean_dm_mean),
+		  param2_(kfstd_dmmeanw),
 		  last_updated(mrpt::system::now()),
 		  updated_std(kfstd_dmmeanw)
 	{
@@ -56,24 +54,29 @@ struct TRandomFieldCell
 	// Note 2: If the number of type of fields are changed in the future,
 	//   *PLEASE* also update the writeToStream() and readFromStream() methods!!
 
-	union {
-		/** [KF-methods only] The mean value of this cell */
-		double kf_mean;
-		/** [Kernel-methods only] The cumulative weighted readings of this cell
-		 */
-		double dm_mean;
-		/** [GMRF only] The mean value of this cell */
-		double gmrf_mean;
-	};
+	double param1_ = 0;
+	/** [KF-methods only] The mean value of this cell */
+	double& kf_mean() { return param1_; }
+	const double& kf_mean() const { return param1_; }
+	/** [Kernel-methods only] The cumulative weighted readings of this cell
+	 */
+	double& dm_mean() { return param1_; }
+	const double& dm_mean() const { return param1_; }
+	/** [GMRF only] The mean value of this cell */
+	double& gmrf_mean() { return param1_; }
+	const double& gmrf_mean() const { return param1_; }
 
-	union {
-		/** [KF-methods only] The standard deviation value of this cell */
-		double kf_std;
-		/** [Kernel-methods only] The cumulative weights (concentration = alpha
-		 * * dm_mean / dm_mean_w + (1-alpha)*r0 ) */
-		double dm_mean_w;
-		double gmrf_std;
-	};
+	double param2_ = 0;
+
+	/** [KF-methods only] The standard deviation value of this cell */
+	double& kf_std() { return param2_; }
+	const double& kf_std() const { return param2_; }
+	/** [Kernel-methods only] The cumulative weights (concentration = alpha
+	 * * dm_mean / dm_mean_w + (1-alpha)*r0 ) */
+	double& dm_mean_w() { return param2_; }
+	const double& dm_mean_w() const { return param2_; }
+	double& gmrf_std() { return param2_; }
+	const double& gmrf_std() const { return param2_; }
 
 	/** [Kernel DM-V only] The cumulative weighted variance of this cell */
 	double dmv_var_mean{0};
@@ -84,7 +87,7 @@ struct TRandomFieldCell
 	/** [Dynamic maps only] The std cell value that was updated (to be used in
 	 * the Forgetting_curve */
 	double updated_std;
-};
+};  // namespace mrpt::maps
 
 #if defined(MRPT_IS_X86_AMD64)
 #pragma pack(pop)
@@ -163,7 +166,7 @@ class CRandomFieldGridMap2D
 	// This method is just used for the ::saveToTextFile() method in base class.
 	float cell2float(const TRandomFieldCell& c) const override
 	{
-		return c.kf_mean;
+		return mrpt::d2f(c.kf_mean());
 	}
 
 	/** The type of map representation to be used, see CRandomFieldGridMap2D for

@@ -2,19 +2,29 @@
    |                     Mobile Robot Programming Toolkit (MRPT)               |
    |                          https://www.mrpt.org/                            |
    |                                                                           |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file        |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file        |
    | See: https://www.mrpt.org/Authors - All rights reserved.                  |
    | Released under BSD License. See details in https://www.mrpt.org/License   |
-   +---------------------------------------------------------------------------+ */
+   +---------------------------------------------------------------------------+
+ */
+
+// clang-format off
 
 /** \defgroup mrpt_opengl_grp [mrpt-opengl]
+
+Visualization helpers for 3D rendering of all kind of primitives
 
 <small> <a href="index.html#libs">Back to list of all libraries</a> | <a href="modules.html" >See all modules</a> </small>
 <br>
 
-<h2>Library <code>mrpt-opengl</code></h2>
-<hr>
 
+# Library `mrpt-opengl`
+
+This library is part of MRPT and can be installed in Debian-based systems with:
+
+		sudo apt install libmrpt-opengl-dev
+
+See: \ref mrpt_from_cmake
 
 This library includes several data classes that represent objects that can be
 inserted into a 3D scene, which can be then rendered or streamed to disk or whatever.
@@ -40,7 +50,7 @@ Below follows a table with the preview of most rendering primitive classes:
  <tr> <td> mrpt::opengl::CFrustum </td> <td> \image html preview_CFrustum.png </td> </tr>
  <tr> <td> mrpt::opengl::CCylinder </td> <td> \image html preview_CCylinder.png </td> </tr>
  <tr> <td> mrpt::opengl::CDisk </td> <td> \image html preview_CDisk.png </td> </tr>
- <tr> <td> mrpt::opengl::CEllipsoid </td> <td> \image html preview_CEllipsoid.png </td> </tr>
+ <tr> <td> mrpt::opengl::CEllipsoid3D </td> <td> \image html preview_CEllipsoid.png </td> </tr>
  <tr> <td> mrpt::opengl::CGridPlaneXY </td> <td> \image html preview_CGridPlaneXY.png </td> </tr>
  <tr> <td> mrpt::opengl::CGridPlaneXZ </td> <td> \image html preview_CGridPlaneXZ.png </td> </tr>
  <tr> <td> mrpt::opengl::CMesh </td> <td> \image html preview_CMesh.png </td> </tr>
@@ -91,4 +101,3 @@ Note: The following extra OpenGL classes are provided by other libraries:
 </div>
 
 */
-

@@ -2,13 +2,12 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/containers/ContainerReadOnlyProxyAccessor.h>
 #include <mrpt/core/aligned_std_vector.h>
 #include <mrpt/maps/CMetricMap.h>
 #include <mrpt/math/CPolygon.h>
@@ -54,7 +53,7 @@ namespace obs
  */
 class CObservation2DRangeScan : public CObservation
 {
-	DEFINE_SERIALIZABLE(CObservation2DRangeScan)
+	DEFINE_SERIALIZABLE(CObservation2DRangeScan, mrpt::obs)
 	// This must be added for declaration of MEX-related functions
 	DECLARE_MEX_CONVERSION
    private:
@@ -80,8 +79,6 @@ class CObservation2DRangeScan : public CObservation
 
 	/** Default constructor */
 	CObservation2DRangeScan() = default;
-	/** copy ctor */
-	CObservation2DRangeScan(const CObservation2DRangeScan& o);
 
 	/** @name Scan data
 		@{ */
@@ -97,25 +94,18 @@ class CObservation2DRangeScan : public CObservation
 
 	/** The range values of the scan, in meters. Must have same length than \a
 	 * validRange */
-	mrpt::containers::ContainerReadOnlyProxyAccessor<
-		mrpt::aligned_std_vector<float>>
-		scan{m_scan};
-	float getScanRange(const size_t i) const;
+	const float& getScanRange(const size_t i) const;
+	float& getScanRange(const size_t i);
 	void setScanRange(const size_t i, const float val);
 
 	/** The intensity values of the scan. If available, must have same length
 	 * than \a validRange */
-	mrpt::containers::ContainerReadOnlyProxyAccessor<
-		mrpt::aligned_std_vector<int32_t>>
-		intensity{m_intensity};
-	int32_t getScanIntensity(const size_t i) const;
+	const int32_t& getScanIntensity(const size_t i) const;
+	int32_t& getScanIntensity(const size_t i);
 	void setScanIntensity(const size_t i, const int val);
 
 	/** It's false (=0) on no reflected rays, referenced to elements in \a scan
 	 */
-	mrpt::containers::ContainerReadOnlyProxyAccessor<
-		mrpt::aligned_std_vector<char>>
-		validRange{m_validRange};
 	bool getScanRangeValidity(const size_t i) const;
 	void setScanRangeValidity(const size_t i, const bool val);
 

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -22,7 +22,8 @@ void* mrpt::aligned_calloc(size_t bytes, size_t alignment)
 void* mrpt::aligned_malloc(size_t size, size_t alignment)
 {
 	// size must be an integral multiple of alignment:
-	if ((size % alignment) != 0) size = ((size / alignment) + 1) * alignment;
+	if (alignment != 0 && (size % alignment) != 0)
+		size = ((size / alignment) + 1) * alignment;
 #ifdef _MSC_VER
 	return _aligned_malloc(size, alignment);
 #elif __APPLE__

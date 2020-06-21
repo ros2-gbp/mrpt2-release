@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -183,7 +183,7 @@ size_t CPipeBaseEndPoint::Read(void* Buffer, size_t Count)
 
 				// Receive bytes:
 				const size_t readNow = ::read(
-					m_pipe_file, ((char*)Buffer) + alreadyRead,
+					m_pipe_file, reinterpret_cast<char*>(Buffer) + alreadyRead,
 					(int)remainToRead);
 
 				if (readNow != static_cast<size_t>(-1))

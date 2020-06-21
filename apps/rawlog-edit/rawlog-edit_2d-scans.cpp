@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -38,8 +38,8 @@ DECLARE_OP_FUNCTION(op_export_2d_scans_txt)
 
 		CRawlogProcessor_Export2DSCANS_TXT(
 			CFileGZInputStream& in_rawlog, TCLAP::CmdLine& cmdline,
-			bool verbose)
-			: CRawlogProcessorOnEachObservation(in_rawlog, cmdline, verbose),
+			bool Verbose)
+			: CRawlogProcessorOnEachObservation(in_rawlog, cmdline, Verbose),
 			  m_entriesSaved(0)
 		{
 			getArgValue<string>(cmdline, "input", m_inFile);
@@ -51,7 +51,7 @@ DECLARE_OP_FUNCTION(op_export_2d_scans_txt)
 		// return false on any error.
 		bool processOneObservation(CObservation::Ptr& o) override
 		{
-			if (!IS_CLASS(o, CObservation2DRangeScan)) return true;
+			if (!IS_CLASS(*o, CObservation2DRangeScan)) return true;
 
 			const CObservation2DRangeScan* obs =
 				dynamic_cast<CObservation2DRangeScan*>(o.get());
@@ -94,9 +94,10 @@ DECLARE_OP_FUNCTION(op_export_2d_scans_txt)
 			::fprintf(f_this_times, "%14.4f\n", sampleTime);
 
 			// Ranges:
-			for (size_t j = 0; j < obs->scan.size(); j++)
+			for (size_t j = 0; j < obs->getScanSize(); j++)
 				::fprintf(
-					f_this, "%.6f ", obs->validRange[j] ? obs->scan[j] : 0);
+					f_this, "%.6f ",
+					obs->getScanRangeValidity(j) ? obs->getScanRange(j) : 0);
 			::fprintf(f_this, "\n");
 
 			m_entriesSaved++;
@@ -105,7 +106,7 @@ DECLARE_OP_FUNCTION(op_export_2d_scans_txt)
 		}
 
 		// Destructor: close files and generate summary files:
-		~CRawlogProcessor_Export2DSCANS_TXT()
+		virtual ~CRawlogProcessor_Export2DSCANS_TXT()
 		{
 			for (auto it = lstFiles.begin(); it != lstFiles.end(); ++it)
 			{

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -24,7 +24,7 @@
 
 // The "custom class" mpWindow, from the wxMathPlot libray by David Schalig
 //  See http://sourceforge.net/projects/wxmathplot
-#include <mrpt/otherlibs/mathplot/mathplot.h>
+#include <mrpt/3rdparty/mathplot/mathplot.h>
 
 #include <mrpt/obs/CSensoryFrame.h>
 #include <mrpt/opengl/CPointCloudColoured.h>
@@ -92,7 +92,7 @@ class CScanAnimation : public wxDialog
 	void OnbtnPlayClick(wxCommandEvent& event);
 	void OnbtnStopClick(wxCommandEvent& event);
 	void OnbtnCloseClick(wxCommandEvent& event);
-	void OnslPosCmdScrollChanged(wxScrollEvent& event);
+	void OnslPosCmdScrollChanged(wxCommandEvent& event);
 	void OnbtnJumpClick(wxCommandEvent& event);
 	void OnslPosCmdScroll(wxScrollEvent& event);
 	void OnbtnPickInputClick(wxCommandEvent& event);

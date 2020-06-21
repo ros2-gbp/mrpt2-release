@@ -2,15 +2,15 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/core/aligned_std_vector.h>
 #include <mrpt/poses/CPose2D.h>
 #include <mrpt/serialization/CSerializable.h>
+#include <vector>
 
 namespace mrpt::poses
 {
@@ -23,7 +23,7 @@ namespace mrpt::poses
  */
 class CPoses2DSequence : public mrpt::serialization::CSerializable
 {
-	DEFINE_SERIALIZABLE(CPoses2DSequence)
+	DEFINE_SERIALIZABLE(CPoses2DSequence, mrpt::poses)
    public:
 	/** Returns the poses count in the sequence:
 	 */
@@ -72,20 +72,20 @@ class CPoses2DSequence : public mrpt::serialization::CSerializable
 	 * \exception std::exception On invalid index value
 	 * \sa computeTraveledDistanceAfterAll
 	 */
-	float computeTraveledDistanceAfter(unsigned int n);
+	double computeTraveledDistanceAfter(size_t n);
 
 	/** Returns the traveled distance after ALL movements.
 	 *   A shortcut for "computeTraveledDistanceAfter( posesCount() )".
 	 * \sa computeTraveledDistanceAfter
 	 */
-	float computeTraveledDistanceAfterAll();
+	double computeTraveledDistanceAfterAll();
 
    private:
 	/** The internal sequence of poses, stored as relative, incremental poses,
 	 * thus each one is situated just at the end point of last one, where the
 	 * first one is referenced to (0,0,0deg)
 	 */
-	mrpt::aligned_std_vector<CPose2D> poses;
+	std::vector<CPose2D> poses;
 
 };  // End of class def.
 }  // namespace mrpt::poses

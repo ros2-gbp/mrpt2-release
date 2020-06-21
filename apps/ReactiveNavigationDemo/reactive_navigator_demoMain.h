@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -327,7 +327,7 @@ class reactive_navigator_demoframe : public wxFrame
 
 	mrpt::io::CFileOutputStream m_log_trajectory_file;
 
-	CMyRedirector* m_myRedirector;
+	std::unique_ptr<CMyRedirector> m_myRedirector;
 
 	// ========= Opengl View: Map & robot  =======
 	mrpt::opengl::CSetOfObjects::Ptr gl_grid;

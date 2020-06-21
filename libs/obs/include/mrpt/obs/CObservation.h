@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/lightweight_geom_data_frwds.h>
+#include <mrpt/math/TPose3D.h>
 #include <mrpt/math/math_frwds.h>
 #include <mrpt/poses/poses_frwds.h>
 #include <mrpt/serialization/CSerializable.h>
@@ -21,6 +21,7 @@ namespace obs
 {
 /** Used for CObservationBeaconRange, CBeacon, etc. \ingroup mrpt_obs_grp */
 #define INVALID_BEACON_ID (-1)
+
 /** Used for CObservationBearingRange::TMeasurement::beaconID and others.
  * \ingroup mrpt_obs_grp */
 #define INVALID_LANDMARK_ID (-1)
@@ -99,7 +100,7 @@ class CObservation : public mrpt::serialization::CSerializable
 		METRICMAP* theMap,
 		const mrpt::poses::CPose3D* robotPose = nullptr) const
 	{
-		return theMap->insertObservation(this, robotPose);
+		return theMap->insertObservation(*this, robotPose);
 	}
 
 	/** A general method to retrieve the sensor pose on the robot.
@@ -137,6 +138,9 @@ class CObservation : public mrpt::serialization::CSerializable
 	 * \note This is the text that appears in RawLogViewer when selecting an
 	 * object in the dataset */
 	virtual void getDescriptionAsText(std::ostream& o) const;
+
+	/** Return by value version of getDescriptionAsText(std::ostream&) */
+	std::string getDescriptionAsTextValue() const;
 
 	/** @name Delayed-load manual control methods.
 		@{ */

@@ -2,12 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include <mrpt/gui/CDisplayWindow3D.h>
+#include <mrpt/math/TPose3D.h>
 #include <mrpt/opengl/CAxis.h>
 #include <mrpt/opengl/CBox.h>
 #include <mrpt/opengl/CGridPlaneXY.h>
@@ -45,14 +46,13 @@ void TestDisplay3D()
 	// ------------------------------------------------------
 	{
 		opengl::CGridPlaneXY::Ptr obj =
-			mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
-				-20, 20, -20, 20, 0, 1);
-		obj->setColor(0.4, 0.4, 0.4);
+			opengl::CGridPlaneXY::Create(-20, 20, -20, 20, 0, 1);
+		obj->setColor(0.4f, 0.4f, 0.4f);
 		theScene->insert(obj);
 	}
 
 	{
-		opengl::CAxis::Ptr obj = mrpt::make_aligned_shared<opengl::CAxis>();
+		opengl::CAxis::Ptr obj = opengl::CAxis::Create();
 		obj->setFrequency(5);
 		obj->enableTickMarks();
 		obj->setAxisLimits(-10, -10, -10, 10, 10, 10);
@@ -60,7 +60,7 @@ void TestDisplay3D()
 	}
 
 	{
-		opengl::CBox::Ptr obj = mrpt::make_aligned_shared<opengl::CBox>();
+		opengl::CBox::Ptr obj = opengl::CBox::Create();
 		obj->setWireframe(false);
 		obj->setColor(1, 0, 0);
 		obj->setLineWidth(3.0);
@@ -69,24 +69,24 @@ void TestDisplay3D()
 	}
 
 	{
-		opengl::CSphere::Ptr obj = mrpt::make_aligned_shared<opengl::CSphere>();
+		opengl::CSphere::Ptr obj = opengl::CSphere::Create();
 		obj->setColor(0, 0, 1);
-		obj->setRadius(0.3);
+		obj->setRadius(0.3f);
 		obj->setLocation(0, 0, 1);
 		obj->setName("ball_1");
 		theScene->insert(obj);
 	}
 	{
-		opengl::CSphere::Ptr obj = mrpt::make_aligned_shared<opengl::CSphere>();
+		opengl::CSphere::Ptr obj = opengl::CSphere::Create();
 		obj->setColor(1, 0, 0);
-		obj->setRadius(0.3);
+		obj->setRadius(0.3f);
 		obj->setLocation(-1, -1, 1);
 		obj->setName("ball_2");
 		theScene->insert(obj);
 	}
 
 	{
-		opengl::CSphere::Ptr obj = mrpt::make_aligned_shared<opengl::CSphere>();
+		opengl::CSphere::Ptr obj = opengl::CSphere::Create();
 		obj->setColor(0, 1, 0);
 		obj->setRadius(0.5);
 		obj->setLocation(0, 0, 0);
@@ -113,6 +113,9 @@ void TestDisplay3D()
 
 	bool end = false;
 
+	mrpt::opengl::TFontParams fp;
+	fp.color = mrpt::img::TColorf(0, 0, 1);
+
 	while (!end && win.isOpen())
 	{
 		// Move the scene:
@@ -132,13 +135,11 @@ void TestDisplay3D()
 
 		win.addTextMessage(
 			0.02, 0.98,
-			format(
+			mrpt::format(
 				"ball#1 pos: %.02f %.02f %.02f ", obj1->getPoseX(),
 				obj1->getPoseY(), obj1->getPoseZ()),
-			mrpt::img::TColorf(0, 0, 1),
-			10,  // An arbitrary ID to always overwrite the same, previous 2D
-			// text message
-			MRPT_GLUT_BITMAP_HELVETICA_12);
+			10,  // An arbitrary ID
+			fp);
 
 		// IMPORTANT!!! IF NOT UNLOCKED, THE WINDOW WILL NOT BE UPDATED!
 		win.unlockAccess3DScene();

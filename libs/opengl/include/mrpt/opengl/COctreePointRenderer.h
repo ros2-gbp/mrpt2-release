@@ -2,18 +2,19 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #ifndef opengl_COctreePointRenderer_H
 #define opengl_COctreePointRenderer_H
 
-#include <mrpt/core/aligned_std_deque.h>
+#include <mrpt/img/TPixelCoord.h>
 #include <mrpt/opengl/CBox.h>
 #include <mrpt/opengl/CRenderizable.h>
 #include <mrpt/opengl/CSetOfObjects.h>
-#include <mrpt/opengl/gl_utils.h>
+#include <atomic>
+#include <deque>
 
 namespace mrpt
 {
@@ -86,7 +87,7 @@ class COctreePointRenderer
 	/** Render the entire octree recursively.
 	 * Should be called from children's render() method.
 	 */
-	void octree_render(const mrpt::opengl::gl_utils::TRenderInfo& ri) const
+	void octree_render(const mrpt::opengl::TRenderMatrices& ri) const
 	{
 		m_visible_octree_nodes_ongoing = 0;
 
@@ -256,7 +257,6 @@ class COctreePointRenderer
 		}
 
 	   public:
-		MRPT_MAKE_ALIGNED_OPERATOR_NEW
 	};
 
 	struct TRenderQueueElement
@@ -277,15 +277,15 @@ class COctreePointRenderer
 
 	bool m_octree_has_to_rebuild_all{true};
 	/** First one [0] is always the root node */
-	mrpt::aligned_std_deque<TNode> m_octree_nodes;
+	std::deque<TNode> m_octree_nodes;
 
 	// Counters of visible octrees for each render:
-	volatile mutable size_t m_visible_octree_nodes{0},
-		m_visible_octree_nodes_ongoing{0};
+	mutable std::atomic<size_t> m_visible_octree_nodes = 0;
+	mutable size_t m_visible_octree_nodes_ongoing = 0;
 
 	/** Render a given node. */
 	void octree_recursive_render(
-		size_t node_idx, const mrpt::opengl::gl_utils::TRenderInfo& ri,
+		size_t node_idx, const mrpt::opengl::TRenderMatrices& ri,
 		mrpt::img::TPixelCoordf cr_px[8], float cr_z[8],
 		bool corners_are_all_computed = true,
 		bool trust_me_youre_visible = false,
@@ -332,9 +332,9 @@ class COctreePointRenderer
 			// If all 8 corners are way out of the screen (and all "cr_z" have
 			// the same sign),
 			// this node and all the children are not visible:
-			if (!box_crosses_image_plane &&
-				(px_min.x >= ri.vp_width || px_min.y >= ri.vp_height ||
-				 px_max.x < 0 || px_max.y < 0))
+			if (!box_crosses_image_plane && (px_min.x >= ri.viewport_width ||
+											 px_min.y >= ri.viewport_height ||
+											 px_max.x < 0 || px_max.y < 0))
 				return;  // Not visible
 		}
 
@@ -371,8 +371,8 @@ class COctreePointRenderer
 				for (int i = 0; i < 8; i++)
 				{
 					if (!(cr_px[i].x >= 0 && cr_px[i].y >= 0 &&
-						  cr_px[i].x < ri.vp_width &&
-						  cr_px[i].y < ri.vp_height))
+						  cr_px[i].x < ri.viewport_width &&
+						  cr_px[i].y < ri.viewport_height))
 					{
 						children_are_all_visible_for_sure = false;
 						break;
@@ -601,10 +601,11 @@ class COctreePointRenderer
 			{
 				if (all_pts)
 					for (size_t i = 0; i < N; i++)
-						node.update_bb(octree_derived().getPointf(i));
+						node.update_bb(octree_derived().getPoint3Df(i));
 				else
 					for (size_t i = 0; i < N; i++)
-						node.update_bb(octree_derived().getPointf(node.pts[i]));
+						node.update_bb(
+							octree_derived().getPoint3Df(node.pts[i]));
 			}
 		}
 		else
@@ -615,15 +616,14 @@ class COctreePointRenderer
 			if (all_pts)
 				for (size_t i = 0; i < N; i++)
 				{
-					mrpt::math::TPoint3Df p = octree_derived().getPointf(i);
+					const auto& p = octree_derived().getPoint3Df(i);
 					mean += p;
 					if (has_to_compute_bb) node.update_bb(p);
 				}
 			else
 				for (size_t i = 0; i < N; i++)
 				{
-					mrpt::math::TPoint3Df p =
-						octree_derived().getPointf(node.pts[i]);
+					const auto& p = octree_derived().getPoint3Df(node.pts[i]);
 					mean += p;
 					if (has_to_compute_bb) node.update_bb(p);
 				}
@@ -649,7 +649,7 @@ class COctreePointRenderer
 			for (size_t j = 0; j < N; j++)
 			{
 				const size_t i = all_pts ? j : node.pts[j];
-				const mrpt::math::TPoint3Df p = octree_derived().getPointf(i);
+				const mrpt::math::TPoint3Df p = octree_derived().getPoint3Df(i);
 				if (p.z < c.z)
 				{
 					if (p.y < c.y)
@@ -727,7 +727,7 @@ class COctreePointRenderer
 	 * lines_color. Otherwise, wireframe boxes will be drawn.
 	 */
 	void octree_get_graphics_boundingboxes(
-		mrpt::opengl::CSetOfObjects& gl_bb, const double lines_width = 1,
+		mrpt::opengl::CSetOfObjects& gl_bb, const float lines_width = 1,
 		const mrpt::img::TColorf& lines_color = mrpt::img::TColorf(1, 1, 1),
 		const bool draw_solid_boxes = false) const
 	{
@@ -737,8 +737,7 @@ class COctreePointRenderer
 		{
 			const TNode& node = m_octree_nodes[i];
 			if (!node.is_leaf) continue;
-			mrpt::opengl::CBox::Ptr gl_box =
-				mrpt::make_aligned_shared<mrpt::opengl::CBox>();
+			mrpt::opengl::CBox::Ptr gl_box = mrpt::opengl::CBox::Create();
 			gl_box->setBoxCorners(
 				mrpt::math::TPoint3D(node.bb_min),
 				mrpt::math::TPoint3D(node.bb_max));

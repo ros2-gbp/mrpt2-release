@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -15,6 +15,7 @@
 #include <mrpt/poses/CPoint2D.h>
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/serialization/metaprogramming_serialization.h>
+#include <mrpt/system/filesystem.h>
 
 using namespace mrpt::maps;
 using namespace mrpt::poses;
@@ -175,7 +176,7 @@ void CMultiMetricMap::serializeFrom(
 
 // Read docs in base class
 double CMultiMetricMap::internal_computeObservationLikelihood(
-	const CObservation* obs, const CPose3D& takenFrom)
+	const CObservation& obs, const CPose3D& takenFrom)
 {
 	MRPT_START
 	double ret_log_lik = 0;
@@ -190,7 +191,7 @@ double CMultiMetricMap::internal_computeObservationLikelihood(
 
 // Read docs in base class
 bool CMultiMetricMap::internal_canComputeObservationLikelihood(
-	const CObservation* obs) const
+	const CObservation& obs) const
 {
 	bool can_comp = false;
 	std::for_each(maps.begin(), maps.end(), [&](auto& ptr) {
@@ -200,7 +201,7 @@ bool CMultiMetricMap::internal_canComputeObservationLikelihood(
 }
 
 bool CMultiMetricMap::internal_insertObservation(
-	const CObservation* obs, const CPose3D* robotPose)
+	const CObservation& obs, const CPose3D* robotPose)
 {
 	int total_insert = 0;
 
@@ -246,7 +247,10 @@ void CMultiMetricMap::saveMetricMapRepresentationToFile(
 		ASSERT_(m);
 		std::string fil = filNamePrefix;
 		fil += format(
-			"_%s_%02u", m->GetRuntimeClass()->className,
+			"_%s_%02u",
+			mrpt::system::fileNameStripInvalidChars(
+				m->GetRuntimeClass()->className)
+				.c_str(),
 			static_cast<unsigned int>(idx));
 		m->saveMetricMapRepresentationToFile(fil);
 	}

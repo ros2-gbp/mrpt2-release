@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,6 +10,7 @@
 
 #include <mrpt/bayes/CParticleFilterCapable.h>
 #include <mrpt/bayes/CParticleFilterData.h>
+#include <mrpt/math/TPose3D.h>
 #include <mrpt/poses/CPose3DPDF.h>
 
 namespace mrpt::poses
@@ -35,7 +36,7 @@ class CPose3DPDFParticles
 			  mrpt::math::TPose3D,
 			  mrpt::bayes::particle_storage_mode::VALUE>::CParticleList>
 {
-	DEFINE_SERIALIZABLE(CPose3DPDFParticles)
+	DEFINE_SERIALIZABLE(CPose3DPDFParticles, mrpt::poses)
 
    public:
 	/** Constructor
@@ -52,18 +53,33 @@ class CPose3DPDFParticles
 	 * \param location The location to set all the m_particles.
 	 * \param particlesCount If this is set to 0 the number of m_particles
 	 * remains unchanged.
-	 *  \sa resetUniform, resetUniformFreeSpace */
+	 *  \sa resetUniform */
 	void resetDeterministic(
 		const mrpt::math::TPose3D& location, size_t particlesCount = 0);
+
+	/** Reset the PDF to an uniformly distributed one, inside of the defined
+	 * "cube".
+	 *
+	 * \param particlesCount New particle count, or leave count unchanged if set
+	 * to -1 (default).
+	 *
+	 * \note Orientations can be outside of the [-pi,pi] range if so desired,
+	 *       but it must hold `phi_max>=phi_min`.
+	 * \sa resetDeterministic
+	 * resetAroundSetOfPoses
+	 */
+	void resetUniform(
+		const mrpt::math::TPose3D& corner_min,
+		const mrpt::math::TPose3D& corner_max, const int particlesCount = -1);
 
 	/** Returns an estimate of the pose, (the mean, or mathematical expectation
 	 * of the PDF), computed as a weighted average over all m_particles. \sa
 	 * getCovariance */
 	void getMean(CPose3D& mean_pose) const override;
+
 	/** Returns an estimate of the pose covariance matrix (6x6 cov matrix) and
 	 * the mean, both at once. \sa getMean */
-	void getCovarianceAndMean(
-		mrpt::math::CMatrixDouble66& cov, CPose3D& mean_point) const override;
+	std::tuple<cov_mat_t, type_value> getCovarianceAndMean() const override;
 
 	/** Returns the pose of the i'th particle */
 	mrpt::math::TPose3D getParticlePose(int i) const;

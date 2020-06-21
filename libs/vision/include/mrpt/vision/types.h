@@ -2,19 +2,19 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
 #include <mrpt/config/CLoadableOptions.h>
-#include <mrpt/core/aligned_std_map.h>
-#include <mrpt/core/aligned_std_vector.h>
 #include <mrpt/img/CImage.h>
-#include <mrpt/math/lightweight_geom_data.h>
+#include <mrpt/math/TPoint3D.h>
 #include <mrpt/tfest/TMatchingPair.h>
 #include <mrpt/typemeta/TEnumType.h>
+#include <map>
+#include <vector>
 
 namespace mrpt::vision
 {
@@ -29,11 +29,10 @@ using TLandmarkID = uint64_t;
 using TCameraPoseID = uint64_t;
 
 /** A list of camera frames (6D poses) indexed by unique IDs. */
-using TFramePosesMap =
-	mrpt::aligned_std_map<TCameraPoseID, mrpt::poses::CPose3D>;
+using TFramePosesMap = std::map<TCameraPoseID, mrpt::poses::CPose3D>;
 /** A list of camera frames (6D poses), which assumes indexes are unique,
  * consecutive IDs. */
-using TFramePosesVec = mrpt::aligned_std_vector<mrpt::poses::CPose3D>;
+using TFramePosesVec = std::vector<mrpt::poses::CPose3D>;
 
 /** A list of landmarks (3D points) indexed by unique IDs. */
 using TLandmarkLocationsMap = std::map<TLandmarkID, mrpt::math::TPoint3D>;
@@ -41,11 +40,8 @@ using TLandmarkLocationsMap = std::map<TLandmarkID, mrpt::math::TPoint3D>;
  * consecutive IDs. */
 using TLandmarkLocationsVec = std::vector<mrpt::math::TPoint3D>;
 
-/** Types of features - This means that the point has been detected with this
- * algorithm, which is independent of additional descriptors a feature may also
- * have
- */
-enum TFeatureType : int8_t
+/** Types of key point detectors */
+enum TKeyPointMethod : int8_t
 {
 	/** Non-defined feature (also used for Occupancy features) */
 	featNotDefined = -1,
@@ -57,32 +53,20 @@ enum TFeatureType : int8_t
 	/** Scale Invariant Feature Transform [LOWE'04] */
 	featSIFT = 3,
 	/** Speeded Up Robust Feature [BAY'06] */
-	featSURF,
+	featSURF = 4,
 	/** A especial case: this is not an image feature, but a 2D/3D beacon (used
 	   for range-only SLAM from mrpt::maps::CLandmark) */
-	featBeacon,
+	featBeacon = 5,
 	/** FAST feature detector, OpenCV's implementation ("Faster and better: A
 	   machine learning approach to corner detection", E. Rosten, R. Porter and
 	   T. Drummond, PAMI, 2009). */
-	featFAST,
-	/** FASTER-9 detector, Edward Rosten's libcvd implementation optimized for
-	   SSE2. */
-	featFASTER9,
-	/** FASTER-9 detector, Edward Rosten's libcvd implementation optimized for
-	   SSE2. */
-	featFASTER10,
-	/** FASTER-9 detector, Edward Rosten's libcvd implementation optimized for
-	   SSE2. */
-	featFASTER12,
-	/** ORB detector and descriptor, OpenCV's implementation ("ORB: an efficient
-	   alternative to SIFT or SURF", E. Rublee, V. Rabaud, K. Konolige, G.
-	   Bradski, ICCV, 2012). */
-	featORB,
+	featFAST = 6,
+	/** ORB detector and descriptor, OpenCV's implementation */
+	featORB = 10,
 	// #added by Raghavender Sahdev
-	featAKAZE,  //!< AKAZE detector, OpenCV's implementation
-	featLSD  //!< LSD detector, OpenCV's implementation
+	featAKAZE = 11,  //!< AKAZE detector, OpenCV's implementation
+	featLSD = 12  //!< LSD detector, OpenCV's implementation
 	// Remember: If new values are added, also update MRPT_FILL_ENUM below!
-
 };
 
 /** The bitwise OR combination of values of TDescriptorType are used in
@@ -321,8 +305,11 @@ struct TStereoSystemParams : public mrpt::config::CLoadableOptions
 struct TROI
 {
 	// Constructors
-	TROI();
-	TROI(float x1, float x2, float y1, float y2, float z1, float z2);
+	TROI() = default;
+	TROI(float x1, float x2, float y1, float y2, float z1, float z2)
+		: xMin(x1), xMax(x2), yMin(y1), yMax(y2), zMin(z1), zMax(z2)
+	{
+	}
 
 	// Members
 	float xMin{0};
@@ -338,17 +325,17 @@ struct TROI
 struct TImageROI
 {
 	// Constructors
-	TImageROI();
-	TImageROI(float x1, float x2, float y1, float y2);
+	TImageROI() = default;
+	TImageROI(size_t x1, size_t x2, size_t y1, size_t y2)
+		: xMin(x1), xMax(x2), yMin(y1), yMax(y2)
+	{
+	}
 
-	// Members
-	/** X coordinate limits [0,imageWidth)
-	 */
-	float xMin{0}, xMax{0};
-	/** Y coordinate limits [0,imageHeight)
-	 */
-	float yMin{0}, yMax{0};
-};  // end struct TImageROI
+	/** X coordinate limits [0,imageWidth) */
+	size_t xMin{0}, xMax{0};
+	/** Y coordinate limits [0,imageHeight) */
+	size_t yMin{0}, yMax{0};
+};
 
 /** A structure containing options for the matching
  */
@@ -578,12 +565,11 @@ struct TMultiResDescMatchOptions : public mrpt::config::CLoadableOptions
 	TMultiResDescMatchOptions() = default;
 
 	TMultiResDescMatchOptions(
-		const bool& _useOriFilter, const double& _oriThreshold,
-		const bool& _useDepthFilter, const double& _th, const double& _th2,
-		const unsigned int& _lwscl1, const unsigned int& _lwscl2,
-		const unsigned int& _hwscl1, const unsigned int& _hwscl2,
-		const int& _searchAreaSize, const int& _lsth, const int& _tsth,
-		const int& _minFeaturesToFind, const int& _minFeaturesToBeLost)
+		bool _useOriFilter, double _oriThreshold, bool _useDepthFilter,
+		double _th, double _th2, const unsigned int& _lwscl1,
+		const unsigned int& _lwscl2, const unsigned int& _hwscl1,
+		const unsigned int& _hwscl2, int _searchAreaSize, int _lsth, int _tsth,
+		int _minFeaturesToFind, int _minFeaturesToBeLost)
 		: useOriFilter(_useOriFilter),
 		  oriThreshold(_oriThreshold),
 		  useDepthFilter(_useDepthFilter),
@@ -658,11 +644,10 @@ struct TMultiResDescOptions : public mrpt::config::CLoadableOptions
 
 	TMultiResDescOptions(
 		const unsigned int& _basePSize, const std::vector<double>& _scales,
-		const unsigned int& _comLScl, const unsigned int& _comHScl,
-		const double& _sg1, const double& _sg2, const double& _sg3,
-		const bool& _computeDepth, const bool _blurImage, const double& _fx,
-		const double& _cx, const double& _cy, const double& _baseline,
-		const bool& _computeHashCoeffs, const double& _cropValue)
+		const unsigned int& _comLScl, const unsigned int& _comHScl, double _sg1,
+		double _sg2, double _sg3, bool _computeDepth, const bool _blurImage,
+		double _fx, double _cx, double _cy, double _baseline,
+		bool _computeHashCoeffs, double _cropValue)
 		: basePSize(_basePSize),
 		  comLScl(_comLScl),
 		  comHScl(_comHScl),
@@ -695,7 +680,7 @@ struct TMultiResDescOptions : public mrpt::config::CLoadableOptions
 
 /** @} */  // end of grouping
 }  // namespace mrpt::vision
-MRPT_ENUM_TYPE_BEGIN(mrpt::vision::TFeatureType)
+MRPT_ENUM_TYPE_BEGIN(mrpt::vision::TKeyPointMethod)
 using namespace mrpt::vision;
 MRPT_FILL_ENUM(featNotDefined);
 MRPT_FILL_ENUM(featKLT);
@@ -704,9 +689,6 @@ MRPT_FILL_ENUM(featSIFT);
 MRPT_FILL_ENUM(featSURF);
 MRPT_FILL_ENUM(featBeacon);
 MRPT_FILL_ENUM(featFAST);
-MRPT_FILL_ENUM(featFASTER9);
-MRPT_FILL_ENUM(featFASTER10);
-MRPT_FILL_ENUM(featFASTER12);
 MRPT_FILL_ENUM(featORB);
 MRPT_FILL_ENUM(featAKAZE);
 MRPT_FILL_ENUM(featLSD);

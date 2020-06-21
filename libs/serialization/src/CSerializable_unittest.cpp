@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -18,7 +18,7 @@ namespace MyNS
 {
 class Foo : public CSerializable
 {
-	DEFINE_SERIALIZABLE(Foo)
+	DEFINE_SERIALIZABLE(Foo, MyNS)
    public:
 	int16_t value;
 };
@@ -49,4 +49,20 @@ TEST(Serialization, CustomClassSerialize)
 	arch >> b;
 
 	EXPECT_EQ(a.value, b.value);
+}
+
+TEST(Serialization, ArchiveSharedPtrs)
+{
+	mrpt::io::CMemoryStream buf;
+	auto arch_ptr = mrpt::serialization::archivePtrFrom(buf);
+	auto arch_ptr2 = mrpt::serialization::archiveUniquePtrFrom(buf);
+
+	int a = 42;
+	(*arch_ptr) << a;
+	buf.Seek(0);
+
+	int b;
+	(*arch_ptr2) >> b;
+
+	EXPECT_EQ(a, b);
 }

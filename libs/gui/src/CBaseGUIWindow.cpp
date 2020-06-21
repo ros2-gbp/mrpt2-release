@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -40,10 +40,9 @@ CBaseGUIWindow::CBaseGUIWindow(
 					Create the wx Window
  ---------------------------------------------------------------*/
 void CBaseGUIWindow::createWxWindow(
-	unsigned int initialWidth, unsigned int initialHeight)
+	[[maybe_unused]] unsigned int initialWidth,
+	[[maybe_unused]] unsigned int initialHeight)
 {
-	MRPT_UNUSED_PARAM(initialWidth);
-	MRPT_UNUSED_PARAM(initialHeight);
 	MRPT_START
 #if MRPT_HAS_WXWIDGETS
 	// Create the main wxThread:
@@ -186,22 +185,14 @@ int CBaseGUIWindow::waitForKey(
  ---------------------------------------------------------------*/
 int CBaseGUIWindow::getPushedKey(mrptKeyModifier* out_pushModifier)
 {
-	int k = 0;
 	if (out_pushModifier) *out_pushModifier = MRPTKMOD_NONE;
 
-	for (;;)
-	{
-		if (m_keyPushed)
-		{
-			k = m_keyPushedCode;
-			m_keyPushed = false;
-			if (out_pushModifier) *out_pushModifier = m_keyPushedModifier;
-			return k;
-		}
-		std::this_thread::sleep_for(10ms);
-		// Are we still alive?
-		if (!isOpen()) return 0;
-	}
+	if (!m_keyPushed) return 0;
+
+	int k = m_keyPushedCode;
+	m_keyPushed = false;
+	if (out_pushModifier) *out_pushModifier = m_keyPushedModifier;
+	return k;
 }
 
 /*---------------------------------------------------------------

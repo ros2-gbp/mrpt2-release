@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -14,7 +14,7 @@
 
 namespace mrpt::hwdrivers
 {
-/** This class implements initialization and comunication methods to
+/** This class implements initialization and communication methods to
  * control a Pan and Tilt Unit model PTU-46-17.5, working in radians .
  * \ingroup mrpt_hwdrivers_grp
  */
@@ -191,11 +191,7 @@ class CPtuDPerception : public CPtuBase
 
 	/** Check if ptu is moving */
 
-	double status(double& rad) override
-	{
-		MRPT_UNUSED_PARAM(rad);
-		return 1;
-	}
+	double status([[maybe_unused]] double& rad) override { return 1; }
 
 	/** Set limits of movement */
 
@@ -396,7 +392,7 @@ class CPtuDPerception : public CPtuBase
 
 	/** TimeoutError: Only occurs if the communication is cut with PTU
 	 *		so it is advisable to check the connection and initialize
-	 *		again the comunication.
+	 *		again the communication.
 	 */
 
 	int nError;

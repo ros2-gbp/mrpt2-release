@@ -2,16 +2,16 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/core/aligned_std_map.h>
 #include <mrpt/graphs/CNetworkOfPoses.h>
 #include <mrpt/poses/Lie/SE.h>
 #include <functional>
+#include <map>
 
 namespace mrpt
 {
@@ -45,7 +45,7 @@ struct graphslam_traits
 	// relative pose in an edge)
 	using TPairJacobs = std::pair<matrix_TxT, matrix_TxT>;
 	using map_pairIDs_pairJacobs_t =
-		mrpt::aligned_std_multimap<mrpt::graphs::TPairNodeIDs, TPairJacobs>;
+		std::multimap<mrpt::graphs::TPairNodeIDs, TPairJacobs>;
 
 	/** Auxiliary struct used in graph-slam implementation: It holds the
 	 * relevant information for each of the constraints being taking into

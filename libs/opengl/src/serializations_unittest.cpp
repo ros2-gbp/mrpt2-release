@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -41,11 +41,10 @@ TEST(SerializeTestOpenGL, WriteReadToMem)
 		CLASS_ID(CSetOfTriangles),
 		CLASS_ID(CSphere),
 		CLASS_ID(CCylinder),
-		CLASS_ID(CGeneralizedCylinder),
 		CLASS_ID(CPolyhedron),
 		CLASS_ID(CArrow),
 		CLASS_ID(CCamera),
-		CLASS_ID(CEllipsoid),
+		CLASS_ID(CEllipsoid3D),
 		CLASS_ID(CGridPlaneXZ),
 		CLASS_ID(COpenGLScene),
 		CLASS_ID(CSetOfObjects),
@@ -58,16 +57,16 @@ TEST(SerializeTestOpenGL, WriteReadToMem)
 		CLASS_ID(COctoMapVoxels)
 	};
 
-	for (auto& lstClasse : lstClasses)
+	for (auto& cl : lstClasses)
 	{
 		try
 		{
 			mrpt::io::CMemoryStream buf;
 			{
-				auto* o =
-					static_cast<CSerializable*>(lstClasse->createObject());
+				auto o =
+					mrpt::ptr_cast<CSerializable>::from(cl->createObject());
 				mrpt::serialization::archiveFrom(buf) << *o;
-				delete o;
+				o.reset();
 			}
 
 			CSerializable::Ptr recons;
@@ -77,7 +76,7 @@ TEST(SerializeTestOpenGL, WriteReadToMem)
 		catch (const std::exception& e)
 		{
 			GTEST_FAIL() << "Exception during serialization test for class '"
-						 << lstClasse->className << "':\n"
+						 << cl->className << "':\n"
 						 << e.what() << endl;
 		}
 	}

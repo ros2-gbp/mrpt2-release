@@ -2,24 +2,27 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "opengl-precomp.h"  // Precompiled header
 
+#include <mrpt/math/TLine3D.h>
+#include <mrpt/math/geometry.h>  // crossProduct3D()
 #include <mrpt/opengl/COpenGLScene.h>
 #include <mrpt/opengl/COpenGLViewport.h>
 #include <mrpt/opengl/CSetOfObjects.h>
 #include <mrpt/opengl/CTexturedPlane.h>
-#include <mrpt/opengl/gl_utils.h>
+#include <mrpt/opengl/DefaultShaders.h>
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/serialization/metaprogramming_serialization.h>
 #include <mrpt/serialization/stl_serialization.h>
 #include <mrpt/system/CTimeLogger.h>
+#include <Eigen/Dense>
 
-#include "opengl_internals.h"
+#include <mrpt/opengl/opengl_api.h>
 
 using namespace mrpt;
 using namespace mrpt::poses;
@@ -46,46 +49,12 @@ mrpt::system::CTimeLogger glv_timlog;
 					Constructor
   ---------------------------------------------------------------*/
 COpenGLViewport::COpenGLViewport(COpenGLScene* parent, const string& name)
-	: m_camera(),
-	  m_parent(parent),
-
-	  m_clonedViewport(),
-	  m_name(name),
-
-	  m_background_color(0.6f, 0.6f, 0.6f),
-
-	  m_imageview_img(),
-	  m_objects(),
-
-	  m_lights()
+	: m_parent(parent), m_name(name)
 {
-	// Default: one light from default direction
-	m_lights.emplace_back();
-	m_lights.emplace_back();
-
-	m_lights[0].setPosition(1, 1, 1, 0);
-	m_lights[0].setDirection(-1, -1, -1);
-
-	m_lights[1].light_ID = 1;
-	m_lights[1].setPosition(1, 2, -1, 0);
-	m_lights[1].setDirection(1, 2, 1);
-
-	m_lights[1].color_diffuse[0] = 0.3f;
-	m_lights[1].color_diffuse[1] = 0.3f;
-	m_lights[1].color_diffuse[2] = 0.3f;
-
-	m_lights[1].color_ambient[0] = 0.3f;
-	m_lights[1].color_ambient[1] = 0.3f;
-	m_lights[1].color_ambient[2] = 0.3f;
 }
 
-/*--------------------------------------------------------------
-					Destructor
-  ---------------------------------------------------------------*/
 COpenGLViewport::~COpenGLViewport() { clear(); }
-/*--------------------------------------------------------------
-					setCloneView
-  ---------------------------------------------------------------*/
+
 void COpenGLViewport::setCloneView(const string& clonedViewport)
 {
 	clear();
@@ -93,9 +62,6 @@ void COpenGLViewport::setCloneView(const string& clonedViewport)
 	m_clonedViewport = clonedViewport;
 }
 
-/*--------------------------------------------------------------
-					setViewportPosition
-  ---------------------------------------------------------------*/
 void COpenGLViewport::setViewportPosition(
 	const double x, const double y, const double width, const double height)
 {
@@ -135,395 +101,456 @@ void COpenGLViewport::insert(const CRenderizable::Ptr& newObject)
 	m_objects.push_back(newObject);
 }
 
-/*---------------------------------------------------------------
-						render
- ---------------------------------------------------------------*/
-void COpenGLViewport::render(
-	const int render_width, const int render_height) const
+// Maps [0,1] to [0,Len], wrap negative numbers, etc.
+static int sizeFromRatio(
+	const int startCoord, const double dSize, const int iLength)
+{
+	if (dSize > 1)  // >1 -> absolute pixels:
+		return static_cast<int>(dSize);
+	else if (dSize < 0)
+	{  // Negative numbers: Specify the right side coordinates instead of
+		// the width:
+		if (dSize >= -1)
+			return static_cast<int>(-iLength * dSize - startCoord + 1);
+		else
+			return static_cast<int>(-dSize - startCoord + 1);
+	}
+	// Otherwise: a fraction
+	return static_cast<int>(iLength * dSize);
+}
+static int startFromRatio(const double frac, const int dSize)
+{
+	return frac > 1 ? static_cast<int>(frac)
+					: (frac < 0 ? static_cast<int>(dSize + frac)
+								: static_cast<int>(dSize * frac));
+}
+
+// "Image mode" rendering:
+void COpenGLViewport::renderImageMode() const
 {
 #if MRPT_HAS_OPENGL_GLUT
-	const CRenderizable* it =
-		nullptr;  // Declared here for usage in the "catch"
-	try
-	{
-		// Change viewport:
-		// -------------------------------------------
-		const GLint vx = m_view_x > 1
-							 ? GLint(m_view_x)
-							 : (m_view_x < 0 ? GLint(render_width + m_view_x)
-											 : GLint(render_width * m_view_x));
-		const GLint vy = m_view_y > 1
-							 ? GLint(m_view_y)
-							 : (m_view_y < 0 ? GLint(render_height + m_view_y)
-											 : GLint(render_height * m_view_y));
-
-		GLint vw;
-		if (m_view_width > 1)  // >1 -> absolute pixels:
-			vw = GLint(m_view_width);
-		else if (m_view_width < 0)
-		{  // Negative numbers: Specify the right side coordinates instead of
-			// the width:
-			if (m_view_width >= -1)
-				vw = GLint(-render_width * m_view_width - vx + 1);
-			else
-				vw = GLint(-m_view_width - vx + 1);
-		}
-		else  // A factor:
-		{
-			vw = GLint(render_width * m_view_width);
-		}
-
-		GLint vh;
-		if (m_view_height > 1)  // >1 -> absolute pixels:
-			vh = GLint(m_view_height);
-		else if (m_view_height < 0)
-		{  // Negative numbers: Specify the right side coordinates instead of
-			// the width:
-			if (m_view_height >= -1)
-				vh = GLint(-render_height * m_view_height - vy + 1);
-			else
-				vh = GLint(-m_view_height - vy + 1);
-		}
-		else  // A factor:
-			vh = GLint(render_height * m_view_height);
-
-		glViewport(vx, vy, vw, vh);
-
-		// Clear depth&/color buffers:
-		// -------------------------------------------
-		m_lastProjMat.viewport_width = vw;
-		m_lastProjMat.viewport_height = vh;
-
-		glScissor(vx, vy, vw, vh);
-
-		glEnable(GL_SCISSOR_TEST);
-		if (!m_isTransparent)
-		{  // Clear color & depth buffers:
-			// Save?
-			GLdouble old_colors[4];
-			if (m_custom_backgb_color)
-			{
-				glGetDoublev(GL_COLOR_CLEAR_VALUE, old_colors);
-				glClearColor(
-					m_background_color.R, m_background_color.G,
-					m_background_color.B, m_background_color.A);
-			}
-
-			glClear(
-				GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
-				GL_ACCUM_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-			// Restore old colors:
-			if (m_custom_backgb_color)
-				glClearColor(
-					old_colors[0], old_colors[1], old_colors[2], old_colors[3]);
-		}
-		else
-		{  // Clear depth buffer only:
-			glClear(GL_DEPTH_BUFFER_BIT);
-		}
-		glDisable(GL_SCISSOR_TEST);
-
-		// If we are in "image mode", rendering is much simpler: just set
-		//  ortho projection and render the image quad:
-		if (m_isImageView)
-		{
 #if defined(OPENGLVIEWPORT_ENABLE_TIMEPROFILING)
-			glv_timlog.enter("COpenGLViewport::render imageview");
+	mrpt::system::CTimeLoggerEntry tle(
+		glv_timlog, "COpenGLViewport::render imageview");
 #endif
-			// "Image mode" rendering:
-			// -----------------------------------
-			if (m_imageview_img)  // should be ALWAYS true, but just in case!
-			{
-				// Note: The following code is inspired in the implementations:
-				//  - libcvd, by Edward Rosten http://www.edwardrosten.com/cvd/
-				//  - PTAM, by Klein & Murray
-				//  http://www.robots.ox.ac.uk/~gk/PTAM/
 
-				mrpt::img::CImage* img = m_imageview_img.get();
+	// Do we have an actual image to render?
+	if (!m_imageview_plane) return;
 
-				const int img_w = img->getWidth();
-				const int img_h = img->getHeight();
+	auto _ = m_state;
 
-				if (img_w != 0 && img_h != 0)
-				{
-					// Prepare an ortho projection:
-					glMatrixMode(GL_PROJECTION);
-					glLoadIdentity();
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-					// Need to adjust the aspect ratio?
-					const double ratio = vw * img_h / double(vh * img_w);
-					double ortho_w = img_w;
-					double ortho_h = img_h;
-					if (ratio > 1)
-						ortho_w *= ratio;
-					else if (ratio != 0)
-						ortho_h /= ratio;
+	// Adjust the aspect ratio:
+	const auto img_w = m_imageview_plane->getTextureImage().getWidth();
+	const auto img_h = m_imageview_plane->getTextureImage().getHeight();
+	const double img_ratio = double(img_w) / img_h;
+	const double vw_ratio = double(_.viewport_width) / _.viewport_height;
+	const double ratio = vw_ratio / img_ratio;
 
-					glOrtho(-0.5, ortho_h - 0.5, ortho_w - 0.5, -0.5, -1, 1);
+	_.mv_matrix.setIdentity();
+	_.p_matrix.setIdentity();
 
-					// Prepare raster pos & pixel copy direction in -Y.
-					glRasterPos2f(-0.5f, -0.5f);
-					glPixelZoom(vw / float(ortho_w), -vh / float(ortho_h));
+	if (img_ratio > 1)
+		_.p_matrix(1, 1) /= img_ratio;
+	else if (img_ratio > 0)
+		_.p_matrix(0, 0) /= img_ratio;
 
-					// Prepare image data types:
-					const GLenum img_type = GL_UNSIGNED_BYTE;
-					const int nBytesPerPixel = img->isColor() ? 3 : 1;
-					// Reverse RGB <-> BGR order?
-					const bool is_RGB_order =
-						(img->getChannelsOrder() == std::string("RGB"));
-					const GLenum img_format =
-						nBytesPerPixel == 3 ? (is_RGB_order ? GL_RGB : GL_BGR)
-											: GL_LUMINANCE;
+	if (ratio > 0) _.p_matrix(0, 0) /= ratio;
 
-					// Send image data to OpenGL:
-					glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-					glPixelStorei(GL_UNPACK_ROW_LENGTH, img->getWidth());
-					glDrawPixels(
-						img_w, img_h, img_format, img_type,
-						img->ptrLine<uint8_t>(0));
-					glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);  // Reset
-					CRenderizable::checkOpenGLError();
-				}
-			}
-// done.
-#if defined(OPENGLVIEWPORT_ENABLE_TIMEPROFILING)
-			glv_timlog.leave("COpenGLViewport::render imageview");
+	auto &p00 = _.p_matrix(0, 0), &p11 = _.p_matrix(1, 1);
+	if (p00 > 0 && p11 > 0)
+	{
+		const double s = (p00 > p11) ? p00 : p11;
+		p00 /= s;
+		p11 /= s;
+	}
+
+	_.pmv_matrix.asEigen() = _.p_matrix.asEigen() * _.mv_matrix.asEigen();
+
+	// Pass 1: Process all objects (recursively for sets of objects):
+	CListOpenGLObjects lst;
+	lst.push_back(m_imageview_plane);
+	mrpt::opengl::RenderQueue rq;
+	mrpt::opengl::enqueForRendering(lst, _, rq);
+
+	// pass 2: render, sorted by shader program:
+	mrpt::opengl::processRenderQueue(rq, m_shaders, m_lights);
+
 #endif
-		}
-		else
-		{
-			// Non "image mode" rendering:
+}
 
-			// Set camera:
-			// -------------------------------------------
-			glMatrixMode(GL_PROJECTION);
-			glLoadIdentity();
+void COpenGLViewport::unloadShaders() { m_shaders.clear(); }
 
-			const CListOpenGLObjects* objectsToRender;
-			COpenGLViewport* viewForGetCamera;
+void COpenGLViewport::loadDefaultShaders() const
+{
+#if MRPT_HAS_OPENGL_GLUT
+	MRPT_START
 
-			if (m_isCloned)
-			{  // Clone: render someone's else objects.
-				ASSERT_(m_parent.get() != nullptr);
+	std::vector<shader_id_t> lstShaderIDs = {
+		DefaultShaderID::POINTS, DefaultShaderID::WIREFRAME,
+		DefaultShaderID::TRIANGLES, DefaultShaderID::TEXTURED_TRIANGLES,
+		DefaultShaderID::TEXT};
 
-				COpenGLViewport::Ptr view =
-					m_parent->getViewport(m_clonedViewport);
-				if (!view)
-					THROW_EXCEPTION_FMT(
-						"Cloned viewport '%s' not found in parent COpenGLScene",
-						m_clonedViewport.c_str());
-
-				objectsToRender = &view->m_objects;
-				viewForGetCamera = m_isClonedCamera
-									   ? view.get()
-									   : const_cast<COpenGLViewport*>(this);
-			}
-			else
-			{  // Normal case: render our own objects:
-				objectsToRender = &m_objects;
-				viewForGetCamera = const_cast<COpenGLViewport*>(this);
-			}
-
-			// Get camera:
-			// 1st: if there is a CCamera in the scene:
-			CRenderizable::Ptr cam_ptr =
-				viewForGetCamera->getByClass<CCamera>();
-
-			CCamera* myCamera = nullptr;
-			if (cam_ptr)
-			{
-				myCamera = dynamic_cast<CCamera*>(cam_ptr.get());
-			}
-
-			// 2nd: the internal camera of all viewports:
-			if (!myCamera) myCamera = &viewForGetCamera->m_camera;
-
-			ASSERT_(m_camera.m_distanceZoom > 0);
-
-			m_lastProjMat.azimuth = DEG2RAD(myCamera->m_azimuthDeg);
-			m_lastProjMat.elev = DEG2RAD(myCamera->m_elevationDeg);
-
-			const float dis = max(0.01f, myCamera->m_distanceZoom);
-			m_lastProjMat.eye.x =
-				myCamera->m_pointingX +
-				dis * cos(m_lastProjMat.azimuth) * cos(m_lastProjMat.elev);
-			m_lastProjMat.eye.y =
-				myCamera->m_pointingY +
-				dis * sin(m_lastProjMat.azimuth) * cos(m_lastProjMat.elev);
-			m_lastProjMat.eye.z =
-				myCamera->m_pointingZ + dis * sin(m_lastProjMat.elev);
-
-			if (fabs(fabs(myCamera->m_elevationDeg) - 90) > 1e-6)
-			{
-				m_lastProjMat.up.x = 0;
-				m_lastProjMat.up.y = 0;
-				m_lastProjMat.up.z = 1;
-			}
-			else
-			{
-				float sgn = myCamera->m_elevationDeg > 0 ? 1 : -1;
-				m_lastProjMat.up.x =
-					-cos(DEG2RAD(myCamera->m_azimuthDeg)) * sgn;
-				m_lastProjMat.up.y =
-					-sin(DEG2RAD(myCamera->m_azimuthDeg)) * sgn;
-				m_lastProjMat.up.z = 0;
-			}
-
-			m_lastProjMat.is_projective = myCamera->m_projectiveModel;
-			m_lastProjMat.FOV = myCamera->m_projectiveFOVdeg;
-			m_lastProjMat.pointing.x = myCamera->m_pointingX;
-			m_lastProjMat.pointing.y = myCamera->m_pointingY;
-			m_lastProjMat.pointing.z = myCamera->m_pointingZ;
-			m_lastProjMat.zoom = myCamera->m_distanceZoom;
-
-			if (myCamera->m_projectiveModel)
-			{
-				gluPerspective(
-					myCamera->m_projectiveFOVdeg, vw / double(vh), m_clip_min,
-					m_clip_max);
-				CRenderizable::checkOpenGLError();
-			}
-			else
-			{
-				const double ratio = vw / double(vh);
-				double Ax = myCamera->m_distanceZoom * 0.5;
-				double Ay = myCamera->m_distanceZoom * 0.5;
-
-				if (ratio > 1)
-					Ax *= ratio;
-				else
-				{
-					if (ratio != 0) Ay /= ratio;
-				}
-
-				glOrtho(-Ax, Ax, -Ay, Ay, -0.5 * m_clip_max, 0.5 * m_clip_max);
-				CRenderizable::checkOpenGLError();
-			}
-
-			if (myCamera->is6DOFMode())
-			{
-				// In 6DOFMode eye is set viewing towards the direction of the
-				// positive Z axis
-				// Up is set as Y axis
-				mrpt::poses::CPose3D viewDirection, pose, at;
-				viewDirection.z(+1);
-				pose = mrpt::poses::CPose3D(myCamera->getPose());
-				at = pose + viewDirection;
-				gluLookAt(
-					pose.x(), pose.y(), pose.z(), at.x(), at.y(), at.z(),
-					pose.getRotationMatrix()(0, 1),
-					pose.getRotationMatrix()(1, 1),
-					pose.getRotationMatrix()(2, 1));
-				CRenderizable::checkOpenGLError();
-			}
-			else
-			{
-				// This command is common to ortho and perspective:
-				gluLookAt(
-					m_lastProjMat.eye.x, m_lastProjMat.eye.y,
-					m_lastProjMat.eye.z, m_lastProjMat.pointing.x,
-					m_lastProjMat.pointing.y, m_lastProjMat.pointing.z,
-					m_lastProjMat.up.x, m_lastProjMat.up.y, m_lastProjMat.up.z);
-				CRenderizable::checkOpenGLError();
-			}
-
-			// Optional pre-Render user code:
-			if (hasSubscribers())
-			{
-				mrptEventGLPreRender ev(this);
-				this->publishEvent(ev);
-			}
-
-			// Global OpenGL settings:
-			// ---------------------------------
-			glHint(
-				GL_POLYGON_SMOOTH_HINT,
-				m_OpenGL_enablePolygonNicest ? GL_NICEST : GL_FASTEST);
-			glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-
-			// Render objects:
-			// -------------------------------------------
-			glMatrixMode(GL_MODELVIEW);
-			glLoadIdentity();
-
-			glEnable(GL_DEPTH_TEST);
-			glDepthFunc(GL_LEQUAL);  // GL_LESS
-
-			// Setup lights
-			// -------------------------------------------
-			glEnable(GL_LIGHTING);
-			glEnable(GL_COLOR_MATERIAL);
-			glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-			glShadeModel(GL_SMOOTH);
-			glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
-
-			for (const auto& m_light : m_lights) m_light.sendToOpenGL();
-
-			// Render all the objects:
-			// -------------------------------------------
-			mrpt::opengl::gl_utils::renderSetOfObjects(*objectsToRender);
-
-		}  // end of non "image mode" rendering
-
-		// Finally, draw the border:
-		// --------------------------------
-		if (m_borderWidth > 0)
-		{
-			glLineWidth(2 * m_borderWidth);
-			glColor4f(0, 0, 0, 1);
-			glDisable(GL_DEPTH_TEST);
-
-			glMatrixMode(GL_MODELVIEW);
-			glLoadIdentity();
-			glMatrixMode(GL_PROJECTION);
-			glLoadIdentity();
-
-			glDisable(GL_LIGHTING);  // Disable lights when drawing lines
-			glBegin(GL_LINE_LOOP);
-			glVertex2f(-1, -1);
-			glVertex2f(-1, 1);
-			glVertex2f(1, 1);
-			glVertex2f(1, -1);
-			glEnd();
-			glEnable(GL_LIGHTING);  // Disable lights when drawing lines
-
-			glEnable(GL_DEPTH_TEST);
-		}
-
-		// Optional post-Render user code:
-		if (hasSubscribers())
-		{
-			mrptEventGLPostRender ev(this);
-			this->publishEvent(ev);
-		}
-	}
-	catch (exception& e)
+	for (const auto& id : lstShaderIDs)
 	{
-		string msg;
-		if (it != nullptr)
-			msg = format(
-				"Exception while rendering a class '%s'\n%s",
-				it->GetRuntimeClass()->className, e.what());
-		else
-			msg = format("Exception while rendering:\n%s", e.what());
+		m_shaders[id] = mrpt::opengl::LoadDefaultShader(id);
 
-		THROW_EXCEPTION(msg);
+		ASSERT_(m_shaders[id]);
+		ASSERT_(!m_shaders[id]->empty());
 	}
-	catch (...)
+
+	MRPT_END
+#endif
+}
+
+/** Render a normal scene with 3D objects */
+void COpenGLViewport::renderNormalSceneMode() const
+{
+#if MRPT_HAS_OPENGL_GLUT
+	MRPT_START
+
+	// Prepare camera (projection matrix):
+	const CListOpenGLObjects* objectsToRender = nullptr;
+	COpenGLViewport* viewForGetCamera = nullptr;
+
+	if (m_isCloned)
+	{  // Clone: render someone's else objects.
+		ASSERT_(m_parent.get() != nullptr);
+
+		COpenGLViewport::Ptr view = m_parent->getViewport(m_clonedViewport);
+		if (!view)
+			THROW_EXCEPTION_FMT(
+				"Cloned viewport '%s' not found in parent COpenGLScene",
+				m_clonedViewport.c_str());
+
+		objectsToRender = &view->m_objects;
+		viewForGetCamera =
+			m_isClonedCamera ? view.get() : const_cast<COpenGLViewport*>(this);
+	}
+	else
+	{  // Normal case: render our own objects:
+		objectsToRender = &m_objects;
+		viewForGetCamera = const_cast<COpenGLViewport*>(this);
+	}
+
+	// Get camera:
+	// 1st: if there is a CCamera in the scene (nullptr if no camera found):
+	const CCamera* myCamera =
+		dynamic_cast<CCamera*>(viewForGetCamera->getByClass<CCamera>().get());
+
+	// 2nd: the internal camera of all viewports:
+	if (!myCamera) myCamera = &viewForGetCamera->m_camera;
+
+	ASSERT_(m_camera.m_eyeDistance > 0);
+
+	auto& _ = m_state;
+
+	_.is_projective = myCamera->m_projectiveModel;
+	_.FOV = myCamera->m_projectiveFOVdeg;
+	_.eyeDistance = myCamera->m_eyeDistance;
+	_.azimuth = DEG2RAD(myCamera->m_azimuthDeg);
+	_.elev = DEG2RAD(myCamera->m_elevationDeg);
+
+	if (myCamera->is6DOFMode())
 	{
-		THROW_EXCEPTION("Runtime error!");
+		// In 6DOFMode eye is set viewing towards the direction of the
+		// positive Z axis
+		// Up is set as Y axis
+		mrpt::poses::CPose3D viewDirection, pose, at;
+		viewDirection.x(+1);
+		pose = mrpt::poses::CPose3D(myCamera->getPose());
+		at = pose + viewDirection;
+
+		_.eye.x = pose.x();
+		_.eye.y = pose.y();
+		_.eye.z = pose.z();
+		_.pointing.x = at.x();
+		_.pointing.y = at.y();
+		_.pointing.z = at.z();
+		_.up.x = pose.getRotationMatrix()(0, 2);
+		_.up.y = pose.getRotationMatrix()(1, 2);
+		_.up.z = pose.getRotationMatrix()(2, 2);
 	}
+	else
+	{
+		// Normal mode: use "camera orbit" parameters to compute pointing-to
+		// point:
+		const double dis = std::max<double>(0.005, myCamera->m_eyeDistance);
+		_.eye.x = _.pointing.x + dis * cos(_.azimuth) * cos(_.elev);
+		_.eye.y = _.pointing.y + dis * sin(_.azimuth) * cos(_.elev);
+		_.eye.z = _.pointing.z + dis * sin(_.elev);
+
+		_.pointing.x = myCamera->m_pointingX;
+		_.pointing.y = myCamera->m_pointingY;
+		_.pointing.z = myCamera->m_pointingZ;
+
+		_.up.x = -cos(_.azimuth) * sin(_.elev);
+		_.up.y = -sin(_.azimuth) * sin(_.elev);
+		_.up.z = cos(_.elev);
+	}
+
+	// Compute the projection matrix (p_matrix):
+	_.computeProjectionMatrix(m_clip_min, m_clip_max);
+
+	// Apply eye center and lookAt to p_matrix:
+	_.applyLookAt();
+
+	// Optional pre-Render user code:
+	if (hasSubscribers())
+	{
+		mrptEventGLPreRender ev(this);
+		this->publishEvent(ev);
+	}
+
+	// Global OpenGL settings:
+	// ---------------------------------
+	glHint(
+		GL_POLYGON_SMOOTH_HINT,
+		m_OpenGL_enablePolygonNicest ? GL_NICEST : GL_FASTEST);
+	CHECK_OPENGL_ERROR();
+
+	// Reset model-view 4x4 matrix to the identity transformation:
+	_.mv_matrix.setIdentity();
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);  // GL_LESS
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+// Enable point sizes>1
+#if defined(GL_PROGRAM_POINT_SIZE)  // it seems it's undefined in OSX (?)
+	glEnable(GL_PROGRAM_POINT_SIZE);
+	CHECK_OPENGL_ERROR();
+#endif
+
+	// Pass 1: Process all objects (recursively for sets of objects):
+	mrpt::opengl::RenderQueue rq;
+	mrpt::opengl::enqueForRendering(*objectsToRender, _, rq);
+
+	// pass 2: render, sorted by shader program:
+	mrpt::opengl::processRenderQueue(rq, m_shaders, m_lights);
+
+	MRPT_END
+
+#endif
+}
+
+void COpenGLViewport::renderViewportBorder() const
+{
+#if MRPT_HAS_OPENGL_GLUT
+	MRPT_START
+	if (m_borderWidth < 1) return;
+
+	auto _ = m_state;
+
+	_.mv_matrix.setIdentity();
+	_.p_matrix.setIdentity();
+	_.pmv_matrix.setIdentity();
+
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	//
+	if (!m_borderLines)
+	{
+		m_borderLines = mrpt::opengl::CSetOfLines::Create();
+		m_borderLines->appendLine(-1, -1, 0, -1, 1, 0);
+		m_borderLines->appendLine(-1, 1, 0, 1, 1, 0);
+		m_borderLines->appendLine(1, 1, 0, 1, -1, 0);
+		m_borderLines->appendLine(1, -1, 0, -1, -1, 0);
+	}
+	m_borderLines->setLineWidth(m_borderWidth);
+	m_borderLines->setColor_u8(m_borderColor);
+
+	CListOpenGLObjects lst;
+	lst.push_back(m_borderLines);
+
+	// Pass 1: Process all objects (recursively for sets of objects):
+	mrpt::opengl::RenderQueue rq;
+	mrpt::opengl::enqueForRendering(lst, _, rq);
+
+	// pass 2: render, sorted by shader program:
+	mrpt::opengl::processRenderQueue(rq, m_shaders, m_lights);
+	MRPT_END
+#endif
+}
+
+void COpenGLViewport::renderTextMessages() const
+{
+#if MRPT_HAS_OPENGL_GLUT
+	MRPT_START
+
+	// Ensure GL objects are up-to-date:
+	m_2D_texts.regenerateGLobjects();
+
+	// Prepare shaders upon first invokation:
+	if (m_shaders.empty()) loadDefaultShaders();
+
+	// Prepare camera (projection matrix):
+	TRenderMatrices _ = m_state;  // make a copy
+
+	// Compute the projection matrix (p_matrix):
+	// was: glLoadIdentity(); glOrtho(0, w, 0, h, -1, 1);
+	const auto w = _.viewport_width, h = _.viewport_height;
+	_.is_projective = false;
+
+	_.p_matrix.setIdentity();
+	//_.computeOrthoProjectionMatrix(0, w, 0, h, m_clip_min, m_clip_max);
+
+	// Reset model-view 4x4 matrix to the identity transformation:
+	_.mv_matrix.setIdentity();
+
+	// glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	// Collect all 2D text objects, and update their properties:
+	CListOpenGLObjects objs;
+	for (auto& kv : m_2D_texts.messages)
+	{
+		const DataPerText& label = kv.second;
+
+		// If (x,y) \in [0,1[, it's interpreted as a ratio, otherwise, as an
+		// actual coordinate in pixels
+		float x =
+			label.x >= 1 ? label.x : (label.x < 0 ? w + label.x : label.x * w);
+		float y =
+			label.y >= 1 ? label.y : (label.y < 0 ? h + label.y : label.y * h);
+
+		if (CText::Ptr& o = label.gl_text; o)
+		{
+			o->setFont(label.vfont_name, label.vfont_scale * 2);
+			o->setString(label.text);
+			o->setColor(label.color);
+			// Change coordinates: mrpt text (0,0)-(1,1) to OpenGL
+			// (-1,-1)-(+1,+1):
+			o->setLocation(-1.0f + 2 * x / w, -1.0f + 2 * y / h, 0);
+			objs.push_back(o);
+		}
+		if (CText::Ptr& o = label.gl_text_shadow; o)
+		{
+			o->setFont(label.vfont_name, label.vfont_scale * 2);
+			o->setString(label.text);
+			o->setColor(label.shadow_color);
+			// Change coordinates: mrpt text (0,0)-(1,1) to OpenGL
+			// (-1,-1)-(+1,+1):
+			o->setLocation(
+				-1.0f + 2 * (x + 1) / w, -1.0f + 2 * (y - 1) / h, 0.1);
+			objs.push_back(o);
+		}
+	}
+
+	// Pass 1: Process all objects (recursively for sets of objects):
+	mrpt::opengl::RenderQueue rq;
+	mrpt::opengl::enqueForRendering(objs, _, rq);
+
+	// pass 2: render, sorted by shader program:
+	mrpt::opengl::processRenderQueue(rq, m_shaders, m_lights);
+	MRPT_END
+#endif
+}
+
+void COpenGLViewport::render(
+	[[maybe_unused]] const int render_width,
+	[[maybe_unused]] const int render_height,
+	[[maybe_unused]] const int render_offset_x,
+	[[maybe_unused]] const int render_offset_y) const
+{
+#if MRPT_HAS_OPENGL_GLUT
+	MRPT_START
+
+	// Change viewport:
+	// -------------------------------------------
+	const GLint vx = render_offset_x + startFromRatio(m_view_x, render_width);
+	const GLint vy = render_offset_y + startFromRatio(m_view_y, render_height);
+	const GLint vw = sizeFromRatio(vx, m_view_width, render_width);
+	const GLint vh = sizeFromRatio(vy, m_view_height, render_height);
+
+	glViewport(vx, vy, vw, vh);
+	CHECK_OPENGL_ERROR();
+
+	// Clear depth&/color buffers:
+	// -------------------------------------------
+	m_state.viewport_width = vw;
+	m_state.viewport_height = vh;
+
+	glScissor(vx, vy, vw, vh);
+	CHECK_OPENGL_ERROR();
+
+	glEnable(GL_SCISSOR_TEST);
+	CHECK_OPENGL_ERROR();
+
+	if (!m_isTransparent)
+	{  // Clear color & depth buffers:
+		// Save?
+
+		GLclampf prevCol[4];
+		if (m_custom_backgb_color)
+		{
+			glGetFloatv(GL_COLOR_CLEAR_VALUE, prevCol);
+			CHECK_OPENGL_ERROR();
+			glClearColor(
+				m_background_color.R, m_background_color.G,
+				m_background_color.B, m_background_color.A);
+			CHECK_OPENGL_ERROR();
+		}
+
+		glClear(
+			GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		CHECK_OPENGL_ERROR();
+
+		// Restore old colors:
+		if (m_custom_backgb_color)
+		{
+			glClearColor(prevCol[0], prevCol[1], prevCol[2], prevCol[3]);
+			CHECK_OPENGL_ERROR();
+		}
+	}
+	else
+	{  // Clear depth buffer only:
+		glClear(GL_DEPTH_BUFFER_BIT);
+		CHECK_OPENGL_ERROR();
+	}
+	glDisable(GL_SCISSOR_TEST);
+	CHECK_OPENGL_ERROR();
+
+	// Prepare shaders upon first invokation:
+	if (m_shaders.empty()) loadDefaultShaders();
+
+	// If we are in "image mode", rendering is much simpler: just set
+	//  ortho projection and render the image quad:
+	if (m_isImageView)
+		renderImageMode();
+	else
+		renderNormalSceneMode();
+
+	// Draw text messages, if any:
+	renderTextMessages();
+
+	// Finally, draw the border:
+	renderViewportBorder();
+
+	// Optional post-Render user code:
+	if (hasSubscribers())
+	{
+		mrptEventGLPostRender ev(this);
+		this->publishEvent(ev);
+	}
+
+	MRPT_END
 #else
-	MRPT_UNUSED_PARAM(render_width);
-	MRPT_UNUSED_PARAM(render_height);
 	THROW_EXCEPTION(
 		"The MRPT has been compiled with MRPT_HAS_OPENGL_GLUT=0! OpenGL "
 		"functions are not implemented");
 #endif
 }
 
-uint8_t COpenGLViewport::serializeGetVersion() const { return 3; }
+uint8_t COpenGLViewport::serializeGetVersion() const { return 4; }
 void COpenGLViewport::serializeTo(mrpt::serialization::CArchive& out) const
 {
 	// Save data:
@@ -546,6 +573,20 @@ void COpenGLViewport::serializeTo(mrpt::serialization::CArchive& out) const
 
 	// Added in v3: Lights
 	out << m_lights;
+
+	// Added in v4: text messages:
+	out.WriteAs<uint32_t>(m_2D_texts.messages.size());
+	for (auto& kv : m_2D_texts.messages)
+	{
+		out << kv.first;  // id
+		out << kv.second.x << kv.second.y << kv.second.text;
+
+		const auto& fp = kv.second;
+
+		out << fp.vfont_name << fp.vfont_scale << fp.color << fp.draw_shadow
+			<< fp.shadow_color << fp.vfont_spacing << fp.vfont_kerning;
+		out.WriteAs<uint8_t>(static_cast<uint8_t>(fp.vfont_style));
+	}
 }
 
 void COpenGLViewport::serializeFrom(
@@ -557,6 +598,7 @@ void COpenGLViewport::serializeFrom(
 		case 1:
 		case 2:
 		case 3:
+		case 4:
 		{
 			// Load data:
 			in >> m_camera >> m_isCloned >> m_isClonedCamera >>
@@ -600,9 +642,31 @@ void COpenGLViewport::serializeFrom(
 				in >> m_lights;
 			else
 			{
-				// Default: one light from default direction
-				m_lights.clear();
-				m_lights.emplace_back();
+				// Default:
+				m_lights = TLightParameters();
+			}
+
+			// v4: text:
+			m_2D_texts.messages.clear();
+			uint32_t nTexts = 0;
+			if (version >= 4) nTexts = in.ReadAs<uint32_t>();
+
+			for (uint32_t i = 0; i < nTexts; i++)
+			{
+				const auto id = in.ReadAs<uint32_t>();
+				double x, y;
+				std::string text;
+				in >> x >> y >> text;
+
+				TFontParams fp;
+
+				in >> fp.vfont_name >> fp.vfont_scale >> fp.color >>
+					fp.draw_shadow >> fp.shadow_color >> fp.vfont_spacing >>
+					fp.vfont_kerning;
+				fp.vfont_style =
+					static_cast<TOpenGLFontStyle>(in.ReadAs<uint8_t>());
+
+				this->addTextMessage(x, y, text, id, fp);
 			}
 		}
 		break;
@@ -633,22 +697,9 @@ CRenderizable::Ptr COpenGLViewport::getByName(const string& str)
 	return CRenderizable::Ptr();
 }
 
-/*---------------------------------------------------------------
-					initializeAllTextures
-  ---------------------------------------------------------------*/
-void COpenGLViewport::initializeAllTextures()
+void COpenGLViewport::initializeTextures()
 {
-#if MRPT_HAS_OPENGL_GLUT
-	for (auto it = m_objects.begin(); it != m_objects.end(); ++it)
-	{
-		if (IS_DERIVED(*it, CTexturedObject))
-			std::dynamic_pointer_cast<CTexturedObject>(*it)
-				->loadTextureInOpenGL();
-		else if (IS_CLASS(*it, CSetOfObjects))
-			std::dynamic_pointer_cast<CSetOfObjects>(*it)
-				->initializeAllTextures();
-	}
-#endif
+	for (auto& obj : m_objects) obj->initializeTextures();
 }
 
 void COpenGLViewport::dumpListOfObjects(std::vector<std::string>& lst)
@@ -691,23 +742,17 @@ void COpenGLViewport::removeObject(const CRenderizable::Ptr& obj)
 			dynamic_cast<CSetOfObjects*>(it->get())->removeObject(obj);
 }
 
-/*--------------------------------------------------------------
-					setViewportClipDistances
-  ---------------------------------------------------------------*/
 void COpenGLViewport::setViewportClipDistances(
-	const double clip_min, const double clip_max)
+	const float clip_min, const float clip_max)
 {
-	ASSERT_(clip_max > clip_min);
+	ASSERT_ABOVE_(clip_max, clip_min);
 
 	m_clip_min = clip_min;
 	m_clip_max = clip_max;
 }
 
-/*--------------------------------------------------------------
-					getViewportClipDistances
-  ---------------------------------------------------------------*/
 void COpenGLViewport::getViewportClipDistances(
-	double& clip_min, double& clip_max) const
+	float& clip_min, float& clip_max) const
 {
 	clip_min = m_clip_min;
 	clip_max = m_clip_max;
@@ -720,35 +765,34 @@ void COpenGLViewport::get3DRayForPixelCoord(
 	const double x_coord, const double y_coord, mrpt::math::TLine3D& out_ray,
 	mrpt::poses::CPose3D* out_cameraPose) const
 {
-	ASSERTDEB_(
-		m_lastProjMat.viewport_height > 0 && m_lastProjMat.viewport_width > 0);
+	ASSERTDEB_(m_state.viewport_height > 0 && m_state.viewport_width > 0);
 
 	const double ASPECT =
-		m_lastProjMat.viewport_width / double(m_lastProjMat.viewport_height);
+		m_state.viewport_width / double(m_state.viewport_height);
 
 	// unitary vector between (eye) -> (pointing):
 	TPoint3D pointing_dir;
-	pointing_dir.x = -cos(m_lastProjMat.azimuth) * cos(m_lastProjMat.elev);
-	pointing_dir.y = -sin(m_lastProjMat.azimuth) * cos(m_lastProjMat.elev);
-	pointing_dir.z = -sin(m_lastProjMat.elev);
+	pointing_dir.x = -cos(m_state.azimuth) * cos(m_state.elev);
+	pointing_dir.y = -sin(m_state.azimuth) * cos(m_state.elev);
+	pointing_dir.z = -sin(m_state.elev);
 
 	// The camera X vector (in 3D) can be computed from the camera azimuth
 	// angle:
 	TPoint3D cam_x_3d;
-	cam_x_3d.x = -sin(m_lastProjMat.azimuth);
-	cam_x_3d.y = cos(m_lastProjMat.azimuth);
+	cam_x_3d.x = -sin(m_state.azimuth);
+	cam_x_3d.y = cos(m_state.azimuth);
 	cam_x_3d.z = 0;
 
 	// The camera real UP vector (in 3D) is the cross product:
 	//     X3d x pointing_dir:
 	TPoint3D cam_up_3d;
-	crossProduct3D(cam_x_3d, pointing_dir, cam_up_3d);
+	mrpt::math::crossProduct3D(cam_x_3d, pointing_dir, cam_up_3d);
 
-	if (!m_lastProjMat.is_projective)
+	if (!m_state.is_projective)
 	{
 		// Ortho projection:
 		// -------------------------------
-		double Ax = m_lastProjMat.zoom * 0.5;
+		double Ax = m_state.eyeDistance * 0.5;
 		double Ay = Ax;
 
 		if (ASPECT > 1)
@@ -759,17 +803,14 @@ void COpenGLViewport::get3DRayForPixelCoord(
 		}
 
 		const double point_lx =
-			(-0.5 + x_coord / m_lastProjMat.viewport_width) * 2 * Ax;
+			(-0.5 + x_coord / m_state.viewport_width) * 2 * Ax;
 		const double point_ly =
-			-(-0.5 + y_coord / m_lastProjMat.viewport_height) * 2 * Ay;
+			-(-0.5 + y_coord / m_state.viewport_height) * 2 * Ay;
 
 		const TPoint3D ray_origin(
-			m_lastProjMat.eye.x + point_lx * cam_x_3d.x +
-				point_ly * cam_up_3d.x,
-			m_lastProjMat.eye.y + point_lx * cam_x_3d.y +
-				point_ly * cam_up_3d.y,
-			m_lastProjMat.eye.z + point_lx * cam_x_3d.z +
-				point_ly * cam_up_3d.z);
+			m_state.eye.x + point_lx * cam_x_3d.x + point_ly * cam_up_3d.x,
+			m_state.eye.y + point_lx * cam_x_3d.y + point_ly * cam_up_3d.y,
+			m_state.eye.z + point_lx * cam_x_3d.z + point_ly * cam_up_3d.z);
 
 		out_ray.pBase = ray_origin;
 		out_ray.director[0] = pointing_dir.x;
@@ -781,30 +822,28 @@ void COpenGLViewport::get3DRayForPixelCoord(
 		// Perspective camera
 		// -------------------------------
 
-		// JL: This can derived from:
+		// JL: This can be derived from:
 		// http://www.opengl.org/sdk/docs/man/xhtml/gluPerspective.xml
 		//  where one arrives to:
 		//    tan(FOVx/2) = ASPECT_RATIO * tan(FOVy/2)
 		//
-		const double FOVy = DEG2RAD(m_lastProjMat.FOV);
+		const double FOVy = DEG2RAD(m_state.FOV);
 		const double FOVx = 2.0 * atan(ASPECT * tan(FOVy * 0.5));
 
-		const double ang_horz =
-			(-0.5 + x_coord / m_lastProjMat.viewport_width) * FOVx;
-		const double ang_vert =
-			-(-0.5 + y_coord / m_lastProjMat.viewport_height) * FOVy;
+		const auto vw = m_state.viewport_width;
+		const auto vh = m_state.viewport_height;
+		const double len_horz = 2.0 * (-0.5 + x_coord / vw) * tan(0.5 * FOVx);
+		const double len_vert = -2.0 * (-0.5 + y_coord / vh) * tan(0.5 * FOVy);
+		// Point in camera local reference frame
+		const auto l = mrpt::math::TPoint3D(len_horz, len_vert, 1.0);
 
-		const TPoint3D l(
-			tan(ang_horz), tan(ang_vert),
-			1.0);  // Point in camera local reference frame
-
-		const TPoint3D ray_director(
+		const mrpt::math::TPoint3D ray_director(
 			l.x * cam_x_3d.x + l.y * cam_up_3d.x + l.z * pointing_dir.x,
 			l.x * cam_x_3d.y + l.y * cam_up_3d.y + l.z * pointing_dir.y,
 			l.x * cam_x_3d.z + l.y * cam_up_3d.z + l.z * pointing_dir.z);
 
 		// Set out ray:
-		out_ray.pBase = m_lastProjMat.eye;
+		out_ray.pBase = m_state.eye;
 		out_ray.director[0] = ray_director.x;
 		out_ray.director[1] = ray_director.y;
 		out_ray.director[2] = ray_director.z;
@@ -815,31 +854,35 @@ void COpenGLViewport::get3DRayForPixelCoord(
 	if (out_cameraPose)
 	{
 		mrpt::math::CMatrixDouble44 M(UNINITIALIZED_MATRIX);
-		M.get_unsafe(0, 0) = cam_x_3d.x;
-		M.get_unsafe(1, 0) = cam_x_3d.y;
-		M.get_unsafe(2, 0) = cam_x_3d.z;
-		M.get_unsafe(3, 0) = 0;
+		M(0, 0) = cam_x_3d.x;
+		M(1, 0) = cam_x_3d.y;
+		M(2, 0) = cam_x_3d.z;
+		M(3, 0) = 0;
 
-		M.get_unsafe(0, 1) = cam_up_3d.x;
-		M.get_unsafe(1, 1) = cam_up_3d.y;
-		M.get_unsafe(2, 1) = cam_up_3d.z;
-		M.get_unsafe(3, 1) = 0;
+		M(0, 1) = cam_up_3d.x;
+		M(1, 1) = cam_up_3d.y;
+		M(2, 1) = cam_up_3d.z;
+		M(3, 1) = 0;
 
-		M.get_unsafe(0, 2) = pointing_dir.x;
-		M.get_unsafe(1, 2) = pointing_dir.y;
-		M.get_unsafe(2, 2) = pointing_dir.z;
-		M.get_unsafe(3, 2) = 0;
+		M(0, 2) = pointing_dir.x;
+		M(1, 2) = pointing_dir.y;
+		M(2, 2) = pointing_dir.z;
+		M(3, 2) = 0;
 
-		M.get_unsafe(0, 3) = m_lastProjMat.eye.x;
-		M.get_unsafe(1, 3) = m_lastProjMat.eye.y;
-		M.get_unsafe(2, 3) = m_lastProjMat.eye.z;
-		M.get_unsafe(3, 3) = 1;
+		M(0, 3) = m_state.eye.x;
+		M(1, 3) = m_state.eye.y;
+		M(2, 3) = m_state.eye.z;
+		M(3, 3) = 1;
 
 		*out_cameraPose = CPose3D(M);
 	}
 }
 
-MRPT_TODO("Implement a setCurrentCameraFromPose() method")
+void COpenGLViewport::setCurrentCameraFromPose(mrpt::poses::CPose3D& p)
+{
+	m_camera.set6DOFMode(true);
+	m_camera.setPose(p);
+}
 
 void COpenGLViewport::getCurrentCameraPose(
 	mrpt::poses::CPose3D& out_cameraPose) const
@@ -853,7 +896,7 @@ void COpenGLViewport::getCurrentCameraPose(
 void COpenGLViewport::setNormalMode()
 {
 	// If this was a m_isImageView, remove the quad object:
-	if (m_isImageView && m_imageview_img) m_imageview_img.reset();
+	m_imageview_plane.reset();
 
 	m_isCloned = false;
 	m_isClonedCamera = false;
@@ -863,19 +906,23 @@ void COpenGLViewport::setNormalMode()
 void COpenGLViewport::setImageView(const mrpt::img::CImage& img)
 {
 	internal_enableImageView();
-	*m_imageview_img = img;
+	m_imageview_plane->assignImage(img);
 }
 void COpenGLViewport::setImageView(mrpt::img::CImage&& img)
 {
 	internal_enableImageView();
-	*m_imageview_img = std::move(img);
+	m_imageview_plane->assignImage(img);
 }
 
 void COpenGLViewport::internal_enableImageView()
 {
 	// If this is the first time, we have to create the quad object:
-	if (!m_isImageView || !m_imageview_img)
-		m_imageview_img = mrpt::img::CImage::Create();
+	if (!m_imageview_plane)
+	{
+		m_imageview_plane = mrpt::opengl::CTexturedPlane::Create();
+		// Flip vertically:
+		m_imageview_plane->setPlaneCorners(-1, 1, 1, -1);
+	}
 	m_isImageView = true;
 }
 

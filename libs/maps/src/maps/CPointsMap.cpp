@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,35 +10,26 @@
 #include "maps-precomp.h"  // Precomp header
 
 #include <mrpt/config/CConfigFile.h>
-#include <mrpt/math/geometry.h>
-#include <mrpt/serialization/CArchive.h>
-#include <mrpt/system/CTicTac.h>
-#include <mrpt/system/CTimeLogger.h>
-#include <mrpt/system/os.h>
-
 #include <mrpt/maps/CPointsMap.h>
 #include <mrpt/maps/CSimplePointsMap.h>
-
-#include <mrpt/opengl/CPointCloud.h>
-#include <mrpt/opengl/CPointCloudColoured.h>
-
-// Observations:
+#include <mrpt/math/TPose2D.h>
+#include <mrpt/math/geometry.h>
 #include <mrpt/obs/CObservation2DRangeScan.h>
 #include <mrpt/obs/CObservation3DRangeScan.h>
 #include <mrpt/obs/CObservationPointCloud.h>
 #include <mrpt/obs/CObservationRange.h>
 #include <mrpt/obs/CObservationVelodyneScan.h>
+#include <mrpt/opengl/CPointCloud.h>
+#include <mrpt/opengl/CPointCloudColoured.h>
+#include <mrpt/serialization/CArchive.h>
+#include <mrpt/system/CTicTac.h>
+#include <mrpt/system/CTimeLogger.h>
+#include <mrpt/system/os.h>
+#include <fstream>
+#include <sstream>
 
-#if MRPT_HAS_PCL
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
-//#   include <pcl/registration/icp.h>
-#endif
-
-#if MRPT_HAS_SSE2
 #include <mrpt/core/SSE_macros.h>
 #include <mrpt/core/SSE_types.h>
-#endif
 
 #if MRPT_HAS_MATLAB
 #include <mexplus.h>
@@ -69,98 +60,102 @@ CPointsMap::CPointsMap()
 						Destructor
   ---------------------------------------------------------------*/
 CPointsMap::~CPointsMap() = default;
-/*---------------------------------------------------------------
-					save2D_to_text_file
-  Save to a text file. In each line there are a point coordinates.
-	Returns false if any error occured, true elsewere.
-  ---------------------------------------------------------------*/
+
 bool CPointsMap::save2D_to_text_file(const string& file) const
 {
 	FILE* f = os::fopen(file.c_str(), "wt");
 	if (!f) return false;
-
-	for (unsigned int i = 0; i < m_x.size(); i++)
+	for (size_t i = 0; i < m_x.size(); i++)
 		os::fprintf(f, "%f %f\n", m_x[i], m_y[i]);
-
 	os::fclose(f);
 	return true;
 }
 
-/*---------------------------------------------------------------
-					save3D_to_text_file
-  Save to a text file. In each line there are a point coordinates.
-	Returns false if any error occured, true elsewere.
-  ---------------------------------------------------------------*/
 bool CPointsMap::save3D_to_text_file(const string& file) const
 {
 	FILE* f = os::fopen(file.c_str(), "wt");
 	if (!f) return false;
 
-	for (unsigned int i = 0; i < m_x.size(); i++)
+	for (size_t i = 0; i < m_x.size(); i++)
 		os::fprintf(f, "%f %f %f\n", m_x[i], m_y[i], m_z[i]);
 
 	os::fclose(f);
 	return true;
 }
 
-/*---------------------------------------------------------------
-					load2Dor3D_from_text_file
-  Load from a text file. In each line there are a point coordinates.
-	Returns false if any error occured, true elsewere.
-  ---------------------------------------------------------------*/
+bool CPointsMap::save2D_to_text_stream(std::ostream& out) const
+{
+	char lin[200];
+	for (size_t i = 0; i < m_x.size(); i++)
+	{
+		os::sprintf(lin, sizeof(lin), "%f %f\n", m_x[i], m_y[i]);
+		out << lin;
+	}
+	return true;
+}
+bool CPointsMap::save3D_to_text_stream(std::ostream& out) const
+{
+	char lin[220];
+	for (size_t i = 0; i < m_x.size(); i++)
+	{
+		os::sprintf(lin, sizeof(lin), "%f %f %f\n", m_x[i], m_y[i], m_z[i]);
+		out << lin;
+	}
+	return true;
+}
+
+bool CPointsMap::load2Dor3D_from_text_stream(
+	std::istream& in, mrpt::optional_ref<std::string> outErrorMsg,
+	const bool is_3D)
+{
+	MRPT_START
+
+	// Clear current map:
+	mark_as_modified();
+	this->clear();
+
+	size_t linIdx = 1;
+	for (std::string line; std::getline(in, line); ++linIdx)
+	{
+		float coords[3];
+		std::stringstream ss(line);
+		for (int idxCoord = 0; idxCoord < (is_3D ? 3 : 2); idxCoord++)
+		{
+			if (!(ss >> coords[idxCoord]))
+			{
+				std::stringstream sErr;
+				sErr << "[CPointsMap::load2Dor3D_from_text_stream] Unexpected "
+						"format on line "
+					 << linIdx << " for coordinate #" << (idxCoord + 1) << "\n";
+
+				if (outErrorMsg)
+					outErrorMsg.value().get() = sErr.str();
+				else
+					std::cerr << sErr.str();
+
+				return false;
+			}
+		}
+
+		this->insertPoint(coords[0], coords[1], coords[2]);
+	}
+	return true;
+	MRPT_END
+}
+
 bool CPointsMap::load2Dor3D_from_text_file(
 	const std::string& file, const bool is_3D)
 {
 	MRPT_START
 
-	mark_as_modified();
-
-	FILE* f = os::fopen(file.c_str(), "rt");
-	if (!f) return false;
-
-	char str[1024];
-	char *ptr, *ptr1, *ptr2, *ptr3;
-
 	// Clear current map:
+	mark_as_modified();
 	this->clear();
 
-	while (!feof(f))
-	{
-		// Read one string line:
-		str[0] = 0;
-		if (!fgets(str, sizeof(str), f)) break;
+	std::ifstream fi(file);
+	if (!fi.is_open()) return false;
 
-		// Find the first digit:
-		ptr = str;
-		while (ptr[0] && (ptr[0] == ' ' || ptr[0] == '\t' || ptr[0] == '\r' ||
-						  ptr[0] == '\n'))
-			ptr++;
-
-		// And try to parse it:
-		float xx = strtod(ptr, &ptr1);
-		if (ptr1 != str)
-		{
-			float yy = strtod(ptr1, &ptr2);
-			if (ptr2 != ptr1)
-			{
-				if (!is_3D)
-				{
-					this->insertPoint(xx, yy, 0);
-				}
-				else
-				{
-					float zz = strtod(ptr2, &ptr3);
-					if (ptr3 != ptr2)
-					{
-						this->insertPoint(xx, yy, zz);
-					}
-				}
-			}
-		}
-	}
-
-	os::fclose(f);
-	return true;
+	return load2Dor3D_from_text_stream(fi, std::nullopt, is_3D);
 
 	MRPT_END
 }
@@ -295,7 +290,7 @@ void CPointsMap::determineMatching2D(
 	ASSERT_ABOVE_(params.decimation_other_map_points, 0);
 	ASSERT_BELOW_(
 		params.offset_other_map_points, params.decimation_other_map_points);
-	ASSERT_(IS_DERIVED(otherMap2, CPointsMap));
+	ASSERT_(IS_DERIVED(*otherMap2, CPointsMap));
 	const auto* otherMap = static_cast<const CPointsMap*>(otherMap2);
 
 	const TPose2D otherMapPose(
@@ -328,8 +323,8 @@ void CPointsMap::determineMatching2D(
 	correspondences.reserve(nLocalPoints);
 	extraResults.correspondencesRatio = 0;
 
-	TMatchingPairList _correspondences;
-	_correspondences.reserve(nLocalPoints);
+	TMatchingPairList tempCorrs;
+	tempCorrs.reserve(nLocalPoints);
 
 	// Nothing to do if we have an empty map!
 	if (!nGlobalPoints || !nLocalPoints) return;
@@ -386,7 +381,7 @@ void CPointsMap::determineMatching2D(
 	}
 
 	// Recover the min/max:
-	alignas(MRPT_MAX_ALIGN_BYTES) float temp_nums[4];
+	alignas(MRPT_MAX_STATIC_ALIGN_BYTES) float temp_nums[4];
 
 	_mm_store_ps(temp_nums, x_mins);
 	local_x_min =
@@ -490,9 +485,9 @@ void CPointsMap::determineMatching2D(
 		if (tentativ_err_sq < maxDistForCorrespondenceSquared)
 		{
 			// Save all the correspondences:
-			_correspondences.resize(_correspondences.size() + 1);
+			tempCorrs.resize(tempCorrs.size() + 1);
 
-			TMatchingPair& p = _correspondences.back();
+			TMatchingPair& p = tempCorrs.back();
 
 			p.this_idx = tentativ_this_idx;
 			p.this_x = m_x[tentativ_this_idx];
@@ -526,12 +521,11 @@ void CPointsMap::determineMatching2D(
 			params.onlyKeepTheClosest,
 			"ERROR: onlyKeepTheClosest must be also set to true when "
 			"onlyUniqueRobust=true.");
-		_correspondences.filterUniqueRobustPairs(
-			nGlobalPoints, correspondences);
+		tempCorrs.filterUniqueRobustPairs(nGlobalPoints, correspondences);
 	}
 	else
 	{
-		correspondences.swap(_correspondences);
+		correspondences.swap(tempCorrs);
 	}
 
 	// If requested, copy sum of squared distances to output pointer:
@@ -545,7 +539,7 @@ void CPointsMap::determineMatching2D(
 	// The ratio of points in the other map with corrs:
 	extraResults.correspondencesRatio = params.decimation_other_map_points *
 										nOtherMapPointsWithCorrespondence /
-										static_cast<float>(nLocalPoints);
+										d2f(nLocalPoints);
 
 	MRPT_END
 }
@@ -602,7 +596,7 @@ bool CPointsMap::isEmpty() const { return m_x.empty(); }
 				TInsertionOptions
  ---------------------------------------------------------------*/
 CPointsMap::TInsertionOptions::TInsertionOptions()
-	: horizontalTolerance(DEG2RAD(0.05))
+	: horizontalTolerance(0.05_deg)
 
 {
 }
@@ -776,6 +770,7 @@ void CPointsMap::TRenderOptions::loadFromConfigFile(
 ---------------------------------------------------------------*/
 void CPointsMap::getAs3DObject(mrpt::opengl::CSetOfObjects::Ptr& outObj) const
 {
+	MRPT_START
 	if (!genericMapParams.enableSaveAs3DObject) return;
 
 	if (renderOptions.colormap == mrpt::img::cmNONE)
@@ -799,6 +794,7 @@ void CPointsMap::getAs3DObject(mrpt::opengl::CSetOfObjects::Ptr& outObj) const
 			pMin.z, pMax.z, 2 /*z*/, renderOptions.colormap);
 		outObj->insert(obj);
 	}
+	MRPT_END
 }
 
 float CPointsMap::compute3DMatchingRatio(
@@ -924,6 +920,8 @@ void CPointsMap::boundingBox(
 	float& min_x, float& max_x, float& min_y, float& max_y, float& min_z,
 	float& max_z) const
 {
+	MRPT_START
+
 	const size_t nPoints = m_x.size();
 
 	if (!m_boundingBoxIsUpdated)
@@ -968,7 +966,7 @@ void CPointsMap::boundingBox(
 			}
 
 			// Recover the min/max:
-			alignas(MRPT_MAX_ALIGN_BYTES) float temp_nums[4];
+			alignas(MRPT_MAX_STATIC_ALIGN_BYTES) float temp_nums[4];
 
 			_mm_store_ps(temp_nums, x_mins);
 			m_bb_min_x =
@@ -1036,6 +1034,7 @@ void CPointsMap::boundingBox(
 	max_y = m_bb_max_y;
 	min_z = m_bb_min_z;
 	max_z = m_bb_max_z;
+	MRPT_END
 }
 
 /*---------------------------------------------------------------
@@ -1077,8 +1076,8 @@ void CPointsMap::determineMatching3D(
 	correspondences.clear();
 	correspondences.reserve(nLocalPoints);
 
-	TMatchingPairList _correspondences;
-	_correspondences.reserve(nLocalPoints);
+	TMatchingPairList tempCorrs;
+	tempCorrs.reserve(nLocalPoints);
 
 	// Empty maps?  Nothing to do
 	if (!nGlobalPoints || !nLocalPoints) return;
@@ -1157,9 +1156,9 @@ void CPointsMap::determineMatching3D(
 			if (tentativ_err_sq < maxDistForCorrespondenceSquared)
 			{
 				// Save all the correspondences:
-				_correspondences.resize(_correspondences.size() + 1);
+				tempCorrs.resize(tempCorrs.size() + 1);
 
-				TMatchingPair& p = _correspondences.back();
+				TMatchingPair& p = tempCorrs.back();
 
 				p.this_idx = tentativ_this_idx;
 				p.this_x = m_x[tentativ_this_idx];
@@ -1194,12 +1193,11 @@ void CPointsMap::determineMatching3D(
 			params.onlyKeepTheClosest,
 			"ERROR: onlyKeepTheClosest must be also set to true when "
 			"onlyUniqueRobust=true.");
-		_correspondences.filterUniqueRobustPairs(
-			nGlobalPoints, correspondences);
+		tempCorrs.filterUniqueRobustPairs(nGlobalPoints, correspondences);
 	}
 	else
 	{
-		correspondences.swap(_correspondences);
+		correspondences = std::move(tempCorrs);
 	}
 
 	// If requested, copy sum of squared distances to output pointer:
@@ -1208,7 +1206,7 @@ void CPointsMap::determineMatching3D(
 		(_sumSqrCount) ? _sumSqrDist / static_cast<double>(_sumSqrCount) : 0;
 	extraResults.correspondencesRatio = params.decimation_other_map_points *
 										nOtherMapPointsWithCorrespondence /
-										static_cast<float>(nLocalPoints);
+										d2f(nLocalPoints);
 
 	MRPT_END
 }
@@ -1235,7 +1233,7 @@ void CPointsMap::extractCylinder(
 ---------------------------------------------------------------*/
 void CPointsMap::extractPoints(
 	const TPoint3D& corner1, const TPoint3D& corner2, CPointsMap* outMap,
-	const double& R, const double& G, const double& B)
+	double R, double G, double B)
 {
 	outMap->clear();
 	double minX, maxX, minY, maxY, minZ, maxZ;
@@ -1258,12 +1256,12 @@ void CPointsMap::extractPoints(
 				compute3DDistanceToMesh
 ---------------------------------------------------------------*/
 void CPointsMap::compute3DDistanceToMesh(
-	const mrpt::maps::CMetricMap* otherMap2, const CPose3D& otherMapPose,
+	const mrpt::maps::CMetricMap* otherMap2,
+	[[maybe_unused]] const CPose3D& otherMapPose,
 	float maxDistForCorrespondence, TMatchingPairList& correspondences,
 	float& correspondencesRatio)
 {
 	MRPT_START
-	MRPT_UNUSED_PARAM(otherMapPose);
 
 	const auto* otherMap = static_cast<const CPointsMap*>(otherMap2);
 
@@ -1278,8 +1276,8 @@ void CPointsMap::compute3DDistanceToMesh(
 	correspondencesRatio = 0;
 
 	// aux correspondence vector
-	TMatchingPairList _correspondences;
-	_correspondences.reserve(nLocalPoints);
+	TMatchingPairList tempCorrs;
+	tempCorrs.reserve(nLocalPoints);
 
 	// Hay mapa global?
 	if (!nGlobalPoints) return;  // No
@@ -1346,9 +1344,9 @@ void CPointsMap::compute3DDistanceToMesh(
 			if (distanceForThisPoint < maxDistForCorrespondence)
 			{
 				// Save all the correspondences:
-				_correspondences.resize(_correspondences.size() + 1);
+				tempCorrs.resize(tempCorrs.size() + 1);
 
-				TMatchingPair& p = _correspondences.back();
+				TMatchingPair& p = tempCorrs.back();
 
 				p.this_idx = nOtherMapPointsWithCorrespondence++;  // insert a
 				// consecutive index
@@ -1378,7 +1376,7 @@ void CPointsMap::compute3DDistanceToMesh(
 	std::map<size_t, std::map<size_t, std::map<size_t, pair<size_t, float>>>>
 		best;  // 3D associative map
 	TMatchingPairList::iterator it;
-	for (it = _correspondences.begin(); it != _correspondences.end(); ++it)
+	for (it = tempCorrs.begin(); it != tempCorrs.end(); ++it)
 	{
 		const size_t i0 = vIdx[it->this_idx][0];
 		const size_t i1 = vIdx[it->this_idx][1];
@@ -1403,7 +1401,7 @@ void CPointsMap::compute3DDistanceToMesh(
 		}
 	}  // end it correspondences
 
-	for (it = _correspondences.begin(); it != _correspondences.end(); ++it)
+	for (it = tempCorrs.begin(); it != tempCorrs.end(); ++it)
 	{
 		const size_t i0 = vIdx[it->this_idx][0];
 		const size_t i1 = vIdx[it->this_idx][1];
@@ -1415,7 +1413,7 @@ void CPointsMap::compute3DDistanceToMesh(
 
 	// The ratio of points in the other map with corrs:
 	correspondencesRatio =
-		nOtherMapPointsWithCorrespondence / static_cast<float>(nLocalPoints);
+		nOtherMapPointsWithCorrespondence / d2f(nLocalPoints);
 
 	MRPT_END
 }
@@ -1451,9 +1449,8 @@ double CPointsMap::internal_computeObservationLikelihoodPointCloud3D(
 		mrpt::keep_min(closest_err, max_sqr_err);
 
 		sumSqrDist += static_cast<double>(closest_err);
-
-		sumSqrDist /= nPtsForAverage;
 	}
+	if (nPtsForAverage) sumSqrDist /= nPtsForAverage;
 
 	// Log-likelihood:
 	return -sumSqrDist / likelihoodOptions.sigma_dist;
@@ -1462,19 +1459,19 @@ double CPointsMap::internal_computeObservationLikelihoodPointCloud3D(
 }
 
 double CPointsMap::internal_computeObservationLikelihood(
-	const CObservation* obs, const CPose3D& takenFrom)
+	const CObservation& obs, const CPose3D& takenFrom)
 {
 	// This function depends on the observation type:
 	// -----------------------------------------------------
-	if (obs->GetRuntimeClass() == CLASS_ID(CObservation2DRangeScan))
+	if (IS_CLASS(obs, CObservation2DRangeScan))
 	{
 		// Observation is a laser range scan:
 		// -------------------------------------------
-		const auto* o = static_cast<const CObservation2DRangeScan*>(obs);
+		const auto& o = static_cast<const CObservation2DRangeScan&>(obs);
 
 		// Build (if not done before) the points map representation of this
 		// observation:
-		const auto* scanPoints = o->buildAuxPointsMap<CPointsMap>();
+		const auto* scanPoints = o.buildAuxPointsMap<CPointsMap>();
 
 		const size_t N = scanPoints->m_x.size();
 		if (!N || !this->size()) return -100;
@@ -1528,40 +1525,38 @@ double CPointsMap::internal_computeObservationLikelihood(
 				takenFrom, xs, ys, zs, N);
 		}
 	}
-	else if (obs->GetRuntimeClass() == CLASS_ID(CObservationVelodyneScan))
+	else if (IS_CLASS(obs, CObservationVelodyneScan))
 	{
-		const auto* o = dynamic_cast<const CObservationVelodyneScan*>(obs);
-		ASSERT_(o != nullptr);
+		const auto& o = dynamic_cast<const CObservationVelodyneScan&>(obs);
 
 		// Automatically generate pointcloud if needed:
-		if (!o->point_cloud.size())
-			const_cast<CObservationVelodyneScan*>(o)->generatePointCloud();
+		if (!o.point_cloud.size())
+			const_cast<CObservationVelodyneScan&>(o).generatePointCloud();
 
-		const size_t N = o->point_cloud.size();
+		const size_t N = o.point_cloud.size();
 		if (!N || !this->size()) return -100;
 
-		const CPose3D sensorAbsPose = takenFrom + o->sensorPose;
+		const CPose3D sensorAbsPose = takenFrom + o.sensorPose;
 
-		const float* xs = &o->point_cloud.x[0];
-		const float* ys = &o->point_cloud.y[0];
-		const float* zs = &o->point_cloud.z[0];
+		const float* xs = &o.point_cloud.x[0];
+		const float* ys = &o.point_cloud.y[0];
+		const float* zs = &o.point_cloud.z[0];
 
 		return internal_computeObservationLikelihoodPointCloud3D(
 			sensorAbsPose, xs, ys, zs, N);
 	}
-	else if (obs->GetRuntimeClass() == CLASS_ID(CObservationPointCloud))
+	else if (IS_CLASS(obs, CObservationPointCloud))
 	{
-		const auto* o = dynamic_cast<const CObservationPointCloud*>(obs);
-		ASSERT_(o != nullptr);
+		const auto& o = dynamic_cast<const CObservationPointCloud&>(obs);
 
-		const size_t N = o->pointcloud->size();
+		const size_t N = o.pointcloud->size();
 		if (!N || !this->size()) return -100;
 
-		const CPose3D sensorAbsPose = takenFrom + o->sensorPose;
+		const CPose3D sensorAbsPose = takenFrom + o.sensorPose;
 
-		auto xs = o->pointcloud->getPointsBufferRef_x();
-		auto ys = o->pointcloud->getPointsBufferRef_y();
-		auto zs = o->pointcloud->getPointsBufferRef_z();
+		auto xs = o.pointcloud->getPointsBufferRef_x();
+		auto ys = o.pointcloud->getPointsBufferRef_y();
+		auto zs = o.pointcloud->getPointsBufferRef_z();
 
 		return internal_computeObservationLikelihoodPointCloud3D(
 			sensorAbsPose, &xs[0], &ys[0], &zs[0], N);
@@ -1589,13 +1584,13 @@ void internal_build_points_map_from_scan2D(
 	// Create on first call:
 	if (out_map) return;  // Already done!
 
-	out_map = mrpt::make_aligned_shared<CSimplePointsMap>();
+	out_map = std::make_shared<CSimplePointsMap>();
 
 	if (insertOps)
 		static_cast<CSimplePointsMap*>(out_map.get())->insertionOptions =
 			*static_cast<const CPointsMap::TInsertionOptions*>(insertOps);
 
-	out_map->insertObservation(&obs, nullptr);
+	out_map->insertObservation(obs, nullptr);
 }
 
 struct TAuxLoadFunctor
@@ -1607,8 +1602,8 @@ struct TAuxLoadFunctor
 	}
 };
 
-TAuxLoadFunctor dummy_loader;  // used just to set
-// "ptr_internal_build_points_map_from_scan2D"
+// used just to set "ptr_internal_build_points_map_from_scan2D"
+static TAuxLoadFunctor dummy_loader;
 
 // ================================ PLY files import & export virtual
 // methods
@@ -1620,9 +1615,8 @@ TAuxLoadFunctor dummy_loader;  // used just to set
  */
 void CPointsMap::PLY_import_set_vertex(
 	const size_t idx, const mrpt::math::TPoint3Df& pt,
-	const mrpt::img::TColorf* pt_color)
+	[[maybe_unused]] const mrpt::img::TColorf* pt_color)
 {
-	MRPT_UNUSED_PARAM(pt_color);
 	this->setPoint(idx, pt.x, pt.y, pt.z);
 }
 
@@ -1634,9 +1628,8 @@ size_t CPointsMap::PLY_export_get_vertex_count() const { return this->size(); }
  */
 void CPointsMap::PLY_export_get_vertex(
 	const size_t idx, mrpt::math::TPoint3Df& pt, bool& pt_has_color,
-	mrpt::img::TColorf& pt_color) const
+	[[maybe_unused]] mrpt::img::TColorf& pt_color) const
 {
-	MRPT_UNUSED_PARAM(pt_color);
 	pt_has_color = false;
 
 	pt.x = m_x[idx];
@@ -1666,41 +1659,6 @@ void CPointsMap::addFrom(const CPointsMap& anotherMap)
 	addFrom_classSpecific(anotherMap, nThis);
 
 	mark_as_modified();
-}
-
-/** Save the point cloud as a PCL PCD file, in either ASCII or binary format
- * \return false on any error */
-bool CPointsMap::savePCDFile(
-	const std::string& filename, bool save_as_binary) const
-{
-#if MRPT_HAS_PCL
-	pcl::PointCloud<pcl::PointXYZ> cloud;
-	this->getPCLPointCloud(cloud);
-
-	return 0 == pcl::io::savePCDFile(filename, cloud, save_as_binary);
-
-#else
-	MRPT_UNUSED_PARAM(filename);
-	MRPT_UNUSED_PARAM(save_as_binary);
-	THROW_EXCEPTION("Operation not available: MRPT was built without PCL");
-#endif
-}
-
-/** Load the point cloud from a PCL PCD file (requires MRPT built against
- * PCL) \return false on any error */
-bool CPointsMap::loadPCDFile(const std::string& filename)
-{
-#if MRPT_HAS_PCL
-	pcl::PointCloud<pcl::PointXYZ> cloud;
-	if (0 != pcl::io::loadPCDFile(filename, cloud)) return false;
-
-	this->getPCLPointCloud(cloud);
-
-	return true;
-#else
-	MRPT_UNUSED_PARAM(filename);
-	THROW_EXCEPTION("Operation not available: MRPT was built without PCL");
-#endif
 }
 
 /*---------------------------------------------------------------
@@ -1791,7 +1749,7 @@ void CPointsMap::base_copyFrom(const CPointsMap& obj)
   Insert the observation information into this map.
  ---------------------------------------------------------------*/
 bool CPointsMap::internal_insertObservation(
-	const CObservation* obs, const CPose3D* robotPose)
+	const CObservation& obs, const CPose3D* robotPose)
 {
 	MRPT_START
 
@@ -1815,13 +1773,13 @@ bool CPointsMap::internal_insertObservation(
 		 ********************************************************************/
 		mark_as_modified();
 
-		const auto* o = static_cast<const CObservation2DRangeScan*>(obs);
+		const auto& o = static_cast<const CObservation2DRangeScan&>(obs);
 		// Insert only HORIZONTAL scans??
 		bool reallyInsertIt;
 
 		if (insertionOptions.isPlanarMap)
 			reallyInsertIt =
-				o->isPlanarScan(insertionOptions.horizontalTolerance);
+				o.isPlanarScan(insertionOptions.horizontalTolerance);
 		else
 			reallyInsertIt = true;
 
@@ -1839,7 +1797,7 @@ bool CPointsMap::internal_insertObservation(
 				auxMap.insertionOptions.addToExistingPointsMap = false;
 
 				auxMap.loadFromRangeScan(
-					*o,  // The laser range scan observation
+					o,  // The laser range scan observation
 					&robotPose3D  // The robot pose
 				);
 
@@ -1891,7 +1849,7 @@ bool CPointsMap::internal_insertObservation(
 				// Don't fuse: Simply add
 				insertionOptions.addToExistingPointsMap = true;
 				loadFromRangeScan(
-					*o,  // The laser range scan observation
+					o,  // The laser range scan observation
 					&robotPose3D  // The robot pose
 				);
 			}
@@ -1909,7 +1867,7 @@ bool CPointsMap::internal_insertObservation(
 		 ********************************************************************/
 		mark_as_modified();
 
-		const auto* o = static_cast<const CObservation3DRangeScan*>(obs);
+		const auto& o = static_cast<const CObservation3DRangeScan&>(obs);
 		// Insert only HORIZONTAL scans??
 		bool reallyInsertIt;
 
@@ -1931,7 +1889,7 @@ bool CPointsMap::internal_insertObservation(
 				auxMap.insertionOptions.addToExistingPointsMap = false;
 
 				auxMap.loadFromRangeScan(
-					*o,  // The laser range scan observation
+					o,  // The laser range scan observation
 					&robotPose3D  // The robot pose
 				);
 
@@ -1948,7 +1906,7 @@ bool CPointsMap::internal_insertObservation(
 				// Don't fuse: Simply add
 				insertionOptions.addToExistingPointsMap = true;
 				loadFromRangeScan(
-					*o,  // The laser range scan observation
+					o,  // The laser range scan observation
 					&robotPose3D  // The robot pose
 				);
 			}
@@ -1966,27 +1924,27 @@ bool CPointsMap::internal_insertObservation(
 		 ********************************************************************/
 		mark_as_modified();
 
-		const auto* o = static_cast<const CObservationRange*>(obs);
+		const auto& o = static_cast<const CObservationRange&>(obs);
 
-		const double aper_2 = 0.5 * o->sensorConeApperture;
+		const double aper_2 = 0.5 * o.sensorConeApperture;
 
 		this->reserve(
-			this->size() + o->sensedData.size() * 30);  // faster push_back's.
+			this->size() + o.sensedData.size() * 30);  // faster push_back's.
 
-		for (auto it = o->begin(); it != o->end(); ++it)
+		for (auto it = o.begin(); it != o.end(); ++it)
 		{
 			const CPose3D sensorPose = robotPose3D + CPose3D(it->sensorPose);
 			const double rang = it->sensedDistance;
 
-			if (rang <= 0 || rang < o->minSensorDistance ||
-				rang > o->maxSensorDistance)
+			if (rang <= 0 || rang < o.minSensorDistance ||
+				rang > o.maxSensorDistance)
 				continue;
 
 			// Insert a few points with a given maximum separation between
 			// them:
-			const double arc_len = o->sensorConeApperture * rang;
+			const double arc_len = o.sensorConeApperture * rang;
 			const unsigned int nSteps = round(1 + arc_len / 0.05);
-			const double Aa = o->sensorConeApperture / double(nSteps);
+			const double Aa = o.sensorConeApperture / double(nSteps);
 			TPoint3D loc, glob;
 
 			for (double a1 = -aper_2; a1 < aper_2; a1 += Aa)
@@ -2011,11 +1969,11 @@ bool CPointsMap::internal_insertObservation(
 		 ********************************************************************/
 		mark_as_modified();
 
-		const auto* o = static_cast<const CObservationVelodyneScan*>(obs);
+		const auto& o = static_cast<const CObservationVelodyneScan&>(obs);
 
 		// Automatically generate pointcloud if needed:
-		if (!o->point_cloud.size())
-			const_cast<CObservationVelodyneScan*>(o)->generatePointCloud();
+		if (!o.point_cloud.size())
+			const_cast<CObservationVelodyneScan&>(o).generatePointCloud();
 
 		if (insertionOptions.fuseWithExisting)
 		{
@@ -2023,7 +1981,7 @@ bool CPointsMap::internal_insertObservation(
 			CSimplePointsMap auxMap;
 			auxMap.insertionOptions = insertionOptions;
 			auxMap.insertionOptions.addToExistingPointsMap = false;
-			auxMap.loadFromVelodyneScan(*o, &robotPose3D);
+			auxMap.loadFromVelodyneScan(o, &robotPose3D);
 			fuseWith(
 				&auxMap, insertionOptions.minDistBetweenLaserPoints, nullptr /* rather than &checkForDeletion which we don't need for 3D observations */);
 		}
@@ -2031,7 +1989,7 @@ bool CPointsMap::internal_insertObservation(
 		{
 			// Don't fuse: Simply add
 			insertionOptions.addToExistingPointsMap = true;
-			loadFromVelodyneScan(*o, &robotPose3D);
+			loadFromVelodyneScan(o, &robotPose3D);
 		}
 		return true;
 	}
@@ -2039,19 +1997,19 @@ bool CPointsMap::internal_insertObservation(
 	{
 		mark_as_modified();
 
-		const auto* o = static_cast<const CObservationPointCloud*>(obs);
-		ASSERT_(o->pointcloud);
+		const auto& o = static_cast<const CObservationPointCloud&>(obs);
+		ASSERT_(o.pointcloud);
 
 		if (insertionOptions.fuseWithExisting)
 		{
 			fuseWith(
-				o->pointcloud.get(), insertionOptions.minDistBetweenLaserPoints, nullptr /* rather than &checkForDeletion which we don't need for 3D observations */);
+				o.pointcloud.get(), insertionOptions.minDistBetweenLaserPoints, nullptr /* rather than &checkForDeletion which we don't need for 3D observations */);
 		}
 		else
 		{
 			// Don't fuse: Simply add
 			insertionOptions.addToExistingPointsMap = true;
-			*this += *o->pointcloud;
+			this->insertAnotherMap(o.pointcloud.get(), o.sensorPose);
 		}
 		return true;
 	}
@@ -2197,12 +2155,9 @@ void CPointsMap::loadFromVelodyneScan(
 	mrpt::math::CMatrixDouble44 HM;
 	sensorGlobalPose.getHomogeneousMatrix(HM);
 
-	const double m00 = HM.get_unsafe(0, 0), m01 = HM.get_unsafe(0, 1),
-				 m02 = HM.get_unsafe(0, 2), m03 = HM.get_unsafe(0, 3);
-	const double m10 = HM.get_unsafe(1, 0), m11 = HM.get_unsafe(1, 1),
-				 m12 = HM.get_unsafe(1, 2), m13 = HM.get_unsafe(1, 3);
-	const double m20 = HM.get_unsafe(2, 0), m21 = HM.get_unsafe(2, 1),
-				 m22 = HM.get_unsafe(2, 2), m23 = HM.get_unsafe(2, 3);
+	const double m00 = HM(0, 0), m01 = HM(0, 1), m02 = HM(0, 2), m03 = HM(0, 3);
+	const double m10 = HM(1, 0), m11 = HM(1, 1), m12 = HM(1, 2), m13 = HM(1, 3);
+	const double m20 = HM(2, 0), m21 = HM(2, 1), m22 = HM(2, 2), m23 = HM(2, 3);
 
 	// Copy points:
 	for (size_t i = 0; i < nScanPts; i++)

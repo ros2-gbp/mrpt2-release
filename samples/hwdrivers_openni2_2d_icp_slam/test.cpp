@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -22,7 +22,7 @@ using namespace mrpt::hwdrivers;
 using namespace mrpt::img;
 using namespace std;
 
-const float vert_FOV = DEG2RAD(4.0);
+const float vert_FOV = 4.0_deg;
 
 // This demo records from an OpenNI2 device, convert observations to 2D scans
 // and runs 2d-icp-slam with them.
@@ -75,12 +75,12 @@ int main(int argc, char** argv)
 		win3D.setCameraPointingToPoint(2.5, 0, 0);
 
 		mrpt::opengl::CPointCloudColoured::Ptr gl_points =
-			mrpt::make_aligned_shared<mrpt::opengl::CPointCloudColoured>();
+			mrpt::opengl::CPointCloudColoured::Create();
 		gl_points->setPointSize(2.5);
 
 		// The 2D "laser scan" OpenGL object:
 		mrpt::opengl::CPlanarLaserScan::Ptr gl_2d_scan =
-			mrpt::make_aligned_shared<mrpt::opengl::CPlanarLaserScan>();
+			mrpt::opengl::CPlanarLaserScan::Create();
 		gl_2d_scan->enablePoints(true);
 		gl_2d_scan->enableLine(true);
 		gl_2d_scan->enableSurface(true);
@@ -93,8 +93,7 @@ int main(int argc, char** argv)
 
 			// Create the Opengl object for the point cloud:
 			scene->insert(gl_points);
-			scene->insert(
-				mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>());
+			scene->insert(mrpt::opengl::CGridPlaneXY::Create());
 			scene->insert(mrpt::opengl::stock_objects::CornerXYZ());
 			scene->insert(gl_2d_scan);
 
@@ -106,13 +105,9 @@ int main(int argc, char** argv)
 			// Create an extra opengl viewport for the RGB image:
 			viewInt = scene->createViewport("view2d_int");
 			viewInt->setViewportPosition(5, 30, VW_WIDTH, VW_HEIGHT);
-			win3D.addTextMessage(
-				10, 30 + VW_HEIGHT + 10, "Intensity data", TColorf(1, 1, 1), 2,
-				MRPT_GLUT_BITMAP_HELVETICA_12);
+			win3D.addTextMessage(10, 30 + VW_HEIGHT + 10, "Intensity data", 2);
 
-			win3D.addTextMessage(
-				5, 5, format("'o'/'i'-zoom out/in, ESC: quit"),
-				TColorf(0, 0, 1), 110, MRPT_GLUT_BITMAP_HELVETICA_18);
+			win3D.addTextMessage(5, 5, "'o'/'i'-zoom out/in, ESC: quit", 110);
 
 			win3D.unlockAccess3DScene();
 			win3D.repaint();
@@ -128,7 +123,7 @@ int main(int argc, char** argv)
 		{
 			//    cout << "Get new observation\n";
 			CObservation3DRangeScan::Ptr newObs =
-				mrpt::make_aligned_shared<CObservation3DRangeScan>();
+				CObservation3DRangeScan::Create();
 			rgbd_sensor.getNextObservation(*newObs, bObs, bError);
 
 			CObservation2DRangeScan::Ptr obs_2d;  // The equivalent 2D scan
@@ -144,8 +139,7 @@ int main(int argc, char** argv)
 				if (newObs->hasRangeImage)
 				{
 					// Convert to scan:
-					obs_2d =
-						mrpt::make_aligned_shared<CObservation2DRangeScan>();
+					obs_2d = CObservation2DRangeScan::Create();
 
 					T3DPointsTo2DScanParams p2s;
 					p2s.angle_sup = .5f * vert_FOV;
@@ -165,7 +159,6 @@ int main(int argc, char** argv)
 						"Timestamp: %s",
 						mrpt::system::dateTimeLocalToString(last_obs_tim)
 							.c_str()),
-					TColorf(0.6, 0.6, 0.6), "mono", 10, mrpt::opengl::FILL,
 					100);
 
 				// Show intensity image:
@@ -192,7 +185,7 @@ int main(int argc, char** argv)
 					win3D.get3DSceneAndLock();
 					mrpt::obs::T3DPointsProjectionParams pp;
 					pp.takeIntoAccountSensorPoseOnRobot = false;
-					newObs->project3DPointsFromDepthImageInto(
+					newObs->unprojectInto(
 						*gl_points, pp /* without obs.sensorPose */);
 					win3D.unlockAccess3DScene();
 				}

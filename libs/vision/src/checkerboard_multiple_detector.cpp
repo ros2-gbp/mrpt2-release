@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,13 +10,14 @@
 #include "vision-precomp.h"  // Precompiled headers
 
 #include <mrpt/img/CImage.h>
-#include <mrpt/math/CArrayNumeric.h>
+#include <mrpt/math/CVectorFixed.h>
 #include <mrpt/math/geometry.h>
 #include <mrpt/math/kmeans.h>
 #include <list>
+#include <vector>
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 #include "checkerboard_ocamcalib_detector.h"
 
 #if VIS
@@ -146,8 +147,7 @@ bool find_chessboard_corners_multiple(
 		// JL: To achieve multiple-checkerboard, take all the raw detected quads
 		// and
 		//  separate them in groups with k-means.
-		vector<CArrayDouble<2>, Eigen::aligned_allocator<CArrayDouble<2>>>
-			quad_centers;
+		std::vector<CVectorFixedDouble<2>> quad_centers;
 		quad_centers.resize(quads.size());
 		for (size_t i = 0; i < quads.size(); i++)
 		{
@@ -167,13 +167,7 @@ bool find_chessboard_corners_multiple(
 			vector<size_t> num_quads_by_cluster(nClusters);
 
 			vector<int> assignments;
-			mrpt::math::kmeanspp<
-				vector<
-					CArrayDouble<2>, Eigen::aligned_allocator<CArrayDouble<2>>>,
-				vector<
-					CArrayDouble<2>,
-					Eigen::aligned_allocator<CArrayDouble<2>>>>(
-				nClusters, quad_centers, assignments);
+			mrpt::math::kmeanspp(nClusters, quad_centers, assignments);
 
 			// Count # of quads in each cluster:
 			for (size_t i = 0; i < nClusters; i++)
@@ -185,7 +179,7 @@ bool find_chessboard_corners_multiple(
 			for (size_t i = 0; i < nClusters; i++)
 			{
 				if (num_quads_by_cluster[i] <
-					size_t(pattern_size.height * pattern_size.width))
+					size_t(pattern_size.height) * size_t(pattern_size.width))
 					continue;  // Can't be good...
 
 				// Create a subset of the quads with those in the i'th cluster:

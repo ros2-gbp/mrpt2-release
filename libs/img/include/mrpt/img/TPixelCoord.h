@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -27,7 +27,8 @@ struct TPixelCoordf
 	/** Constructor from x,y values */
 	TPixelCoordf(const float _x, const float _y) : x(_x), y(_y) {}
 	template <typename T>
-	TPixelCoordf(const std::pair<T, T>& p) : x(p.first), y(p.second)
+	TPixelCoordf(const std::pair<T, T>& p)
+		: x(static_cast<float>(p.first)), y(static_cast<float>(p.second))
 	{
 	}
 };

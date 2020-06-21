@@ -2,14 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
 #include <mrpt/maps/CPointsMap.h>
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/obs/CObservationImage.h>
 #include <mrpt/obs/obs_frwds.h>
 #include <mrpt/serialization/CSerializable.h>
@@ -25,13 +25,27 @@ namespace maps
  */
 class CPointsMapXYZI : public CPointsMap
 {
-	DEFINE_SERIALIZABLE(CPointsMapXYZI)
+	DEFINE_SERIALIZABLE(CPointsMapXYZI, mrpt::maps)
 
    public:
-	// --------------------------------------------
+	CPointsMapXYZI() = default;
+
+	CPointsMapXYZI(const CPointsMap& o) { CPointsMap::operator=(o); }
+	CPointsMapXYZI(const CPointsMapXYZI& o) : CPointsMap() { impl_copyFrom(o); }
+	CPointsMapXYZI& operator=(const CPointsMap& o)
+	{
+		impl_copyFrom(o);
+		return *this;
+	}
+	CPointsMapXYZI& operator=(const CPointsMapXYZI& o)
+	{
+		impl_copyFrom(o);
+		return *this;
+	}
+
 	/** @name Pure virtual interfaces to be implemented by any class derived
-	   from CPointsMap
-		@{ */
+   from CPointsMap
+	@{ */
 
 	void reserve(size_t newLength) override;  // See base class docs
 	void resize(size_t newLength) override;  // See base class docs
@@ -77,6 +91,8 @@ class CPointsMapXYZI : public CPointsMap
 	 * \return true on success */
 	bool loadFromKittiVelodyneFile(const std::string& filename);
 
+	bool saveToKittiVelodyneFile(const std::string& filename) const;
+
 	/** See CPointsMap::loadFromRangeScan() */
 	void loadFromRangeScan(
 		const mrpt::obs::CObservation2DRangeScan& rangeScan,
@@ -101,12 +117,15 @@ class CPointsMapXYZI : public CPointsMap
 
    public:
 	/** @} */
-	// --------------------------------------------
 
 	/** Save to a text file. In each line contains X Y Z (meters) I (intensity)
 	 * Returns false if any error occured, true elsewere.
 	 */
 	bool saveXYZI_to_text_file(const std::string& file) const;
+
+	/** Loads from a text file, each line having "X Y Z I", I in [0,1].
+	 * Returns false if any error occured, true elsewere. */
+	bool loadXYZI_from_text_file(const std::string& file);
 
 	/** Changes a given point from map. First index is 0.
 	 * \exception Throws std::exception on index out of bound.
@@ -159,9 +178,33 @@ class CPointsMapXYZI : public CPointsMap
 		@{ */
 
 	/** Save the point cloud as a PCL PCD file, in either ASCII or binary format
+	 * \note This method requires user code to include PCL before MRPT headers.
 	 * \return false on any error */
-	bool savePCDFile(
-		const std::string& filename, bool save_as_binary) const override;
+#if defined(PCL_LINEAR_VERSION)
+	inline bool savePCDFile(
+		const std::string& filename, bool save_as_binary) const
+	{
+		pcl::PointCloud<pcl::PointXYZI> cloud;
+
+		const size_t nThis = this->size();
+
+		// Fill in the cloud data
+		cloud.width = nThis;
+		cloud.height = 1;
+		cloud.is_dense = false;
+		cloud.points.resize(cloud.width * cloud.height);
+
+		for (size_t i = 0; i < nThis; ++i)
+		{
+			cloud.points[i].x = m_x[i];
+			cloud.points[i].y = m_y[i];
+			cloud.points[i].z = m_z[i];
+			cloud.points[i].intensity = this->m_intensity[i];
+		}
+
+		return 0 == pcl::io::savePCDFile(filename, cloud, save_as_binary);
+	}
+#endif
 
 	/** Loads a PCL point cloud (WITH XYZI information) into this MRPT class.
 	 *  Usage example:
@@ -180,9 +223,14 @@ class CPointsMapXYZI : public CPointsMap
 		clear();
 		reserve(N);
 		for (size_t i = 0; i < N; ++i)
-			this->insertPoint(
-				cloud.points[i].x, cloud.points[i].y, cloud.points[i].z,
-				cloud.points[i].intensity);
+		{
+			const auto& pt = cloud.points[i];
+			m_x.push_back(pt.x);
+			m_y.push_back(pt.y);
+			m_z.push_back(pt.z);
+			m_intensity.push_back(pt.intensity);
+		}
+		mark_as_modified();
 	}
 
 	/** Like CPointsMap::getPCLPointCloud() but for PointCloud<PointXYZI> */
@@ -261,7 +309,7 @@ class PointCloudAdapter<mrpt::maps::CPointsMapXYZI>
 	/** Set number of points (to uninitialized values) */
 	inline void resize(const size_t N) { m_obj.resize(N); }
 	/** Does nothing as of now */
-	inline void setDimensions(const size_t& height, const size_t& width) {}
+	inline void setDimensions(size_t /*height*/, size_t /*width*/) {}
 	/** Get XYZ coordinates of i'th point */
 	template <typename T>
 	inline void getPointXYZ(const size_t idx, T& x, T& y, T& z) const
@@ -277,15 +325,18 @@ class PointCloudAdapter<mrpt::maps::CPointsMapXYZI>
 
 	/** Get XYZ_RGBf coordinates of i'th point */
 	template <typename T>
-	inline void getPointXYZ_RGBf(
-		const size_t idx, T& x, T& y, T& z, float& r, float& g, float& b) const
+	inline void getPointXYZ_RGBAf(
+		const size_t idx, T& x, T& y, T& z, float& r, float& g, float& b,
+		float& a) const
 	{
 		m_obj.getPointRGB(idx, x, y, z, r, g, b);
+		a = 1.0f;
 	}
 	/** Set XYZ_RGBf coordinates of i'th point */
-	inline void setPointXYZ_RGBf(
+	inline void setPointXYZ_RGBAf(
 		const size_t idx, const coords_t x, const coords_t y, const coords_t z,
-		const float r, const float g, const float b)
+		const float r, const float g, const float b,
+		[[maybe_unused]] const float a)
 	{
 		m_obj.setPointRGB(idx, x, y, z, r, g, b);
 	}

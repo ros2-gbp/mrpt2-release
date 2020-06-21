@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -31,10 +31,8 @@ C2DRangeFinderAbstract::C2DRangeFinderAbstract()
 						Destructor
 -------------------------------------------------------------*/
 C2DRangeFinderAbstract::~C2DRangeFinderAbstract() = default;
-/*-------------------------------------------------------------
-						bindIO
--------------------------------------------------------------*/
-void C2DRangeFinderAbstract::bindIO(CStream* streamIO)
+
+void C2DRangeFinderAbstract::bindIO(const std::shared_ptr<CStream>& streamIO)
 {
 	m_csChangeStream.lock();
 	m_stream = streamIO;
@@ -66,15 +64,15 @@ void C2DRangeFinderAbstract::doProcess()
 	bool thereIs, hwError;
 
 	if (!m_nextObservation)
-		m_nextObservation =
-			mrpt::make_aligned_shared<CObservation2DRangeScan>();
+		m_nextObservation = std::make_shared<CObservation2DRangeScan>();
 
 	doProcessSimple(thereIs, *m_nextObservation, hwError);
 
 	if (hwError)
 	{
 		m_state = ssError;
-		THROW_EXCEPTION("Couldn't communicate to the USB board!");
+		MRPT_LOG_THROTTLE_ERROR(
+			5.0, "Error reading from the sensor hardware. Will retry.");
 	}
 
 	if (thereIs)
@@ -84,6 +82,35 @@ void C2DRangeFinderAbstract::doProcess()
 		appendObservation(m_nextObservation);
 		m_nextObservation.reset();  // Create a new object in the next call
 	}
+}
+
+void C2DRangeFinderAbstract::internal_notifyGoodScanNow()
+{
+	const auto new_t = mrpt::system::now();
+
+	if (m_last_good_scan != INVALID_TIMESTAMP)
+	{
+		m_estimated_scan_period =
+			0.9 * m_estimated_scan_period +
+			0.1 * mrpt::system::timeDifference(m_last_good_scan, new_t);
+	}
+	m_last_good_scan = new_t;
+	m_failure_waiting_scan_counter = 0;
+}
+
+// Returns true if ok, false if this seems to be an error
+bool C2DRangeFinderAbstract::internal_notifyNoScanReceived()
+{
+	if (m_last_good_scan == INVALID_TIMESTAMP) return true;
+
+	const double dt =
+		mrpt::system::timeDifference(m_last_good_scan, mrpt::system::now());
+
+	if (dt > 1.50 * m_estimated_scan_period)
+		if (++m_failure_waiting_scan_counter >= m_max_missed_scan_failures)
+			return false;
+
+	return true;
 }
 
 /*-------------------------------------------------------------
@@ -157,6 +184,10 @@ void C2DRangeFinderAbstract::loadCommonParams(
 		else
 			break;
 	}
+
+	// Max. missed scan failures:
+	m_max_missed_scan_failures = configSource.read_int(
+		iniSection, "maxMissedScansToDeclareError", m_max_missed_scan_failures);
 }
 
 /*-------------------------------------------------------------
@@ -188,13 +219,12 @@ void C2DRangeFinderAbstract::processPreview(
 		if (!m_win)
 		{
 			string caption = string("Preview of ") + m_sensorLabel;
-			m_win = mrpt::make_aligned_shared<mrpt::gui::CDisplayWindow3D>(
-				caption, 640, 480);
+			m_win = mrpt::gui::CDisplayWindow3D::Create(caption, 640, 480);
 			m_win->setCameraAzimuthDeg(180);
 			m_win->setCameraElevationDeg(90);
 			COpenGLScene::Ptr& theScene = m_win->get3DSceneAndLock();
-			theScene->insert(CAxis::Ptr(mrpt::make_aligned_shared<CAxis>(
-				-300, -300, -50, 300, 300, 50, 1.0, 3, true)));
+			theScene->insert(std::make_shared<CAxis>(
+				-300, -300, -50, 300, 300, 50, 1.0, 3, true));
 			m_win->unlockAccess3DScene();
 		}
 
@@ -205,7 +235,7 @@ void C2DRangeFinderAbstract::processPreview(
 			CRenderizable::Ptr obj = theScene->getByName("laser");
 			if (!obj)
 			{
-				laser = mrpt::make_aligned_shared<opengl::CPlanarLaserScan>();
+				laser = std::make_shared<opengl::CPlanarLaserScan>();
 				laser->setName("laser");
 				laser->setScan(obs);
 				theScene->insert(laser);

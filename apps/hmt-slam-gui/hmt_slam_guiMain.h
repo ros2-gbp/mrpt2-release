@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -50,8 +50,6 @@ class hmt_slam_guiFrame : public wxFrame
 	friend class CDlgLog;
 
    public:
-	MRPT_MAKE_ALIGNED_OPERATOR_NEW
-
    public:
 	hmt_slam_guiFrame(wxWindow* parent, wxWindowID id = -1);
 	~hmt_slam_guiFrame() override;

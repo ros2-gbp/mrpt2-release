@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,22 +12,16 @@
 #include <mrpt/math/matrix_serialization.h>  // for << of matrices
 #include <mrpt/obs/gnss_messages_topcon.h>
 
+#include <ostream>
+
 using namespace std;
 using namespace mrpt::obs::gnss;
 
-Message_TOPCON_PZS::Message_TOPCON_PZS()
-	: gnss_message(TOPCON_PZS),
-
-	  pos_covariance(),
-
-	  vel_covariance()
-
-{
-}
+Message_TOPCON_PZS::Message_TOPCON_PZS() : gnss_message(TOPCON_PZS) {}
 
 void Message_TOPCON_PZS::dumpToStream(std::ostream& out) const
 {
-	out << mrpt::format("\n[TopCon PZS datum]\n");
+	out << "\n[TopCon PZS datum]\n";
 	out << mrpt::format(
 		"  Longitude: %.09f deg  Latitude: %.09f deg Height: %.03f m (%.03f m "
 		"without NBeam) \n",
@@ -94,7 +88,7 @@ void Message_TOPCON_PZS::internal_readFromStream(
 Message_TOPCON_SATS::Message_TOPCON_SATS() : gnss_message(TOPCON_SATS) {}
 void Message_TOPCON_SATS::dumpToStream(std::ostream& out) const
 {
-	out << mrpt::format("\n[TopCon SATS datum]\n");
+	out << "\n[TopCon SATS datum]\n";
 	out << mrpt::format(
 		"  USI   ELEV    AZIM      (%u entries) \n",
 		static_cast<unsigned int>(USIs.size()));

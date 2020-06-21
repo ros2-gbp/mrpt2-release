@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -74,10 +74,9 @@ void CObservationVisualLandmarks::serializeFrom(
  invalid class.
   ---------------------------------------------------------------*/
 float CObservationVisualLandmarks::likelihoodWith(
-	const CObservation* anotherObs, const CPosePDF* anotherObsPose) const
+	[[maybe_unused]] const CObservation* anotherObs,
+	[[maybe_unused]] const CPosePDF* anotherObsPose) const
 {
-	MRPT_UNUSED_PARAM(anotherObs);
-	MRPT_UNUSED_PARAM(anotherObsPose);
 	return 0;
 }
 

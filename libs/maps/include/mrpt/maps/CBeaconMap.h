@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,7 +11,7 @@
 #include <mrpt/config/CLoadableOptions.h>
 #include <mrpt/maps/CBeacon.h>
 #include <mrpt/maps/CMetricMap.h>
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/obs/obs_frwds.h>
 #include <mrpt/serialization/CSerializable.h>
 
@@ -42,7 +42,7 @@ namespace mrpt::maps
  */
 class CBeaconMap : public mrpt::maps::CMetricMap
 {
-	DEFINE_SERIALIZABLE(CBeaconMap)
+	DEFINE_SERIALIZABLE(CBeaconMap, mrpt::maps)
 
    public:
 	using TSequenceBeacons = std::deque<CBeacon>;
@@ -56,10 +56,10 @@ class CBeaconMap : public mrpt::maps::CMetricMap
 	// See docs in base class
 	void internal_clear() override;
 	bool internal_insertObservation(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D* robotPose = nullptr) override;
 	double internal_computeObservationLikelihood(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D& takenFrom) override;
 
    public:
@@ -194,7 +194,7 @@ class CBeaconMap : public mrpt::maps::CMetricMap
 	/** Save to a MATLAB script which displays 3D error ellipses for the map.
 	 *	\param file		The name of the file to save the script to.
 	 *  \param style	The MATLAB-like string for the style of the lines (see
-	 *'help plot' in MATLAB for posibilities)
+	 *'help plot' in MATLAB for possibilities)
 	 *  \param stdCount The ellipsoids will be drawn from the center to a given
 	 *confidence interval in [0,1], e.g. 2 sigmas=0.95 (default is 2std = 0.95
 	 *confidence intervals)

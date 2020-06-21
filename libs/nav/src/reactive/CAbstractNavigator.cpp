@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,7 +10,8 @@
 #include "nav-precomp.h"  // Precomp header
 
 #include <mrpt/config/CConfigFileMemory.h>
-#include <mrpt/math/lightweight_geom_data.h>
+#include <mrpt/core/lock_helper.h>
+#include <mrpt/math/TSegment2D.h>
 #include <mrpt/nav/reactive/CAbstractNavigator.h>
 #include <limits>
 #include <typeinfo>
@@ -86,17 +87,7 @@ CAbstractNavigator::TRobotPoseVel::TRobotPoseVel()
 							Constructor
   ---------------------------------------------------------------*/
 CAbstractNavigator::CAbstractNavigator(CRobot2NavInterface& react_iterf_impl)
-	: mrpt::system::COutputLogger("MRPT_navigator"),
-	  m_lastNavigationState(IDLE),
-	  m_navigationEndEventSent(false),
-	  m_counter_check_target_is_blocked(0),
-	  m_navigationState(IDLE),
-	  m_robot(react_iterf_impl),
-	  m_curPoseVel(),
-	  m_last_curPoseVelUpdate_robot_time(-1e9),
-	  m_latestPoses(),
-	  m_latestOdomPoses(),
-	  m_timlog_delays(true, "CAbstractNavigator::m_timlog_delays")
+	: mrpt::system::COutputLogger("MRPT_navigator"), m_robot(react_iterf_impl)
 {
 	m_latestPoses.setInterpolationMethod(mrpt::poses::imLinear2Neig);
 	m_latestOdomPoses.setInterpolationMethod(mrpt::poses::imLinear2Neig);
@@ -108,7 +99,8 @@ CAbstractNavigator::~CAbstractNavigator() = default;
 /** \callergraph */
 void CAbstractNavigator::cancel()
 {
-	std::lock_guard<std::recursive_mutex> csl(m_nav_cs);
+	auto lck = mrpt::lockHelper(m_nav_cs);
+
 	MRPT_LOG_DEBUG("CAbstractNavigator::cancel() called.");
 	m_navigationState = IDLE;
 	this->stop(false /*not emergency*/);
@@ -117,7 +109,7 @@ void CAbstractNavigator::cancel()
 /** \callergraph */
 void CAbstractNavigator::resume()
 {
-	std::lock_guard<std::recursive_mutex> csl(m_nav_cs);
+	auto lck = mrpt::lockHelper(m_nav_cs);
 
 	MRPT_LOG_DEBUG("[CAbstractNavigator::resume() called.");
 	if (m_navigationState == SUSPENDED) m_navigationState = NAVIGATING;
@@ -126,7 +118,7 @@ void CAbstractNavigator::resume()
 /** \callergraph */
 void CAbstractNavigator::suspend()
 {
-	std::lock_guard<std::recursive_mutex> csl(m_nav_cs);
+	auto lck = mrpt::lockHelper(m_nav_cs);
 
 	// Issue an "stop" if we are moving:
 	// Update: do it *always*, even if the current velocity is zero, since
@@ -140,7 +132,7 @@ void CAbstractNavigator::suspend()
 /** \callergraph */
 void CAbstractNavigator::resetNavError()
 {
-	std::lock_guard<std::recursive_mutex> csl(m_nav_cs);
+	auto lck = mrpt::lockHelper(m_nav_cs);
 
 	MRPT_LOG_DEBUG("CAbstractNavigator::resetNavError() called.");
 	if (m_navigationState == NAV_ERROR)
@@ -162,6 +154,10 @@ void CAbstractNavigator::loadConfigFile(const mrpt::config::CConfigFileBase& c)
 
 	params_abstract_navigator.loadFromConfigFile(c, "CAbstractNavigator");
 
+	m_navProfiler.enable(c.read_bool(
+		"CAbstractNavigator", "enable_time_profiler",
+		m_navProfiler.isEnabled()));
+
 	// At this point, all derived classes have already loaded their parameters.
 	// Dump them to debug output:
 	{
@@ -181,9 +177,10 @@ void CAbstractNavigator::saveConfigFile(mrpt::config::CConfigFileBase& c) const
 /** \callergraph */
 void CAbstractNavigator::navigationStep()
 {
-	std::lock_guard<std::recursive_mutex> csl(m_nav_cs);
+	auto lck = mrpt::lockHelper(m_nav_cs);
+
 	mrpt::system::CTimeLoggerEntry tle(
-		m_timlog_delays, "CAbstractNavigator::navigationStep()");
+		m_navProfiler, "CAbstractNavigator::navigationStep()");
 
 	const TState prevState = m_navigationState;
 	switch (m_navigationState)
@@ -279,7 +276,7 @@ void CAbstractNavigator::doEmergencyStop(const std::string& msg)
 
 void CAbstractNavigator::onNavigateCommandReceived()
 {
-	std::lock_guard<std::recursive_mutex> csl(m_nav_cs);
+	auto lck = mrpt::lockHelper(m_nav_cs);
 
 	m_navigationEndEventSent = false;
 	m_navigationParams.reset();
@@ -287,8 +284,8 @@ void CAbstractNavigator::onNavigateCommandReceived()
 
 void CAbstractNavigator::processNavigateCommand(const TNavigationParams* params)
 {
-	MRPT_START;
-	std::lock_guard<std::recursive_mutex> csl(m_nav_cs);
+	MRPT_START
+	auto lck = mrpt::lockHelper(m_nav_cs);
 
 	ASSERT_(params != nullptr);
 	ASSERT_(
@@ -316,16 +313,16 @@ void CAbstractNavigator::processNavigateCommand(const TNavigationParams* params)
 	m_badNavAlarm_minDistTarget = std::numeric_limits<double>::max();
 	m_badNavAlarm_lastMinDistTime = mrpt::system::getCurrentTime();
 
-	MRPT_END;
+	MRPT_END
 }
 
 void CAbstractNavigator::navigate(
 	const CAbstractNavigator::TNavigationParams* params)
 {
-	MRPT_START;
+	MRPT_START
 	this->onNavigateCommandReceived();
 	this->processNavigateCommand(params);
-	MRPT_END;
+	MRPT_END
 }
 
 void CAbstractNavigator::updateCurrentPoseAndSpeeds()
@@ -355,7 +352,7 @@ void CAbstractNavigator::updateCurrentPoseAndSpeeds()
 
 	{
 		mrpt::system::CTimeLoggerEntry tle(
-			m_timlog_delays, "getCurrentPoseAndSpeeds()");
+			m_navProfiler, "getCurrentPoseAndSpeeds()");
 		m_curPoseVel.pose_frame_id = std::string("map");  // default
 		if (!m_robot.getCurrentPoseAndSpeeds(
 				m_curPoseVel.pose, m_curPoseVel.velGlobal,

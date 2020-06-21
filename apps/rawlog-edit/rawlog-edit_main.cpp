@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -25,8 +25,9 @@
 
 #include "rawlog-edit-declarations.h"
 
-#include <mrpt/otherlibs/tclap/CmdLine.h>
+#include <mrpt/3rdparty/tclap/CmdLine.h>
 
+#include <mrpt/system/os.h>
 #include <memory>
 
 using TOperationFunctor = void (*)(
@@ -42,33 +43,34 @@ using namespace std;
 using namespace mrpt::io;
 
 // Frwd. decl:
+DECLARE_OP_FUNCTION(op_camera_params);
+DECLARE_OP_FUNCTION(op_cut);
+DECLARE_OP_FUNCTION(op_deexternalize);
+DECLARE_OP_FUNCTION(op_export_2d_scans_txt);
+DECLARE_OP_FUNCTION(op_export_anemometer_txt);
+DECLARE_OP_FUNCTION(op_export_enose_txt);
+DECLARE_OP_FUNCTION(op_export_gps_all);
+DECLARE_OP_FUNCTION(op_export_gps_gas_kml);
+DECLARE_OP_FUNCTION(op_export_gps_kml);
+DECLARE_OP_FUNCTION(op_export_gps_txt);
+DECLARE_OP_FUNCTION(op_export_imu_txt);
+DECLARE_OP_FUNCTION(op_export_odometry_txt);
+DECLARE_OP_FUNCTION(op_export_rawdaq_txt);
 DECLARE_OP_FUNCTION(op_externalize);
+DECLARE_OP_FUNCTION(op_generate_3d_pointclouds);
 DECLARE_OP_FUNCTION(op_info);
+DECLARE_OP_FUNCTION(op_keep_label);
 DECLARE_OP_FUNCTION(op_list_images);
 DECLARE_OP_FUNCTION(op_list_poses);
 DECLARE_OP_FUNCTION(op_list_rangebearing);
-DECLARE_OP_FUNCTION(op_remove_label);
-DECLARE_OP_FUNCTION(op_keep_label);
-DECLARE_OP_FUNCTION(op_cut);
-DECLARE_OP_FUNCTION(op_export_gps_kml);
-DECLARE_OP_FUNCTION(op_export_gps_gas_kml);
-DECLARE_OP_FUNCTION(op_export_gps_txt);
-DECLARE_OP_FUNCTION(op_export_gps_all);
-DECLARE_OP_FUNCTION(op_export_imu_txt);
-DECLARE_OP_FUNCTION(op_export_odometry_txt);
-DECLARE_OP_FUNCTION(op_export_enose_txt);
-DECLARE_OP_FUNCTION(op_export_anemometer_txt);
-DECLARE_OP_FUNCTION(op_recalc_odometry);
-DECLARE_OP_FUNCTION(op_export_rawdaq_txt);
-DECLARE_OP_FUNCTION(op_export_2d_scans_txt);
-DECLARE_OP_FUNCTION(op_sensors_pose);
-DECLARE_OP_FUNCTION(op_camera_params);
-DECLARE_OP_FUNCTION(op_generate_3d_pointclouds);
-DECLARE_OP_FUNCTION(op_generate_pcd);
-DECLARE_OP_FUNCTION(op_stereo_rectify);
-DECLARE_OP_FUNCTION(op_rename_externals);
 DECLARE_OP_FUNCTION(op_list_timestamps);
+DECLARE_OP_FUNCTION(op_recalc_odometry);
 DECLARE_OP_FUNCTION(op_remap_timestamps);
+DECLARE_OP_FUNCTION(op_remove_label);
+DECLARE_OP_FUNCTION(op_rename_externals);
+DECLARE_OP_FUNCTION(op_sensors_pose);
+DECLARE_OP_FUNCTION(op_stereo_rectify);
+DECLARE_OP_FUNCTION(op_undistort);
 
 // Declare the supported command line switches ===========
 TCLAP::CmdLine cmd(
@@ -83,6 +85,12 @@ TCLAP::ValueArg<std::string> arg_input_file(
 TCLAP::ValueArg<std::string> arg_output_file(
 	"o", "output", "Output dataset (*.rawlog)", false, "", "dataset_out.rawlog",
 	cmd);
+
+TCLAP::ValueArg<std::string> arg_plugins(
+	"p", "plugins",
+	"Single or comma-separated list of .so/.dll plugins to load for additional "
+	"user-supplied classes",
+	false, "", "mylib.so", cmd);
 
 TCLAP::ValueArg<std::string> arg_outdir(
 	"", "out-dir", "Output directory (used by some commands only)", false, ".",
@@ -150,7 +158,7 @@ TCLAP::SwitchArg arg_quiet("q", "quiet", "Terse output", cmd, false);
 // ======================================================================
 int main(int argc, char** argv)
 {
-	vector<TCLAP::Arg*> arg_ops;  // to be destroyed on exit.
+	vector<std::unique_ptr<TCLAP::Arg>> arg_ops;
 	int ret_val = 0;
 
 	try
@@ -158,7 +166,7 @@ int main(int argc, char** argv)
 		// --------------- List of possible operations ---------------
 		map<string, TOperationFunctor> ops_functors;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "externalize",
 			"Op: convert to external storage.\n"
 			"Requires: -o (or --output)\n"
@@ -166,13 +174,21 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["externalize"] = &op_externalize;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
+			"", "de-externalize",
+			"Op: the opposite that --externalize: generates a monolitic rawlog "
+			"file with all external files integrated in one.\n"
+			"Requires: -o (or --output)\n",
+			cmd, false));
+		ops_functors["de-externalize"] = &op_deexternalize;
+
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "info",
 			"Op: parse input file and dump information and statistics.", cmd,
 			false));
 		ops_functors["info"] = &op_info;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "list-images",
 			"Op: dump a list of all external image files in the dataset.\n"
 			"Optionally the output text file can be changed with "
@@ -180,7 +196,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["list-images"] = &op_list_images;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "list-poses",
 			"Op: dump a list of all the poses of the observations in the "
 			"dataset.\n"
@@ -189,7 +205,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["list-poses"] = &op_list_poses;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "list-timestamps",
 			"Op: generates a list with all the observations' timestamp, "
 			"sensor label and C++ class name.\n"
@@ -198,7 +214,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["list-timestamps"] = &op_list_timestamps;
 
-		arg_ops.push_back(new TCLAP::ValueArg<std::string>(
+		arg_ops.push_back(std::make_unique<TCLAP::ValueArg<std::string>>(
 			"", "remap-timestamps",
 			"Op: Change all timestamps t replacing it with the linear map "
 			"'a*t+b'."
@@ -208,7 +224,7 @@ int main(int argc, char** argv)
 			false, "", "a;b", cmd));
 		ops_functors["remap-timestamps"] = &op_remap_timestamps;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "list-range-bearing",
 			"Op: dump a list of all landmark observations of type "
 			"range-bearing.\n"
@@ -217,7 +233,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["list-range-bearing"] = &op_list_rangebearing;
 
-		arg_ops.push_back(new TCLAP::ValueArg<std::string>(
+		arg_ops.push_back(std::make_unique<TCLAP::ValueArg<std::string>>(
 			"", "remove-label",
 			"Op: Remove all observation matching the given sensor label(s)."
 			"Several labels can be provided separated by commas.\n"
@@ -225,7 +241,7 @@ int main(int argc, char** argv)
 			false, "", "label[,label...]", cmd));
 		ops_functors["remove-label"] = &op_remove_label;
 
-		arg_ops.push_back(new TCLAP::ValueArg<std::string>(
+		arg_ops.push_back(std::make_unique<TCLAP::ValueArg<std::string>>(
 			"", "keep-label",
 			"Op: Remove all observations not matching the given sensor "
 			"label(s)."
@@ -234,7 +250,7 @@ int main(int argc, char** argv)
 			false, "", "label[,label...]", cmd));
 		ops_functors["keep-label"] = &op_keep_label;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "export-gps-kml",
 			"Op: Export GPS paths to Google Earth KML files.\n"
 			"Generates one .kml file with different sections for each "
@@ -245,7 +261,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["export-gps-kml"] = &op_export_gps_kml;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "export-gps-gas-kml",
 			"Op: Export GPS paths to Google Earth KML files coloured by "
 			"the gas concentration.\n"
@@ -257,7 +273,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["export-gps-gas-kml"] = &op_export_gps_gas_kml;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "export-gps-txt",
 			"Op: Export GPS GPGGA messages to TXT files.\n"
 			"Generates one .txt file for each different sensor label of "
@@ -268,7 +284,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["export-gps-txt"] = &op_export_gps_txt;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "export-gps-all",
 			"Op: Generic export all kinds of GPS/GNSS messages to separate "
 			"TXT files.\n"
@@ -279,7 +295,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["export-gps-all"] = &op_export_gps_all;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "export-imu-txt",
 			"Op: Export IMU readings to TXT files.\n"
 			"Generates one .txt file for each different sensor label of an "
@@ -290,7 +306,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["export-imu-txt"] = &op_export_imu_txt;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "export-odometry-txt",
 			"Op: Export absolute odometry readings to TXT files.\n"
 			"Generates one .txt file for each different sensor label of an "
@@ -301,7 +317,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["export-odometry-txt"] = &op_export_odometry_txt;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "export-enose-txt",
 			"Op: Export e-nose readigns to TXT files.\n"
 			"Generates one .txt file for each different sensor label of an "
@@ -312,7 +328,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["export-enose-txt"] = &op_export_enose_txt;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "export-anemometer-txt",
 			"Op: Export anemometer readigns to TXT files.\n"
 			"Generates one .txt file for each different sensor label of an "
@@ -323,7 +339,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["export-anemometer-txt"] = &op_export_anemometer_txt;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "recalc-odometry",
 			"Op: Recomputes odometry increments from new "
 			"encoder-to-odometry constants.\n"
@@ -332,7 +348,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["recalc-odometry"] = &op_recalc_odometry;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "export-rawdaq-txt",
 			"Op: Export raw DAQ readings to TXT files.\n"
 			"Generates one .txt file for each different sensor label + DAQ "
@@ -342,7 +358,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["export-rawdaq-txt"] = &op_export_rawdaq_txt;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "export-2d-scans-txt",
 			"Op: Export 2D scans to TXT files.\n"
 			"Generates two .txt files for each different sensor label of "
@@ -354,7 +370,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["export-2d-scans-txt"] = &op_export_2d_scans_txt;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "cut",
 			"Op: Cut a part of the input rawlog.\n"
 			"Requires: -o (or --output)\n"
@@ -367,7 +383,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["cut"] = &op_cut;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "generate-3d-pointclouds",
 			"Op: (re)generate the 3D pointclouds within "
 			"CObservation3DRangeScan objects that have range data.\n"
@@ -375,18 +391,7 @@ int main(int argc, char** argv)
 			cmd, false));
 		ops_functors["generate-3d-pointclouds"] = &op_generate_3d_pointclouds;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
-			"", "generate-pcd",
-			"Op: Generate a PointCloud Library (PCL) PCD file with the "
-			"point cloud for each sensor observation that can be converted "
-			"into"
-			" this representation: laser scans, 3D camera images, etc.\n"
-			"Optional: --out-dir to change the output directory (default: "
-			"\"./\")\n",
-			cmd, false));
-		ops_functors["generate-pcd"] = &op_generate_pcd;
-
-		arg_ops.push_back(new TCLAP::ValueArg<std::string>(
+		arg_ops.push_back(std::make_unique<TCLAP::ValueArg<std::string>>(
 			"", "sensors-pose",
 			"Op: batch change the poses of sensors from a "
 			"rawlog-grabber-like configuration file that specifies the "
@@ -395,7 +400,7 @@ int main(int argc, char** argv)
 			false, "", "file.ini", cmd));
 		ops_functors["sensors-pose"] = &op_sensors_pose;
 
-		arg_ops.push_back(new TCLAP::ValueArg<std::string>(
+		arg_ops.push_back(std::make_unique<TCLAP::ValueArg<std::string>>(
 			"", "camera-params",
 			"Op: change the camera parameters of all CObservationImage's "
 			"with the given SENSOR_LABEL, with new params loaded from the "
@@ -406,7 +411,7 @@ int main(int argc, char** argv)
 			false, "", "SENSOR_LABEL,file.ini", cmd));
 		ops_functors["camera-params"] = &op_camera_params;
 
-		arg_ops.push_back(new TCLAP::ValueArg<std::string>(
+		arg_ops.push_back(std::make_unique<TCLAP::ValueArg<std::string>>(
 			"", "stereo-rectify",
 			"Op: creates a new set of external images for all "
 			"CObservationStereoImages with the given SENSOR_LABEL, using "
@@ -421,13 +426,18 @@ int main(int argc, char** argv)
 			false, "", "SENSOR_LABEL,0.5", cmd));
 		ops_functors["stereo-rectify"] = &op_stereo_rectify;
 
-		arg_ops.push_back(new TCLAP::SwitchArg(
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
 			"", "rename-externals",
 			"Op: Renames all the external storage file names within the "
 			"rawlog (it doesn't change the external files, which may even "
 			"not exist).\n",
 			cmd, false));
 		ops_functors["rename-externals"] = &op_rename_externals;
+
+		arg_ops.push_back(std::make_unique<TCLAP::SwitchArg>(
+			"", "undistort", "Op: Undistort all images in the rawlog.\n", cmd,
+			false));
+		ops_functors["undistort"] = &op_undistort;
 
 		// --------------- End of list of possible operations --------
 
@@ -437,6 +447,10 @@ int main(int argc, char** argv)
 
 		string input_rawlog = arg_input_file.getValue();
 		const bool verbose = !arg_quiet.getValue();
+
+		// Plugins:
+		if (arg_plugins.isSet())
+			mrpt::system::loadPluginModules(arg_plugins.getValue());
 
 		// Check the selected operation:
 		//  Only one of the ops should be selected:
@@ -508,9 +522,6 @@ int main(int argc, char** argv)
 		std::cerr << mrpt::exception_to_str(e) << std::endl;
 		ret_val = -1;
 	}
-
-	// Free mem:
-	for (auto& arg_op : arg_ops) delete arg_op;
 
 	// end:
 	return ret_val;

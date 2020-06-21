@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -24,6 +24,8 @@
 
 #include <mrpt/gui/WxUtils.h>
 #include <mrpt/io/CFileGZInputStream.h>
+#include <mrpt/math/TLine3D.h>
+#include <mrpt/math/TObject3D.h>
 #include <mrpt/poses/CPoint2D.h>
 #include <mrpt/poses/CPose2D.h>
 #include <mrpt/serialization/CArchive.h>
@@ -369,68 +371,26 @@ holonomic_navigator_demoFrame::holonomic_navigator_demoFrame(
 	FlexGridSizer1->SetSizeHints(this);
 	Center();
 
-	Connect(
-		ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&holonomic_navigator_demoFrame::
-			OnbtnLoadMapClick);
-	Connect(
-		ID_BUTTON2, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&holonomic_navigator_demoFrame::OnAbout);
-	Connect(
-		ID_BUTTON3, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&holonomic_navigator_demoFrame::OnQuit);
-	Connect(
-		ID_BUTTON6, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&holonomic_navigator_demoFrame::
-			OnbtnPlaceRobotClick);
-	Connect(
-		ID_BUTTON7, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&holonomic_navigator_demoFrame::
-			OnbtnPlaceTargetClick);
-	Connect(
-		ID_BUTTON4, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&holonomic_navigator_demoFrame::OnbtnStartClick);
-	Connect(
-		ID_BUTTON5, wxEVT_COMMAND_BUTTON_CLICKED,
-		(wxObjectEventFunction)&holonomic_navigator_demoFrame::OnbtnStopClick);
-	Connect(
-		ID_MENUITEM4, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&holonomic_navigator_demoFrame::
-			OnbtnLoadMapClick);
-	Connect(
-		idMenuQuit, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&holonomic_navigator_demoFrame::OnQuit);
-	Connect(
-		ID_MENUITEM1, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&holonomic_navigator_demoFrame::
-			OnMenuItemChangeVisibleStuff);
-	Connect(
-		ID_MENUITEM2, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&holonomic_navigator_demoFrame::
-			OnMenuItemChangeVisibleStuff);
-	Connect(
-		ID_MENUITEM3, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&holonomic_navigator_demoFrame::
-			OnMenuItemClearRobotPath);
-	Connect(
-		idMenuAbout, wxEVT_COMMAND_MENU_SELECTED,
-		(wxObjectEventFunction)&holonomic_navigator_demoFrame::OnAbout);
-	Connect(
-		ID_TIMER1, wxEVT_TIMER,
-		(wxObjectEventFunction)&holonomic_navigator_demoFrame::
-			OntimRunSimulTrigger);
+	using hndf = holonomic_navigator_demoFrame;
+
+	Bind(wxEVT_BUTTON, &hndf::OnbtnLoadMapClick, this, ID_BUTTON1);
+	Bind(wxEVT_BUTTON, &hndf::OnAbout, this, ID_BUTTON2);
+	Bind(wxEVT_BUTTON, &hndf::OnQuit, this, ID_BUTTON3);
+	Bind(wxEVT_BUTTON, &hndf::OnbtnPlaceRobotClick, this, ID_BUTTON6);
+	Bind(wxEVT_BUTTON, &hndf::OnbtnPlaceTargetClick, this, ID_BUTTON7);
+	Bind(wxEVT_BUTTON, &hndf::OnbtnStartClick, this, ID_BUTTON4);
+	Bind(wxEVT_BUTTON, &hndf::OnbtnStopClick, this, ID_BUTTON5);
+	Bind(wxEVT_MENU, &hndf::OnbtnLoadMapClick, this, ID_MENUITEM4);
+	Bind(wxEVT_MENU, &hndf::OnQuit, this, idMenuQuit);
+	Bind(wxEVT_MENU, &hndf::OnMenuItemChangeVisibleStuff, this, ID_MENUITEM1);
+	Bind(wxEVT_MENU, &hndf::OnMenuItemChangeVisibleStuff, this, ID_MENUITEM2);
+	Bind(wxEVT_MENU, &hndf::OnMenuItemClearRobotPath, this, ID_MENUITEM3);
+	Bind(wxEVT_MENU, &hndf::OnAbout, this, idMenuAbout);
+	Bind(wxEVT_TIMER, &hndf::OntimRunSimulTrigger, this, ID_TIMER1);
 	//*)
 
-	m_plot3D->Connect(
-		wxEVT_MOTION,
-		(wxObjectEventFunction)&holonomic_navigator_demoFrame::
-			Onplot3DMouseMove,
-		nullptr, this);
-	m_plot3D->Connect(
-		wxEVT_LEFT_DOWN,
-		(wxObjectEventFunction)&holonomic_navigator_demoFrame::
-			Onplot3DMouseClick,
-		nullptr, this);
+	m_plot3D->Bind(wxEVT_MOTION, &hndf::Onplot3DMouseMove, this);
+	m_plot3D->Bind(wxEVT_LEFT_DOWN, &hndf::Onplot3DMouseClick, this);
 
 	mnuViewMaxRange->Check(true);
 	mnuViewRobotPath->Check(true);
@@ -450,58 +410,55 @@ holonomic_navigator_demoFrame::holonomic_navigator_demoFrame(
 	// -------------------------------
 	{
 		mrpt::opengl::CGridPlaneXY::Ptr obj =
-			mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
-				-50, 50, -50, 50, 0, 1);
+			mrpt::opengl::CGridPlaneXY::Create(-50, 50, -50, 50, 0, 1);
 		obj->setColor_u8(TColor(30, 30, 30, 50));
 		openGLSceneRef->insert(obj);
 	}
 
-	gl_grid = mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+	gl_grid = mrpt::opengl::CSetOfObjects::Create();
 	openGLSceneRef->insert(gl_grid);
 	this->updateMap3DView();
 
-	gl_robot = mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+	gl_robot = mrpt::opengl::CSetOfObjects::Create();
 	{
 		mrpt::opengl::CCylinder::Ptr obj =
-			mrpt::make_aligned_shared<mrpt::opengl::CCylinder>(
-				0.2f, 0.1f, 0.9f);
+			mrpt::opengl::CCylinder::Create(0.2f, 0.1f, 0.9f);
 		obj->setColor_u8(TColor::red());
 		gl_robot->insert(obj);
 	}
 	openGLSceneRef->insert(gl_robot);
 
-	gl_scan3D = mrpt::make_aligned_shared<mrpt::opengl::CPlanarLaserScan>();
+	gl_scan3D = mrpt::opengl::CPlanarLaserScan::Create();
 	gl_scan3D->enableLine(false);
-	gl_scan3D->setPointsWidth(3.0);
+	gl_scan3D->setPointSize(2.0);
 	gl_robot->insert(gl_scan3D);
 
-	gl_robot_sensor_range =
-		mrpt::make_aligned_shared<mrpt::opengl::CDisk>(0, 0);
+	gl_robot_sensor_range = mrpt::opengl::CDisk::Create(0, 0);
 	gl_robot_sensor_range->setColor_u8(TColor(0, 0, 255, 90));
 	gl_robot_sensor_range->setLocation(0, 0, 0.01);
 	gl_robot->insert(gl_robot_sensor_range);
 
-	gl_robot_path = mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
+	gl_robot_path = mrpt::opengl::CSetOfLines::Create();
 	gl_robot_path->setLineWidth(1);
 	gl_robot_path->setColor_u8(TColor(40, 40, 40, 200));
 	openGLSceneRef->insert(gl_robot_path);
 
-	gl_target = mrpt::make_aligned_shared<mrpt::opengl::CSetOfObjects>();
+	gl_target = mrpt::opengl::CSetOfObjects::Create();
 	{
 		mrpt::opengl::CArrow::Ptr obj;
-		obj = mrpt::make_aligned_shared<mrpt::opengl::CArrow>(
+		obj = mrpt::opengl::CArrow::Create(
 			1, 0, 0, 0.2f, 0, 0, 0.4f, 0.05f, 0.15f);
 		obj->setColor_u8(TColor(0, 0, 255));
 		gl_target->insert(obj);
-		obj = mrpt::make_aligned_shared<mrpt::opengl::CArrow>(
+		obj = mrpt::opengl::CArrow::Create(
 			-1, 0, 0, -0.2f, 0, 0, 0.4f, 0.05f, 0.15f);
 		obj->setColor_u8(TColor(0, 0, 255));
 		gl_target->insert(obj);
-		obj = mrpt::make_aligned_shared<mrpt::opengl::CArrow>(
+		obj = mrpt::opengl::CArrow::Create(
 			0, 1, 0, 0, 0.2f, 0, 0.4f, 0.05f, 0.15f);
 		obj->setColor_u8(TColor(0, 0, 255));
 		gl_target->insert(obj);
-		obj = mrpt::make_aligned_shared<mrpt::opengl::CArrow>(
+		obj = mrpt::opengl::CArrow::Create(
 			0, -1, 0, 0, -0.2f, 0, 0.4f, 0.05f, 0.15f);
 		obj->setColor_u8(TColor(0, 0, 255));
 		gl_target->insert(obj);
@@ -509,23 +466,22 @@ holonomic_navigator_demoFrame::holonomic_navigator_demoFrame(
 	}
 
 	{  // Sign of "picking a navigation target":
-		m_gl_placing_nav_target =
-			mrpt::make_aligned_shared<opengl::CSetOfObjects>();
+		m_gl_placing_nav_target = std::make_shared<opengl::CSetOfObjects>();
 
 		mrpt::opengl::CArrow::Ptr obj;
-		obj = mrpt::make_aligned_shared<mrpt::opengl::CArrow>(
+		obj = mrpt::opengl::CArrow::Create(
 			1, 0, 0, 0.2f, 0, 0, 0.4f, 0.05f, 0.15f);
 		obj->setColor_u8(TColor(0, 0, 255));
 		m_gl_placing_nav_target->insert(obj);
-		obj = mrpt::make_aligned_shared<mrpt::opengl::CArrow>(
+		obj = mrpt::opengl::CArrow::Create(
 			-1, 0, 0, -0.2f, 0, 0, 0.4f, 0.05f, 0.15f);
 		obj->setColor_u8(TColor(0, 0, 255));
 		m_gl_placing_nav_target->insert(obj);
-		obj = mrpt::make_aligned_shared<mrpt::opengl::CArrow>(
+		obj = mrpt::opengl::CArrow::Create(
 			0, 1, 0, 0, 0.2f, 0, 0.4f, 0.05f, 0.15f);
 		obj->setColor_u8(TColor(0, 0, 255));
 		m_gl_placing_nav_target->insert(obj);
-		obj = mrpt::make_aligned_shared<mrpt::opengl::CArrow>(
+		obj = mrpt::opengl::CArrow::Create(
 			0, -1, 0, 0, -0.2f, 0, 0.4f, 0.05f, 0.15f);
 		obj->setColor_u8(TColor(0, 0, 255));
 		m_gl_placing_nav_target->insert(obj);
@@ -533,10 +489,9 @@ holonomic_navigator_demoFrame::holonomic_navigator_demoFrame(
 		openGLSceneRef->insert(m_gl_placing_nav_target);
 	}
 	{  // Sign of "replacing the robot":
-		m_gl_placing_robot = mrpt::make_aligned_shared<opengl::CSetOfObjects>();
+		m_gl_placing_robot = std::make_shared<opengl::CSetOfObjects>();
 		mrpt::opengl::CCylinder::Ptr obj =
-			mrpt::make_aligned_shared<mrpt::opengl::CCylinder>(
-				0.2f, 0.1f, 0.9f);
+			mrpt::opengl::CCylinder::Create(0.2f, 0.1f, 0.9f);
 		obj->setColor_u8(TColor(255, 0, 0, 120));
 		m_gl_placing_robot->insert(obj);
 
@@ -557,24 +512,23 @@ holonomic_navigator_demoFrame::holonomic_navigator_demoFrame(
 	auto openGLScanRef = m_plotScan->getOpenGLSceneRef();
 	{
 		mrpt::opengl::CGridPlaneXY::Ptr obj =
-			mrpt::make_aligned_shared<mrpt::opengl::CGridPlaneXY>(
-				-1, 1.001f, -1, 1.001f, 0, 1);
+			mrpt::opengl::CGridPlaneXY::Create(-1, 1.001f, -1, 1.001f, 0, 1);
 		obj->setColor_u8(TColor(30, 30, 30, 50));
 		openGLScanRef->insert(obj);
 	}
 
-	gl_scan2D = mrpt::make_aligned_shared<mrpt::opengl::CPlanarLaserScan>();
+	gl_scan2D = mrpt::opengl::CPlanarLaserScan::Create();
 	gl_scan2D->enableLine(false);
 	gl_scan2D->enableSurface(false);
-	gl_scan2D->setPointsWidth(3.0);
+	gl_scan2D->setPointSize(2.0);
 	openGLScanRef->insert(gl_scan2D);
 
-	gl_line_direction = mrpt::make_aligned_shared<mrpt::opengl::CSimpleLine>();
+	gl_line_direction = mrpt::opengl::CSimpleLine::Create();
 	gl_line_direction->setLineWidth(4);
 	gl_line_direction->setColor_u8(TColor(0, 0, 0));
 	openGLScanRef->insert(gl_line_direction);
 
-	gl_rel_target = mrpt::make_aligned_shared<mrpt::opengl::CPointCloud>();
+	gl_rel_target = mrpt::opengl::CPointCloud::Create();
 	gl_rel_target->setPointSize(7);
 	gl_rel_target->setColor_u8(TColor(0, 0, 255));
 	gl_rel_target->insertPoint(0, 0, 0);
@@ -582,7 +536,7 @@ holonomic_navigator_demoFrame::holonomic_navigator_demoFrame(
 
 	openGLScanRef->insert(mrpt::opengl::stock_objects::CornerXYSimple(0.1f, 2));
 
-	gl_nd_gaps = mrpt::make_aligned_shared<mrpt::opengl::CSetOfLines>();
+	gl_nd_gaps = mrpt::opengl::CSetOfLines::Create();
 	gl_nd_gaps->setLineWidth(2);
 	gl_nd_gaps->setColor_u8(TColor(204, 102, 51));
 	openGLScanRef->insert(gl_nd_gaps);
@@ -768,7 +722,7 @@ void holonomic_navigator_demoFrame::simulateOneStep(double time_step)
 	gl_scan3D->setScan(simulatedScan);  // Draw real scan in 3D view
 
 	// Normalize:
-	for (size_t j = 0; j < simulatedScan.scan.size(); j++)
+	for (size_t j = 0; j < simulatedScan.getScanSize(); j++)
 		simulatedScan.setScanRange(
 			j, simulatedScan.getScanRange(j) / simulatedScan.maxRange);
 
@@ -816,7 +770,7 @@ void holonomic_navigator_demoFrame::simulateOneStep(double time_step)
 	gl_nd_gaps->clear();
 
 	// Update 2D view graphs:
-	if (out_log && IS_CLASS(out_log, CLogFileRecord_ND))
+	if (out_log && IS_CLASS(*out_log, CLogFileRecord_ND))
 	{
 		CLogFileRecord_ND::Ptr log =
 			std::dynamic_pointer_cast<CLogFileRecord_ND>(out_log);
@@ -843,8 +797,9 @@ void holonomic_navigator_demoFrame::simulateOneStep(double time_step)
 								   j * (log->gaps_end[i] - log->gaps_ini[i]) /
 									   static_cast<double>(N_STEPS - 1);
 				const double ang =
-					M_PI * (-1 + 2 * sec / ((float)simulatedScan.scan.size()));
-				const double d = simulatedScan.scan[sec] - 0.05;
+					M_PI *
+					(-1 + 2 * sec / ((float)simulatedScan.getScanSize()));
+				const double d = simulatedScan.getScanRange(sec) - 0.05;
 				gl_nd_gaps->appendLineStrip(d * cos(ang), d * sin(ang), 0);
 			}
 			gl_nd_gaps->appendLineStrip(0, 0, 0);

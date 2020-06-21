@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -40,24 +40,23 @@ void TestOpenGLVideo()
 
 	// XY Grid
 	opengl::CGridPlaneXY::Ptr gl_ground =
-		mrpt::make_aligned_shared<opengl::CGridPlaneXY>(-7, 7, -7, 7, 0, 1);
+		opengl::CGridPlaneXY::Create(-7, 7, -7, 7, 0, 1);
 	gl_ground->setColor(0.7, 0.7, 0.7);
 
 	// An opengl plane with the video texture
 	opengl::CTexturedPlane::Ptr gl_plane1 =
-		mrpt::make_aligned_shared<opengl::CTexturedPlane>(
-			0, 1, 0, 0.75);  // 4/3 aspect ratio
+		opengl::CTexturedPlane::Create(0, 1, 0, 0.75);  // 4/3 aspect ratio
 	opengl::CTexturedPlane::Ptr gl_plane2 =
-		mrpt::make_aligned_shared<opengl::CTexturedPlane>(0, 1, 0, 0.75);
+		opengl::CTexturedPlane::Create(0, 1, 0, 0.75);
 	opengl::CTexturedPlane::Ptr gl_plane3 =
-		mrpt::make_aligned_shared<opengl::CTexturedPlane>(0, 1, 0, 0.75);
+		opengl::CTexturedPlane::Create(0, 1, 0, 0.75);
 
 	gl_plane1->setPose(
-		mrpt::poses::CPose3D(0, 0, 1, DEG2RAD(0), DEG2RAD(0), DEG2RAD(-90)));
+		mrpt::poses::CPose3D(0, 0, 1, 0.0_deg, 0.0_deg, -90.0_deg));
 	gl_plane2->setPose(
-		mrpt::poses::CPose3D(1, 0, 1, DEG2RAD(120), DEG2RAD(0), DEG2RAD(-90)));
+		mrpt::poses::CPose3D(1, 0, 1, 120.0_deg, 0.0_deg, -90.0_deg));
 	gl_plane3->setPose(
-		mrpt::poses::CPose3D(0, 0, 1, DEG2RAD(60), DEG2RAD(0), DEG2RAD(-90)));
+		mrpt::poses::CPose3D(0, 0, 1, 60.0_deg, 0.0_deg, -90.0_deg));
 
 	win.setCameraZoom(5);
 
@@ -83,7 +82,7 @@ void TestOpenGLVideo()
 		CObservation::Ptr obs = cam->getNextFrame();
 		if (obs)
 		{
-			if (IS_CLASS(obs, CObservationImage))
+			if (IS_CLASS(*obs, CObservationImage))
 			{
 				CObservationImage::Ptr o =
 					std::dynamic_pointer_cast<CObservationImage>(obs);

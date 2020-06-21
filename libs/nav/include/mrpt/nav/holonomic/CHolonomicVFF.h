@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -24,7 +24,7 @@ namespace mrpt::nav
  */
 class CLogFileRecord_VFF : public CHolonomicLogFileRecord
 {
-	DEFINE_SERIALIZABLE(CLogFileRecord_VFF)
+	DEFINE_SERIALIZABLE(CLogFileRecord_VFF, mrpt::nav)
    public:
 };
 
@@ -46,7 +46,7 @@ class CLogFileRecord_VFF : public CHolonomicLogFileRecord
  */
 class CHolonomicVFF : public CAbstractHolonomicReactiveMethod
 {
-	DEFINE_SERIALIZABLE(CHolonomicVFF)
+	DEFINE_SERIALIZABLE(CHolonomicVFF, mrpt::nav)
    public:
 	/**  Initialize the parameters of the navigator, from some configuration
 	 * file, or default values if set to NULL. */

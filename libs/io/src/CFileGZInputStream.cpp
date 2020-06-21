@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -53,7 +53,12 @@ bool CFileGZInputStream::open(
 	// Get compressed file size:
 	m_file_size = mrpt::system::getFileSize(fileName);
 	if (m_file_size == uint64_t(-1))
-		THROW_EXCEPTION_FMT("Couldn't access the file '%s'", fileName.c_str());
+	{
+		if (error_msg)
+			error_msg.value().get() =
+				mrpt::format("Couldn't access the file '%s'", fileName.c_str());
+		return false;
+	}
 
 	// Open gz stream:
 	m_f->f = gzopen(fileName.c_str(), "rb");
@@ -84,10 +89,9 @@ size_t CFileGZInputStream::Read(void* Buffer, size_t Count)
 	return gzread(m_f->f, Buffer, Count);
 }
 
-size_t CFileGZInputStream::Write(const void* Buffer, size_t Count)
+size_t CFileGZInputStream::Write(
+	[[maybe_unused]] const void* Buffer, [[maybe_unused]] size_t Count)
 {
-	MRPT_UNUSED_PARAM(Buffer);
-	MRPT_UNUSED_PARAM(Count);
 	THROW_EXCEPTION("Trying to write to an input file stream.");
 }
 

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -45,7 +45,6 @@ MRPT_INITIALIZER(registerAllClasses_mrpt_obs)
 	registerClass(CLASS_ID(CObservationReflectivity));
 	registerClass(CLASS_ID(CObservationStereoImages));
 	registerClass(CLASS_ID(CObservationStereoImagesFeatures));
-	// registerClass( CLASS_ID( CObservationVisualLandmarks ) );
 	registerClass(CLASS_ID(CObservation6DFeatures));
 	registerClass(CLASS_ID(CObservationRobotPose));
 	registerClass(CLASS_ID(CObservationCANBusJ1939));

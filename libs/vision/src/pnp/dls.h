@@ -2,14 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #pragma once
 
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 #if MRPT_HAS_OPENCV
 
@@ -32,7 +32,7 @@ class dls
    public:
 	//! Constructor for DLS class
 	dls(const cv::Mat& opoints, const cv::Mat& ipoints);
-	~dls();
+	~dls() = default;
 
 	//! OpenCV function for computing pose
 	bool compute_pose(cv::Mat& R, cv::Mat& t);

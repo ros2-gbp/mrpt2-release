@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -60,13 +60,12 @@ CAbstractHolonomicReactiveMethod::Ptr CAbstractHolonomicReactiveMethod::Factory(
 			mrpt::rtti::findRegisteredClass(className);
 		if (!classId) return nullptr;
 
-		return CAbstractHolonomicReactiveMethod::Ptr(
-			dynamic_cast<CAbstractHolonomicReactiveMethod*>(
-				classId->createObject()));
+		return mrpt::ptr_cast<CAbstractHolonomicReactiveMethod>::from(
+			classId->createObject());
 	}
 	catch (...)
 	{
-		return nullptr;
+		return CAbstractHolonomicReactiveMethod::Ptr();
 	}
 }
 

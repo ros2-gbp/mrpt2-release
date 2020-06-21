@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -180,7 +180,7 @@ void stereo2rawlog(
 		obs.timestamp = mrpt::system::time_tToTimestamp(
 			mrpt::system::timestampTotime_t(tim0) + i / STEREO_FPS);
 		obs.cameraPose = mrpt::poses::CPose3DQuat(mrpt::poses::CPose3D(
-			0, 0, 0, DEG2RAD(-90.0), DEG2RAD(0.0), DEG2RAD(-90.0 - 4.6)));
+			0, 0, 0, -90.0_deg, 0.0_deg, DEG2RAD(-90.0 - 4.6)));
 
 		obs.leftCamera = cam_params_l;
 		obs.rightCamera = cam_params_r;

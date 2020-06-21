@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -20,7 +20,13 @@ namespace mrpt
  *  You can call this to obtain a std::string using printf-like syntax.
  * \ingroup mrpt_core_grp
  */
-std::string format(const char* fmt, ...) MRPT_printf_format_check(1, 2);
+std::string format_impl(const char* fmt, ...) MRPT_printf_format_check(1, 2);
+
+template <typename... ARGS>
+std::string format(std::string_view fmt, ARGS&&... args)
+{
+	return format_impl(fmt.data(), std::forward<ARGS>(args)...);
+}
 
 /** Just like std::to_string(), but with an overloaded version
  * for std::string arguments.

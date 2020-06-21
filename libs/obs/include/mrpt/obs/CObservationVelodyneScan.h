@@ -2,12 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
+#include <mrpt/core/reverse_bytes.h>
 #include <mrpt/obs/CObservation.h>
 #include <mrpt/obs/CSinCosLookUpTableFor2DScans.h>
 #include <mrpt/obs/VelodyneCalibration.h>
@@ -79,7 +80,7 @@ namespace obs
  */
 class CObservationVelodyneScan : public CObservation
 {
-	DEFINE_SERIALIZABLE(CObservationVelodyneScan)
+	DEFINE_SERIALIZABLE(CObservationVelodyneScan, mrpt::obs)
 
    public:
 	/** @name Raw scan fixed parameters
@@ -89,18 +90,19 @@ class CObservationVelodyneScan : public CObservation
 	static const int SCANS_PER_BLOCK = 32;
 	static const int BLOCK_DATA_SIZE = (SCANS_PER_BLOCK * RAW_SCAN_SIZE);
 
-	static const float ROTATION_RESOLUTION;  // = 0.01f; /**< degrees */
 	static const uint16_t ROTATION_MAX_UNITS =
 		36000; /**< hundredths of degrees */
 
-	static const float DISTANCE_MAX; /**< meters */
-	static const float DISTANCE_RESOLUTION; /**< meters */
-	static const float DISTANCE_MAX_UNITS;
+	static constexpr float ROTATION_RESOLUTION = 0.01f; /**< degrees */
+	static constexpr float DISTANCE_MAX = 130.0f; /**< meters */
+	static constexpr float DISTANCE_RESOLUTION = 0.002f; /**< meters */
 
 	/** Blocks 0-31 */
 	static const uint16_t UPPER_BANK = 0xeeff;
 	/** Blocks 32-63 */
 	static const uint16_t LOWER_BANK = 0xddff;
+
+	static const int SCANS_PER_FIRING = 16;
 
 	static const int PACKET_SIZE = 1206;
 	static const int POS_PACKET_SIZE = 512;
@@ -119,41 +121,84 @@ class CObservationVelodyneScan : public CObservation
 #pragma pack(push, 1)
 	struct laser_return_t
 	{
-		uint16_t distance;
-		uint8_t intensity;
+	   private:
+		uint16_t m_distance;
+		uint8_t m_intensity;
+
+	   public:
+		inline uint16_t distance() const
+		{
+			return mrpt::toNativeEndianness(m_distance);
+		}
+		inline uint8_t intensity() const { return m_intensity; }
 	};
 	/** Raw Velodyne data block.
 	 *  Each block contains data from either the upper or lower laser
 	 *  bank.  The device returns three times as many upper bank blocks. */
 	struct raw_block_t
 	{
-		uint16_t header;  ///< Block id: UPPER_BANK or LOWER_BANK
-		uint16_t rotation;  ///< 0-35999, divide by 100 to get degrees
+	   private:
+		uint16_t m_header;  ///< Block id: UPPER_BANK or LOWER_BANK
+		uint16_t m_rotation;  ///< 0-35999, divide by 100 to get degrees
+	   public:
 		laser_return_t laser_returns[SCANS_PER_BLOCK];
+
+		inline uint16_t header() const
+		{
+			return mrpt::toNativeEndianness(m_header);
+		}
+		inline uint16_t rotation() const
+		{
+			return mrpt::toNativeEndianness(m_rotation);
+		}
 	};
 
 	/** One unit of data from the scanner (the payload of one UDP DATA packet)
 	 */
 	struct TVelodyneRawPacket
 	{
+	   public:
 		raw_block_t blocks[BLOCKS_PER_PACKET];
+
+	   private:
 		/** us from top of hour */
-		uint32_t gps_timestamp;
+		uint32_t m_gps_timestamp;
+
+	   public:
 		/** 0x37: strongest, 0x38: last, 0x39: dual return */
 		uint8_t laser_return_mode;
 		/** 0x21: HDL-32E, 0x22: VLP-16 */
 		uint8_t velodyne_model_ID;
+
+		inline uint32_t gps_timestamp() const
+		{
+			return mrpt::toNativeEndianness(m_gps_timestamp);
+		}
 	};
 
 	/** Payload of one POSITION packet */
 	struct TVelodynePositionPacket
 	{
+	   public:
 		char unused1[198];
-		uint32_t gps_timestamp;
-		uint32_t unused2;
+
+	   private:
+		uint32_t m_gps_timestamp;
+		uint32_t m_unused2;
+
+	   public:
 		/** the full $GPRMC message, as received by Velodyne, terminated with
 		 * "\r\n\0" */
 		char NMEA_GPRMC[72 + 234];
+
+		inline uint32_t gps_timestamp() const
+		{
+			return mrpt::toNativeEndianness(m_gps_timestamp);
+		}
+		inline uint32_t unused2() const
+		{
+			return mrpt::toNativeEndianness(m_unused2);
+		}
 	};
 #pragma pack(pop)
 

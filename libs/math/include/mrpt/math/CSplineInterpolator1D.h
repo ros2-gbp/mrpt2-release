@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -23,7 +23,7 @@ namespace mrpt::math
  */
 class CSplineInterpolator1D : public mrpt::serialization::CSerializable
 {
-	DEFINE_SERIALIZABLE(CSplineInterpolator1D)
+	DEFINE_SERIALIZABLE(CSplineInterpolator1D, mrpt::math)
 
    private:
 	/** The placeholders for the data */

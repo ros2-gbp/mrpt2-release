@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -25,7 +25,7 @@ namespace mrpt::opengl
  */
 class CSetOfObjects : public CRenderizable
 {
-	DEFINE_SERIALIZABLE(CSetOfObjects)
+	DEFINE_SERIALIZABLE(CSetOfObjects, mrpt::opengl)
 
    protected:
 	/** The list of child objects.
@@ -35,6 +35,9 @@ class CSetOfObjects : public CRenderizable
 	CListOpenGLObjects m_objects;
 
    public:
+	CSetOfObjects() = default;
+	virtual ~CSetOfObjects() override = default;
+
 	using const_iterator = CListOpenGLObjects::const_iterator;
 	using iterator = CListOpenGLObjects::iterator;
 
@@ -61,9 +64,29 @@ class CSetOfObjects : public CRenderizable
 		for (T_it it = begin; it != end; it++) insert(*it);
 	}
 
-	/** Render child objects.
-	 */
-	void render() const override;
+	shader_list_t requiredShaders() const override
+	{
+		// For this container class, it actually doesn't matter the type of
+		// shader, since each children will register using the adequate shader
+		// ID. But the method is virtual, so we must provide an arbitrary one
+		// here anyway:
+		return {DefaultShaderID::WIREFRAME};
+	}
+	void render(const RenderContext& rc) const override;
+	void renderUpdateBuffers() const override;
+	void enqueForRenderRecursive(
+		const mrpt::opengl::TRenderMatrices& state,
+		RenderQueue& rq) const override;
+	void freeOpenGLResources() override
+	{
+		for (auto& o : m_objects)
+			if (o) o->freeOpenGLResources();
+	}
+	void initializeTextures() const override
+	{
+		for (const auto& o : m_objects)
+			if (o) o->initializeTextures();
+	}
 
 	/** Clear the list of objects in the scene, deleting objects' memory.
 	 */
@@ -73,10 +96,6 @@ class CSetOfObjects : public CRenderizable
 	size_t size() { return m_objects.size(); }
 	/** Returns true if there are no objects.  */
 	inline bool empty() const { return m_objects.empty(); }
-	/** Initializes all textures in the scene (See
-	 * opengl::CTexturedPlane::loadTextureInOpenGL)
-	 */
-	void initializeAllTextures();
 
 	/** Returns the first object with a given name, or a nullptr pointer if not
 	 * found.
@@ -92,7 +111,7 @@ class CSetOfObjects : public CRenderizable
 	  * By default (ith=0), the first observation is returned.
 	  */
 	template <typename T>
-	typename T::Ptr getByClass(const size_t& ith = 0) const;
+	typename T::Ptr getByClass(size_t ith = 0) const;
 
 	/** Removes the given object from the scene (it also deletes the object to
 	 * free its memory).
@@ -147,13 +166,6 @@ class CSetOfObjects : public CRenderizable
 		const mrpt::poses::CPose3DQuatPDF& o);
 
 	/** @} */
-
-	/** Default constructor
-	 */
-	CSetOfObjects();
-
-	/** Private, virtual destructor: only can be deleted from smart pointers */
-	~CSetOfObjects() override;
 };
 /** Inserts an object into the list. Allows call chaining.
  * \sa mrpt::opengl::CSetOfObjects::insert
@@ -178,7 +190,7 @@ inline CSetOfObjects::Ptr& operator<<(
 // Implementation: (here because it needs the _POST macro defining the
 // Smart::Ptr)
 template <typename T>
-typename T::Ptr CSetOfObjects::getByClass(const size_t& ith) const
+typename T::Ptr CSetOfObjects::getByClass(size_t ith) const
 {
 	MRPT_START
 	size_t foundCount = 0;

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -22,18 +22,6 @@ using namespace mrpt::math;
 
 // This must be added to any CSerializable class implementation file.
 IMPLEMENTS_SERIALIZABLE(CObservationBearingRange, CObservation, mrpt::obs)
-
-/*---------------------------------------------------------------
- Default constructor.
- ---------------------------------------------------------------*/
-CObservationBearingRange::CObservationBearingRange()
-	: fieldOfView_yaw(DEG2RAD(180)),
-	  fieldOfView_pitch(DEG2RAD(90)),
-	  sensorLocationOnRobot(),
-	  sensedData()
-
-{
-}
 
 uint8_t CObservationBearingRange::serializeGetVersion() const { return 3; }
 void CObservationBearingRange::serializeTo(

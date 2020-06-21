@@ -2,15 +2,16 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/types_math.h>
+#include <mrpt/math/CVectorDynamic.h>  //CVectorFloat
 #include <mrpt/obs/T2DScanProperties.h>
 #include <map>
+#include <mutex>
 
 namespace mrpt::obs
 {
@@ -26,6 +27,14 @@ class CObservation2DRangeScan;
 class CSinCosLookUpTableFor2DScans
 {
    public:
+	CSinCosLookUpTableFor2DScans() = default;
+	/** Do NOT copy neither the cache nor the mutex */
+	CSinCosLookUpTableFor2DScans(const CSinCosLookUpTableFor2DScans&) {}
+	CSinCosLookUpTableFor2DScans& operator=(const CSinCosLookUpTableFor2DScans&)
+	{
+		return *this;
+	}
+
 	/** A pair of vectors with the cos and sin values. */
 	struct TSinCosValues
 	{
@@ -53,6 +62,7 @@ class CSinCosLookUpTableFor2DScans
    private:
 	/** The cache of known scans and their sin/cos tables. */
 	mutable std::map<T2DScanProperties, TSinCosValues> m_cache;
+	mutable std::recursive_mutex m_cache_mtx;
 };
 
 }  // namespace mrpt::obs

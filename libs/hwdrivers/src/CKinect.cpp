@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -15,7 +15,7 @@
 #include <mrpt/system/CTimeLogger.h>
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 using namespace mrpt::hwdrivers;
 using namespace mrpt::system;
@@ -62,11 +62,13 @@ void CKinect::calculate_range2meters()
 	const float k3 = 0.1236f;
 
 	for (size_t i = 0; i < KINECT_RANGES_TABLE_LEN; i++)
-		m_range2meters[i] = k3 * tanf(i / k2 + k1);
+		m_range2meters[i] =
+			static_cast<uint16_t>(k3 * tanf(i / k2 + k1) / 1e-3f);
 
 #else
 	for (size_t i = 0; i < KINECT_RANGES_TABLE_LEN; i++)
-		m_range2meters[i] = 1.0f / (i * (-0.0030711016) + 3.3309495161);
+		m_range2meters[i] =
+			static_cast<uint16_t>(1e+3f / (i * (-0.0030711016) + 3.3309495161));
 #endif
 
 	// Minimum/Maximum range means error:
@@ -80,14 +82,13 @@ void CKinect::calculate_range2meters()
 CKinect::CKinect()
 	: m_sensorPoseOnRobot(),
 	  m_relativePoseIntensityWRTDepth(
-		  0, -0.02, 0, DEG2RAD(-90), DEG2RAD(0), DEG2RAD(-90))
+		  0, -0.02, 0, -90.0_deg, 0.0_deg, -90.0_deg)
 {
 	calculate_range2meters();
 
 	// Get maximum range:
-	m_maxRange =
-		m_range2meters[KINECT_RANGES_TABLE_LEN - 2];  // Recall: r[Max-1] means
-	// error.
+	// Recall: r[Max-1] means error.
+	m_maxRange = m_range2meters[KINECT_RANGES_TABLE_LEN - 2];
 
 	// Default label:
 	m_sensorLabel = "KINECT";
@@ -141,9 +142,8 @@ void CKinect::doProcess()
 	bool thereIs, hwError;
 
 	CObservation3DRangeScan::Ptr newObs =
-		mrpt::make_aligned_shared<CObservation3DRangeScan>();
-	CObservationIMU::Ptr newObs_imu =
-		mrpt::make_aligned_shared<CObservationIMU>();
+		std::make_shared<CObservation3DRangeScan>();
+	CObservationIMU::Ptr newObs_imu = std::make_shared<CObservationIMU>();
 
 	getNextObservation(*newObs, *newObs_imu, thereIs, hwError);
 
@@ -195,8 +195,7 @@ void CKinect::loadConfig_sensorSpecific(
 	// [<SECTION>_LEFT2RIGHT_POSE]
 	//  pose_quaternion = [x y z qr qx qy qz]
 
-	const mrpt::poses::CPose3D twist(
-		0, 0, 0, DEG2RAD(-90), DEG2RAD(0), DEG2RAD(-90));
+	const mrpt::poses::CPose3D twist(0, 0, 0, -90.0_deg, 0.0_deg, -90.0_deg);
 
 	mrpt::img::TStereoCamera sc;
 	sc.leftCamera = m_cameraParamsDepth;  // Load default values so that if we
@@ -287,6 +286,8 @@ void depth_cb(freenect_device* dev, void* v_depth, uint32_t timestamp)
 #endif
 
 	const CKinect::TDepth2RangeArray& r2m = obj->getRawDepth2RangeConversion();
+	obs.rangeUnits = 1e-3f;  // we use mm as units
+
 	for (int r = 0; r < frMode.height; r++)
 		for (int c = 0; c < frMode.width; c++)
 		{
@@ -464,7 +465,7 @@ void CKinect::close()
    change on the fly.
 	Default is RGB channel.
 */
-void CKinect::setVideoChannel(const TVideoChannel vch)
+void CKinect::setVideoChannel([[maybe_unused]] const TVideoChannel vch)
 {
 #if MRPT_HAS_KINECT_FREENECT
 	m_video_channel = vch;
@@ -488,8 +489,6 @@ void CKinect::setVideoChannel(const TVideoChannel vch)
 
 	freenect_start_video(f_dev);
 
-#else
-	MRPT_UNUSED_PARAM(vch);
 #endif  // MRPT_HAS_KINECT_FREENECT
 }
 
@@ -503,7 +502,7 @@ void CKinect::setVideoChannel(const TVideoChannel vch)
  * \sa doProcess
  */
 void CKinect::getNextObservation(
-	mrpt::obs::CObservation3DRangeScan& _out_obs, bool& there_is_obs,
+	mrpt::obs::CObservation3DRangeScan& m_out_obs, bool& there_is_obs,
 	bool& hardware_error)
 {
 	there_is_obs = false;
@@ -564,7 +563,7 @@ void CKinect::getNextObservation(
 		// buffer is not beeing filled right now:
 		m_latest_obs.rangeImage.setSize(
 			m_cameraParamsDepth.nrows, m_cameraParamsDepth.ncols);
-		m_latest_obs.rangeImage.setConstant(0);  // "0" means: error in range
+		m_latest_obs.rangeImage.fill(0);  // "0" means: error in range
 		m_latest_obs_cs.unlock();
 		there_is_obs = true;
 	}
@@ -575,36 +574,36 @@ void CKinect::getNextObservation(
 
 	// Quick save the observation to the user's object:
 	m_latest_obs_cs.lock();
-	_out_obs.swap(m_latest_obs);
+	m_out_obs.swap(m_latest_obs);
 	m_latest_obs_cs.unlock();
 #endif
 
 	// Set common data into observation:
 	// --------------------------------------
-	_out_obs.sensorLabel = m_sensorLabel;
-	_out_obs.timestamp = mrpt::system::now();
-	_out_obs.sensorPose = m_sensorPoseOnRobot;
-	_out_obs.relativePoseIntensityWRTDepth = m_relativePoseIntensityWRTDepth;
+	m_out_obs.sensorLabel = m_sensorLabel;
+	m_out_obs.timestamp = mrpt::system::now();
+	m_out_obs.sensorPose = m_sensorPoseOnRobot;
+	m_out_obs.relativePoseIntensityWRTDepth = m_relativePoseIntensityWRTDepth;
 
-	_out_obs.cameraParams = m_cameraParamsDepth;
-	_out_obs.cameraParamsIntensity = m_cameraParamsRGB;
+	m_out_obs.cameraParams = m_cameraParamsDepth;
+	m_out_obs.cameraParamsIntensity = m_cameraParamsRGB;
 
 	// 3D point cloud:
-	if (_out_obs.hasRangeImage && m_grab_3D_points)
+	if (m_out_obs.hasRangeImage && m_grab_3D_points)
 	{
-		_out_obs.project3DPointsFromDepthImage();
+		m_out_obs.unprojectInto(m_out_obs);
 
 		if (!m_grab_depth)
 		{
-			_out_obs.hasRangeImage = false;
-			_out_obs.rangeImage.resize(0, 0);
+			m_out_obs.hasRangeImage = false;
+			m_out_obs.rangeImage.resize(0, 0);
 		}
 	}
 
 	// preview in real-time?
 	if (m_preview_window)
 	{
-		if (_out_obs.hasRangeImage)
+		if (m_out_obs.hasRangeImage)
 		{
 			if (++m_preview_decim_counter_range > m_preview_window_decimation)
 			{
@@ -612,20 +611,16 @@ void CKinect::getNextObservation(
 				if (!m_win_range)
 				{
 					m_win_range =
-						mrpt::make_aligned_shared<mrpt::gui::CDisplayWindow>(
-							"Preview RANGE");
+						mrpt::gui::CDisplayWindow::Create("Preview RANGE");
 					m_win_range->setPos(5, 5);
 				}
 
 				// Normalize the image
-				mrpt::img::CImage img;
-				img.setFromMatrix(_out_obs.rangeImage);
-				CMatrixFloat r =
-					_out_obs.rangeImage * float(1.0 / this->m_maxRange);
+				mrpt::img::CImage img = m_out_obs.rangeImage_getAsImage();
 				m_win_range->showImage(img);
 			}
 		}
-		if (_out_obs.hasIntensityImage)
+		if (m_out_obs.hasIntensityImage)
 		{
 			if (++m_preview_decim_counter_rgb > m_preview_window_decimation)
 			{
@@ -633,11 +628,10 @@ void CKinect::getNextObservation(
 				if (!m_win_int)
 				{
 					m_win_int =
-						mrpt::make_aligned_shared<mrpt::gui::CDisplayWindow>(
-							"Preview INTENSITY");
+						mrpt::gui::CDisplayWindow::Create("Preview INTENSITY");
 					m_win_int->setPos(300, 5);
 				}
-				m_win_int->showImage(_out_obs.intensityImage);
+				m_win_int->showImage(m_out_obs.intensityImage);
 			}
 		}
 	}
@@ -709,9 +703,9 @@ void CKinect::getNextObservation(
 /* -----------------------------------------------------
 				setPathForExternalImages
 ----------------------------------------------------- */
-void CKinect::setPathForExternalImages(const std::string& directory)
+void CKinect::setPathForExternalImages([
+	[maybe_unused]] const std::string& directory)
 {
-	MRPT_UNUSED_PARAM(directory);
 	// Ignore for now. It seems performance is better grabbing everything
 	// to a single big file than creating hundreds of smaller files per
 	// second...
@@ -727,14 +721,12 @@ void CKinect::setPathForExternalImages(const std::string& directory)
 }
 
 /** Change tilt angle \note Sensor must be open first. */
-void CKinect::setTiltAngleDegrees(double angle)
+void CKinect::setTiltAngleDegrees([[maybe_unused]] double angle)
 {
 	ASSERTMSG_(isOpen(), "Sensor must be open first");
 
 #if MRPT_HAS_KINECT_FREENECT
 	freenect_set_tilt_degs(f_dev, angle);
-#else
-	MRPT_UNUSED_PARAM(angle);
 #endif
 }
 

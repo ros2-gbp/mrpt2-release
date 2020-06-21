@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -19,7 +19,7 @@
 #include <mrpt/system/os.h>
 #include <mrpt/vision/CFeatureExtraction.h>  // important import
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 #ifdef HAVE_OPENCV_NONFREE  // MRPT_HAS_OPENCV_NONFREE
 #include <opencv2/nonfree/nonfree.hpp>
@@ -71,10 +71,10 @@ void CFeatureExtraction::internal_computeLATCHDescriptors(
 	for (size_t k = 0; k < n_feats; ++k)
 	{
 		KeyPoint& kp = cv_feats[k];
-		kp.pt.x = in_features[k]->x;
-		kp.pt.y = in_features[k]->y;
-		kp.angle = in_features[k]->orientation;
-		kp.size = in_features[k]->scale;
+		kp.pt.x = in_features[k].keypoint.pt.x;
+		kp.pt.y = in_features[k].keypoint.pt.y;
+		kp.angle = in_features[k].orientation;
+		kp.size = in_features[k].keypoint.octave;  // ?
 	}  // end-for
 
 	const Mat& cvImg = inImg_gray.asCvMatRef();
@@ -88,19 +88,17 @@ void CFeatureExtraction::internal_computeLATCHDescriptors(
 	// -----------------------------------------------------------------
 	// MRPT Wrapping
 	// -----------------------------------------------------------------
-	CFeatureList::iterator itList;
-	int i;
-	for (i = 0, itList = in_features.begin(); itList != in_features.end();
-		 itList++, i++)
+	int i = 0;
+	for (auto& ft : in_features)
 	{
-		CFeature::Ptr ft = *itList;
-
 		// Get the LATCH descriptor
-		ft->descriptors.LATCH.resize(cv_descs.cols);
+		ft.descriptors.LATCH.emplace();
+		ft.descriptors.LATCH->resize(cv_descs.cols);
 		for (int m = 0; m < cv_descs.cols; ++m)
-			ft->descriptors.LATCH[m] =
-				cv_descs.at<int>(i, m);  // Get the LATCH descriptor
-	}  // end for-
+			(*ft.descriptors.LATCH)[m] = cv_descs.at<int>(i, m);
+
+		i++;
+	}
 
 #endif
 	MRPT_END

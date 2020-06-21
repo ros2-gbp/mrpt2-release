@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -42,8 +42,8 @@ const size_t HOW_MANY_PITCHS = 120;
 vector<CObservation2DRangeScan> sequence_scans1, sequence_scans2;
 
 // The two origins for the 3D scans
-CPose3D viewpoint1(-0.3, 0.7, 3, DEG2RAD(5), DEG2RAD(80), DEG2RAD(3));
-CPose3D viewpoint2(0.5, -0.2, 2.6, DEG2RAD(-5), DEG2RAD(100), DEG2RAD(-7));
+CPose3D viewpoint1(-0.3, 0.7, 3, 5.0_deg, 80.0_deg, 3.0_deg);
+CPose3D viewpoint2(0.5, -0.2, 2.6, -5.0_deg, 100.0_deg, -7.0_deg);
 
 CPose3D SCAN2_POSE_ERROR(0.15, -0.07, 0.10, -0.03, 0.1, 0.1);
 
@@ -52,21 +52,21 @@ CPose3D SCAN2_POSE_ERROR(0.15, -0.07, 0.10, -0.03, 0.1, 0.1);
  */
 void generateObjects(CSetOfObjects::Ptr& world)
 {
-	CSphere::Ptr sph = mrpt::make_aligned_shared<CSphere>(0.5);
+	CSphere::Ptr sph = CSphere::Create(0.5);
 	sph->setLocation(0, 0, 0);
 	sph->setColor(1, 0, 0);
 	world->insert(sph);
 
-	CDisk::Ptr pln = mrpt::make_aligned_shared<opengl::CDisk>();
+	CDisk::Ptr pln = opengl::CDisk::Create();
 	pln->setDiskRadius(2);
-	pln->setPose(CPose3D(0, 0, 0, 0, DEG2RAD(5), DEG2RAD(5)));
+	pln->setPose(CPose3D(0, 0, 0, 0, 5.0_deg, 5.0_deg));
 	pln->setColor(0.8, 0, 0);
 	world->insert(pln);
 
 	{
-		CDisk::Ptr pln = mrpt::make_aligned_shared<opengl::CDisk>();
+		CDisk::Ptr pln = opengl::CDisk::Create();
 		pln->setDiskRadius(2);
-		pln->setPose(CPose3D(0, 0, 0, DEG2RAD(30), DEG2RAD(-20), DEG2RAD(-2)));
+		pln->setPose(CPose3D(0, 0, 0, 30.0_deg, -20.0_deg, -2.0_deg));
 		pln->setColor(0.9, 0, 0);
 		world->insert(pln);
 	}
@@ -75,26 +75,24 @@ void generateObjects(CSetOfObjects::Ptr& world)
 void test_icp3D()
 {
 	// Create the reference objects:
-	COpenGLScene::Ptr scene1 = mrpt::make_aligned_shared<COpenGLScene>();
-	COpenGLScene::Ptr scene2 = mrpt::make_aligned_shared<COpenGLScene>();
-	COpenGLScene::Ptr scene3 = mrpt::make_aligned_shared<COpenGLScene>();
+	COpenGLScene::Ptr scene1 = COpenGLScene::Create();
+	COpenGLScene::Ptr scene2 = COpenGLScene::Create();
+	COpenGLScene::Ptr scene3 = COpenGLScene::Create();
 
 	opengl::CGridPlaneXY::Ptr plane1 =
-		mrpt::make_aligned_shared<CGridPlaneXY>(-20, 20, -20, 20, 0, 1);
-	plane1->setColor(0.3, 0.3, 0.3);
+		CGridPlaneXY::Create(-20, 20, -20, 20, 0, 1);
+	plane1->setColor(0.3f, 0.3f, 0.3f);
 	scene1->insert(plane1);
 	scene2->insert(plane1);
 	scene3->insert(plane1);
 
-	CSetOfObjects::Ptr world = mrpt::make_aligned_shared<CSetOfObjects>();
+	CSetOfObjects::Ptr world = CSetOfObjects::Create();
 	generateObjects(world);
 	scene1->insert(world);
 
 	// Perform the 3D scans:
-	CAngularObservationMesh::Ptr aom1 =
-		mrpt::make_aligned_shared<CAngularObservationMesh>();
-	CAngularObservationMesh::Ptr aom2 =
-		mrpt::make_aligned_shared<CAngularObservationMesh>();
+	CAngularObservationMesh::Ptr aom1 = CAngularObservationMesh::Create();
+	CAngularObservationMesh::Ptr aom2 = CAngularObservationMesh::Create();
 
 	cout << "Performing ray-tracing..." << endl;
 	CAngularObservationMesh::trace2DSetOfRays(
@@ -138,8 +136,8 @@ void test_icp3D()
 	M2_noisy = M2;
 	M2_noisy.changeCoordinatesReference(SCAN2_POSE_ERROR);
 
-	CSetOfObjects::Ptr PTNS1 = mrpt::make_aligned_shared<CSetOfObjects>();
-	CSetOfObjects::Ptr PTNS2 = mrpt::make_aligned_shared<CSetOfObjects>();
+	CSetOfObjects::Ptr PTNS1 = CSetOfObjects::Create();
+	CSetOfObjects::Ptr PTNS2 = CSetOfObjects::Create();
 
 	M1.renderOptions.color = mrpt::img::TColorf(1, 0, 0);
 	M1.getAs3DObject(PTNS1);
@@ -153,7 +151,6 @@ void test_icp3D()
 	// --------------------------------------
 	// Do the ICP-3D
 	// --------------------------------------
-	float run_time;
 	CICP icp;
 	CICP::TReturnInfo icp_info;
 
@@ -170,11 +167,11 @@ void test_icp3D()
 		&M2_noisy,  // Map to align
 		&M1,  // Reference map
 		CPose3D(),  // Initial gross estimate
-		&run_time, &icp_info);
+		icp_info);
 
 	CPose3D mean = pdf->getMeanVal();
 
-	cout << "ICP run took " << run_time << " secs." << endl;
+	cout << "ICP run took " << icp_info.executionTime << " secs." << endl;
 	cout << "Goodness: " << 100 * icp_info.goodness
 		 << "% , # of iterations= " << icp_info.nIterations
 		 << " Quality: " << icp_info.quality << endl;
@@ -182,7 +179,7 @@ void test_icp3D()
 	cout << "Real displacement: " << SCAN2_POSE_ERROR << endl;
 
 	// Aligned maps:
-	CSetOfObjects::Ptr PTNS2_ALIGN = mrpt::make_aligned_shared<CSetOfObjects>();
+	CSetOfObjects::Ptr PTNS2_ALIGN = CSetOfObjects::Create();
 
 	M2_noisy.changeCoordinatesReference(CPose3D() - mean);
 	M2_noisy.getAs3DObject(PTNS2_ALIGN);

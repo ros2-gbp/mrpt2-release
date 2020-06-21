@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -14,6 +14,7 @@
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/filesystem.h>
 #include <mrpt/system/os.h>
+#include <fstream>
 
 using namespace mrpt::nav;
 
@@ -360,11 +361,10 @@ void CParameterizedTrajectoryGenerator::updateNavDynamicState(
 	const CParameterizedTrajectoryGenerator::TNavDynamicState& newState,
 	const bool force_update)
 {
-	// Make sure there is a real difference: notifying a PTG that a condition
-	// changed
-	// may imply a significant computational cost if paths need to be
-	// re-evaluated on the fly, etc.
-	// so the cost of the comparison here is totally worth:
+	// Make sure there is a real difference: notifying a PTG that a
+	// condition changed may imply a significant computational cost if paths
+	// need to be re-evaluated on the fly, etc. so the cost of the
+	// comparison here is totally worth:
 	if (force_update || m_nav_dyn_state != newState)
 	{
 		ASSERT_(
@@ -517,7 +517,17 @@ void CParameterizedTrajectoryGenerator::evalClearanceSingleObstacle(
 	bool had_collision = false;
 
 	const size_t numPathSteps = getPathStepCount(k);
-	ASSERT_(numPathSteps > inout_realdist2clearance.size());
+	// We don't have steps enough (?). Just ignore clearance for this short
+	// path in this "k" direction:
+	if (numPathSteps <= inout_realdist2clearance.size())
+	{
+		std::cerr << "[CParameterizedTrajectoryGenerator::"
+					 "evalClearanceSingleObstacle] Warning: k="
+				  << k << " numPathSteps is only=" << numPathSteps
+				  << " num of clearance steps="
+				  << inout_realdist2clearance.size();
+		return;
+	}
 
 	const double numStepsPerIncr =
 		(numPathSteps - 1.0) / (inout_realdist2clearance.size());
@@ -571,10 +581,29 @@ void CParameterizedTrajectoryGenerator::evalClearanceSingleObstacle(
 	}
 }
 
-CParameterizedTrajectoryGenerator::TNavDynamicState::TNavDynamicState()
-	: curVelLocal(0, 0, 0), relTarget(20.0, 0, 0)
-
+mrpt::math::TTwist2D CParameterizedTrajectoryGenerator::getPathTwist(
+	uint16_t k, uint32_t step) const
 {
+	if (step > 0)
+	{
+		// Numerical estimate of "global" (wrt current, start of path) direction
+		// of motion:
+		const auto curPose = getPathPose(k, step);
+		const auto prevPose = getPathPose(k, step - 1);
+		const double dt = getPathStepDuration();
+		ASSERT_ABOVE_(dt, .0);
+
+		auto vel = mrpt::math::TTwist2D(
+			curPose.x - prevPose.x, curPose.y - prevPose.y,
+			mrpt::math::angDistance(prevPose.phi, curPose.phi));
+		vel *= (1.0 / dt);
+		return vel;
+	}
+	else
+	{
+		// Initial velocity:
+		return m_nav_dyn_state.curVelLocal;
+	}
 }
 
 bool CParameterizedTrajectoryGenerator::TNavDynamicState::operator==(

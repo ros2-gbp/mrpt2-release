@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -31,14 +31,14 @@
 #include <mrpt/io/CFileStream.h>
 #include <mrpt/maps/CLandmarksMap.h>
 #include <mrpt/maps/CSimplePointsMap.h>
-#include <mrpt/math/CMatrix.h>
+#include <mrpt/math/CMatrixF.h>
 #include <mrpt/math/data_utils.h>
 #include <mrpt/obs/CObservationBeaconRanges.h>
 #include <mrpt/obs/CObservationGPS.h>
 #include <mrpt/obs/CRawlog.h>
 #include <mrpt/opengl/CAxis.h>
 #include <mrpt/opengl/CDisk.h>
-#include <mrpt/opengl/CEllipsoid.h>
+#include <mrpt/opengl/CEllipsoid2D.h>
 #include <mrpt/opengl/CGridPlaneXY.h>
 #include <mrpt/opengl/CPointCloud.h>
 #include <mrpt/opengl/CSphere.h>
@@ -72,7 +72,7 @@ using namespace std;
 // ------------------------------------------------------
 //				Configuration
 // ------------------------------------------------------
-mrpt::config::CConfigFile* iniFile = nullptr;
+std::unique_ptr<mrpt::config::CConfigFile> iniFile;
 std::string iniFileName;
 
 // extern double	likelihood_acumulation;
@@ -103,15 +103,18 @@ void TestParticlesLocalization()
 	std::string GT_FILE =
 		iniFile->read_string("ro-localization", "groundTruthFile", "");
 
-	CMatrix aux(1, 1);
+	CMatrixF aux(1, 1);
 
 	float Pc_range_ini = 0.05f;
 	float Pc_range_end = 0.05f;
 	float Pc_range_step = 0.05f;
 
-	MRPT_LOAD_CONFIG_VAR(Pc_range_ini, float, (*iniFile), "ro-localization")
-	MRPT_LOAD_CONFIG_VAR(Pc_range_end, float, (*iniFile), "ro-localization")
-	MRPT_LOAD_CONFIG_VAR(Pc_range_step, float, (*iniFile), "ro-localization")
+	MRPT_LOAD_CONFIG_VAR(Pc_range_ini, float, (*iniFile), "ro-localization");
+	MRPT_LOAD_CONFIG_VAR(Pc_range_end, float, (*iniFile), "ro-localization");
+	MRPT_LOAD_CONFIG_VAR(Pc_range_step, float, (*iniFile), "ro-localization");
+
+	uint64_t random_seed = 0;
+	MRPT_LOAD_CONFIG_VAR(random_seed, uint64_t, (*iniFile), "ro-localization");
 
 	bool SHOW_3D_FRANCO_POSITION = false;
 	bool SAVE_3D_TO_VIDEO = false;
@@ -123,7 +126,7 @@ void TestParticlesLocalization()
 	ASSERT_FILE_EXISTS_(RAWLOG_FILE);
 
 	// Load GT:
-	CMatrix groundTruth;
+	CMatrixF groundTruth;
 	if (!GT_FILE.empty()) groundTruth.loadFromTextFile(GT_FILE);
 
 	// Real ranges estimated from GT:
@@ -144,8 +147,11 @@ void TestParticlesLocalization()
 	mapList.dumpToConsole();
 	pfOptions.dumpToConsole();
 
-	// Init random & serialization:
-	getRandomGenerator().randomize();
+	// Init PSRNG:
+	if (random_seed)
+		getRandomGenerator().randomize(random_seed);
+	else
+		getRandomGenerator().randomize();
 
 	// --------------------------------------------------------------------
 	//					EXPERIMENT REPETITIONS LOOP
@@ -268,7 +274,7 @@ void TestParticlesLocalization()
 
 // 3D World
 #ifdef STORE_3D
-			COpenGLScene::Ptr scene = mrpt::make_aligned_shared<COpenGLScene>();
+			COpenGLScene::Ptr scene = std::make_shared<COpenGLScene>();
 
 #ifdef SHOW_REAL_TIME_3D
 			CDisplayWindow3D window("ro-localization - Part of MRPT");
@@ -291,8 +297,7 @@ void TestParticlesLocalization()
 			// World Axis
 			{
 				opengl::CAxis::Ptr obj =
-					mrpt::make_aligned_shared<opengl::CAxis>(
-						-20, -10, -1, 20, 10, 4, 1);
+					std::make_shared<opengl::CAxis>(-20, -10, -1, 20, 10, 4, 1);
 				obj->enableTickMarks();
 				obj->setColor(0, 0, 0);
 #ifdef SHOW_REAL_TIME_3D
@@ -313,7 +318,7 @@ void TestParticlesLocalization()
 #ifdef SHOW_REAL_TIME_3D
 				{
 					opengl::CSetOfObjects::Ptr obj =
-						mrpt::make_aligned_shared<opengl::CSetOfObjects>();
+						std::make_shared<opengl::CSetOfObjects>();
 					grid2d.getAs3DObject(obj);
 					obj->setLocation(
 						initialPoseExperiment.x(), initialPoseExperiment.y(),
@@ -322,7 +327,7 @@ void TestParticlesLocalization()
 				}
 #endif
 				opengl::CSetOfObjects::Ptr obj =
-					mrpt::make_aligned_shared<opengl::CSetOfObjects>();
+					std::make_shared<opengl::CSetOfObjects>();
 				grid2d.getAs3DObject(obj);
 				scene->insert(obj);
 			}
@@ -330,9 +335,9 @@ void TestParticlesLocalization()
 			// Floor
 			{
 				opengl::CGridPlaneXY::Ptr obj =
-					mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
+					std::make_shared<opengl::CGridPlaneXY>(
 						-20, 20, -10, 10, 0, 0.5);
-				obj->setColor(0.4, 0.4, 0.4);
+				obj->setColor(0.4f, 0.4f, 0.4f);
 #ifdef SHOW_REAL_TIME_3D
 				sceneTR->insert(obj);
 #endif
@@ -532,9 +537,7 @@ void TestParticlesLocalization()
 				// Generate 3D scene:
 				// ------------------------------
 				{
-					CPose2D meanPose;
-					CMatrixDouble33 C;
-					pdf.getCovarianceAndMean(C, meanPose);
+					const auto [C, meanPose] = pdf.getCovarianceAndMean();
 
 #ifdef SHOW_REAL_TIME_3D
 					sceneTR = window.get3DSceneAndLock();
@@ -551,7 +554,7 @@ void TestParticlesLocalization()
 						parts = std::dynamic_pointer_cast<CPointCloud>(obj);
 #else
 					opengl::CPointCloud::Ptr parts =
-						mrpt::make_aligned_shared<opengl::CPointCloud>();
+						std::make_shared<opengl::CPointCloud>();
 					opengl::CRenderizable::Ptr obj;
 #endif
 
@@ -577,14 +580,14 @@ void TestParticlesLocalization()
 // The particles' cov:
 #ifdef SHOW_REAL_TIME_3D
 					obj = sceneTR->getByName("cov");
-					opengl::CEllipsoid::Ptr ellip;
+					opengl::CEllipsoid2D::Ptr ellip;
 					if (!obj)
-						ellip = mrpt::make_aligned_shared<opengl::CEllipsoid>();
+						ellip = std::make_shared<opengl::CEllipsoid2D>();
 					else
-						ellip = std::dynamic_pointer_cast<CEllipsoid>(obj);
+						ellip = std::dynamic_pointer_cast<CEllipsoid2D>(obj);
 #else
-					opengl::CEllipsoid::Ptr ellip =
-						mrpt::make_aligned_shared<opengl::CEllipsoid>();
+					opengl::CEllipsoid2D::Ptr ellip =
+						std::make_shared<opengl::CEllipsoid2D>();
 #endif
 
 					ellip->setColor(1, 0, 0, 0.6);
@@ -592,7 +595,7 @@ void TestParticlesLocalization()
 
 					ellip->setLineWidth(2);
 					ellip->setQuantiles(3);
-					ellip->setCovMatrix(C, 2);
+					ellip->setCovMatrix(C.blockCopy<2, 2>(0, 0));
 					ellip->setName("cov");
 
 					if (!obj)
@@ -648,20 +651,17 @@ void TestParticlesLocalization()
 								opengl::CDisk::Ptr sphere;
 
 								if (!obj)
-									sphere = mrpt::make_aligned_shared<
-										opengl::CDisk>();
+									sphere = std::make_shared<opengl::CDisk>();
 								else
 									sphere =
 										std::dynamic_pointer_cast<CDisk>(obj);
 #else
 								opengl::CSphere::Ptr sphere =
-									mrpt::make_aligned_shared<
-										opengl::CSphere>();
+									std::make_shared<opengl::CSphere>();
 								opengl::CRenderizable::Ptr obj;
 #endif
 
 								sphere->setColor(0, 0, 1, 0.3);
-								sphere->setLoopsCount(10);
 								sphere->setSlicesCount(40);
 								sphere->setName(beacon_name);
 
@@ -699,8 +699,7 @@ void TestParticlesLocalization()
 						opengl::CSphere::Ptr sphere;
 
 						if (!obj)
-							sphere =
-								mrpt::make_aligned_shared<opengl::CSphere>();
+							sphere = std::make_shared<opengl::CSphere>();
 						else
 							sphere =
 								std::dynamic_pointer_cast<opengl::CSphere>(obj);
@@ -734,15 +733,14 @@ void TestParticlesLocalization()
 						opengl::CSphere::Ptr sphere;
 
 						if (!obj)
-							sphere =
-								mrpt::make_aligned_shared<opengl::CSphere>();
+							sphere = std::make_shared<opengl::CSphere>();
 						else
 							sphere =
 								std::dynamic_pointer_cast<opengl::CSphere>(obj);
 
 #else
 						opengl::CSphere::Ptr sphere =
-							mrpt::make_aligned_shared<opengl::CSphere>();
+							std::make_shared<opengl::CSphere>();
 #endif
 						sphere->setColor(0, 0, 1);
 						sphere->setRadius(0.05f);
@@ -769,14 +767,13 @@ void TestParticlesLocalization()
 						opengl::CSphere::Ptr sphere;
 
 						if (!obj)
-							sphere =
-								mrpt::make_aligned_shared<opengl::CSphere>();
+							sphere = std::make_shared<opengl::CSphere>();
 						else
 							sphere =
 								std::dynamic_pointer_cast<opengl::CSphere>(obj);
 #else
 						opengl::CSphere::Ptr sphere =
-							mrpt::make_aligned_shared<opengl::CSphere>();
+							std::make_shared<opengl::CSphere>();
 #endif
 						sphere->setColor(0, 0, 0);
 						sphere->setRadius(0.10f);
@@ -798,22 +795,20 @@ void TestParticlesLocalization()
 #ifdef SHOW_REAL_TIME_3D
 					// GPS pose
 					{
-						CObservationGPS::Ptr o =
-							observations
-								->getObservationByClass<CObservationGPS>();
+						auto o = observations
+									 ->getObservationByClass<CObservationGPS>();
 						if (o && beacMap)
 						{
-							opengl::CRenderizable::Ptr obj =
-								sceneTR->getByName("gps");
-							opengl::CEllipsoid::Ptr sphere;
+							auto obj = sceneTR->getByName("gps");
+							opengl::CEllipsoid2D::Ptr sphere;
 							double x, y;
 
 							if (!obj)
-								sphere = mrpt::make_aligned_shared<
-									opengl::CEllipsoid>();
+								sphere =
+									std::make_shared<opengl::CEllipsoid2D>();
 							else
 								sphere = std::dynamic_pointer_cast<
-									opengl::CEllipsoid>(obj);
+									opengl::CEllipsoid2D>(obj);
 
 							sphere->setColor(0, 1, 1, 0.5);
 							sphere->setName("gps");
@@ -848,7 +843,7 @@ void TestParticlesLocalization()
 										 .y_shift),
 									0);
 							}
-							CMatrix r(2, 2);
+							auto r = CMatrixDouble22::Zero();
 							r(1, 1) = 9;
 							r(0, 0) = 9;
 							sphere->setCovMatrix(r);
@@ -871,8 +866,7 @@ void TestParticlesLocalization()
 							double x, y;
 
 							if (!obj)
-								sphere = mrpt::make_aligned_shared<
-									opengl::CSphere>();
+								sphere = std::make_shared<opengl::CSphere>();
 							else
 								sphere =
 									std::dynamic_pointer_cast<opengl::CSphere>(
@@ -1008,11 +1002,9 @@ int main(int argc, char** argv)
 
 		iniFileName = argv[1];
 
-		iniFile = new mrpt::config::CConfigFile(iniFileName);
+		iniFile = std::make_unique<mrpt::config::CConfigFile>(iniFileName);
 
 		TestParticlesLocalization();
-
-		delete iniFile;
 
 		return 0;
 	}

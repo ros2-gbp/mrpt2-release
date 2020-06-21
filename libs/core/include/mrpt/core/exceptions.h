@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -13,48 +13,13 @@
 #include <mrpt/core/format.h>
 #include <stdexcept>  // logic_error
 #include <string>  // std::string, to_string()
+#include <string_view>
 
 namespace mrpt::internal
 {
-template <typename T>
-inline std::string exception_line_msg(
-	const T& msg, const char* filename, unsigned int line,
-	const char* function_name)
-{
-	std::string s;
-	s += filename;
-	s += ":";
-	s += std::to_string(line);
-	s += ": [";
-	s += function_name;
-	s += "] ";
-	s += msg;
-	s += "\n";
-	return s;
-}
-
-/** Recursive implementation for mrpt::exception_to_str() */
-inline void impl_excep_to_str(
-	const std::exception& e, std::string& ret, int lvl = 0)
-{
-	std::string err{e.what()};
-	if (!err.empty() && *err.rbegin() != '\n') err += "\n";
-	ret = err + ret;
-	try
-	{
-		std::rethrow_if_nested(e);
-		// We traversed the entire call stack:
-		ret = std::string("==== MRPT exception ====\n") + ret;
-	}
-	catch (const std::exception& er)
-	{
-		// It's nested: recursive call
-		impl_excep_to_str(er, ret, lvl + 1);
-	}
-	catch (...)
-	{
-	}
-}
+std::string exception_line_msg(
+	const std::string_view& msg, const char* filename, unsigned int line,
+	const char* function_name);
 
 template <typename A, typename B>
 inline std::string asrt_fail(
@@ -75,7 +40,6 @@ inline std::string asrt_fail(
 	s += "\n";
 	return s;
 }
-
 }  // namespace mrpt::internal
 
 namespace mrpt
@@ -88,12 +52,7 @@ namespace mrpt
  * Uses C++11 throw_with_nested(), rethrow_if_nested().
  * \ingroup mrpt_core_grp
  */
-inline std::string exception_to_str(const std::exception& e)
-{
-	std::string descr;
-	mrpt::internal::impl_excep_to_str(e, descr);
-	return descr;
-}
+std::string exception_to_str(const std::exception& e);
 
 /** \def THROW_TYPED_EXCEPTION(msg,exceptionClass) */
 #define THROW_TYPED_EXCEPTION(msg, exceptionClass)           \
@@ -228,14 +187,14 @@ inline std::string exception_to_str(const std::exception& e)
 #define ASSERTDEB_ABOVEEQ_(__A, __B) ASSERT_ABOVEEQ_(__A, __B)
 #else
 // clang-format off
-#define ASSERTDEB_(f) {}
-#define ASSERTDEBMSG_(f, __ERROR_MSG) {}
-#define ASSERTDEB_EQUAL_(__A, __B) {}
-#define ASSERTDEB_NOT_EQUAL_(__A, __B) {}
-#define ASSERTDEB_BELOW_(__A, __B) {}
-#define ASSERTDEB_ABOVE_(__A, __B) {}
-#define ASSERTDEB_BELOWEQ_(__A, __B) {}
-#define ASSERTDEB_ABOVEEQ_(__A, __B) {}
+#define ASSERTDEB_(f) while (0){}
+#define ASSERTDEBMSG_(f, __ERROR_MSG) while (0){}
+#define ASSERTDEB_EQUAL_(__A, __B) while (0){}
+#define ASSERTDEB_NOT_EQUAL_(__A, __B) while (0){}
+#define ASSERTDEB_BELOW_(__A, __B) while (0){}
+#define ASSERTDEB_ABOVE_(__A, __B) while (0){}
+#define ASSERTDEB_BELOWEQ_(__A, __B) while (0){}
+#define ASSERTDEB_ABOVEEQ_(__A, __B) while (0){}
 // clang-format on
 
 #endif

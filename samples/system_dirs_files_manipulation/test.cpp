@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -40,7 +40,7 @@ void setupDirContents()
 
 	string dir_name = "dir_a";
 	string file_name = "file_b";
-	CPose2D a_pose(1, 2, DEG2RAD(40));
+	CPose2D a_pose(1, 2, 40.0_deg);
 
 	if (!directoryExists(dir_name))
 	{
@@ -144,14 +144,14 @@ void renameDirContents()
 //
 int main()
 {
-	char c;
 	try
 	{
 		cout << "Running setupDirContents fun..." << endl;
 		cout << "------------------------------" << endl;
 		setupDirContents();
 		cout << "Press a key to continue..." << endl;
-		c = getchar();
+		// char c=
+		getchar();
 
 		cout << "Running RenameDirContents fun..." << endl;
 		cout << "------------------------------" << endl;

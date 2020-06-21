@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -80,9 +80,8 @@ void ransac3Dplane_distance(
 	out_inlierIndices.reserve(100);
 	for (size_t i = 0; i < N; i++)
 	{
-		const double d = plane.distance(TPoint3D(
-			allData.get_unsafe(0, i), allData.get_unsafe(1, i),
-			allData.get_unsafe(2, i)));
+		const double d = plane.distance(
+			TPoint3D(allData(0, i), allData(1, i), allData(2, i)));
 		if (d < distanceThreshold) out_inlierIndices.push_back(i);
 	}
 }
@@ -132,21 +131,23 @@ void TestRANSAC()
 	// ------------------------------------
 	CMatrixDouble best_model;
 	std::vector<size_t> best_inliers;
-	const double DIST_THRESHOLD = 0.2;
+	const double DIST_THRESHOLD = 0.05;
 
 	CTicTac tictac;
 	const size_t TIMES = 100;
 
 	math::RANSAC myransac;
 	for (size_t iters = 0; iters < TIMES; iters++)
+	{
+		myransac.setVerbosityLevel(
+			iters == 0 ? mrpt::system::LVL_DEBUG : mrpt::system::LVL_INFO);
+
 		myransac.execute(
 			data, ransac3Dplane_fit, ransac3Dplane_distance,
 			ransac3Dplane_degenerate, DIST_THRESHOLD,
 			3,  // Minimum set of points
-			best_inliers, best_model,
-			iters == 0 ? mrpt::system::LVL_DEBUG
-					   : mrpt::system::LVL_INFO  // Verbose
-		);
+			best_inliers, best_model);
+	}
 
 	cout << "Computation time: " << tictac.Tac() * 1000.0 / TIMES << " ms"
 		 << endl;
@@ -162,32 +163,31 @@ void TestRANSAC()
 	// Show GUI
 	// --------------------------
 	mrpt::gui::CDisplayWindow3D win("Set of points", 500, 500);
-	opengl::COpenGLScene::Ptr scene =
-		mrpt::make_aligned_shared<opengl::COpenGLScene>();
+	opengl::COpenGLScene::Ptr scene = opengl::COpenGLScene::Create();
 
-	scene->insert(mrpt::make_aligned_shared<opengl::CGridPlaneXY>(
-		-20, 20, -20, 20, 0, 1));
+	scene->insert(opengl::CGridPlaneXY::Create(-20, 20, -20, 20, 0, 1));
 	scene->insert(opengl::stock_objects::CornerXYZ());
 
-	opengl::CPointCloud::Ptr points =
-		mrpt::make_aligned_shared<opengl::CPointCloud>();
+	opengl::CPointCloud::Ptr points = opengl::CPointCloud::Create();
 	points->setColor(0, 0, 1);
 	points->setPointSize(3);
 	points->enableColorFromZ();
 
 	{
-		std::vector<float> xs, ys, zs;
+		std::vector<double> xs, ys, zs;
 
 		data.extractRow(0, xs);
 		data.extractRow(1, ys);
 		data.extractRow(2, zs);
-		points->setAllPointsFast(xs, ys, zs);
+		points->setAllPoints(xs, ys, zs);
 	}
 
 	scene->insert(points);
 
 	opengl::CTexturedPlane::Ptr glPlane =
-		mrpt::make_aligned_shared<opengl::CTexturedPlane>(-4, 4, -4, 4);
+		opengl::CTexturedPlane::Create(-4, 4, -4, 4);
+
+	glPlane->setColor_u8(mrpt::img::TColor(0xff, 0x00, 0x00, 0x80));  // RGBA
 
 	TPose3D glPlanePose;
 	plane.getAsPose3D(glPlanePose);

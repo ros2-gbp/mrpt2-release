@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -14,7 +14,7 @@
 #include <mrpt/vision/tracking.h>
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 #if HAVE_ALLOCA_H
 #include <alloca.h>
@@ -122,22 +122,13 @@ void CFeatureTracker_KL::trackFeatures_impl_templ(
 }  // end trackFeatures
 
 void CFeatureTracker_KL::trackFeatures_impl(
-	const CImage& old_img, const CImage& new_img, CFeatureList& featureList)
+	const CImage& old_img, const CImage& new_img, TKeyPointList& featureList)
 {
-	trackFeatures_impl_templ<CFeatureList>(old_img, new_img, featureList);
+	trackFeatures_impl_templ<TKeyPointList>(old_img, new_img, featureList);
 }
 
 void CFeatureTracker_KL::trackFeatures_impl(
-	const CImage& old_img, const CImage& new_img,
-	TSimpleFeatureList& featureList)
+	const CImage& old_img, const CImage& new_img, TKeyPointfList& featureList)
 {
-	trackFeatures_impl_templ<TSimpleFeatureList>(old_img, new_img, featureList);
-}
-
-void CFeatureTracker_KL::trackFeatures_impl(
-	const CImage& old_img, const CImage& new_img,
-	TSimpleFeaturefList& featureList)
-{
-	trackFeatures_impl_templ<TSimpleFeaturefList>(
-		old_img, new_img, featureList);
+	trackFeatures_impl_templ<TKeyPointfList>(old_img, new_img, featureList);
 }

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -14,7 +14,6 @@
 
 using namespace mrpt;
 using namespace std;
-
 using namespace mrpt::nav;
 
 IMPLEMENTS_SERIALIZABLE(CLogFileRecord_VFF, CHolonomicLogFileRecord, mrpt::nav)
@@ -48,7 +47,7 @@ void CHolonomicVFF::navigate(const NavInput& ni, NavOutput& no)
 	const double ptg_ref_dist = ptg ? ptg->getRefDistance() : 1.0;
 
 	// Create a log record for returning data.
-	no.logRecord = mrpt::make_aligned_shared<CLogFileRecord_VFF>();
+	no.logRecord = std::make_shared<CLogFileRecord_VFF>();
 
 	// Forces vector:
 	mrpt::math::TPoint2D resultantForce(0, 0), instantaneousForce(0, 0);
@@ -131,9 +130,8 @@ void CLogFileRecord_VFF::serializeTo(mrpt::serialization::CArchive& out) const
 }
 
 void CLogFileRecord_VFF::serializeFrom(
-	mrpt::serialization::CArchive& in, uint8_t version)
+	[[maybe_unused]] mrpt::serialization::CArchive& in, uint8_t version)
 {
-	MRPT_UNUSED_PARAM(in);
 	switch (version)
 	{
 		case 0:
@@ -168,7 +166,7 @@ void CHolonomicVFF::TOptions::loadFromConfigFile(
 void CHolonomicVFF::TOptions::saveToConfigFile(
 	mrpt::config::CConfigFileBase& c, const std::string& s) const
 {
-	MRPT_START;
+	MRPT_START
 
 	MRPT_SAVE_CONFIG_VAR_COMMENT(
 		TARGET_SLOW_APPROACHING_DISTANCE, "For stopping gradually");
@@ -177,5 +175,5 @@ void CHolonomicVFF::TOptions::saveToConfigFile(
 		"Dimension-less (may have to be tuned depending on the density of "
 		"obstacle sampling)");
 
-	MRPT_END;
+	MRPT_END
 }

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)               |
    |                          https://www.mrpt.org/                            |
    |                                                                           |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file        |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file        |
    | See: https://www.mrpt.org/Authors - All rights reserved.                  |
    | Released under BSD License. See details in https://www.mrpt.org/License   |
    +---------------------------------------------------------------------------+
@@ -17,20 +17,18 @@ MRPT_WARNING(
 	"warning)")
 #endif
 
-#include <mrpt/vision/CCamModel.h>
 #include <mrpt/vision/CDifodo.h>
 #include <mrpt/vision/CFeatureExtraction.h>
 #include <mrpt/vision/CImagePyramid.h>
 #include <mrpt/vision/CStereoRectifyMap.h>
 #include <mrpt/vision/CUndistortMap.h>
 #include <mrpt/vision/CVideoFileWriter.h>
-#include <mrpt/vision/TSimpleFeature.h>
+#include <mrpt/vision/TKeyPoint.h>
 #include <mrpt/vision/chessboard_camera_calib.h>
 #include <mrpt/vision/chessboard_find_corners.h>
 #include <mrpt/vision/chessboard_stereo_camera_calib.h>
 #include <mrpt/vision/descriptor_kdtrees.h>
 #include <mrpt/vision/descriptor_pairing.h>
-#include <mrpt/vision/multiDesc_utils.h>
 #include <mrpt/vision/pinhole.h>
 #include <mrpt/vision/tracking.h>
 #include <mrpt/vision/utils.h>

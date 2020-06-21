@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -42,8 +42,7 @@ int main(int argc, char* argv[])
 
 	COpenGLScene::Ptr ptr_scene = win3D.get3DSceneAndLock();
 
-	opengl::CPlanarLaserScan::Ptr obj =
-		mrpt::make_aligned_shared<opengl::CPlanarLaserScan>();
+	opengl::CPlanarLaserScan::Ptr obj = opengl::CPlanarLaserScan::Create();
 	obj->clear();
 	obj->setColor(0, 0, 1);
 	obj->setName("scan_LMS100");

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -132,7 +132,7 @@ class CPose3DPDF : public mrpt::serialization::CSerializable,
 	template <class OPENGL_SETOFOBJECTSPTR>
 	inline OPENGL_SETOFOBJECTSPTR getAs3DObject() const
 	{
-		using SETOFOBJECTS = typename OPENGL_SETOFOBJECTSPTR::value_type;
+		using SETOFOBJECTS = typename OPENGL_SETOFOBJECTSPTR::element_type;
 		return SETOFOBJECTS::posePDF2opengl(*this);
 	}
 

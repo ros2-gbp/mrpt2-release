@@ -2,16 +2,18 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "obs-precomp.h"  // Precompiled headers
 
+#include <mrpt/math/CVectorDynamic.h>
 #include <mrpt/obs/CObservationGasSensors.h>
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/system/os.h>
+#include <fstream>
 #include <iostream>
 
 using namespace mrpt::obs;
@@ -200,7 +202,7 @@ bool CObservationGasSensors::CMOSmodel::get_GasDistribution_estimation(
 					 noise_filtering (smooth)
  ---------------------------------------------------------------*/
 void CObservationGasSensors::CMOSmodel::noise_filtering(
-	const float& reading, const mrpt::system::TTimeStamp& timestamp)
+	float reading, const mrpt::system::TTimeStamp& timestamp)
 {
 	try
 	{
@@ -242,7 +244,7 @@ void CObservationGasSensors::CMOSmodel::noise_filtering(
 				inverse_MOSmodeling
  ---------------------------------------------------------------*/
 void CObservationGasSensors::CMOSmodel::inverse_MOSmodeling(
-	const float& reading, const mrpt::system::TTimeStamp& timestamp)
+	float reading, const mrpt::system::TTimeStamp& timestamp)
 {
 	try
 	{
@@ -275,11 +277,13 @@ void CObservationGasSensors::CMOSmodel::inverse_MOSmodeling(
 			// slope<0 -->Decay
 			if (reading < last_Obs.reading)
 			{
-				last_Obs.tau = a_decay * abs(reading - min_reading) + b_decay;
+				last_Obs.tau =
+					a_decay * std::abs(reading - min_reading) + b_decay;
 			}
 			else  // slope>=0 -->rise
 			{
-				last_Obs.tau = a_rise * abs(reading - min_reading) + b_rise;
+				last_Obs.tau =
+					a_rise * std::abs(reading - min_reading) + b_rise;
 			}  // end-if
 
 			// New estimation values -- Ziegler-Nichols model --
@@ -287,8 +291,8 @@ void CObservationGasSensors::CMOSmodel::inverse_MOSmodeling(
 				// Initially there may come repetetive values till
 				// m_antiNoise_window is full populated.
 				last_Obs.estimation =
-					((reading - last_Obs.reading) * last_Obs.tau / incT) +
-					reading;
+					d2f(((reading - last_Obs.reading) * last_Obs.tau / incT) +
+						reading);
 			else
 				last_Obs.estimation = reading;
 
@@ -319,8 +323,8 @@ void CObservationGasSensors::CMOSmodel::inverse_MOSmodeling(
 						save_log_map
   ---------------------------------------------------------------*/
 void CObservationGasSensors::CMOSmodel::save_log_map(
-	const mrpt::system::TTimeStamp& timestamp, const float& reading,
-	const float& estimation, const float& tau)
+	const mrpt::system::TTimeStamp& timestamp, float reading, float estimation,
+	float tau)
 {
 	// function to save in a log file the information of the generated gas
 	// distribution estimation

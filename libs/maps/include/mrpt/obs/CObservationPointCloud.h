@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -32,14 +32,15 @@ class CObservation3DRangeScan;
  */
 class CObservationPointCloud : public CObservation
 {
-	DEFINE_SERIALIZABLE(CObservationPointCloud)
+	DEFINE_SERIALIZABLE(CObservationPointCloud, mrpt::obs)
 
    public:
 	enum class ExternalStorageFormat : uint8_t
 	{
 		None = 0,  //!< is always stored in memory
 		MRPT_Serialization,  //!< Uses mrpt-serialization binary file
-		KittiBinFile  //!< Uses Kitti .bin file format
+		KittiBinFile,  //!< Uses Kitti .bin file format
+		PlainTextFile  //!< Plain text, each line has "x y z [i]" coords
 	};
 
    protected:
@@ -84,6 +85,11 @@ class CObservationPointCloud : public CObservation
 	}
 	void setAsExternalStorage(
 		const std::string& fileName, const ExternalStorageFormat fmt);
+
+	void overrideExternalStorageFormatFlag(const ExternalStorageFormat fmt)
+	{
+		m_externally_stored = fmt;
+	}
 	/** @} */
 
 };  // End of class def.

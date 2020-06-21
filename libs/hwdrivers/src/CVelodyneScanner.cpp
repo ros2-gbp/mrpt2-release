@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -221,7 +221,7 @@ bool CVelodyneScanner::getNextObservation(
 		if (pos_pkt_timestamp != INVALID_TIMESTAMP)
 		{
 			mrpt::obs::CObservationGPS::Ptr gps_obs =
-				mrpt::make_aligned_shared<mrpt::obs::CObservationGPS>();
+				mrpt::obs::CObservationGPS::Create();
 			gps_obs->sensorLabel = this->m_sensorLabel + std::string("_GPS");
 			gps_obs->sensorPose = m_sensorPose;
 
@@ -251,7 +251,7 @@ bool CVelodyneScanner::getNextObservation(
 
 			// Break into a new observation object when the azimuth passes
 			// 360->0 deg:
-			const uint16_t rx_pkt_start_angle = rx_pkt.blocks[0].rotation;
+			const uint16_t rx_pkt_start_angle = rx_pkt.blocks[0].rotation();
 			// const uint16_t rx_pkt_end_angle   =
 			// rx_pkt.blocks[CObservationVelodyneScan::BLOCKS_PER_PACKET-1].rotation;
 
@@ -260,7 +260,7 @@ bool CVelodyneScanner::getNextObservation(
 			if (m_rx_scan && !m_rx_scan->scan_packets.empty())
 			{
 				if ((rx_pkt_start_angle <
-					 m_rx_scan->scan_packets.rbegin()->blocks[0].rotation) ||
+					 m_rx_scan->scan_packets.rbegin()->blocks[0].rotation()) ||
 					!m_return_frames)
 				{
 					outScan = m_rx_scan;
@@ -280,8 +280,7 @@ bool CVelodyneScanner::getNextObservation(
 			// Create smart ptr to new in-progress observation:
 			if (!m_rx_scan)
 			{
-				m_rx_scan = mrpt::make_aligned_shared<
-					mrpt::obs::CObservationVelodyneScan>();
+				m_rx_scan = mrpt::obs::CObservationVelodyneScan::Create();
 				m_rx_scan->sensorLabel =
 					this->m_sensorLabel + std::string("_SCAN");
 				m_rx_scan->sensorPose = m_sensorPose;
@@ -324,10 +323,10 @@ bool CVelodyneScanner::getNextObservation(
 					mrpt::system::TTimeParts tim_parts;
 					mrpt::system::timestampToParts(gps_tim, tim_parts);
 					tim_parts.minute =
-						rx_pkt.gps_timestamp /*us from top of hour*/ /
+						rx_pkt.gps_timestamp() /*us from top of hour*/ /
 						60000000ul;
 					tim_parts.second =
-						(rx_pkt.gps_timestamp /*us from top of hour*/ %
+						(rx_pkt.gps_timestamp() /*us from top of hour*/ %
 						 60000000ul) *
 						1e-6;
 
@@ -734,30 +733,10 @@ bool CVelodyneScanner::receivePackets(
 	}
 #endif
 
-// Convert from Velodyne's standard little-endian ordering to host byte
-// ordering:
-// (done AFTER saving the pckg as is to pcap above)
-#if MRPT_IS_BIG_ENDIAN
-	if (data_pkt_timestamp != INVALID_TIMESTAMP)
-	{
-		mrpt::reverseBytesInPlace(out_data_pkt.gps_timestamp);
-		for (int i = 0; i < CObservationVelodyneScan::BLOCKS_PER_PACKET; i++)
-		{
-			mrpt::reverseBytesInPlace(out_data_pkt.blocks[i].header);
-			mrpt::reverseBytesInPlace(out_data_pkt.blocks[i].rotation);
-			for (int k = 0; k < CObservationVelodyneScan::SCANS_PER_BLOCK; k++)
-			{
-				mrpt::reverseBytesInPlace(
-					out_data_pkt.blocks[i].laser_returns[k].distance);
-			}
-		}
-	}
-	if (pos_pkt_timestamp != INVALID_TIMESTAMP)
-	{
-		mrpt::reverseBytesInPlace(out_pos_pkt.gps_timestamp);
-		mrpt::reverseBytesInPlace(out_pos_pkt.unused2);
-	}
-#endif
+	// Convert from Velodyne's standard little-endian ordering to host byte
+	// ordering (done AFTER saving the pckg as is to pcap above).
+	// 2019-NOV: Removed. Don't do this here, since it's problematic to
+	// "remember" whether internal data is already in big or little endian.
 
 	// Position packet decimation:
 	if (pos_pkt_timestamp != INVALID_TIMESTAMP)
@@ -1025,7 +1004,7 @@ bool CVelodyneScanner::setLidarReturnType(return_type_t ret_type)
 		</select>
 		</form>
 	*/
-	MRPT_START;
+	MRPT_START
 	std::string strRet;
 	switch (ret_type)
 	{
@@ -1046,7 +1025,7 @@ bool CVelodyneScanner::setLidarReturnType(return_type_t ret_type)
 
 	const std::string cmd = mrpt::format("returns=%s", strRet.c_str());
 	return this->internal_send_http_post(cmd);
-	MRPT_END;
+	MRPT_END
 }
 
 bool CVelodyneScanner::setLidarRPM(int rpm)
@@ -1063,32 +1042,32 @@ bool CVelodyneScanner::setLidarRPM(int rpm)
 	</form>
 	*/
 
-	MRPT_START;
+	MRPT_START
 	const std::string cmd = mrpt::format("rpm=%i", rpm);
 	return this->internal_send_http_post(cmd);
-	MRPT_END;
+	MRPT_END
 }
 
 bool CVelodyneScanner::setLidarOnOff(bool on)
 {
 	// laser = on|off
-	MRPT_START;
+	MRPT_START
 	const std::string cmd = mrpt::format("laser=%s", on ? "on" : "off");
 	return this->internal_send_http_post(cmd);
-	MRPT_END;
+	MRPT_END
 }
 
 void CVelodyneScanner::setFramePublishing(bool on)
 {
 	// frame publishing | data packet publishing = on|off
-	MRPT_START;
+	MRPT_START
 	m_return_frames = on;
-	MRPT_END;
+	MRPT_END
 }
 
 bool CVelodyneScanner::internal_send_http_post(const std::string& post_data)
 {
-	MRPT_START;
+	MRPT_START
 
 	ASSERTMSG_(
 		!m_device_ip.empty(), "A device IP address must be specified first!");
@@ -1115,5 +1094,5 @@ bool CVelodyneScanner::internal_send_http_post(const std::string& post_data)
 	return mrpt::comms::net::erOk == ret &&
 		   (http_rep_code == 200 || http_rep_code == 204);  // OK codes
 
-	MRPT_END;
+	MRPT_END
 }

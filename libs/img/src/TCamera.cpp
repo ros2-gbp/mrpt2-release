@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,6 +11,7 @@
 
 #include <mrpt/config/CConfigFileMemory.h>
 #include <mrpt/img/TCamera.h>
+#include <mrpt/math/CVectorDynamic.h>
 #include <mrpt/math/matrix_serialization.h>  // For "<<" ">>" operators.
 #include <mrpt/math/utils_matlab.h>
 
@@ -22,6 +23,12 @@ using namespace std;
  * CObservations objects */
 IMPLEMENTS_SERIALIZABLE(TCamera, CSerializable, mrpt::img)
 
+TCamera::TCamera()
+{
+	// Ensure intrinsics matrix has a 1 in the bottom-right corner:
+	setIntrinsicParamsFromValues(0, 0, 0, 0);
+}
+
 /** Dumps all the parameters as a multi-line string, with the same format than
  * \a saveToConfigFile.  \sa saveToConfigFile */
 std::string TCamera::dumpAsText() const
@@ -31,12 +38,14 @@ std::string TCamera::dumpAsText() const
 	return cfg.getContent();
 }
 
-uint8_t TCamera::serializeGetVersion() const { return 2; }
+uint8_t TCamera::serializeGetVersion() const { return 4; }
 void TCamera::serializeTo(mrpt::serialization::CArchive& out) const
 {
 	out << focalLengthMeters;
-	for (unsigned int k = 0; k < 5; k++) out << dist[k];
-	out << intrinsicParams;
+	// v3: from 5 to 8 dist params:
+	for (size_t k = 0; k < dist.size(); k++) out << dist[k];
+	// v4: only store the 4 relevant values:
+	out << fx() << fy() << cx() << cy();
 	// version 0 did serialize here a "CMatrixDouble15"
 	out << nrows << ncols;  // New in v2
 }
@@ -47,12 +56,32 @@ void TCamera::serializeFrom(mrpt::serialization::CArchive& in, uint8_t version)
 		case 0:
 		case 1:
 		case 2:
+		case 3:
+		case 4:
 		{
 			in >> focalLengthMeters;
 
+			dist.fill(0);
 			for (unsigned int k = 0; k < 5; k++) in >> dist[k];
+			if (version >= 3)
+				for (unsigned int k = 5; k < 8; k++) in >> dist[k];
 
-			in >> intrinsicParams;
+			if (version < 4)
+			{
+				in >> intrinsicParams;
+				// Enforce values with fixed 0 or 1 values:
+				intrinsicParams(0, 1) = 0;
+				intrinsicParams(1, 0) = 0;
+				intrinsicParams(2, 0) = 0;
+				intrinsicParams(2, 1) = 0;
+				intrinsicParams(2, 2) = 1;
+			}
+			else
+			{
+				double vfx, vfy, vcx, vcy;
+				in >> vfx >> vfy >> vcx >> vcy;
+				setIntrinsicParamsFromValues(vfx, vfy, vcx, vcy);
+			}
 
 			if (version == 0)
 			{
@@ -89,7 +118,7 @@ mxArray* TCamera::writeToMatlab() const
 	mexplus::MxArray params_struct(
 		mexplus::MxArray::Struct(sizeof(fields) / sizeof(fields[0]), fields));
 	params_struct.set("K", mrpt::math::convertToMatlab(this->intrinsicParams));
-	params_struct.set("dist", mrpt::math::convertToMatlab(this->dist));
+	params_struct.set("dist", mrpt::math::convertVectorToMatlab(this->dist));
 	params_struct.set("f", this->focalLengthMeters);
 	params_struct.set("ncols", this->ncols);
 	params_struct.set("nrows", this->nrows);
@@ -124,7 +153,8 @@ void TCamera::saveToConfigFile(
 	cfg.write(
 		section, "dist",
 		format(
-			"[%e %e %e %e %e]", dist[0], dist[1], dist[2], dist[3], dist[4]));
+			"[%e %e %e %e %e %e %e %e]", dist[0], dist[1], dist[2], dist[3],
+			dist[4], dist[5], dist[6], dist[7]));
 	if (focalLengthMeters != 0)
 		cfg.write(section, "focal_length", focalLengthMeters);
 }
@@ -157,8 +187,8 @@ void TCamera::loadFromConfigFile(
 
 	CVectorDouble dists;
 	cfg.read_vector(section, "dist", CVectorDouble(), dists, true);
-	if (dists.size() != 4 && dists.size() != 5)
-		THROW_EXCEPTION("Expected 4 or 5-length vector in field 'dist'");
+	if (dists.size() != 4 && dists.size() != 5 && dists.size() != 8)
+		THROW_EXCEPTION("Expected 4,5 or 8-length vector in field 'dist'");
 
 	dist.fill(0);
 	for (CVectorDouble::Index i = 0; i < dists.size(); i++) dist[i] = dists[i];

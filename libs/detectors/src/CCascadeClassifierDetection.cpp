@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -15,7 +15,7 @@
 #include <mrpt/obs/CObservationStereoImages.h>
 
 // Universal include for all versions of OpenCV
-#include <mrpt/otherlibs/do_opencv_includes.h>
+#include <mrpt/3rdparty/do_opencv_includes.h>
 
 #include <thread>
 
@@ -89,7 +89,7 @@ void CCascadeClassifierDetection::init(
 // ------------------------------------------------------
 
 void CCascadeClassifierDetection::detectObjects_Impl(
-	const CObservation* obs, vector_detectable_object& detected)
+	const CObservation& obs, vector_detectable_object& detected)
 {
 #if MRPT_HAS_OPENCV && MRPT_OPENCV_VERSION_NUM >= 0x200
 	// Obtain image from generic observation
@@ -97,18 +97,18 @@ void CCascadeClassifierDetection::detectObjects_Impl(
 
 	if (IS_CLASS(obs, CObservationImage))
 	{
-		const auto* o = static_cast<const CObservationImage*>(obs);
-		img = &o->image;
+		const auto& o = static_cast<const CObservationImage&>(obs);
+		img = &o.image;
 	}
 	else if (IS_CLASS(obs, CObservationStereoImages))
 	{
-		const auto* o = static_cast<const CObservationStereoImages*>(obs);
-		img = &o->imageLeft;
+		const auto& o = static_cast<const CObservationStereoImages&>(obs);
+		img = &o.imageLeft;
 	}
 	else if (IS_CLASS(obs, CObservation3DRangeScan))
 	{
-		const auto* o = static_cast<const CObservation3DRangeScan*>(obs);
-		img = &o->intensityImage;
+		const auto& o = static_cast<const CObservation3DRangeScan&>(obs);
+		img = &o.intensityImage;
 	}
 	if (!img)
 	{
@@ -135,8 +135,8 @@ void CCascadeClassifierDetection::detectObjects_Impl(
 	// Convert from cv::Rect to vision::CDetectable2D
 	for (unsigned int i = 0; i < N; i++)
 	{
-		CDetectable2D::Ptr obj = CDetectable2D::Ptr(new CDetectable2D(
-			objects[i].x, objects[i].y, objects[i].height, objects[i].width));
+		auto obj = std::make_shared<CDetectable2D>(
+			objects[i].x, objects[i].y, objects[i].height, objects[i].width);
 
 		detected.push_back((CDetectableObject::Ptr)obj);
 	}

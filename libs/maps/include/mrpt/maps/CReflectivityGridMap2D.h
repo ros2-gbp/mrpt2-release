@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -39,7 +39,7 @@ class CReflectivityGridMap2D : public CMetricMap,
 							   public mrpt::containers::CDynamicGrid<int8_t>,
 							   public CLogOddsGridMap2D<int8_t>
 {
-	DEFINE_SERIALIZABLE(CReflectivityGridMap2D)
+	DEFINE_SERIALIZABLE(CReflectivityGridMap2D, mrpt::maps)
 
    protected:
 	/** Lookup tables for log-odds */
@@ -105,10 +105,10 @@ class CReflectivityGridMap2D : public CMetricMap,
 	// See docs in base class
 	void internal_clear() override;
 	bool internal_insertObservation(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D* robotPose = nullptr) override;
 	double internal_computeObservationLikelihood(
-		const mrpt::obs::CObservation* obs,
+		const mrpt::obs::CObservation& obs,
 		const mrpt::poses::CPose3D& takenFrom) override;
 
 	MAP_DEFINITION_START(CReflectivityGridMap2D)

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -38,7 +38,7 @@ TUserOptionsChecker<GRAPH_t>::~TUserOptionsChecker()
 template <class GRAPH_t>
 void TUserOptionsChecker<GRAPH_t>::createDeciderOptimizerMappings()
 {
-	MRPT_START;
+	MRPT_START
 
 	using namespace mrpt::graphslam::deciders;
 	using namespace mrpt::graphslam::optimizers;
@@ -62,7 +62,7 @@ void TUserOptionsChecker<GRAPH_t>::createDeciderOptimizerMappings()
 	// create the decider optimizer, specific to the GRAPH_T template type
 	this->_createDeciderOptimizerMappings();
 
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_t>
@@ -109,7 +109,7 @@ template <class GRAPH_t>
 void TUserOptionsChecker<GRAPH_t>::dumpRegistrarsToConsole(
 	std::string reg_type /*="all"*/) const
 {
-	MRPT_START;
+	MRPT_START
 	using namespace std;
 	using namespace mrpt;
 
@@ -172,13 +172,13 @@ void TUserOptionsChecker<GRAPH_t>::dumpRegistrarsToConsole(
 		dumpRegistrarsToConsole("edge");
 	}
 
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_t>
 void TUserOptionsChecker<GRAPH_t>::dumpOptimizersToConsole() const
 {
-	MRPT_START;
+	MRPT_START
 
 	using namespace std;
 
@@ -210,14 +210,14 @@ void TUserOptionsChecker<GRAPH_t>::dumpOptimizersToConsole() const
 				 << "3D" << endl;
 		}
 	}
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_t>
 bool TUserOptionsChecker<GRAPH_t>::checkRegistrationDeciderExists(
 	std::string given_reg, std::string reg_type) const
 {
-	MRPT_START;
+	MRPT_START
 
 	using namespace std;
 	using namespace mrpt;
@@ -240,8 +240,8 @@ bool TUserOptionsChecker<GRAPH_t>::checkRegistrationDeciderExists(
 		// TODO - check this
 		// if decider is not suitable for the selected SLAM type, ignore.
 		pose_t p;
-		if ((!dec->is_slam_2d && IS_CLASS(&p, CPose2D)) ||
-			(!dec->is_slam_3d && IS_CLASS(&p, CPose3D)))
+		if ((!dec->is_slam_2d && IS_CLASS(p, CPose2D)) ||
+			(!dec->is_slam_3d && IS_CLASS(p, CPose3D)))
 		{
 			continue;
 		}
@@ -257,14 +257,14 @@ bool TUserOptionsChecker<GRAPH_t>::checkRegistrationDeciderExists(
 	}
 
 	return found;
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_t>
 bool TUserOptionsChecker<GRAPH_t>::checkOptimizerExists(
 	std::string given_opt) const
 {
-	MRPT_START;
+	MRPT_START
 	using namespace std;
 	using namespace mrpt;
 	using namespace mrpt::poses;
@@ -278,8 +278,8 @@ bool TUserOptionsChecker<GRAPH_t>::checkOptimizerExists(
 
 		// if optimizer is not suitable for the selected SLAM type, ignore.
 		pose_t p;
-		if ((!opt->is_slam_2d && IS_CLASS(&p, CPose2D)) &&
-			(!opt->is_slam_3d && IS_CLASS(&p, CPose3D)))
+		if ((!opt->is_slam_2d && IS_CLASS(p, CPose2D)) &&
+			(!opt->is_slam_3d && IS_CLASS(p, CPose3D)))
 		{
 			continue;
 		}
@@ -292,13 +292,13 @@ bool TUserOptionsChecker<GRAPH_t>::checkOptimizerExists(
 	}
 
 	return found;
-	MRPT_END;
+	MRPT_END
 }
 
 template <class GRAPH_t>
 void TUserOptionsChecker<GRAPH_t>::populateDeciderOptimizerProperties()
 {
-	MRPT_START;
+	MRPT_START
 
 	// reset the vectors - in case they contain any elements
 	regs_descriptions.clear();

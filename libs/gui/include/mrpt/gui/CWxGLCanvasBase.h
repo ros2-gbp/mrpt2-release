@@ -2,17 +2,16 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #pragma once
 
+#include <mrpt/config.h>
 #include <mrpt/gui/CGlCanvasBase.h>
-
 #include <mrpt/opengl/COpenGLScene.h>
-#include <mrpt/opengl/CTextMessageCapable.h>
 #include <mrpt/opengl/opengl_fonts.h>
 
 namespace mrpt
@@ -64,9 +63,7 @@ namespace gui
  * the mouse. See OnUserManuallyMovesCamera
  * \ingroup mrpt_gui_grp
  */
-class CWxGLCanvasBase : public CGlCanvasBase,
-						public wxGLCanvas,
-						public mrpt::opengl::CTextMessageCapable
+class CWxGLCanvasBase : public CGlCanvasBase, public wxGLCanvas
 {
    public:
 	CWxGLCanvasBase(
@@ -75,7 +72,7 @@ class CWxGLCanvasBase : public CGlCanvasBase,
 		const wxSize& size = wxDefaultSize, long style = 0,
 		const wxString& name = _T("CWxGLCanvasBase"));
 
-	~CWxGLCanvasBase() override;
+	~CWxGLCanvasBase() override = default;
 
 	void OnPaint(wxPaintEvent& event);
 	void OnSize(wxSizeEvent& event);
@@ -98,19 +95,18 @@ class CWxGLCanvasBase : public CGlCanvasBase,
 	void setCameraPose(const mrpt::poses::CPose3D& camPose);
 
 	/**  Methods that can be implemented in custom derived classes  */
-	virtual void OnCharCustom(wxKeyEvent& event) { MRPT_UNUSED_PARAM(event); }
+	virtual void OnCharCustom([[maybe_unused]] wxKeyEvent& event) {}
 	virtual void OnPreRender() {}
 	virtual void OnPostRender() {}
-	virtual void OnPostRenderSwapBuffers(double At, wxPaintDC& dc)
+	virtual void OnPostRenderSwapBuffers(
+		[[maybe_unused]] double At, [[maybe_unused]] wxPaintDC& dc)
 	{
-		MRPT_UNUSED_PARAM(At);
-		MRPT_UNUSED_PARAM(dc);
 	}
 
-	virtual void OnRenderError(const wxString& str) { MRPT_UNUSED_PARAM(str); }
+	virtual void OnRenderError([[maybe_unused]] const wxString& str) {}
 
    protected:
-	wxGLContext* m_gl_context = nullptr;
+	std::unique_ptr<wxGLContext> m_gl_context;
 	bool m_init = false;
 
 	long m_Key = 0;

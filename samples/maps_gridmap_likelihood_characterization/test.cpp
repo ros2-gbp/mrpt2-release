@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -106,7 +106,7 @@ void theMainThing()
 
 	tictac.Tic();
 
-	float phi = (float)DEG2RAD(0);
+	float phi = (float)0.0_deg;
 
 	CPose2D nullPose(0, 0, phi);
 
@@ -118,7 +118,7 @@ void theMainThing()
 			nullPose.y(y);
 			fprintf(
 				f, "%e ",
-				gridMap.computeObservationLikelihood(&obsScan, nullPose));
+				gridMap.computeObservationLikelihood(obsScan, nullPose));
 		}  // for y
 		fprintf(f, "\n");
 	}  // for x

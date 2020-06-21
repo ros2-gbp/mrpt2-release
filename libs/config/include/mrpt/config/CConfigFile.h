@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -26,7 +26,7 @@ namespace mrpt::config
  *
  * See: \ref config_file_format
  *
- * \ingroup mrpt_base_grp
+ * \ingroup mrpt_config_grp
  */
 class CConfigFile : public CConfigFileBase
 {
@@ -84,6 +84,9 @@ class CConfigFile : public CConfigFileBase
 
 	/** Returns a list with all the section names. */
 	void getAllSections(std::vector<std::string>& sections) const override;
+
+	/** Empties the "config file" */
+	void clear() override;
 
 	/** Returs a list with all the keys into a section. */
 	void getAllKeys(const std::string& section, std::vector<std::string>& keys)

@@ -2,13 +2,13 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/math/CMatrixFixedNumeric.h>
+#include <mrpt/math/CMatrixFixed.h>
 #include <mrpt/poses/CPosePDF.h>
 
 namespace mrpt::poses
@@ -27,14 +27,14 @@ class CPoint2DPDFGaussian;
  */
 class CPosePDFGaussian : public CPosePDF
 {
-	DEFINE_SERIALIZABLE(CPosePDFGaussian)
+	DEFINE_SERIALIZABLE(CPosePDFGaussian, mrpt::poses)
 	DEFINE_SCHEMA_SERIALIZABLE()
 
    protected:
 	/** Assures the symmetry of the covariance matrix (eventually certain
 	 * operations in the math-coprocessor lead to non-symmetric matrixes!)
 	 */
-	void assureSymmetry();
+	void enforceCovSymmetry();
 
    public:
 	/** @name Data fields
@@ -66,21 +66,12 @@ class CPosePDFGaussian : public CPosePDF
 	explicit CPosePDFGaussian(const CPosePDF& o) { copyFrom(o); }
 	/** Copy constructor, including transformations between other PDFs */
 	explicit CPosePDFGaussian(const CPose3DPDF& o) { copyFrom(o); }
-	/** Returns an estimate of the pose, (the mean, or mathematical expectation
-	 * of the PDF).
-	 * \sa getCovariance
-	 */
+
 	void getMean(CPose2D& mean_pose) const override { mean_pose = mean; }
-	/** Returns an estimate of the pose covariance matrix (3x3 cov matrix) and
-	 * the mean, both at once.
-	 * \sa getMean
-	 */
-	void getCovarianceAndMean(
-		mrpt::math::CMatrixDouble33& out_cov,
-		CPose2D& mean_point) const override
+
+	std::tuple<cov_mat_t, type_value> getCovarianceAndMean() const override
 	{
-		mean_point = mean;
-		out_cov = this->cov;
+		return {cov, mean};
 	}
 
 	/** Copy operator, translating if necesary (for example, between particles
@@ -176,7 +167,7 @@ class CPosePDFGaussian : public CPosePDF
 	/** Substitutes the diagonal elements if (square) they are below some given
 	 * minimum values (Use this before bayesianFusion, for example, to avoid
 	 * inversion of singular matrixes, etc...)  */
-	void assureMinCovariance(const double& minStdXY, const double& minStdPhi);
+	void assureMinCovariance(double minStdXY, double minStdPhi);
 
 	/** Makes: thisPDF = thisPDF + Ap, where "+" is pose composition (both the
 	 * mean, and the covariance matrix are updated) (see formulas in

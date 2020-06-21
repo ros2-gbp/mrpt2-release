@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -13,6 +13,7 @@
 #include <mrpt/poses/CPose2D.h>
 #include <mrpt/system/os.h>
 #include <mrpt/tfest/TMatchingPair.h>
+#include <cmath>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -104,7 +105,7 @@ float TMatchingPairList::overallSquareError(const CPose2D& q) const
 {
 	vector<float> errs(size());
 	squareErrorVector(q, errs);
-	return std::accumulate(errs.begin(), errs.end(), 0);
+	return std::accumulate(errs.begin(), errs.end(), .0f);
 }
 
 float TMatchingPairList::overallSquareErrorAndPoints(
@@ -112,7 +113,7 @@ float TMatchingPairList::overallSquareErrorAndPoints(
 {
 	vector<float> errs(size());
 	squareErrorVector(q, errs, xs, ys);
-	return std::accumulate(errs.begin(), errs.end(), 0);
+	return std::accumulate(errs.begin(), errs.end(), .0f);
 }
 
 /*---------------------------------------------------------------
@@ -134,10 +135,10 @@ void TMatchingPairList::squareErrorVector(
 	out_sqErrs.resize(size());
 	// *    \f[ e_i = | x_{this} -  q \oplus x_{other}  |^2 \f]
 
-	const float ccos = cos(q.phi());
-	const float csin = sin(q.phi());
-	const float qx = q.x();
-	const float qy = q.y();
+	const float ccos = d2f(std::cos(q.phi()));
+	const float csin = d2f(std::sin(q.phi()));
+	const float qx = d2f(q.x());
+	const float qy = d2f(q.y());
 
 	const_iterator corresp;
 	vector<float>::iterator e_i;
@@ -163,10 +164,10 @@ void TMatchingPairList::squareErrorVector(
 
 	// *    \f[ e_i = | x_{this} -  q \oplus x_{other}  |^2 \f]
 
-	const float ccos = cos(q.phi());
-	const float csin = sin(q.phi());
-	const float qx = q.x();
-	const float qy = q.y();
+	const float ccos = d2f(cos(q.phi()));
+	const float csin = d2f(sin(q.phi()));
+	const float qx = d2f(q.x());
+	const float qy = d2f(q.y());
 
 	const_iterator corresp;
 	vector<float>::iterator e_i, xx, yy;

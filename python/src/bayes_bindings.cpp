@@ -2,27 +2,26 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #include "bindings.h"
 
 /* MRPT */
-#include <mrpt/config/CLoadableOptions.h>
-
 #include <mrpt/bayes/CKalmanFilterCapable.h>
 #include <mrpt/bayes/CParticleFilter.h>
 #include <mrpt/bayes/CParticleFilterCapable.h>
 #include <mrpt/bayes/CProbabilityParticle.h>
-
+#include <mrpt/config/CLoadableOptions.h>
+#include <mrpt/math/TPoint2D.h>
+#include <mrpt/math/TPoint3D.h>
+#include <mrpt/math/TPose2D.h>
+#include <mrpt/math/TPose3D.h>
 #include <mrpt/obs/CActionCollection.h>
 #include <mrpt/obs/CSensoryFrame.h>
-
 #include <mrpt/poses/CPose2D.h>
 #include <mrpt/poses/CPose3D.h>
-
-#include <mrpt/math/lightweight_geom_data.h>
 
 /* namespaces */
 using namespace boost::python;

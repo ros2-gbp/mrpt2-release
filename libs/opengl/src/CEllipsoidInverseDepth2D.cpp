@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,15 +12,15 @@
 #include <mrpt/math/matrix_serialization.h>  // for << >> ops of matrices
 #include <mrpt/opengl/CEllipsoidInverseDepth2D.h>
 #include <mrpt/serialization/CArchive.h>
+#include <Eigen/Dense>
 
 using namespace mrpt;
 using namespace mrpt::opengl;
-
 using namespace mrpt::math;
 using namespace std;
 
 IMPLEMENTS_SERIALIZABLE(
-	CEllipsoidInverseDepth2D, CRenderizableDisplayList, mrpt::opengl)
+	CEllipsoidInverseDepth2D, CRenderizableShaderWireFrame, mrpt::opengl)
 
 /*---------------------------------------------------------------
 							transformFromParameterSpace
@@ -41,8 +41,8 @@ void CEllipsoidInverseDepth2D::transformFromParameterSpace(
 		const double range = inv_range < 0
 								 ? m_underflowMaxRange
 								 : (inv_range != 0 ? 1. / inv_range : 0);
-		out_pts[i][0] = range * cos(yaw);
-		out_pts[i][1] = range * sin(yaw);
+		out_pts[i][0] = d2f(range * cos(yaw));
+		out_pts[i][1] = d2f(range * sin(yaw));
 	}
 
 	MRPT_END
@@ -73,5 +73,5 @@ void CEllipsoidInverseDepth2D::serializeFrom(
 		default:
 			MRPT_THROW_UNKNOWN_SERIALIZATION_VERSION(version);
 	};
-	CRenderizableDisplayList::notifyChange();
+	CRenderizable::notifyChange();
 }

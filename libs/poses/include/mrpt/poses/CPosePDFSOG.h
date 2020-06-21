@@ -2,17 +2,17 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2019, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
-#include <mrpt/core/aligned_std_vector.h>
-#include <mrpt/math/CMatrixFixedNumeric.h>
+#include <mrpt/math/CMatrixFixed.h>
 #include <mrpt/math/math_frwds.h>
 #include <mrpt/poses/CPosePDF.h>
 #include <ostream>
+#include <vector>
 
 namespace mrpt::poses
 {
@@ -33,7 +33,7 @@ namespace mrpt::poses
  */
 class CPosePDFSOG : public CPosePDF
 {
-	DEFINE_SERIALIZABLE(CPosePDFSOG)
+	DEFINE_SERIALIZABLE(CPosePDFSOG, mrpt::poses)
 
    public:
 	/** The struct for each mode:
@@ -49,7 +49,7 @@ class CPosePDFSOG : public CPosePDF
 		double log_w{0};
 
 	   public:
-		MRPT_MAKE_ALIGNED_OPERATOR_NEW;
+		;
 
 		friend std::ostream& operator<<(
 			std::ostream& o, const TGaussianMode& mode)
@@ -62,7 +62,7 @@ class CPosePDFSOG : public CPosePDF
 		}
 	};
 
-	using CListGaussianModes = mrpt::aligned_std_vector<TGaussianMode>;
+	using CListGaussianModes = std::vector<TGaussianMode>;
 	using const_iterator = CListGaussianModes::const_iterator;
 	using iterator = CListGaussianModes::iterator;
 
@@ -71,7 +71,7 @@ class CPosePDFSOG : public CPosePDF
    protected:
 	/** Ensures the symmetry of the covariance matrix (eventually certain
 	 * operations in the math-coprocessor lead to non-symmetric matrixes!) */
-	void assureSymmetry();
+	void enforceCovSymmetry();
 
 	/** The list of SOG modes */
 	CListGaussianModes m_modes;
@@ -135,13 +135,10 @@ class CPosePDFSOG : public CPosePDF
 	 */
 	void mergeModes(double max_KLd = 0.5, bool verbose = false);
 
-	/** Returns an estimate of the pose, (the mean, or mathematical expectation
-	 * of the PDF) \sa getCovariance */
 	void getMean(CPose2D& mean_pose) const override;
-	/** Returns an estimate of the pose covariance matrix (3x3 cov matrix) and
-	 * the mean, both at once. \sa getMean */
-	void getCovarianceAndMean(
-		mrpt::math::CMatrixDouble33& cov, CPose2D& mean_point) const override;
+
+	std::tuple<cov_mat_t, type_value> getCovarianceAndMean() const override;
+
 	/** For the most likely Gaussian mode in the SOG, returns the pose
 	 * covariance matrix (3x3 cov matrix) and the mean. \sa getMean */
 	void getMostLikelyCovarianceAndMean(
@@ -179,7 +176,7 @@ class CPosePDFSOG : public CPosePDF
 	 * \mathbf{R}~\mathbf{COV}~\mathbf{R}^t \f$, where \f$ \mathbf{R} = \left[
 	 * \begin{array}{ccc} \cos\alpha & -\sin\alpha & 0 \\ \sin\alpha &
 	 * \cos\alpha & 0 \\ 0 & 0 & 1 \end{array}\right] \f$ */
-	void rotateAllCovariances(const double& ang);
+	void rotateAllCovariances(double ang);
 	/** Draws a single sample from the distribution */
 	void drawSingleSample(CPose2D& outPart) const override;
 	/** Draws a number of samples from the distribution, and saves as a list of
@@ -205,9 +202,9 @@ class CPosePDFSOG : public CPosePDF
 	 * and saves the result in a matrix (each row contains values for a fixed
 	 * y-coordinate value). */
 	void evaluatePDFInArea(
-		const double& x_min, const double& x_max, const double& y_min,
-		const double& y_max, const double& resolutionXY, const double& phi,
-		mrpt::math::CMatrixD& outMatrix, bool sumOverAllPhis = false);
+		double x_min, double x_max, double y_min, double y_max,
+		double resolutionXY, double phi, mrpt::math::CMatrixDouble& outMatrix,
+		bool sumOverAllPhis = false);
 
 	/** Bayesian fusion of two pose distributions, then save the result in this
 	 * object (WARNING: Currently p1 must be a mrpt::poses::CPosePDFSOG object
