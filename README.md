@@ -1,3 +1,26 @@
+## mrpt2 (rolling) - 2.1.3-1
+
+The packages in the `mrpt2` repository were released into the `rolling` distro by running `/usr/bin/bloom-release --ros-distro rolling mrpt2` on `Thu, 22 Oct 2020 21:16:47 -0000`
+
+The `mrpt2` package was released.
+
+Version of package(s) in repository `mrpt2`:
+
+- upstream repository: https://github.com/MRPT/mrpt.git
+- release repository: unknown
+- rosdistro version: `null`
+- old version: `null`
+- new version: `2.1.3-1`
+
+Versions of tools used:
+
+- bloom version: `0.9.7`
+- catkin_pkg version: `0.4.22`
+- rosdep version: `0.19.0`
+- rosdistro version: `0.8.2`
+- vcstools version: `0.1.42`
+
+
 ## mrpt2 (foxy) - 2.1.3-1
 
 The packages in the `mrpt2` repository were released into the `foxy` distro by running `/home/jlblanco/.local/bin/bloom-release mrpt2 --rosdistro foxy` on `Thu, 22 Oct 2020 08:01:13 -0000`
