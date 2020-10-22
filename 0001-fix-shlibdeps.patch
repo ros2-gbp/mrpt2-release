@@ -1,4 +1,4 @@
-From 918e9146d81cc981d80e3e282ff856096c790127 Mon Sep 17 00:00:00 2001
+From 1d279299f139d56f2ea86965980b1e80ca4b385a Mon Sep 17 00:00:00 2001
 From: Jose Luis Blanco-Claraco <joseluisblancoc@gmail.com>
 Date: Wed, 2 Sep 2020 08:28:00 +0200
 Subject: [PATCH] fix shlibdeps
@@ -31,5 +31,5 @@ index aa010fa..073befd 100755
  override_dh_auto_install:
  	# In case we're installing to a non-standard location, look for a setup.sh
 -- 
-2.25.1
+2.17.1
 
