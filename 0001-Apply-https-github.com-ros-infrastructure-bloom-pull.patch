@@ -1,30 +1,29 @@
-From 54b31f68c3fa51233fb67cadfd1ac3822288173f Mon Sep 17 00:00:00 2001
+From 0cc9236c1a44a81bb759325a16d9b2dc3c9cf9e7 Mon Sep 17 00:00:00 2001
 From: Jose Luis Blanco Claraco <joseluisblancoc@gmail.com>
-Date: Thu, 22 Oct 2020 23:19:22 +0200
-Subject: [PATCH] fix shlibdep paths
+Date: Sat, 24 Oct 2020 16:21:40 +0200
+Subject: [PATCH] Apply https://github.com/ros-infrastructure/bloom/pull/600
 
 ---
- debian/rules.em | 6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+ debian/rules.em | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/debian/rules.em b/debian/rules.em
-index aa010fa..55c987d 100755
+index b458558..e385573 100755
 --- a/debian/rules.em
 +++ b/debian/rules.em
-@@ -18,6 +18,10 @@ export PKG_CONFIG_PATH=@(InstallationPrefix)/lib/pkgconfig
+@@ -18,6 +18,9 @@ export PKG_CONFIG_PATH=@(InstallationPrefix)/lib/pkgconfig
  # 	https://github.com/ros-infrastructure/bloom/issues/327
  export DEB_CXXFLAGS_MAINT_APPEND=-DNDEBUG
  
-+# JLBC: Added for mrpt install prefixes, to solve shlibdeps errors in Xenial:
++# Solve shlibdeps errors in REP136 packages that use GNUInstallDirs:
 +export DEB_HOST_MULTIARCH := $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
-+
 +
  %:
  	dh $@@ -v --buildsystem=cmake
  
-@@ -48,7 +52,7 @@ override_dh_shlibdeps:
- 	# in the install tree that was dropped by catkin, and source it.  It will
- 	# set things like CMAKE_PREFIX_PATH, PKG_CONFIG_PATH, and PYTHONPATH.
+@@ -48,7 +51,7 @@ override_dh_shlibdeps:
+ 	# in the install tree and source it.  It will set things like
+ 	# CMAKE_PREFIX_PATH, PKG_CONFIG_PATH, and PYTHONPATH.
  	if [ -f "@(InstallationPrefix)/setup.sh" ]; then . "@(InstallationPrefix)/setup.sh"; fi && \
 -	dh_shlibdeps -l$(CURDIR)/debian/@(Package)/@(InstallationPrefix)/lib/
 +	dh_shlibdeps -l$(CURDIR)/debian/@(Package)/@(InstallationPrefix)/lib/:$(CURDIR)/debian/@(Package)/@(InstallationPrefix)/lib/${DEB_HOST_MULTIARCH}
@@ -32,5 +31,5 @@ index aa010fa..55c987d 100755
  override_dh_auto_install:
  	# In case we're installing to a non-standard location, look for a setup.sh
 -- 
-2.17.1
+2.30.2
 
