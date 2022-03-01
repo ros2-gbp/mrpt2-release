@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,7 +10,7 @@
 
 #include <mrpt/math/CMatrixF.h>
 #include <mrpt/math/TPoint3D.h>
-#include <mrpt/obs/CObservation.h>  // INVALID_LANDMARK_ID
+#include <mrpt/obs/CObservation.h>	// INVALID_LANDMARK_ID
 #include <mrpt/poses/CPoint3D.h>
 #include <mrpt/poses/CPointPDFGaussian.h>
 #include <mrpt/serialization/CSerializable.h>
@@ -72,7 +72,7 @@ class CLandmark : public mrpt::serialization::CSerializable
 	 * Note that this field is never fill out automatically, it must be set by
 	 *the programmer if used.
 	 */
-	TLandmarkID ID{INVALID_LANDMARK_ID};
+	TLandmarkID ID = mrpt::obs::INVALID_LANDMARK_ID;
 
 	/** The last time that this landmark was observed. */
 	mrpt::system::TTimeStamp timestampLastSeen{INVALID_TIMESTAMP};
@@ -122,6 +122,6 @@ class CLandmark : public mrpt::serialization::CSerializable
 	 */
 	static TLandmarkID m_counterIDs;
 
-};  // End of class definition
+};	// End of class definition
 
 }  // namespace mrpt::maps

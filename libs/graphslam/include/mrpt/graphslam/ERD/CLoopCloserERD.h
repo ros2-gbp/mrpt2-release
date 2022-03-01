@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,6 +11,12 @@
 
 #include <mrpt/config/CConfigFileBase.h>
 #include <mrpt/config/CLoadableOptions.h>
+#include <mrpt/graphs/CHypothesisNotFoundException.h>
+#include <mrpt/graphs/THypothesis.h>
+#include <mrpt/graphslam/interfaces/CRangeScanEdgeRegistrationDecider.h>
+#include <mrpt/graphslam/misc/TNodeProps.h>
+#include <mrpt/graphslam/misc/TSlidingWindow.h>
+#include <mrpt/graphslam/misc/TUncertaintyPath.h>
 #include <mrpt/img/TColor.h>
 #include <mrpt/math/CMatrixF.h>
 #include <mrpt/obs/CActionCollection.h>
@@ -18,13 +24,6 @@
 #include <mrpt/obs/CSensoryFrame.h>
 #include <mrpt/slam/CICP.h>
 #include <mrpt/slam/CIncrementalMapPartitioner.h>
-
-#include <mrpt/graphs/CHypothesisNotFoundException.h>
-#include <mrpt/graphs/THypothesis.h>
-#include <mrpt/graphslam/interfaces/CRangeScanEdgeRegistrationDecider.h>
-#include <mrpt/graphslam/misc/TNodeProps.h>
-#include <mrpt/graphslam/misc/TSlidingWindow.h>
-#include <mrpt/graphslam/misc/TUncertaintyPath.h>
 
 #include <map>
 #include <set>
@@ -717,7 +716,7 @@ class CLoopCloserERD : public virtual mrpt::graphslam::deciders::
 	 */
 	void execDijkstraProjection(
 		mrpt::graphs::TNodeID starting_node = 0,
-		mrpt::graphs::TNodeID ending_node = INVALID_NODEID);
+		mrpt::graphs::TNodeID ending_node = mrpt::graphs::INVALID_NODEID);
 	/**\brief Given two nodeIDs compute and return the path connecting them.
 	 *
 	 * Method takes care of multiple edges, as well as edges with 0 covariance
