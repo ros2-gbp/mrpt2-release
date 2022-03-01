@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -112,7 +112,7 @@ void PlannerTPS_VirtualBase::renderMoveTree(
 	// Determine the up-to-now best solution, so we can highlight the best path
 	// so far:
 	typename tree_t::path_t best_path;
-	if (options.highlight_path_to_node_id != INVALID_NODEID)
+	if (options.highlight_path_to_node_id != mrpt::graphs::INVALID_NODEID)
 		result.move_tree.backtrackPath(
 			options.highlight_path_to_node_id, best_path);
 
@@ -164,10 +164,8 @@ void PlannerTPS_VirtualBase::renderMoveTree(
 			const typename tree_t::node_t& node = itNode->second;
 
 			mrpt::math::TPose2D parent_state;
-			if (node.parent_id != INVALID_NODEID)
-			{
-				parent_state = lstNodes.find(node.parent_id)->second.state;
-			}
+			if (node.parent_id != mrpt::graphs::INVALID_NODEID)
+			{ parent_state = lstNodes.find(node.parent_id)->second.state; }
 			const mrpt::math::TPose2D& trg_state = node.state;
 
 			const bool is_new_one = (itNode == (lstNodes.end() - 1));
@@ -199,7 +197,7 @@ void PlannerTPS_VirtualBase::renderMoveTree(
 			}
 
 			// Draw line parent -> children nodes.
-			if (node.parent_id != INVALID_NODEID)
+			if (node.parent_id != mrpt::graphs::INVALID_NODEID)
 			{
 				// Draw actual PT path between parent and children nodes:
 				ASSERT_(node.edge_to_parent);
@@ -279,7 +277,7 @@ void PlannerTPS_VirtualBase::renderMoveTree(
 			mrpt::opengl::CPointCloud::Create();
 
 		obj->loadFromPointsMap(options.local_obs_from_nearest_pose);
-		obj->setPose(*options.x_nearest_pose);  // Points are relative to this
+		obj->setPose(*options.x_nearest_pose);	// Points are relative to this
 		// pose: let OpenGL to deal with
 		// the coords. composition
 		obj->setPointSize(options.point_size_local_obstacles);
