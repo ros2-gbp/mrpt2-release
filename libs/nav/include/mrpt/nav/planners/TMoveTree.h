@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,9 +12,8 @@
 #include <mrpt/containers/traits_map.h>
 #include <mrpt/graphs/CDirectedTree.h>
 #include <mrpt/math/wrap2pi.h>
-#include <mrpt/poses/CPose2D.h>
-
 #include <mrpt/nav/tpspace/CParameterizedTrajectoryGenerator.h>
+#include <mrpt/poses/CPose2D.h>
 
 namespace mrpt::nav
 {
@@ -89,7 +88,7 @@ class TMoveTree : public mrpt::graphs::CDirectedTree<EDGE_TYPE>
 	{
 		ASSERT_(!m_nodes.empty());
 		double min_d = std::numeric_limits<double>::max();
-		auto min_id = INVALID_NODEID;
+		auto min_id = mrpt::graphs::INVALID_NODEID;
 		for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it)
 		{
 			if (ignored_nodes &&
@@ -133,7 +132,8 @@ class TMoveTree : public mrpt::graphs::CDirectedTree<EDGE_TYPE>
 	void insertNode(
 		const mrpt::graphs::TNodeID node_id, const NODE_TYPE_DATA& node_data)
 	{
-		m_nodes[node_id] = node_t(node_id, INVALID_NODEID, nullptr, node_data);
+		m_nodes[node_id] =
+			node_t(node_id, mrpt::graphs::INVALID_NODEID, nullptr, node_data);
 	}
 
 	mrpt::graphs::TNodeID getNextFreeNodeID() const { return m_nodes.size(); }
@@ -156,9 +156,9 @@ class TMoveTree : public mrpt::graphs::CDirectedTree<EDGE_TYPE>
 			out_path.push_front(*node);
 
 			mrpt::graphs::TNodeID next_node_id = node->parent_id;
-			if (next_node_id == INVALID_NODEID)
+			if (next_node_id == mrpt::graphs::INVALID_NODEID)
 			{
-				break;  // finished
+				break;	// finished
 			}
 			else
 			{
@@ -176,13 +176,13 @@ class TMoveTree : public mrpt::graphs::CDirectedTree<EDGE_TYPE>
 	/** Info per node */
 	node_map_t m_nodes;
 
-};  // end TMoveTree
+};	// end TMoveTree
 
 /** An edge for the move tree used for planning in SE2 and TP-space */
 struct TMoveEdgeSE2_TP
 {
 	/** The ID of the parent node in the tree */
-	mrpt::graphs::TNodeID parent_id;
+	mrpt::graphs::TNodeID parent_id = mrpt::graphs::INVALID_NODEID;
 	/** state in SE2 as 2D pose (x, y, phi)  - \note: it is not possible to
 	 * initialize a motion without a state */
 	mrpt::math::TPose2D end_state;
@@ -196,6 +196,8 @@ struct TMoveEdgeSE2_TP
 	/** identify the lenght of the trajectory for this motion */
 	double ptg_dist;
 
+	TMoveEdgeSE2_TP() = default;
+
 	TMoveEdgeSE2_TP(
 		const mrpt::graphs::TNodeID parent_id_,
 		const mrpt::math::TPose2D end_pose_)
@@ -204,10 +206,9 @@ struct TMoveEdgeSE2_TP
 		  cost(0.0),
 		  ptg_index(0),
 		  ptg_K(0),
-		  ptg_dist(0.0)  // these are all PTGs parameters
+		  ptg_dist(0.0)	 // these are all PTGs parameters
 	{
 	}
-	TMoveEdgeSE2_TP() : parent_id(INVALID_NODEID) {}
 };
 
 struct TNodeSE2
@@ -233,8 +234,8 @@ struct PoseDistanceMetric<TNodeSE2>
 	double distance(const TNodeSE2& a, const TNodeSE2& b) const
 	{
 		return mrpt::square(a.state.x - b.state.x) +
-			   mrpt::square(a.state.y - b.state.y) +
-			   mrpt::square(mrpt::math::angDistance(a.state.phi, b.state.phi));
+			mrpt::square(a.state.y - b.state.y) +
+			mrpt::square(mrpt::math::angDistance(a.state.phi, b.state.phi));
 	}
 	PoseDistanceMetric() = default;
 };
@@ -269,9 +270,9 @@ struct PoseDistanceMetric<TNodeSE2_TP>
 		bool tp_point_is_exact =
 			m_ptg.inverseMap_WS2TP(relPose.x(), relPose.y(), k, d);
 		if (tp_point_is_exact)
-			return d * m_ptg.getRefDistance();  // de-normalize distance
+			return d * m_ptg.getRefDistance();	// de-normalize distance
 		else
-			return std::numeric_limits<double>::max();  // not in range: we
+			return std::numeric_limits<double>::max();	// not in range: we
 		// can't evaluate this
 		// distance!
 	}
