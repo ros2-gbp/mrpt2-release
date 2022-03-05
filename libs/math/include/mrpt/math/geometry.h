@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -297,7 +297,7 @@ bool areAligned(const std::vector<TPoint3D>& points, TLine3D& r);
 /** @}
  */
 
-/** @name Projections
+/** @name Projections - Apply SE(3) transformation
 	@{
  */
 /** Uses the given pose 3D to project a point into a new base */
@@ -333,6 +333,18 @@ void project3D(
 	const TObject3D& object, const mrpt::math::TPose3D& newXYPose,
 	TObject3D& newObject);
 
+/** Returns the transformed point/line/segment/plane after applying the given
+ * SE(3) transformation.
+ * \note [New in MRPT 2.3.1]
+ */
+template <typename Object>
+Object project3D(const Object& o, const mrpt::math::TPose3D& newPose)
+{
+	Object ret;
+	project3D(o, newPose, ret);
+	return ret;
+}
+
 /** Projects any 3D object into the plane's base, using its inverse pose. If the
  * object is exactly inside the plane, this projection will zero its Z
  * coordinates */
@@ -366,7 +378,8 @@ void project3D(
 {
 	size_t N = objs.size();
 	newObjs.resize(N);
-	for (size_t i = 0; i < N; i++) project3D(objs[i], newXYpose, newObjs[i]);
+	for (size_t i = 0; i < N; i++)
+		project3D(objs[i], newXYpose, newObjs[i]);
 }
 
 /** Uses the given pose 2D to project a point into a new base. */
@@ -389,6 +402,18 @@ void project2D(
 /** Uses the given pose 2D to project any 2D object into a new base */
 void project2D(
 	const TObject2D& object, const TPose2D& newXpose, TObject2D& newObject);
+
+/** Returns the transformed point/line/segment after applying the given
+ * SE(2) transformation.
+ * \note [New in MRPT 2.3.1]
+ */
+template <typename Object>
+Object project2D(const Object& o, const mrpt::math::TPose2D& newPose)
+{
+	Object ret;
+	project2D(o, newPose, ret);
+	return ret;
+}
 
 /** Projects any 2D object into the line's base, using its inverse pose. If the
  * object is exactly inside the line, this projection will zero its Y
@@ -425,7 +450,8 @@ void project2D(
 {
 	size_t N = objs.size();
 	newObjs.resize(N);
-	for (size_t i = 0; i < N; i++) project2D(objs[i], newXpose, newObjs[i]);
+	for (size_t i = 0; i < N; i++)
+		project2D(objs[i], newXpose, newObjs[i]);
 }
 /** @}
  */
@@ -439,8 +465,29 @@ void project2D(
 bool intersect(const TPolygon2D& p1, const TSegment2D& s2, TObject2D& obj);
 /** Gets the intersection between a 2D polygon and a 2D line. \sa TObject2D  */
 bool intersect(const TPolygon2D& p1, const TLine2D& r2, TObject2D& obj);
-/** Gets the intersection between two 2D polygons. \sa TObject2D */
-bool intersect(const TPolygon2D& p1, const TPolygon2D& p2, TObject2D& obj);
+
+/** The [Sutherland-Hodgman
+ * algorithm](https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm)
+ *  for finding the intersection between two 2D polygons.
+ *
+ *  Note that at least one of the polygons (`clipping`) must be **convex**.
+ *  The other polygon (`subject`) may be convex or concave.
+ *
+ *  See code example: \ref math_polygon_intersection
+ *
+ *  \return The intersection, or an empty (no points) polygon if there is no
+ * intersection at all.
+ *
+ * \note (New in MRPT 2.4.1)
+ */
+TPolygon2D intersect(const TPolygon2D& subject, const TPolygon2D& clipping);
+
+/** \overload, returning the intersection into `result`.
+ *  \return false if there is no intersection at all, true otherwise.
+ */
+bool intersect(
+	const TPolygon2D& subject, const TPolygon2D& clipping, TObject2D& result);
+
 /** Gets the intersection between a 2D segment and a 2D polygon.  \sa TObject2D
  */
 inline bool intersect(
@@ -710,6 +757,7 @@ void assemblePolygons(
 
 /**
  * Splits a 2D polygon into convex components.
+ * \sa Example: math_polygon_split
  */
 bool splitInConvexComponents(
 	const TPolygon2D& poly, std::vector<TPolygon2D>& components);
@@ -896,6 +944,17 @@ void closestFromPointToSegment(
 	double Px, double Py, double x1, double y1, double x2, double y2,
 	double& out_x, double& out_y);
 
+/// \overload (New in MRPT 2.3.0)
+inline mrpt::math::TPoint2D closestFromPointToSegment(
+	const mrpt::math::TPoint2D& query, const mrpt::math::TPoint2D& segPt1,
+	const mrpt::math::TPoint2D& segPt2)
+{
+	mrpt::math::TPoint2D r;
+	closestFromPointToSegment(
+		query.x, query.y, segPt1.x, segPt1.y, segPt2.x, segPt2.y, r.x, r.y);
+	return r;
+}
+
 /** Computes the closest point from a given point to a (infinite) line.
  * \sa closestFromPointToSegment
  */
@@ -903,10 +962,30 @@ void closestFromPointToLine(
 	double Px, double Py, double x1, double y1, double x2, double y2,
 	double& out_x, double& out_y);
 
+/// \overload (New in MRPT 2.3.0)
+inline mrpt::math::TPoint2D closestFromPointToLine(
+	const mrpt::math::TPoint2D& query, const mrpt::math::TPoint2D& linePt1,
+	const mrpt::math::TPoint2D& linePt2)
+{
+	mrpt::math::TPoint2D r;
+	closestFromPointToLine(
+		query.x, query.y, linePt1.x, linePt1.y, linePt2.x, linePt2.y, r.x, r.y);
+	return r;
+}
+
 /** Returns the square distance from a point to a line.
  */
-double closestSquareDistanceFromPointToLine(
+double squaredDistancePointToLine(
 	double Px, double Py, double x1, double y1, double x2, double y2);
+
+/// \overload (New in MRPT 2.3.0)
+inline double squaredDistancePointToLine(
+	const mrpt::math::TPoint2D& query, const mrpt::math::TPoint2D& linePt1,
+	const mrpt::math::TPoint2D& linePt2)
+{
+	return squaredDistancePointToLine(
+		query.x, query.y, linePt1.x, linePt1.y, linePt2.x, linePt2.y);
+}
 
 /** Returns the distance between 2 points in 2D. */
 template <typename T>
@@ -953,27 +1032,6 @@ double minimumDistanceFromPointToSegment(
 	return distanceBetweenPoints(Px, Py, ox, oy);
 }
 
-/** Returns the intersection point, and if it exists, between two segments.
- */
-bool SegmentsIntersection(
-	const double x1, const double y1, const double x2, const double y2,
-	const double x3, const double y3, const double x4, const double y4,
-	double& ix, double& iy);
-
-/** Returns the intersection point, and if it exists, between two segments.
- */
-bool SegmentsIntersection(
-	const double x1, const double y1, const double x2, const double y2,
-	const double x3, const double y3, const double x4, const double y4,
-	float& ix, float& iy);
-
-/** Returns true if the 2D point (px,py) falls INTO the given polygon.
- * \sa pointIntoQuadrangle
- */
-bool pointIntoPolygon2D(
-	double px, double py, unsigned int polyEdges, const double* poly_xs,
-	const double* poly_ys);
-
 /** Specialized method to check whether a point (x,y) falls into a quadrangle.
  * \sa pointIntoPolygon2D
  */
@@ -1000,27 +1058,6 @@ bool pointIntoQuadrangle(
 	const T da4 = mrpt::math::wrapToPi(a1 - a4);
 	return (sign(da3) == sign(da4) && (sign(da4) == sign(da1)));
 }
-
-/** Returns the closest distance of a given 2D point to a polygon, or "0" if the
- * point is INTO the polygon or its perimeter.
- */
-double distancePointToPolygon2D(
-	double px, double py, unsigned int polyEdges, const double* poly_xs,
-	const double* poly_ys);
-
-/** Calculates the minimum distance between a pair of lines.
-  The lines are given by:
-	- Line 1 = P1 + f (P2-P1)
-	- Line 2 = P3 + f (P4-P3)
-  The Euclidean distance is returned in "dist", and the mid point between the
-  lines in (x,y,z)
-  \return It returns false if there is no solution, i.e. lines are (almost, up
-  to EPS) parallel.
- */
-bool minDistBetweenLines(
-	double p1_x, double p1_y, double p1_z, double p2_x, double p2_y,
-	double p2_z, double p3_x, double p3_y, double p3_z, double p4_x,
-	double p4_y, double p4_z, double& x, double& y, double& z, double& dist);
 
 /** Returns whether two rotated rectangles intersect.
  *  The first rectangle is not rotated and given by
@@ -1074,6 +1111,13 @@ bool RectanglesIntersection(
   * (JLB @ 18-SEP-2007)
   */
 CMatrixDouble33 generateAxisBaseFromDirection(double dx, double dy, double dz);
+
+/** Returns the area of a polygon, positive if vertices listed in CCW ordering,
+ * negative if CW.
+ *
+ *  \note (New in MRPT 2.4.1)
+ */
+double signedArea(const mrpt::math::TPolygon2D& p);
 
 /** @} */  // end of misc. geom. methods
 
