@@ -2,20 +2,20 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
-#include "opengl-precomp.h"  // Precompiled header
-
+#include "opengl-precomp.h"	 // Precompiled header
+//
+#include <mrpt/containers/yaml.h>
 #include <mrpt/core/round.h>  // round()
 #include <mrpt/math/ops_containers.h>  // for << ops
 #include <mrpt/opengl/CPointCloudColoured.h>
+#include <mrpt/opengl/opengl_api.h>
 #include <mrpt/serialization/CArchive.h>
 #include <mrpt/serialization/stl_serialization.h>
-
-#include <mrpt/opengl/opengl_api.h>
 
 using namespace mrpt;
 using namespace mrpt::opengl;
@@ -131,8 +131,7 @@ void CPointCloudColoured::serializeFrom(
 			CRenderizableShaderPoints::params_deserialize(in);
 		}
 		break;
-		default:
-			MRPT_THROW_UNKNOWN_SERIALIZATION_VERSION(version);
+		default: MRPT_THROW_UNKNOWN_SERIALIZATION_VERSION(version);
 	};
 	markAllPointsAsNew();
 	CRenderizable::notifyChange();
@@ -171,8 +170,21 @@ void CPointCloudColoured::push_back(
 	CRenderizable::notifyChange();
 }
 
+void CPointCloudColoured::insertPoint(const mrpt::math::TPointXYZfRGBAu8& p)
+{
+	m_points.emplace_back(p.pt);
+	m_point_colors.emplace_back(p.r, p.g, p.b, p.a);
+
+	markAllPointsAsNew();
+	CRenderizable::notifyChange();
+}
+
 // Do needed internal work if all points are new (octree rebuilt,...)
-void CPointCloudColoured::markAllPointsAsNew() { octree_mark_as_outdated(); }
+void CPointCloudColoured::markAllPointsAsNew()
+{
+	octree_mark_as_outdated();
+	CRenderizable::notifyChange();
+}
 /** In a base class, reserve memory to prepare subsequent calls to
  * PLY_import_set_vertex */
 void CPointCloudColoured::PLY_import_set_vertex_count(const size_t N)
@@ -194,9 +206,10 @@ void CPointCloudColoured::PLY_import_set_vertex(
 			idx, TPointXYZfRGBAu8(pt.x, pt.y, pt.z, 0xff, 0xff, 0xff));
 	else
 		this->setPoint(
-			idx, TPointXYZfRGBAu8(
-					 pt.x, pt.y, pt.z, f2u8(pt_color->R), f2u8(pt_color->G),
-					 f2u8(pt_color->B)));
+			idx,
+			TPointXYZfRGBAu8(
+				pt.x, pt.y, pt.z, f2u8(pt_color->R), f2u8(pt_color->G),
+				f2u8(pt_color->B)));
 }
 
 /** In a base class, return the number of vertices */
@@ -235,15 +248,9 @@ void CPointCloudColoured::recolorizeByCoordinate(
 		float coord = .0f;
 		switch (coord_index)
 		{
-			case 0:
-				coord = m_points[i].x;
-				break;
-			case 1:
-				coord = m_points[i].y;
-				break;
-			case 2:
-				coord = m_points[i].z;
-				break;
+			case 0: coord = m_points[i].x; break;
+			case 1: coord = m_points[i].y; break;
+			case 2: coord = m_points[i].z; break;
 		};
 		const float col_idx =
 			std::max(0.0f, std::min(1.0f, (coord - coord_min) * coord_range_1));
@@ -251,4 +258,11 @@ void CPointCloudColoured::recolorizeByCoordinate(
 		mrpt::img::colormap(color_map, col_idx, r, g, b);
 		this->setPointColor_fast(i, r, g, b);
 	}
+}
+
+void CPointCloudColoured::toYAMLMap(mrpt::containers::yaml& propertiesMap) const
+{
+	CRenderizable::toYAMLMap(propertiesMap);
+	propertiesMap["point_count"] = m_points.size();
+	propertiesMap["bounding_box"] = this->getBoundingBox().asString();
 }

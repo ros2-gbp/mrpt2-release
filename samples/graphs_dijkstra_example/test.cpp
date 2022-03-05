@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,6 +12,7 @@
 #include <mrpt/gui/CDisplayWindowPlots.h>
 #include <mrpt/random.h>
 #include <mrpt/system/CTicTac.h>
+
 #include <iostream>
 #include <map>
 
@@ -25,15 +26,12 @@ using namespace mrpt::system;
 using namespace std;
 
 // The type of my Dijkstra problem:
-typedef CDijkstra<CNetworkOfPoses2D>
-	CMyDijkstra;  // See other options in mrpt::poses::CNetworkOfPoses<>
-
-// Before MRPT 0.9.5 it was:
-// typedef CDijkstra<CNetworkOfPoses2D::edge_t> CMyDijkstra;
+// (See other options in mrpt::poses::CNetworkOfPoses<>)
+using CMyDijkstra = mrpt::graphs::CDijkstra<CNetworkOfPoses2D>;
 
 // adds a new edge to the graph. The edge is annotated with the relative
 // position of the two nodes
-void addEdge(
+static void addEdge(
 	TNodeID from, TNodeID to, const std::map<TNodeID, CPose2D>& real_poses,
 	CNetworkOfPoses2D& graph_links)
 {
@@ -47,7 +45,7 @@ double myDijkstraWeight(
 	const CMyDijkstra::edge_t& edge)
 {
 	//	return 1;					// Topological distance
-	return edge.norm();  // Metric distance
+	return edge.norm();	 // Metric distance
 }
 
 // ------------------------------------------------------
@@ -100,8 +98,14 @@ void TestDijkstra()
 	// ----------------------------
 	tictac.Tic();
 	const size_t SOURCE_NODE = 0;
+#if 0
+	const size_t maxTopoDistance = 35;	// according to myDijkstraWeight()
+#else
+	const size_t maxTopoDistance = std::numeric_limits<size_t>::max();
+#endif
 
-	CMyDijkstra myDijkstra(graph_links, SOURCE_NODE, &myDijkstraWeight);
+	CMyDijkstra myDijkstra(
+		graph_links, SOURCE_NODE, &myDijkstraWeight, {}, maxTopoDistance);
 
 	cout << "Dijkstra took " << tictac.Tac() * 1e3 << " ms for "
 		 << graph_links.edges.size() << " edges." << endl;
@@ -109,33 +113,25 @@ void TestDijkstra()
 	// Demo of getting the tree representation of
 	//  the graph & visit its nodes:
 	// ---------------------------------------------------------
-	CMyDijkstra::tree_graph_t graphAsTree;
-	myDijkstra.getTreeGraph(graphAsTree);
+	const CMyDijkstra::tree_graph_t graphAsTree = myDijkstra.getTreeGraph();
 
 	// Text representation of the tree:
 	cout << "TREE:\n" << graphAsTree.getAsTextDescription() << endl;
 
-	struct CMyVisitor : public CMyDijkstra::tree_graph_t::Visitor
-	{
-		void OnVisitNode(
-			const TNodeID parent,
-			const CMyDijkstra::tree_graph_t::TEdgeInfo& edge_to_child,
-			const size_t depth_level) override
-		{
-			cout << string(depth_level * 3, ' ');
-			cout << edge_to_child.id << endl;
-		}
+	auto lmb = [&]([[maybe_unused]] const TNodeID parent,
+				   const CMyDijkstra::tree_graph_t::TEdgeInfo& edge_to_child,
+				   const size_t depth_level) {
+		cout << string(depth_level * 3, ' ');
+		cout << edge_to_child.id << endl;
 	};
-
-	CMyVisitor myVisitor;
 
 	cout << "Depth-first traverse of graph:\n";
 	cout << SOURCE_NODE << endl;
-	graphAsTree.visitDepthFirst(SOURCE_NODE, myVisitor);
+	graphAsTree.visitDepthFirst(SOURCE_NODE, lmb);
 
 	cout << endl << "Breadth-first traverse of graph:\n";
 	cout << SOURCE_NODE << endl;
-	graphAsTree.visitBreadthFirst(SOURCE_NODE, myVisitor);
+	graphAsTree.visitBreadthFirst(SOURCE_NODE, lmb);
 
 	// ----------------------------
 	// Display results graphically:
@@ -149,11 +145,17 @@ void TestDijkstra()
 	{
 		if (i == SOURCE_NODE) continue;
 
-		CMyDijkstra::edge_list_t path;
+		const auto dist = myDijkstra.getNodeDistanceToRoot(i);
+		if (!dist.has_value())
+		{
+			cout << "to " << i << "-> no path found.\n";
+			continue;
+		}
 
-		myDijkstra.getShortestPathTo(i, path);
+		const CMyDijkstra::edge_list_t path = myDijkstra.getShortestPathTo(i);
 
-		cout << "to " << i << " -> #steps= " << path.size() << endl;
+		cout << "to " << i << " -> #steps= " << path.size()
+			 << " distance=" << dist.value() << endl;
 
 		win.setWindowTitle(format(
 			"Dijkstra path %u->%u", static_cast<unsigned int>(SOURCE_NODE),
