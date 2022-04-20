@@ -1,3 +1,26 @@
+## mrpt2 (humble) - 2.4.3-1
+
+The packages in the `mrpt2` repository were released into the `humble` distro by running `/home/steven/osrf/bloom/.direnv/python-3.10.4/bin/bloom-release -r humble -n mrpt2` on `Wed, 20 Apr 2022 22:50:38 -0000`
+
+The `mrpt2` package was released.
+
+Version of package(s) in repository `mrpt2`:
+
+- upstream repository: https://github.com/MRPT/mrpt.git
+- release repository: https://github.com/ros2-gbp/mrpt2-release.git
+- rosdistro version: `null`
+- old version: `null`
+- new version: `2.4.3-1`
+
+Versions of tools used:
+
+- bloom version: `0.11.0`
+- catkin_pkg version: `0.4.24`
+- rosdep version: `0.21.0`
+- rosdistro version: `0.8.3`
+- vcstools version: `0.1.42`
+
+
 ## mrpt2 (rolling) - 2.4.3-1
 
 The packages in the `mrpt2` repository were released into the `rolling` distro by running `/usr/bin/bloom-release mrpt2 --rosdistro rolling` on `Sat, 05 Mar 2022 07:40:43 -0000`
