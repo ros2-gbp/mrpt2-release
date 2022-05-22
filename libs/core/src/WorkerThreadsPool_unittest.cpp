@@ -8,8 +8,10 @@
    +------------------------------------------------------------------------+ */
 
 #include <gtest/gtest.h>
+#include <mrpt/config.h>
 #include <mrpt/core/WorkerThreadsPool.h>
 
+#if !MRPT_IN_EMSCRIPTEN	 // No multithreading
 TEST(WorkerThreadsPool, runTasks)
 {
 	//
@@ -25,8 +27,8 @@ TEST(WorkerThreadsPool, runTasks)
 		auto fut3 = pool.enqueue(f, 3);
 
 		const auto n = pool.pendingTasks();
-		EXPECT_GE(n, 0);
-		EXPECT_LE(n, 3);
+		EXPECT_GE(n, 0U);
+		EXPECT_LE(n, 3U);
 
 		fut1.wait();
 		fut2.wait();
@@ -34,3 +36,4 @@ TEST(WorkerThreadsPool, runTasks)
 	}
 	EXPECT_EQ(accum, 6);
 }
+#endif	// !MRPT_IN_EMSCRIPTEN
