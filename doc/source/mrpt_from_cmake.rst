@@ -1,9 +1,11 @@
 .. _mrpt_from_cmake:
 
 ####################################
-Using MRPT from your CMake project
+Using MRPT in your CMake project
 ####################################
 
+.. note::
+    See online complete example with a CMake + .cpp file `here <https://github.com/MRPT/mrpt/tree/develop/doc/mrpt_example1>`_.
 
 Finding MRPT from CMake
 -------------------------
@@ -46,7 +48,7 @@ or individually like:
 For MRPT 1.x
 -------------------------
 
-Prior to MRPT 2.0.0, the correct way to find for MRPT was:
+Prior to MRPT 2.0.0, the correct way to search for MRPT was:
 
 .. code-block:: cmake
 

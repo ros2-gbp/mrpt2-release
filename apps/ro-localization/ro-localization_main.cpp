@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -148,8 +148,7 @@ void TestParticlesLocalization()
 	pfOptions.dumpToConsole();
 
 	// Init PSRNG:
-	if (random_seed)
-		getRandomGenerator().randomize(random_seed);
+	if (random_seed) getRandomGenerator().randomize(random_seed);
 	else
 		getRandomGenerator().randomize();
 
@@ -221,9 +220,7 @@ void TestParticlesLocalization()
 			size_t real_offsets_rows = 0;
 			double accum_xy_err_sqr = 0;
 			if (Pc_range_ini != Pc_range_end)
-			{
-				pdf.options.probabilityChangingBias = range_Pc;
-			}
+			{ pdf.options.probabilityChangingBias = range_Pc; }
 
 			pdf.options.metricMap = &metricMap;
 
@@ -287,10 +284,7 @@ void TestParticlesLocalization()
 
 			window.setCameraProjective(false);
 
-			if (SAVE_3D_TO_VIDEO)
-			{
-				window.grabImagesStart();
-			}
+			if (SAVE_3D_TO_VIDEO) { window.grabImagesStart(); }
 
 			COpenGLScene::Ptr sceneTR = window.get3DSceneAndLock();
 #endif
@@ -317,18 +311,14 @@ void TestParticlesLocalization()
 
 #ifdef SHOW_REAL_TIME_3D
 				{
-					opengl::CSetOfObjects::Ptr obj =
-						std::make_shared<opengl::CSetOfObjects>();
-					grid2d.getAs3DObject(obj);
+					auto obj = grid2d.getVisualization();
 					obj->setLocation(
 						initialPoseExperiment.x(), initialPoseExperiment.y(),
 						0);
 					sceneTR->insert(obj);
 				}
 #endif
-				opengl::CSetOfObjects::Ptr obj =
-					std::make_shared<opengl::CSetOfObjects>();
-				grid2d.getAs3DObject(obj);
+				auto obj = grid2d.getVisualization();
 				scene->insert(obj);
 			}
 			else
@@ -383,7 +373,7 @@ void TestParticlesLocalization()
 
 				if (!rawlog.getActionObservationPair(
 						action, observations, rawlogEntry))
-					break;  // end of rawlog.
+					break;	// end of rawlog.
 
 				//-------------------FRANCO DATA--------------------
 				{
@@ -422,7 +412,7 @@ void TestParticlesLocalization()
 				PF.executeOn(
 					pdf,
 					action.get(),  // Action
-					observations.get(),  // Obs.
+					observations.get(),	 // Obs.
 					&PF_stats  // Output statistics
 				);
 				printf(
@@ -431,9 +421,9 @@ void TestParticlesLocalization()
 
 				// Text output:
 				// ----------------------------------------
-				odometryEstimation =
-					odometryEstimation + action->getBestMovementEstimation()
-											 ->poseChange->getMeanVal();
+				odometryEstimation = odometryEstimation +
+					action->getBestMovementEstimation()
+						->poseChange->getMeanVal();
 				pdf.getMean(pdfEstimation);
 
 				CPose2D GT_Pose;
@@ -545,13 +535,21 @@ void TestParticlesLocalization()
 
 // The particles:
 #ifdef SHOW_REAL_TIME_3D
-					opengl::CRenderizable::Ptr obj = sceneTR->getByName("part");
 					opengl::CPointCloud::Ptr parts;
 
-					if (!obj)
-						parts = opengl::CPointCloud::Create();
-					else
-						parts = std::dynamic_pointer_cast<CPointCloud>(obj);
+					{
+						auto obj = sceneTR->getByName("part");
+						if (!obj)
+						{
+							parts = opengl::CPointCloud::Create();
+							scene->insert(parts);
+#ifdef SHOW_REAL_TIME_3D
+							sceneTR->insert(parts);
+#endif
+						}
+						else
+							parts = std::dynamic_pointer_cast<CPointCloud>(obj);
+					}
 #else
 					opengl::CPointCloud::Ptr parts =
 						std::make_shared<opengl::CPointCloud>();
@@ -569,22 +567,23 @@ void TestParticlesLocalization()
 							i, pdf.m_particles[i].d->pose.x(),
 							pdf.m_particles[i].d->pose.y(), 0);
 
-					if (!obj)
-					{
-						scene->insert(parts);
-#ifdef SHOW_REAL_TIME_3D
-						sceneTR->insert(parts);
-#endif
-					}
-
 // The particles' cov:
 #ifdef SHOW_REAL_TIME_3D
-					obj = sceneTR->getByName("cov");
 					opengl::CEllipsoid2D::Ptr ellip;
-					if (!obj)
-						ellip = std::make_shared<opengl::CEllipsoid2D>();
-					else
-						ellip = std::dynamic_pointer_cast<CEllipsoid2D>(obj);
+					{
+						auto obj = sceneTR->getByName("cov");
+						if (!obj)
+						{
+							ellip = std::make_shared<opengl::CEllipsoid2D>();
+							scene->insert(ellip);
+#ifdef SHOW_REAL_TIME_3D
+							sceneTR->insert(ellip);
+#endif
+						}
+						else
+							ellip =
+								std::dynamic_pointer_cast<CEllipsoid2D>(obj);
+					}
 #else
 					opengl::CEllipsoid2D::Ptr ellip =
 						std::make_shared<opengl::CEllipsoid2D>();
@@ -598,22 +597,21 @@ void TestParticlesLocalization()
 					ellip->setCovMatrix(C.blockCopy<2, 2>(0, 0));
 					ellip->setName("cov");
 
-					if (!obj)
-					{
-						scene->insert(ellip);
-#ifdef SHOW_REAL_TIME_3D
-						sceneTR->insert(ellip);
-#endif
-					}
-
 #ifdef SHOW_REAL_TIME_3D
 					// The laser scan:
-					obj = sceneTR->getByName("laser");
 					opengl::CPointCloud::Ptr scanPts;
-					if (!obj)
-						scanPts = opengl::CPointCloud::Create();
-					else
-						scanPts = std::dynamic_pointer_cast<CPointCloud>(obj);
+					{
+						auto obj = sceneTR->getByName("laser");
+						if (!obj)
+						{
+							scanPts = opengl::CPointCloud::Create();
+							scene->insert(scanPts);
+							sceneTR->insert(scanPts);
+						}
+						else
+							scanPts =
+								std::dynamic_pointer_cast<CPointCloud>(obj);
+					}
 
 					scanPts->setColor(1, 0, 0, 0.9);
 					scanPts->enableColorFromZ(false);
@@ -622,20 +620,13 @@ void TestParticlesLocalization()
 
 					CSimplePointsMap map;
 					CPose3D robotPose3D(meanPose);
-					observations->insertObservationsInto(&map, &robotPose3D);
+					observations->insertObservationsInto(map, robotPose3D);
 					scanPts->loadFromPointsMap(&map);
 
-					if (!obj)
-					{
-						scene->insert(scanPts);
-						sceneTR->insert(scanPts);
-					}
-
 					// Beacon range spheres:
-					CObservationBeaconRanges::Ptr dist =
-						observations
-							->getObservationByClass<CObservationBeaconRanges>();
-					if (beacMap && dist && !dist->sensedData.empty())
+					if (auto dist = observations->getObservationByClass<
+									CObservationBeaconRanges>();
+						beacMap && dist && !dist->sensedData.empty())
 					{
 						for (auto& k : dist->sensedData)
 						{
@@ -646,15 +637,23 @@ void TestParticlesLocalization()
 							if (lm)
 							{
 #ifdef SHOW_REAL_TIME_3D
-								opengl::CRenderizable::Ptr obj =
-									sceneTR->getByName(beacon_name);
 								opengl::CDisk::Ptr sphere;
-
-								if (!obj)
-									sphere = std::make_shared<opengl::CDisk>();
-								else
-									sphere =
-										std::dynamic_pointer_cast<CDisk>(obj);
+								{
+									auto obj = sceneTR->getByName(beacon_name);
+									if (!obj)
+									{
+										sphere =
+											std::make_shared<opengl::CDisk>();
+										scene->insert(sphere);
+#ifdef SHOW_REAL_TIME_3D
+										sceneTR->insert(sphere);
+#endif
+									}
+									else
+										sphere =
+											std::dynamic_pointer_cast<CDisk>(
+												obj);
+								}
 #else
 								opengl::CSphere::Ptr sphere =
 									std::make_shared<opengl::CSphere>();
@@ -669,24 +668,13 @@ void TestParticlesLocalization()
 									lm->pose_mean.x, lm->pose_mean.y, 0.05);
 
 								float R = square(k.sensedDistance) -
-										  square(
-											  k.sensorLocationOnRobot.z() -
-											  lm->pose_mean.z);
+									square(k.sensorLocationOnRobot.z() -
+										   lm->pose_mean.z);
 
-								if (R > 0)
-									R = sqrt(R);
+								if (R > 0) R = sqrt(R);
 								else
 									R = 0.08f;
 								sphere->setDiskRadius(R + 0.08f, R - 0.08f);
-
-								if (!obj)
-								{
-									scene->insert(sphere);
-
-#ifdef SHOW_REAL_TIME_3D
-									sceneTR->insert(sphere);
-#endif
-								}
 							}
 						}
 					}  // for each beacon
@@ -698,8 +686,7 @@ void TestParticlesLocalization()
 							sceneTR->getByName("franc");
 						opengl::CSphere::Ptr sphere;
 
-						if (!obj)
-							sphere = std::make_shared<opengl::CSphere>();
+						if (!obj) sphere = std::make_shared<opengl::CSphere>();
 						else
 							sphere =
 								std::dynamic_pointer_cast<opengl::CSphere>(obj);
@@ -707,10 +694,9 @@ void TestParticlesLocalization()
 						sphere->setRadius(0.05f);
 						sphere->setName("franc");
 
-						CObservationBeaconRanges::Ptr dist =
-							observations->getObservationByClass<
-								CObservationBeaconRanges>();
-						if (dist)
+						if (auto dist = observations->getObservationByClass<
+										CObservationBeaconRanges>();
+							dist)
 						{
 							sphere->setLocation(
 								dist->auxEstimatePose.x(),
@@ -728,15 +714,23 @@ void TestParticlesLocalization()
 					// Mean of particles
 					{
 #ifdef SHOW_REAL_TIME_3D
-						opengl::CRenderizable::Ptr obj =
-							sceneTR->getByName("mean_parts");
 						opengl::CSphere::Ptr sphere;
 
-						if (!obj)
-							sphere = std::make_shared<opengl::CSphere>();
-						else
-							sphere =
-								std::dynamic_pointer_cast<opengl::CSphere>(obj);
+						{
+							auto obj = sceneTR->getByName("mean_parts");
+							if (!obj)
+							{
+								sphere = std::make_shared<opengl::CSphere>();
+								scene->insert(sphere);
+#ifdef SHOW_REAL_TIME_3D
+								sceneTR->insert(sphere);
+#endif
+							}
+							else
+								sphere =
+									std::dynamic_pointer_cast<opengl::CSphere>(
+										obj);
+						}
 
 #else
 						opengl::CSphere::Ptr sphere =
@@ -748,29 +742,29 @@ void TestParticlesLocalization()
 
 						sphere->setLocation(
 							pdfEstimation.x(), pdfEstimation.y(), 0.05);
-
-						if (!obj)
-						{
-							scene->insert(sphere);
-#ifdef SHOW_REAL_TIME_3D
-							sceneTR->insert(sphere);
-#endif
-						}
 					}
 
 					// groundTruth
 					if (groundTruth.rows() > step)
 					{
 #ifdef SHOW_REAL_TIME_3D
-						opengl::CRenderizable::Ptr obj =
-							sceneTR->getByName("GT");
 						opengl::CSphere::Ptr sphere;
 
-						if (!obj)
-							sphere = std::make_shared<opengl::CSphere>();
-						else
-							sphere =
-								std::dynamic_pointer_cast<opengl::CSphere>(obj);
+						{
+							auto obj = sceneTR->getByName("GT");
+							if (!obj)
+							{
+								sphere = std::make_shared<opengl::CSphere>();
+								scene->insert(sphere);
+#ifdef SHOW_REAL_TIME_3D
+								sceneTR->insert(sphere);
+#endif
+							}
+							else
+								sphere =
+									std::dynamic_pointer_cast<opengl::CSphere>(
+										obj);
+						}
 #else
 						opengl::CSphere::Ptr sphere =
 							std::make_shared<opengl::CSphere>();
@@ -782,14 +776,6 @@ void TestParticlesLocalization()
 						sphere->setLocation(GT_Pose.x(), GT_Pose.y(), 0.05);
 
 						cout << "GT robot pose: " << GT_Pose << endl;
-
-						if (!obj)
-						{
-							scene->insert(sphere);
-#ifdef SHOW_REAL_TIME_3D
-							sceneTR->insert(sphere);
-#endif
-						}
 					}
 
 #ifdef SHOW_REAL_TIME_3D
@@ -799,16 +785,22 @@ void TestParticlesLocalization()
 									 ->getObservationByClass<CObservationGPS>();
 						if (o && beacMap)
 						{
-							auto obj = sceneTR->getByName("gps");
 							opengl::CEllipsoid2D::Ptr sphere;
 							double x, y;
 
-							if (!obj)
-								sphere =
-									std::make_shared<opengl::CEllipsoid2D>();
-							else
-								sphere = std::dynamic_pointer_cast<
-									opengl::CEllipsoid2D>(obj);
+							{
+								auto obj = sceneTR->getByName("gps");
+								if (!obj)
+								{
+									sphere = std::make_shared<
+										opengl::CEllipsoid2D>();
+									scene->insert(sphere);
+									sceneTR->insert(sphere);
+								}
+								else
+									sphere = std::dynamic_pointer_cast<
+										opengl::CEllipsoid2D>(obj);
+							}
 
 							sphere->setColor(0, 1, 1, 0.5);
 							sphere->setName("gps");
@@ -829,15 +821,19 @@ void TestParticlesLocalization()
 											 .latitude)) *
 									6371000 * 1.15;
 								sphere->setLocation(
-									(x * cos(beacMap->likelihoodOptions
+									(x *
+										 cos(beacMap->likelihoodOptions
 												 .GPSOrigin.ang) +
-									 y * sin(beacMap->likelihoodOptions
+									 y *
+										 sin(beacMap->likelihoodOptions
 												 .GPSOrigin.ang) +
 									 beacMap->likelihoodOptions.GPSOrigin
 										 .x_shift),
-									(-x * sin(beacMap->likelihoodOptions
-												  .GPSOrigin.ang) +
-									 y * cos(beacMap->likelihoodOptions
+									(-x *
+										 sin(beacMap->likelihoodOptions
+												 .GPSOrigin.ang) +
+									 y *
+										 cos(beacMap->likelihoodOptions
 												 .GPSOrigin.ang) +
 									 beacMap->likelihoodOptions.GPSOrigin
 										 .y_shift),
@@ -847,11 +843,6 @@ void TestParticlesLocalization()
 							r(1, 1) = 9;
 							r(0, 0) = 9;
 							sphere->setCovMatrix(r);
-							if (!obj)
-							{
-								scene->insert(sphere);
-								sceneTR->insert(sphere);
-							}
 						}
 					}
 					{
@@ -860,17 +851,22 @@ void TestParticlesLocalization()
 								->getObservationByClass<CObservationGPS>();
 						if (o)
 						{
-							opengl::CRenderizable::Ptr obj =
-								sceneTR->getByName("gps_CENTER");
 							opengl::CSphere::Ptr sphere;
 							double x, y;
 
-							if (!obj)
-								sphere = std::make_shared<opengl::CSphere>();
-							else
-								sphere =
-									std::dynamic_pointer_cast<opengl::CSphere>(
-										obj);
+							{
+								auto obj = sceneTR->getByName("gps_CENTER");
+								if (!obj)
+								{
+									sphere =
+										std::make_shared<opengl::CSphere>();
+									scene->insert(sphere);
+									sceneTR->insert(sphere);
+								}
+								else
+									sphere = std::dynamic_pointer_cast<
+										opengl::CSphere>(obj);
+							}
 							sphere->setColor(0, 1, 1);
 							sphere->setName("gps_CENTER");
 							if (o->hasMsgClass<
@@ -883,33 +879,32 @@ void TestParticlesLocalization()
 										(gga.fields.longitude_degrees -
 										 beacMap->likelihoodOptions.GPSOrigin
 											 .longitude)) *
-									6371000 * 1.03;  //*9000000;
+									6371000 * 1.03;	 //*9000000;
 								y = DEG2RAD(
 										(gga.fields.latitude_degrees -
 										 beacMap->likelihoodOptions.GPSOrigin
 											 .latitude)) *
-									6371000 * 1.15;  //*12000000;
+									6371000 * 1.15;	 //*12000000;
 								sphere->setLocation(
-									(x * cos(beacMap->likelihoodOptions
+									(x *
+										 cos(beacMap->likelihoodOptions
 												 .GPSOrigin.ang) +
-									 y * sin(beacMap->likelihoodOptions
+									 y *
+										 sin(beacMap->likelihoodOptions
 												 .GPSOrigin.ang) +
 									 beacMap->likelihoodOptions.GPSOrigin
 										 .x_shift),
-									(-x * sin(beacMap->likelihoodOptions
-												  .GPSOrigin.ang) +
-									 y * cos(beacMap->likelihoodOptions
+									(-x *
+										 sin(beacMap->likelihoodOptions
+												 .GPSOrigin.ang) +
+									 y *
+										 cos(beacMap->likelihoodOptions
 												 .GPSOrigin.ang) +
 									 beacMap->likelihoodOptions.GPSOrigin
 										 .y_shift),
 									0);
 							}
 							sphere->setRadius(0.5);
-							if (!obj)
-							{
-								scene->insert(sphere);
-								sceneTR->insert(sphere);
-							}
 						}
 					}
 

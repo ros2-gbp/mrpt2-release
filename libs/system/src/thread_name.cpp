@@ -2,56 +2,73 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
-#include "system-precomp.h"  // Precompiled headers
+#include "system-precomp.h"	 // Precompiled headers
 //
 #include <mrpt/config.h>
 #include <mrpt/core/exceptions.h>
 #include <mrpt/system/thread_name.h>
 
 #if defined(MRPT_OS_WINDOWS)
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-
+//
 #include <cwchar>
 #include <vector>
 
 #elif defined(MRPT_OS_LINUX)
 #include <sys/prctl.h>
 
+#if HAVE_PTHREAD_H
+#include <pthread.h>
+#endif
+
 static void SetThreadName(std::thread& thread, const char* threadName)
 {
+#if !MRPT_IN_EMSCRIPTEN
 	auto handle = thread.native_handle();
 	pthread_setname_np(handle, threadName);
+#endif
 }
 
 static std::string GetThreadName(std::thread& thread)
 {
+#if !MRPT_IN_EMSCRIPTEN
 	auto handle = thread.native_handle();
 	char buf[1000];
 	buf[0] = '\0';
 	pthread_getname_np(handle, buf, sizeof(buf));
 	return std::string(buf);
+#else
+	return {};
+#endif
 }
 
 static void SetThreadName(const char* threadName)
 {
+#if !MRPT_IN_EMSCRIPTEN
 	prctl(PR_SET_NAME, threadName, 0L, 0L, 0L);
+#endif
 }
 static std::string GetThreadName()
 {
+#if !MRPT_IN_EMSCRIPTEN
 	char buf[100] = {0};
 	prctl(PR_GET_NAME, buf, 0L, 0L, 0L);
 	return std::string(buf);
+#else
+	return {};
+#endif
 }
 #endif
 
 void mrpt::system::thread_name(const std::string& name)
 {
-#if defined(MRPT_OS_WINDOWS)
+#if defined(MRPT_OS_WINDOWS) && !defined(__MINGW32_MAJOR_VERSION)
 	wchar_t wName[50];
 	std::mbstowcs(wName, name.c_str(), sizeof(wName) / sizeof(wName[0]));
 	SetThreadDescription(GetCurrentThread(), wName);
@@ -62,7 +79,7 @@ void mrpt::system::thread_name(const std::string& name)
 
 void mrpt::system::thread_name(const std::string& name, std::thread& theThread)
 {
-#if defined(MRPT_OS_WINDOWS)
+#if defined(MRPT_OS_WINDOWS) && !defined(__MINGW32_MAJOR_VERSION)
 	wchar_t wName[50];
 	std::mbstowcs(wName, name.c_str(), sizeof(wName) / sizeof(wName[0]));
 	SetThreadDescription(theThread.native_handle(), wName);
@@ -86,7 +103,7 @@ static std::string w2cstr(wchar_t** wstrnc)
 
 std::string mrpt::system::thread_name()
 {
-#if defined(MRPT_OS_WINDOWS)
+#if defined(MRPT_OS_WINDOWS) && !defined(__MINGW32_MAJOR_VERSION)
 	std::string ret = "NoName";
 	PWSTR str;
 	HRESULT hr = GetThreadDescription(GetCurrentThread(), &str);
@@ -105,7 +122,7 @@ std::string mrpt::system::thread_name()
 
 std::string mrpt::system::thread_name(std::thread& theThread)
 {
-#if defined(MRPT_OS_WINDOWS)
+#if defined(MRPT_OS_WINDOWS) && !defined(__MINGW32_MAJOR_VERSION)
 	std::string ret = "NoName";
 	PWSTR str;
 	HRESULT hr = GetThreadDescription(theThread.native_handle(), &str);

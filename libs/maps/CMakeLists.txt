@@ -24,8 +24,6 @@ define_mrpt_lib(
 	# Dependencies:
 	mrpt-obs
 	mrpt-graphs
-	# Deps of deps:
-	mrpt-opengl
 	)
 
 if(BUILD_mrpt-maps)
@@ -48,7 +46,7 @@ if(BUILD_mrpt-maps)
 
 	# Windows only: the mxplus lib internally requires linking with opencv (sigh...)
 	# Perhaps there is a better way to solve this, someday.
-	if (BUILD_MATLAB)
+	if (MRPT_WITH_MATLAB_WRAPPER)
 		target_link_libraries(maps PRIVATE imp_opencv)
 	endif()
 endif()

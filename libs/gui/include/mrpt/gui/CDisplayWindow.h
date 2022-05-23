@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -12,6 +12,7 @@
 #include <mrpt/img/CImage.h>
 #include <mrpt/math/CVectorDynamic.h>
 #include <mrpt/system/os.h>
+
 #include <vector>
 
 namespace mrpt
@@ -49,7 +50,8 @@ class CDisplayWindow : public mrpt::gui::CBaseGUIWindow
 		const std::string& windowCaption = std::string(),
 		unsigned int initWidth = 400, unsigned int initHeight = 400);
 
-	/** Class factory returning a smart pointer */
+	/** Class factory returning a smart pointer, equivalent to
+	 * `std::make_shared<>(...)` */
 	static CDisplayWindow::Ptr Create(
 		const std::string& windowCaption, unsigned int initWidth = 400,
 		unsigned int initHeight = 400);
@@ -249,7 +251,7 @@ class CDisplayWindow : public mrpt::gui::CBaseGUIWindow
 	 */
 	void setWindowTitle(const std::string& str) override;
 
-};  // End of class def.
+};	// End of class def.
 
 }  // namespace gui
 

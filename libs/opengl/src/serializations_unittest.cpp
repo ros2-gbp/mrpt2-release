@@ -2,18 +2,23 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #define MRPT_NO_WARN_BIG_HDR
-#include <mrpt/opengl.h>
-
-#include <mrpt/io/CMemoryStream.h>
-#include <mrpt/serialization/CArchive.h>
-
 #include <gtest/gtest.h>
+#include <mrpt/io/CMemoryStream.h>
+#include <mrpt/opengl.h>
+#include <mrpt/serialization/CArchive.h>
+#include <mrpt/system/filesystem.h>
+#include <test_mrpt_common.h>
+//
+#include <mrpt/config.h>
+#ifndef MRPT_BUILT_AS_DLL
+#include <mrpt/opengl/registerAllClasses.h>
+#endif
 
 using namespace mrpt;
 using namespace mrpt::opengl;
@@ -24,13 +29,17 @@ using namespace std;
 // bugs:
 TEST(SerializeTestOpenGL, WriteReadToMem)
 {
+#ifndef MRPT_BUILT_AS_DLL
+	mrpt::opengl::registerAllClasses_mrpt_opengl();
+#endif
+
 	const mrpt::rtti::TRuntimeClassId* lstClasses[] = {
 		CLASS_ID(CAxis),
 		CLASS_ID(CBox),
 		CLASS_ID(CFrustum),
 		CLASS_ID(CDisk),
 		CLASS_ID(CGridPlaneXY),
-#if MRPT_HAS_OPENCV  // These classes need CImage serialization
+#if MRPT_HAS_OPENCV	 // These classes need CImage serialization
 		CLASS_ID(CMesh),
 		CLASS_ID(CTexturedPlane),
 #endif
@@ -80,4 +89,31 @@ TEST(SerializeTestOpenGL, WriteReadToMem)
 						 << e.what() << endl;
 		}
 	}
+}
+
+TEST(SerializeTestOpenGL, PredefinedSceneFile)
+{
+	using namespace std::string_literals;
+
+	//! JS_PRELOAD_FILE <tests/default-scene.3Dscene>
+	const std::string fil =
+		mrpt::UNITTEST_BASEDIR + "/tests/default-scene.3Dscene"s;
+
+	mrpt::opengl::COpenGLScene scene;
+
+	ASSERT_FILE_EXISTS_(fil);
+	bool readOk = scene.loadFromFile(fil);
+	EXPECT_TRUE(readOk);
+
+	// scene.asYAML().printAsYAML();
+
+	EXPECT_EQ(scene.viewportsCount(), 2U);
+	size_t count = 0;
+	for (const auto& obj : *scene.getViewport())
+	{
+		(void)obj;
+		count++;
+	}
+
+	EXPECT_EQ(count, 2U);
 }

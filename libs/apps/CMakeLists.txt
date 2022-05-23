@@ -1,11 +1,10 @@
 # Mandatory modules for this module:
 set(lst_modules
-	mrpt-bayes
 	mrpt-hwdrivers
 	mrpt-gui
-	mrpt-obs
 	mrpt-slam
 	mrpt-tclap
+	mrpt-topography
 )
 
 # Optional modules:

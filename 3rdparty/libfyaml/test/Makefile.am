@@ -30,7 +30,7 @@ if HAVE_COMPATIBLE_CHECK
 check_PROGRAMS = libfyaml-test
 libfyaml_test_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/valgrind/ \
 			 -I$(top_srcdir)/src/lib/
-libfyaml_test_LDADD = $(AM_LDADD) $(CHECK_LIBS) $(top_builddir)/src/libfyaml-@MAJOR@.@MINOR@.la
+libfyaml_test_LDADD = $(AM_LDADD) $(CHECK_LIBS) $(top_builddir)/src/libfyaml.la
 libfyaml_test_CFLAGS = $(AM_CFLAGS) $(CHECK_CFLAGS) 
 libfyaml_test_LDFLAGS = $(AM_LDFLAGS) $(CHECK_LDFLAGS)
 
@@ -38,7 +38,8 @@ libfyaml_test_SOURCES = \
 	libfyaml-test.c \
 	libfyaml-test-private.c \
 	libfyaml-test-core.c \
-	libfyaml-test-meta.c
+	libfyaml-test-meta.c \
+	libfyaml-test-emit.c
 
 TESTS += libfyaml.test
 
@@ -57,6 +58,9 @@ endif
 
 # normal JSON testsuite
 TESTS += jsontestsuite.test
+
+# normal YAML testsuite using document event stream
+TESTS += testsuite-evstream.test
 
 testsuite.test: test-suite-data json-test-suite-data
 

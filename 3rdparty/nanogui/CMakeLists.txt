@@ -158,6 +158,9 @@ endif()
 
 # Various optimizations for shared library release builds
 if (NANOGUI_BUILD_SHARED)
+  # Disabled by default due to this Eigen issue: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1000780
+  option(NANOGUI_ENABLE_LINK_TIME_OPTIMIZATION "Enable lto (link time optimization)" OFF)
+
   if (U_CMAKE_BUILD_TYPE MATCHES REL AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
     # Set the default symbol visibility to hidden
     if (NOT CMAKE_CXX_FLAGS MATCHES "-fvisibility")
@@ -165,7 +168,7 @@ if (NANOGUI_BUILD_SHARED)
     endif()
 
     # Enable link time optimization
-    if (NOT CMAKE_CXX_FLAGS MATCHES "-flto")
+    if (NOT CMAKE_CXX_FLAGS MATCHES "-flto" AND NANOGUI_ENABLE_LINK_TIME_OPTIMIZATION)
       if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         set(LTO_CXX_FLAGS "-flto=thin")
         set(LTO_LINKER_FLAGS "-flto=thin")
@@ -206,7 +209,7 @@ endif()
 # Always use libc++ on Clang
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   CHECK_CXX_COMPILER_AND_LINKER_FLAGS(HAS_LIBCPP "-stdlib=libc++" "-stdlib=libc++")
-  if (HAS_LIBCPP)
+  if (HAS_LIBCPP AND APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -stdlib=libc++")
@@ -220,6 +223,16 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     endif()
   else()
     message(STATUS "NanoGUI: NOT using libc++.")
+    if (NOT ("${CMAKE_SYSTEM_NAME}" STREQUAL "Emscripten")) # just use defaults in Emscripten
+      # From: https://stackoverflow.com/a/16788372/1631514
+      # I would use the native library for each OS i.e. libstdc++ on GNU/Linux and libc++ on Mac OS X.
+      # libc++ is not 100% complete on GNU/Linux, and there's no real advantage to using it when libstdc++
+      # is more complete. Also, if you want to link to any other libraries written in C++ they will almost certainly have been built with libstdc++ so you'll need to link with that too to use them.
+      # Use the libstdc++ lib vs. libc++, to avoid some build errors in MacOS
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
+      set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libstdc++")
+      set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -stdlib=libstdc++")
+    endif()
   endif()
 endif()
 
@@ -247,8 +260,18 @@ endif()
 
 # Run simple cmake converter to put font files into the data segment
 
+# Search fonts from system packages first, rely on built-in as last resource.
+# This avoid shipping dupplicated & copyrighted files in Debian packages:
+# * Roboto-Bold.ttf,  Roboto-Regular.ttf => apt install fonts-roboto-fontface
+# * entypo+ is a custom font from: https://github.com/svenevs/nanogui-entypo
+#   (it is NOT the same one as provided by the entypo debian package)
+find_file(ENTYPO_TTF_FILE           entypo.ttf          PATHS "${CMAKE_CURRENT_SOURCE_DIR}/resources" REQUIRED)
+find_file(ROBOTO_BOLD_TTF_FILE      Roboto-Bold.ttf     PATHS /usr/share/fonts/truetype/roboto-fontface/roboto/ "${CMAKE_CURRENT_SOURCE_DIR}/resources" REQUIRED)
+find_file(ROBOTO_REGULAR_TTF_FILE   Roboto-Regular.ttf  PATHS /usr/share/fonts/truetype/roboto-fontface/roboto/ "${CMAKE_CURRENT_SOURCE_DIR}/resources" REQUIRED)
+
 # Glob up resource files
-file(GLOB resources "${CMAKE_CURRENT_SOURCE_DIR}/resources/*.ttf")
+set(resources ${ENTYPO_TTF_FILE} ${ROBOTO_BOLD_TTF_FILE} ${ROBOTO_REGULAR_TTF_FILE})
+message(STATUS "Font resources: ${resources}")
 
 # Concatenate resource files into a comma separated string
 string (REGEX REPLACE "([^\\]|^);" "\\1," resources_string "${resources}")
@@ -348,6 +371,11 @@ add_library(${PROJECT_NAME}  ${NANOGUI_LIBRARY_TYPE}
   ${OPTIONAL_GLFW_OBJECTS}
 )
 
+# Enable GLES3 in nanovg, if we are in Emscripten:
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Emscripten")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE NANOVG_GLES3_IMPLEMENTATION)
+endif()
+
 # create alias to make CMake scripts to work as if the project has been really imported:
 add_library(mrpt::nanogui ALIAS ${PROJECT_NAME})
 
@@ -377,7 +405,15 @@ elseif (APPLE)
     find_library(iokit_library IOKit)
     target_link_libraries(${PROJECT_NAME} PRIVATE ${cocoa_library} ${opengl_library} ${corevideo_library} ${iokit_library})
 elseif(CMAKE_SYSTEM MATCHES "Linux" OR CMAKE_SYSTEM_NAME MATCHES "BSD")
-    target_link_libraries(${PROJECT_NAME} PRIVATE GL Xxf86vm Xrandr X11 pthread) # Xinerama Xcursor Xi
+    # Read: https://cmake.org/cmake/help/latest/module/FindOpenGL.html
+    # Prefer the "new" GLVND lib if possible:
+    find_package(OpenGL)
+    if (NOT "${CMAKE_VERSION}" VERSION_LESS "3.8.2")
+        set(NANOGUI_GL_LIB OpenGL::GL)
+    else()
+        set(NANOGUI_GL_LIB ${OPENGL_gl_LIBRARY})
+    endif()
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${NANOGUI_GL_LIB} Xxf86vm Xrandr X11 pthread) # Xinerama Xcursor Xi
     if (NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD")
         target_link_libraries(${PROJECT_NAME} PRIVATE rt)
     endif()
@@ -513,21 +549,12 @@ if (NANOGUI_INSTALL AND EXISTS "${MRPT_SOURCE_DIR}/parse-files/mrpt-xxx-config.c
 		COMPATIBILITY AnyNewerVersion
 	)
 
-	if(CMAKE_MRPT_USE_DEB_POSTFIXS)
-		set(this_lib_dev_INSTALL_PREFIX "libmrpt-nanogui-dev/usr/")
-	endif()
-
-  if (WIN32)
-    set(dstDir cmake)
-  else()
-    set(dstDir share/mrpt-nanogui)
-  endif()
 	# mrpt-xxx-config.cmake file:
 	# Makes the project importable from installed dir:
 	# 1/3: autogenerated target file:
 	install(
 		EXPORT mrpt-nanogui-targets
-		DESTINATION ${dstDir}
+		DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 		NAMESPACE mrpt::
 	)
 	# 2/3: config file with manual list of dependencies:
@@ -536,7 +563,7 @@ if (NANOGUI_INSTALL AND EXISTS "${MRPT_SOURCE_DIR}/parse-files/mrpt-xxx-config.c
 		FILES
 			"${CMAKE_BINARY_DIR}/mrpt-nanogui-config.cmake"
 			"${CMAKE_BINARY_DIR}/mrpt-nanogui-config-version.cmake"
-		DESTINATION ${dstDir}
+		DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 	)
 
 	# Install public headers:
@@ -546,20 +573,20 @@ if (NANOGUI_INSTALL AND EXISTS "${MRPT_SOURCE_DIR}/parse-files/mrpt-xxx-config.c
 		DIRECTORY
 			"${HEADERS_DIR}"
 		DESTINATION
-			${this_lib_dev_INSTALL_PREFIX}include/mrpt/nanogui/include/
+			${CMAKE_INSTALL_INCLUDEDIR}/mrpt/nanogui/include/
 		)
 	endif()
 	install(
 	FILES
 		${NANOGUI_CONFIG_FILE}
 	DESTINATION
-		${this_lib_dev_INSTALL_PREFIX}include/mrpt/nanogui/include/
+		${CMAKE_INSTALL_INCLUDEDIR}/mrpt/nanogui/include/
 	)
 
     install(DIRECTORY
         include/nanogui
         DESTINATION
-        ${this_lib_dev_INSTALL_PREFIX}include/mrpt/nanogui/include/
+        ${CMAKE_INSTALL_INCLUDEDIR}/mrpt/nanogui/include/
         FILES_MATCHING PATTERN "*.h")
 
     install(FILES
@@ -570,7 +597,7 @@ if (NANOGUI_INSTALL AND EXISTS "${MRPT_SOURCE_DIR}/parse-files/mrpt-xxx-config.c
         ext/nanovg/src/stb_truetype.h
         ext/nanovg/src/nanovg_gl.h
         DESTINATION
-        ${this_lib_dev_INSTALL_PREFIX}include/mrpt/nanogui/include/
+        ${CMAKE_INSTALL_INCLUDEDIR}/mrpt/nanogui/include/
         )
 
     # GLFW3 if not present in the system:
@@ -579,7 +606,7 @@ if (NANOGUI_INSTALL AND EXISTS "${MRPT_SOURCE_DIR}/parse-files/mrpt-xxx-config.c
         install(DIRECTORY
             ext/glfw/include/GLFW
             DESTINATION
-            ${this_lib_dev_INSTALL_PREFIX}include/mrpt/nanogui/include/
+            ${CMAKE_INSTALL_INCLUDEDIR}/mrpt/nanogui/include/
             )
     endif()
 endif()

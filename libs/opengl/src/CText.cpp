@@ -2,17 +2,18 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
-#include "opengl-precomp.h"  // Precompiled header
-
+#include "opengl-precomp.h"	 // Precompiled header
+//
+#include <mrpt/containers/yaml.h>
 #include <mrpt/opengl/CText.h>
+#include <mrpt/opengl/opengl_api.h>
 #include <mrpt/serialization/CArchive.h>
 
-#include <mrpt/opengl/opengl_api.h>
 #include "gltext.h"
 
 using namespace mrpt;
@@ -42,12 +43,13 @@ void CText::onUpdateBuffers_Text()
 
 	// All lines & triangles, the same color:
 	cbd.assign(vbd.size(), m_color);
-	for (auto& tri : m_triangles) tri.setColor(m_color);
+	for (auto& tri : m_triangles)
+		tri.setColor(m_color);
 }
 
 void CText::render(const RenderContext& rc) const
 {
-#if MRPT_HAS_OPENGL_GLUT
+#if MRPT_HAS_OPENGL_GLUT || MRPT_HAS_EGL
 
 	// Compute pixel of (0,0,0) for this object:
 	// "px" will be given in the range:
@@ -124,21 +126,16 @@ void CText::serializeFrom(mrpt::serialization::CArchive& in, uint8_t version)
 			}
 		}
 		break;
-		default:
-			MRPT_THROW_UNKNOWN_SERIALIZATION_VERSION(version);
+		default: MRPT_THROW_UNKNOWN_SERIALIZATION_VERSION(version);
 	};
 }
 
-void CText::getBoundingBox(
-	mrpt::math::TPoint3D& bb_min, mrpt::math::TPoint3D& bb_max) const
+auto CText::getBoundingBox() const -> mrpt::math::TBoundingBox
 {
-	bb_min.x = 0;
-	bb_min.y = 0;
-	bb_min.z = 0;
-
-	bb_max = bb_min;
-
-	// Convert to coordinates of my parent:
-	m_pose.composePoint(bb_min, bb_min);
-	m_pose.composePoint(bb_max, bb_max);
+	return mrpt::math::TBoundingBox({0, 0, 0}, {0, 0, 0}).compose(m_pose);
+}
+void CText::toYAMLMap(mrpt::containers::yaml& propertiesMap) const
+{
+	CRenderizable::toYAMLMap(propertiesMap);
+	propertiesMap["text"] = m_str;
 }

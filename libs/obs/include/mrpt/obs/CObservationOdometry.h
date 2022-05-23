@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -18,10 +18,13 @@
 namespace mrpt::obs
 {
 /** An observation of the current (cumulative) odometry for a wheeled robot.
- *   This kind of observation will only occur in a "observation-only" rawlog
- * file, otherwise
- *    odometry are modeled with actions. Refer to the <a
- * href="http://www.mrpt.org/Rawlog_Format">page on rawlogs</a>.
+ * This provides the relative pose of the robot with respect to the `odom`
+ * frame of reference, in "ROS parlance".
+ *
+ * This kind of observation more naturally fits the "observation-only" rawlog
+ * format, since odometry increments are normally used in "sensory-frame based"
+ * datasets. However, the user is free to use them whenever it is useful. Refer
+ * to the [rawlog format description](rawlog_format.html).
  *
  * \sa CObservation, CActionRobotMovement2D
  * \ingroup mrpt_obs_grp
@@ -58,6 +61,11 @@ class CObservationOdometry : public CObservation
 	void setSensorPose(const mrpt::poses::CPose3D&) override {}
 	void getDescriptionAsText(std::ostream& o) const override;
 
-};  // End of class def.
+	// See base class docs:
+	bool exportTxtSupported() const override { return true; }
+	std::string exportTxtHeader() const override;
+	std::string exportTxtDataRow() const override;
+
+};	// End of class def.
 
 }  // namespace mrpt::obs

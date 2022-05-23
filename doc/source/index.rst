@@ -11,7 +11,7 @@ MRPT
   compiling
   license
   page_changelog
-
+  authors
 
 .. toctree::
   :maxdepth: 2
@@ -20,7 +20,11 @@ MRPT
 
   tutorials
   applications
+  examples
+  wrappers
   supported-sensors
+  unit_testing
+  children-projects
 
 .. toctree::
   :maxdepth: 2
@@ -29,7 +33,9 @@ MRPT
 
   modules
   contributing
+  bibliography
   doxygen-index
+  Docs for other versions <https://docs.mrpt.org/reference/>
 
 .. image:: https://mrpt.github.io/imgs/mrpt-videos-mix2.gif
    :alt: MRPT demo usages
@@ -55,11 +61,9 @@ Where to start
 ------------------
 
 - C++ API reference: :ref:`modules`.
-- Source code for `dozens of examples <https://www.mrpt.org/tutorials/mrpt-examples/>`_.
+- Dozens of examples: :ref:`examples`.
 - GitHub repository: https://github.com/MRPT/mrpt
 - Ask questions at the mail list `mrpt-users@googlegroups.com <https://groups.google.com/forum/#!forum/mrpt-users>`_ or at `stackoverflow <https://stackoverflow.com/search?q=mrpt>`_  using the tag `mrpt`.
-- ROS packages: `mrpt_navigation <https://wiki.ros.org/mrpt_navigation>`_, `mrpt_slam <https://wiki.ros.org/mrpt_slam>`_.
-- `Bindings documentation <https://github.com/MRPT/mrpt/wiki>`_ (Python, Matlab)
 - Example configuration files for  MRPT applications can be found at:
   `MRPT/share/mrpt/config_files <https://github.com/MRPT/mrpt/tree/master/share/mrpt/config_files>`_.
 - Some sample datasets are stored in:

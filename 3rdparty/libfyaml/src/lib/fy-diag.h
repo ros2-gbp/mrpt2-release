@@ -22,6 +22,12 @@
 #include "fy-list.h"
 #include "fy-token.h"
 
+#if !defined(NDEBUG) && defined(HAVE_DEVMODE) && HAVE_DEVMODE
+#define FY_DEVMODE
+#else
+#undef FY_DEVMODE
+#endif
+
 /* error flags (above 0x100 is library specific) */
 #define FYEF_SOURCE	0x0001
 #define FYEF_POSITION	0x0002
@@ -50,14 +56,10 @@
 #define FYDF_MODULE_USER_MASK	7
 #define FYDF_MODULE_USER(x)	FYDF_MODULE(8 + ((x) & FYDF_MODULE_USER_MASK))
 
-struct fy_diag {
-	struct fy_diag_cfg cfg;
-	int refs;
-	bool on_error : 1;
-	bool destroyed : 1;
+struct fy_diag_term_info {
+	int rows;
+	int columns;
 };
-
-void fy_diag_free(struct fy_diag *diag);
 
 struct fy_diag_report_ctx {
 	enum fy_error_type type;
@@ -69,6 +71,27 @@ struct fy_diag_report_ctx {
 	int override_column;
 };
 
+FY_TYPE_FWD_DECL_LIST(diag_errorp);
+struct fy_diag_errorp {
+	struct list_head node;
+	char *space;
+	struct fy_diag_error e;
+};
+FY_TYPE_DECL_LIST(diag_errorp);
+
+struct fy_diag {
+	struct fy_diag_cfg cfg;
+	int refs;
+	bool on_error : 1;
+	bool destroyed : 1;
+	bool collect_errors : 1;
+	bool terminal_probed : 1;
+	struct fy_diag_term_info term_info;
+	struct fy_diag_errorp_list errors;
+};
+
+void fy_diag_free(struct fy_diag *diag);
+
 void fy_diag_vreport(struct fy_diag *diag,
 		     const struct fy_diag_report_ctx *fydrc,
 		     const char *fmt, va_list ap);
@@ -77,7 +100,7 @@ void fy_diag_report(struct fy_diag *diag,
 		    const char *fmt, ...)
 			__attribute__((format(printf, 3, 4)));
 
-#ifndef NDEBUG
+#ifdef FY_DEVMODE
 #define __FY_DEBUG_UNUSED__	/* nothing */
 #else
 #define __FY_DEBUG_UNUSED__	__attribute__((__unused__))
@@ -87,7 +110,7 @@ void fy_diag_report(struct fy_diag *diag,
 
 struct fy_parser;
 
-struct fy_diag_cfg *fy_diag_cfg_from_parser(struct fy_diag_cfg *cfg, struct fy_parser *fyp);
+void fy_diag_cfg_from_parser_flags(struct fy_diag_cfg *cfg, enum fy_parse_cfg_flags pflags);
 
 int fy_parser_vdiag(struct fy_parser *fyp, unsigned int flags,
 		    const char *file, int line, const char *func,
@@ -98,6 +121,11 @@ int fy_parser_diag(struct fy_parser *fyp, unsigned int flags,
 		   const char *fmt, ...)
 			__attribute__((format(printf, 6, 7)));
 
+void fy_diag_error_atom_display(struct fy_diag *diag, enum fy_error_type type,
+				 struct fy_atom *atom);
+void fy_diag_error_token_display(struct fy_diag *diag, enum fy_error_type type,
+				 struct fy_token *fyt);
+
 void fy_parser_diag_vreport(struct fy_parser *fyp,
 			    const struct fy_diag_report_ctx *fydrc,
 			    const char *fmt, va_list ap);
@@ -106,7 +134,7 @@ void fy_parser_diag_report(struct fy_parser *fyp,
 			   const char *fmt, ...)
 		__attribute__((format(printf, 3, 4)));
 
-#ifndef NDEBUG
+#ifdef FY_DEVMODE
 
 #define fyp_debug(_fyp, _module, _fmt, ...) \
 	fy_parser_diag((_fyp), FYET_DEBUG | FYDF_MODULE(_module), \
@@ -170,7 +198,7 @@ void fy_parser_diag_report(struct fy_parser *fyp,
 #define FYP_MARK_DIAG(_fyp, _sm, _em, _type, _module, _fmt, ...) \
 	_FYP_TOKEN_DIAG(_fyp, \
 		fy_token_create(FYTT_INPUT_MARKER, \
-			fy_fill_atom_mark((_fyp)->current_input, (_sm), (_em), \
+			fy_fill_atom_mark(((_fyp)), (_sm), (_em), \
 				alloca(sizeof(struct fy_atom)))), \
 		_type, _module, _fmt, ## __VA_ARGS__)
 
@@ -233,10 +261,149 @@ void fy_parser_diag_report(struct fy_parser *fyp,
 #define FYP_NODE_WARNING(_fyp, _fyn, _type, _module, _fmt, ...) \
 	FYP_NODE_DIAG(_fyp, _fyn, FYET_WARNING, _module, _fmt, ## __VA_ARGS__)
 
+/* reader diagnostics */
+
+struct fy_reader;
+
+int fy_reader_vdiag(struct fy_reader *fyr, unsigned int flags,
+		    const char *file, int line, const char *func,
+		    const char *fmt, va_list ap);
+
+int fy_reader_diag(struct fy_reader *fyr, unsigned int flags,
+		   const char *file, int line, const char *func,
+		   const char *fmt, ...)
+			__attribute__((format(printf, 6, 7)));
+
+void fy_reader_diag_vreport(struct fy_reader *fyr,
+			    const struct fy_diag_report_ctx *fydrc,
+			    const char *fmt, va_list ap);
+void fy_reader_diag_report(struct fy_reader *fyr,
+			   const struct fy_diag_report_ctx *fydrc,
+			   const char *fmt, ...)
+		__attribute__((format(printf, 3, 4)));
+
+#ifdef FY_DEVMODE
+
+#define fyr_debug(_fyr, _fmt, ...) \
+	fy_reader_diag((_fyr), FYET_DEBUG, \
+			__FILE__, __LINE__, __func__, \
+			(_fmt) , ## __VA_ARGS__)
+#else
+
+#define fyr_debug(_fyr, _fmt, ...) \
+	do { } while(0)
+
+#endif
+
+#define fyr_info(_fyr, _fmt, ...) \
+	fy_reader_diag((_fyr), FYET_INFO, __FILE__, __LINE__, __func__, \
+			(_fmt) , ## __VA_ARGS__)
+#define fyr_notice(_fyr, _fmt, ...) \
+	fy_reader_diag((_fyr), FYET_NOTICE, __FILE__, __LINE__, __func__, \
+			(_fmt) , ## __VA_ARGS__)
+#define fyr_warning(_fyr, _fmt, ...) \
+	fy_reader_diag((_fyr), FYET_WARNING, __FILE__, __LINE__, __func__, \
+			(_fmt) , ## __VA_ARGS__)
+#define fyr_error(_fyr, _fmt, ...) \
+	fy_reader_diag((_fyr), FYET_ERROR, __FILE__, __LINE__, __func__, \
+			(_fmt) , ## __VA_ARGS__)
+
+#define fyr_error_check(_fyr, _cond, _label, _fmt, ...) \
+	do { \
+		if (!(_cond)) { \
+			fyr_error((_fyr), _fmt, ## __VA_ARGS__); \
+			goto _label ; \
+		} \
+	} while(0)
+
+#define _FYR_TOKEN_DIAG(_fyr, _fyt, _type, _module, _fmt, ...) \
+	do { \
+		struct fy_diag_report_ctx _drc; \
+		memset(&_drc, 0, sizeof(_drc)); \
+		_drc.type = (_type); \
+		_drc.module = (_module); \
+		_drc.fyt = (_fyt); \
+		fy_reader_diag_report((_fyr), &_drc, (_fmt) , ## __VA_ARGS__); \
+	} while(0)
+
+#define FYR_TOKEN_DIAG(_fyr, _fyt, _type, _module, _fmt, ...) \
+	_FYR_TOKEN_DIAG(_fyr, fy_token_ref(_fyt), _type, _module, _fmt, ## __VA_ARGS__)
+
+#define FYR_PARSE_DIAG(_fyr, _adv, _cnt, _type, _module, _fmt, ...) \
+	_FYR_TOKEN_DIAG(_fyr, \
+		fy_token_create(FYTT_INPUT_MARKER, \
+			fy_reader_fill_atom_at((_fyr), (_adv), (_cnt), \
+			alloca(sizeof(struct fy_atom)))), \
+		_type, _module, _fmt, ## __VA_ARGS__)
+
+#define FYR_MARK_DIAG(_fyr, _sm, _em, _type, _module, _fmt, ...) \
+	_FYR_TOKEN_DIAG(_fyr, \
+		fy_token_create(FYTT_INPUT_MARKER, \
+			fy_reader_fill_atom_mark(((_fyr)), (_sm), (_em), \
+				alloca(sizeof(struct fy_atom)))), \
+		_type, _module, _fmt, ## __VA_ARGS__)
+
+#define FYR_NODE_DIAG(_fyr, _fyn, _type, _module, _fmt, ...) \
+	_FYR_TOKEN_DIAG(_fyr, fy_node_token(_fyn), _type, _module, _fmt, ## __VA_ARGS__)
+
+#define FYR_TOKEN_ERROR(_fyr, _fyt, _module, _fmt, ...) \
+	FYR_TOKEN_DIAG(_fyr, _fyt, FYET_ERROR, _module, _fmt, ## __VA_ARGS__)
+
+#define FYR_PARSE_ERROR(_fyr, _adv, _cnt, _module, _fmt, ...) \
+	FYR_PARSE_DIAG(_fyr, _adv, _cnt, FYET_ERROR, _module, _fmt, ## __VA_ARGS__)
+
+#define FYR_MARK_ERROR(_fyr, _sm, _em, _module, _fmt, ...) \
+	FYR_MARK_DIAG(_fyr, _sm, _em, FYET_ERROR, _module, _fmt, ## __VA_ARGS__)
+
+#define FYR_NODE_ERROR(_fyr, _fyn, _module, _fmt, ...) \
+	FYR_NODE_DIAG(_fyr, _fyn, FYET_ERROR, _module, _fmt, ## __VA_ARGS__)
+
+#define FYR_TOKEN_ERROR_CHECK(_fyr, _fyt, _module, _cond, _label, _fmt, ...) \
+	do { \
+		if (!(_cond)) { \
+			FYR_TOKEN_ERROR(_fyr, _fyt, _module, _fmt, ## __VA_ARGS__); \
+			goto _label; \
+		} \
+	} while(0)
+
+#define FYR_PARSE_ERROR_CHECK(_fyr, _adv, _cnt, _module, _cond, _label, _fmt, ...) \
+	do { \
+		if (!(_cond)) { \
+			FYR_PARSE_ERROR(_fyr, _adv, _cnt, _module, _fmt, ## __VA_ARGS__); \
+			goto _label; \
+		} \
+	} while(0)
+
+#define FYR_MARK_ERROR_CHECK(_fyr, _sm, _em, _module, _cond, _label, _fmt, ...) \
+	do { \
+		if (!(_cond)) { \
+			FYR_MARK_ERROR(_fyr, _sm, _em, _module, _fmt, ## __VA_ARGS__); \
+			goto _label; \
+		} \
+	} while(0)
+
+#define FYR_NODE_ERROR_CHECK(_fyr, _fyn, _module, _cond, _label, _fmt, ...) \
+	do { \
+		if (!(_cond)) { \
+			FYR_NODE_ERROR(_fyr, _fyn, _module, _fmt, ## __VA_ARGS__); \
+			goto _label; \
+		} \
+	} while(0)
+
+#define FYR_TOKEN_WARNING(_fyr, _fyt, _module, _fmt, ...) \
+	FYR_TOKEN_DIAG(_fyr, _fyt, FYET_WARNING, _module, _fmt, ## __VA_ARGS__)
+
+#define FYR_PARSE_WARNING(_fyr, _adv, _cnt, _module, _fmt, ...) \
+	FYR_PARSE_DIAG(_fyr, _adv, _cnt, FYET_WARNING, _module, _fmt, ## __VA_ARGS__)
+
+#define FYR_MARK_WARNING(_fyr, _sm, _em, _module, _fmt, ...) \
+	FYR_MARK_DIAG(_fyr, _sm, _em, FYET_WARNING, _module, _fmt, ## __VA_ARGS__)
+
+#define FYR_NODE_WARNING(_fyr, _fyn, _type, _module, _fmt, ...) \
+	FYR_NODE_DIAG(_fyr, _fyn, FYET_WARNING, _module, _fmt, ## __VA_ARGS__)
+
 /* doc */
 struct fy_document;
-
-struct fy_diag_cfg *fy_diag_cfg_from_document(struct fy_diag_cfg *cfg, struct fy_document *fyd);
 
 int fy_document_vdiag(struct fy_document *fyd, unsigned int flags,
 		      const char *file, int line, const char *func,
@@ -255,7 +422,7 @@ void fy_document_diag_report(struct fy_document *fyd,
 			     const char *fmt, ...)
 			__attribute__((format(printf, 3, 4)));
 
-#ifndef NDEBUG
+#ifdef FY_DEVMODE
 
 #define fyd_debug(_fyd, _module, _fmt, ...) \
 	fy_document_diag((_fyd), FYET_DEBUG | FYDF_MODULE(_module), \
@@ -336,6 +503,187 @@ void fy_document_diag_report(struct fy_document *fyd,
 
 #define FYD_NODE_WARNING(_fyd, _fyn, _type, _module, _fmt, ...) \
 	FYD_NODE_DIAG(_fyd, _fyn, FYET_WARNING, _module, _fmt, ## __VA_ARGS__)
+
+/* composer */
+struct fy_composer;
+
+int fy_composer_vdiag(struct fy_composer *fyc, unsigned int flags,
+		      const char *file, int line, const char *func,
+		      const char *fmt, va_list ap);
+
+int fy_composer_diag(struct fy_composer *fyc, unsigned int flags,
+		     const char *file, int line, const char *func,
+		     const char *fmt, ...)
+			__attribute__((format(printf, 6, 7)));
+
+void fy_composer_diag_vreport(struct fy_composer *fyc,
+			      const struct fy_diag_report_ctx *fydrc,
+			      const char *fmt, va_list ap);
+void fy_composer_diag_report(struct fy_composer *fyc,
+			     const struct fy_diag_report_ctx *fydrc,
+			     const char *fmt, ...)
+			__attribute__((format(printf, 3, 4)));
+
+#ifdef FY_DEVMODE
+
+#define fyc_debug(_fyc, _module, _fmt, ...) \
+	fy_composer_diag((_fyc), FYET_DEBUG | FYDF_MODULE(_module), \
+			__FILE__, __LINE__, __func__, \
+			(_fmt) , ## __VA_ARGS__)
+
+#else
+
+#define fyc_debug(_fyc, _module, _fmt, ...) \
+	do { } while(0)
+
+#endif
+
+#define fyc_info(_fyc, _fmt, ...) \
+	fy_composer_diag((_fyc), FYET_INFO, __FILE__, __LINE__, __func__, \
+			(_fmt) , ## __VA_ARGS__)
+#define fyc_notice(_fyc, _fmt, ...) \
+	fy_composer_diag((_fyc), FYET_NOTICE, __FILE__, __LINE__, __func__, \
+			(_fmt) , ## __VA_ARGS__)
+#define fyc_warning(_fyc, _fmt, ...) \
+	fy_composer_diag((_fyc), FYET_WARNING, __FILE__, __LINE__, __func__, \
+			(_fmt) , ## __VA_ARGS__)
+#define fyc_error(_fyc, _fmt, ...) \
+	fy_composer_diag((_fyc), FYET_ERROR, __FILE__, __LINE__, __func__, \
+			(_fmt) , ## __VA_ARGS__)
+
+#define fyc_error_check(_fyc, _cond, _label, _fmt, ...) \
+	do { \
+		if (!(_cond)) { \
+			fyc_error((_fyc), _fmt, ## __VA_ARGS__); \
+			goto _label ; \
+		} \
+	} while(0)
+
+#define _FYC_TOKEN_DIAG(_fyc, _fyt, _type, _module, _fmt, ...) \
+	do { \
+		struct fy_diag_report_ctx _drc; \
+		memset(&_drc, 0, sizeof(_drc)); \
+		_drc.type = (_type); \
+		_drc.module = (_module); \
+		_drc.fyt = (_fyt); \
+		fy_composer_diag_report((_fyc), &_drc, (_fmt) , ## __VA_ARGS__); \
+	} while(0)
+
+#define FYC_TOKEN_DIAG(_fyc, _fyt, _type, _module, _fmt, ...) \
+	_FYC_TOKEN_DIAG(_fyc, fy_token_ref(_fyt), _type, _module, _fmt, ## __VA_ARGS__)
+
+#define FYC_NODE_DIAG(_fyc, _fyn, _type, _module, _fmt, ...) \
+	_FYC_TOKEN_DIAG(_fyc, fy_node_token(_fyn), _type, _module, _fmt, ## __VA_ARGS__)
+
+#define FYC_TOKEN_ERROR(_fyc, _fyt, _module, _fmt, ...) \
+	FYC_TOKEN_DIAG(_fyc, _fyt, FYET_ERROR, _module, _fmt, ## __VA_ARGS__)
+
+#define FYC_TOKEN_ERROR_CHECK(_fyc, _fyt, _module, _cond, _label, _fmt, ...) \
+	do { \
+		if (!(_cond)) { \
+			FYC_TOKEN_ERROR(_fyc, _fyt, _module, _fmt, ## __VA_ARGS__); \
+			goto _label; \
+		} \
+	} while(0)
+
+#define FYC_TOKEN_WARNING(_fyc, _fyt, _module, _fmt, ...) \
+	FYC_TOKEN_DIAG(_fyc, _fyt, FYET_WARNING, _module, _fmt, ## __VA_ARGS__)
+
+/* document builder */
+struct fy_document_builder;
+
+int fy_document_builder_vdiag(struct fy_document_builder *fydb, unsigned int flags,
+			      const char *file, int line, const char *func,
+			      const char *fmt, va_list ap);
+
+int fy_document_builder_diag(struct fy_document_builder *fydb, unsigned int flags,
+			     const char *file, int line, const char *func,
+			     const char *fmt, ...)
+			__attribute__((format(printf, 6, 7)));
+
+void fy_document_builder_diag_vreport(struct fy_document_builder *fydb,
+				      const struct fy_diag_report_ctx *fydrc,
+				      const char *fmt, va_list ap);
+void fy_document_builder_diag_report(struct fy_document_builder *fydb,
+				     const struct fy_diag_report_ctx *fydrc,
+				     const char *fmt, ...)
+				__attribute__((format(printf, 3, 4)));
+
+#ifdef FY_DEVMODE
+
+#define fydb_debug(_fydb, _module, _fmt, ...) \
+	fy_document_builder_diag((_fydb), FYET_DEBUG | FYDF_MODULE(_module), \
+			__FILE__, __LINE__, __func__, \
+			(_fmt) , ## __VA_ARGS__)
+
+#else
+
+#define fydb_debug(_fydb, _module, _fmt, ...) \
+	do { } while(0)
+
+#endif
+
+#define fydb_info(_fydb, _fmt, ...) \
+	fy_document_builder_diag((_fydb), FYET_INFO, __FILE__, __LINE__, __func__, \
+			(_fmt) , ## __VA_ARGS__)
+#define fydb_notice(_fydb, _fmt, ...) \
+	fy_document_builder_diag((_fydb), FYET_NOTICE, __FILE__, __LINE__, __func__, \
+			(_fmt) , ## __VA_ARGS__)
+#define fydb_warning(_fydb, _fmt, ...) \
+	fy_document_builder_diag((_fydb), FYET_WARNING, __FILE__, __LINE__, __func__, \
+			(_fmt) , ## __VA_ARGS__)
+#define fydb_error(_fydb, _fmt, ...) \
+	fy_document_builder_diag((_fydb), FYET_ERROR, __FILE__, __LINE__, __func__, \
+			(_fmt) , ## __VA_ARGS__)
+
+#define fydb_error_check(_fydb, _cond, _label, _fmt, ...) \
+	do { \
+		if (!(_cond)) { \
+			fydb_error((_fydb), _fmt, ## __VA_ARGS__); \
+			goto _label ; \
+		} \
+	} while(0)
+
+#define _FYDB_TOKEN_DIAG(_fydb, _fyt, _type, _module, _fmt, ...) \
+	do { \
+		struct fy_diag_report_ctx _drc; \
+		memset(&_drc, 0, sizeof(_drc)); \
+		_drc.type = (_type); \
+		_drc.module = (_module); \
+		_drc.fyt = (_fyt); \
+		fy_document_builder_diag_report((_fydb), &_drc, (_fmt) , ## __VA_ARGS__); \
+	} while(0)
+
+#define FYDB_TOKEN_DIAG(_fydb, _fyt, _type, _module, _fmt, ...) \
+	_FYDB_TOKEN_DIAG(_fydb, fy_token_ref(_fyt), _type, _module, _fmt, ## __VA_ARGS__)
+
+#define FYDB_NODE_DIAG(_fydb, _fyn, _type, _module, _fmt, ...) \
+	_FYDB_TOKEN_DIAG(_fydb, fy_node_token(_fyn), _type, _module, _fmt, ## __VA_ARGS__)
+
+#define FYDB_TOKEN_ERROR(_fydb, _fyt, _module, _fmt, ...) \
+	FYDB_TOKEN_DIAG(_fydb, _fyt, FYET_ERROR, _module, _fmt, ## __VA_ARGS__)
+
+#define FYDB_NODE_ERROR(_fydb, _fyn, _module, _fmt, ...) \
+	FYDB_NODE_DIAG(_fydb, _fyn, FYET_ERROR, _module, _fmt, ## __VA_ARGS__)
+
+#define FYDB_TOKEN_ERROR_CHECK(_fydb, _fyt, _module, _cond, _label, _fmt, ...) \
+	do { \
+		if (!(_cond)) { \
+			FYDB_TOKEN_ERROR(_fydb, _fyt, _module, _fmt, ## __VA_ARGS__); \
+			goto _label; \
+		} \
+	} while(0)
+
+#define FYDB_NODE_ERROR_CHECK(_fydb, _fyn, _module, _cond, _label, _fmt, ...) \
+	do { \
+		if (!(_cond)) { \
+			FYDB_NODE_ERROR(_fydb, _fyn, _module, _fmt, ## __VA_ARGS__); \
+			goto _label; \
+		} \
+	} while(0)
+
+#define FYDB_TOKEN_WARNING(_fydb, _fyt, _module, _fmt, ...) \
+	FYDB_TOKEN_DIAG(_fydb, _fyt, FYET_WARNING, _module, _fmt, ## __VA_ARGS__)
 
 /* alloca formatted print methods */
 #define alloca_vsprintf(_fmt, _ap) \

@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,7 +10,9 @@
 #ifndef CRawlogTreeView_H
 #define CRawlogTreeView_H
 
+#include <mrpt/obs/CRawlog.h>
 #include <wx/button.h>
+#include <wx/menu.h>
 #include <wx/notebook.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
@@ -19,8 +21,8 @@
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 
-#include <mrpt/obs/CRawlog.h>
 #include <atomic>
+#include <functional>
 
 enum TRawlogTreeViewEvent
 {
@@ -31,9 +33,9 @@ class CRawlogTreeView;
 
 /** The type for event handler
  */
-using wxRawlogTreeEventFunction = void (*)(
+using wxRawlogTreeEventFunction = std::function<void(
 	wxWindow* me, CRawlogTreeView* the_tree, TRawlogTreeViewEvent ev,
-	int item_index, const mrpt::serialization::CSerializable::Ptr& item_data);
+	int item_index, const mrpt::serialization::CSerializable::Ptr& item_data)>;
 
 /** A tree view that represents efficiently all rawlog's items.
  */
@@ -74,7 +76,7 @@ class CRawlogTreeView : public wxScrolledWindow
 
 	/** Sets a handler for the event of selected item changes.
 	 */
-	void ConnectSelectedItemChange(wxRawlogTreeEventFunction func);
+	void ConnectSelectedItemChange(const wxRawlogTreeEventFunction& func);
 
 	/** This method MUST be called to obtain feedback from events.
 	 */
@@ -101,8 +103,10 @@ class CRawlogTreeView : public wxScrolledWindow
 	int m_selectedItem{-1};
 	/** File name */
 	std::string m_rawlog_name;
-	wxRawlogTreeEventFunction m_event_select_change{nullptr};
+	wxRawlogTreeEventFunction m_event_select_change;
 	wxWindow* m_win_parent{nullptr};
+
+	std::string m_last_exported_rawlog_file;
 
 	mrpt::system::TTimeStamp m_rawlog_start;
 	mrpt::system::TTimeStamp m_rawlog_last;
@@ -129,10 +133,21 @@ class CRawlogTreeView : public wxScrolledWindow
 	static const int ROW_HEIGHT;
 	static const int TREE_HORZ_STEPS;
 
+	bool m_is_thumb_tracking = false;
+
+	wxMenu m_contextMenu;
+
 	// Events:
 	void OnLeftDown(wxMouseEvent& event);
+	void OnRightDown(wxMouseEvent& event);
 	void OnMouseWheel(wxMouseEvent& event);
 	void OnKey(wxKeyEvent& event);
+
+	void onScrollThumbTrack(wxScrollWinEvent& ev);
+	void onScrollThumbRelease(wxScrollWinEvent& ev);
+
+	void onMnuExportToOtherFile(wxCommandEvent&);
+	void onMnuAppendSaveFile(wxCommandEvent&);
 
 	DECLARE_DYNAMIC_CLASS(CRawlogTreeView)
 	DECLARE_EVENT_TABLE()

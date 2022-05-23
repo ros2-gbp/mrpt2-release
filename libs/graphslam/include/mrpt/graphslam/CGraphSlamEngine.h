@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -10,6 +10,10 @@
 #pragma once
 
 #include <mrpt/graphs/CNetworkOfPoses.h>
+#include <mrpt/graphslam/interfaces/CEdgeRegistrationDecider.h>
+#include <mrpt/graphslam/interfaces/CGraphSlamOptimizer.h>
+#include <mrpt/graphslam/interfaces/CNodeRegistrationDecider.h>
+#include <mrpt/graphslam/misc/CEdgeCounter.h>
 #include <mrpt/gui/CDisplayWindow3D.h>
 #include <mrpt/gui/CDisplayWindowPlots.h>
 #include <mrpt/img/TColor.h>
@@ -26,11 +30,6 @@
 #include <mrpt/poses/CPose2D.h>
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/system/COutputLogger.h>
-
-#include <mrpt/graphslam/interfaces/CEdgeRegistrationDecider.h>
-#include <mrpt/graphslam/interfaces/CGraphSlamOptimizer.h>
-#include <mrpt/graphslam/interfaces/CNodeRegistrationDecider.h>
-#include <mrpt/graphslam/misc/CEdgeCounter.h>
 
 #include <map>
 #include <memory>
@@ -164,7 +163,7 @@ class CGraphSlamEngine : public mrpt::system::COutputLogger
 	 * interacting with the display window
 	 * \param[in] rawlog_fname .rawlog dataset file, containing the robot
 	 * measurements. CGraphSlamEngine supports both
-	 * <a href="http://www.mrpt.org/Rawlog_Format"> MRPT rwalog formats </a>
+	 * <a href="rawlog_format.html">MRPT rawlog formats</a>
 	 * but in order for graphSLAM to work as expected the rawlog foromat has to
 	 * be supported by the every decider/optimizer class that
 	 * CGraphSlamEngine makes use of.
@@ -385,10 +384,7 @@ class CGraphSlamEngine : public mrpt::system::COutputLogger
 	bool isPaused() const { return m_is_paused; }
 	void togglePause()
 	{
-		if (isPaused())
-		{
-			this->resumeExec();
-		}
+		if (isPaused()) { this->resumeExec(); }
 		else
 		{
 			this->pauseExec();
@@ -396,10 +392,7 @@ class CGraphSlamEngine : public mrpt::system::COutputLogger
 	}
 	void resumeExec() const
 	{
-		if (!isPaused())
-		{
-			return;
-		}
+		if (!isPaused()) { return; }
 		MRPT_LOG_INFO_STREAM("Program resumed.");
 		m_is_paused = false;
 
@@ -412,10 +405,7 @@ class CGraphSlamEngine : public mrpt::system::COutputLogger
 
 	void pauseExec()
 	{
-		if (isPaused())
-		{
-			return;
-		}
+		if (isPaused()) { return; }
 		MRPT_LOG_WARN_STREAM(
 			"Program is paused. "
 			<< "Press \"" << m_keystroke_pause_exec << " or \""
@@ -963,11 +953,6 @@ class CGraphSlamEngine : public mrpt::system::COutputLogger
 	/**\brief Type of constraint currently in use.
 	 */
 	std::string m_current_constraint_type;
-
-	/**\brief Separator string to be used in debugging messages
-	 */
-	static const std::string header_sep;
-	static const std::string report_sep;
 };
 }  // namespace mrpt::graphslam
 // pseudo-split the definition and implementation of template

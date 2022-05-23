@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -165,11 +165,6 @@ class CRegistrationDeciderOrOptimizer : public mrpt::system::COutputLogger
 	 * multi-robot SLAM operations
 	 */
 	bool is_mr_slam_class = false;
-
-	/**\brief Separator string to be used in debugging messages
-	 */
-	static const std::string header_sep;
-	static const std::string report_sep;
 };
 }  // namespace mrpt::graphslam
 #include "CRegistrationDeciderOrOptimizer_impl.h"

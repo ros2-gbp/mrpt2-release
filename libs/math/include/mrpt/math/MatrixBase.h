@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -52,7 +52,8 @@ class MatrixBase : public MatrixVectorBase<Scalar, Derived>
 	{
 		const std::size_t N = diags.size();
 		mbDerived().setZero(N, N);
-		for (std::size_t i = 0; i < N; i++) mbDerived()(i, i) = diags[i];
+		for (std::size_t i = 0; i < N; i++)
+			mbDerived()(i, i) = diags[i];
 	}
 	void setIdentity()
 	{
@@ -61,7 +62,7 @@ class MatrixBase : public MatrixVectorBase<Scalar, Derived>
 	}
 	void setIdentity(const std::size_t N) { setDiagonal(N, 1); }
 
-	static Derived Identity()
+	[[nodiscard]] static Derived Identity()
 	{
 		ASSERTMSG_(
 			Derived::RowsAtCompileTime > 0 && Derived::ColsAtCompileTime > 0,
@@ -71,7 +72,7 @@ class MatrixBase : public MatrixVectorBase<Scalar, Derived>
 		m.setIdentity();
 		return m;
 	}
-	static Derived Identity(const std::size_t N)
+	[[nodiscard]] static Derived Identity(const std::size_t N)
 	{
 		Derived m;
 		m.setIdentity(N);
@@ -284,7 +285,8 @@ class MatrixBase : public MatrixVectorBase<Scalar, Derived>
 			for (Index c = r; c < N; c++)
 			{
 				typename Derived::Scalar s = 0;
-				for (Index i = 0; i < Ninner; i++) s += A(r, i) * A(c, i);
+				for (Index i = 0; i < Ninner; i++)
+					s += A(r, i) * A(c, i);
 				mbDerived()(r, c) = s;
 				mbDerived()(c, r) = s;
 			}
@@ -303,7 +305,8 @@ class MatrixBase : public MatrixVectorBase<Scalar, Derived>
 			for (Index c = r; c < N; c++)
 			{
 				typename Derived::Scalar s = 0;
-				for (Index i = 0; i < Ninner; i++) s += A(i, r) * A(i, c);
+				for (Index i = 0; i < Ninner; i++)
+					s += A(i, r) * A(i, c);
 				mbDerived()(r, c) = s;
 				mbDerived()(c, r) = s;
 			}
