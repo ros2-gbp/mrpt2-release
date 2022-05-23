@@ -6,11 +6,9 @@
 #   for generating the documentation, etc. are also updated.
 #
 #  For compiling instructions for all compilers and platforms, see
-#   https://www.mrpt.org/Building_and_Installing_Instructions
+#   https://docs.mrpt.org/reference/latest/compiling.html
 #
-#  2007-2018, Jose Luis Blanco <jlblanco@ual.es>
-#
-#  NOTE: CMake can be obtained at http://www.cmake.org/
+#  2007-2021, Jose Luis Blanco <jlblanco@ual.es>
 # ----------------------------------------------------------------------------
 
 if (POLICY CMP0048)
@@ -36,7 +34,6 @@ if (POLICY CMP0075)
 endif()
 
 if ((NOT IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/nanogui/include")
-    OR (NOT IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libfyaml/include")
     OR (NOT IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/rplidar_sdk/sdk/sdk")
    )
   message(FATAL_ERROR "git submodules missing! "
@@ -51,11 +48,8 @@ mark_as_advanced(CMAKE_TIMING_VERBOSE)
 # Enable verbose timing display?
 if(CMAKE_TIMING_VERBOSE AND UNIX)
   set_property(GLOBAL PROPERTY RULE_MESSAGES OFF)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_SOURCE_DIR}/cmakemodules/custom_output.sh")
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_CURRENT_SOURCE_DIR}/cmakemodules/custom_output.sh")
 endif(CMAKE_TIMING_VERBOSE AND UNIX)
-
-# Require C++17
-# This is now defined as a PUBLIC interface feature of mrpt-core.
 
 # Detect wordsize:
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)  # Size in bytes!
@@ -66,7 +60,7 @@ endif()
 
 include(cmakemodules/script_version_number.cmake REQUIRED)	#  Loads MRPT version number
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmakemodules") # Directory for CMake scripts
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmakemodules") # Directory for CMake scripts
 
 # -------------------------
 #            CodeCov
@@ -77,14 +71,12 @@ find_package(codecov)
 
 option(MRPT_ALLOW_LGPLV3 "Allows MRPT to use LGPLV3 code (mrpt-vision-lgpl)" "OFF")
 
+option(MRPT_EXCEPTIONS_WITH_CALL_STACK "Report callstack upon exceptions" "ON")
+set(MRPT_EXCEPTIONS_CALL_STACK_MAX_DEPTH "50" CACHE STRING "Maximum number of stack levels to show upon exceptions.")
+mark_as_advanced(MRPT_EXCEPTIONS_CALL_STACK_MAX_DEPTH)
+
 # The root directory for all MRPT libraries/modules:
-set(MRPT_LIBS_ROOT "${CMAKE_SOURCE_DIR}/libs" CACHE INTERNAL "")  # This emulates global vars
-
-# Windows default: lib. Debian pkgs: set from outside rules script
-if(NOT DEFINED CMAKE_INSTALL_LIBDIR)
-	set(CMAKE_INSTALL_LIBDIR "lib")
-endif()
-
+set(MRPT_LIBS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/libs" CACHE INTERNAL "")  # This emulates global vars
 
 # ----- Useful macros ------
 include(cmakemodules/UtilsMacros.cmake REQUIRED)
@@ -93,8 +85,8 @@ include(cmakemodules/FilterFileLists.cmake REQUIRED)
 include(cmakemodules/DeclareMRPTLib.cmake REQUIRED)
 include(cmakemodules/DeclareMEXLib.cmake REQUIRED)
 include(cmakemodules/DeclareAppDependencies.cmake REQUIRED)
-# --------------------------
 include(cmakemodules/script_detect_unix_arch.cmake REQUIRED) # Detect machine architecture, on UNIX
+# --------------------------
 
 # Avoid the need for DLL export/import macros in Windows:
 if (WIN32)
@@ -125,14 +117,27 @@ include(cmakemodules/script_select_app_to_build.cmake REQUIRED)		# Build (or not
 
 # Build static or dynamic libs?
 # ===================================================
-# Default: dynamic libraries:
-set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries (.dll/.so) instead of static ones (.lib/.a)")
+# Default: dynamic libraries (except if building to JavaScript code)
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Emscripten")
+	set(_def_value OFF)
+else()
+	set(_def_value ON)
+endif()
+set(BUILD_SHARED_LIBS ${_def_value} CACHE BOOL "Build shared libraries (.dll/.so) instead of static ones (.lib/.a)")
+unset(_def_value)
+
 if(BUILD_SHARED_LIBS)
 	set(CMAKE_MRPT_BUILD_SHARED_LIB "#define MRPT_BUILT_AS_DLL")
 	set(CMAKE_MRPT_BUILD_SHARED_LIB_ONOFF 1)
 else()
 	set(CMAKE_MRPT_BUILD_SHARED_LIB "/* #define MRPT_BUILT_AS_DLL */")
 	set(CMAKE_MRPT_BUILD_SHARED_LIB_ONOFF 0)
+endif()
+
+# Only for emscripten: build executables as .html demo pages:
+# =============================================================
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Emscripten")
+	set(CMAKE_EXECUTABLE_SUFFIX ".html")
 endif()
 
 # Only for Unix: use pkg-config to find libraries
@@ -150,27 +155,22 @@ if ((${CMAKE_MRPT_KERNEL} MATCHES "GNU") # It doesnt build in hurd
     OR ("$ENV{DEB_TARGET_ARCH_CPU}" STREQUAL "ppc64")   # fails: termios2
     OR ("$ENV{DEB_TARGET_ARCH_CPU}" STREQUAL "ppc64el") # fails: termios2
     OR ("$ENV{DEB_TARGET_ARCH_CPU}" STREQUAL "powerpc") # fails: termios2
+    OR MINGW
     )
 	set(DEFAULT_BUILD_ROBOPEAK_LIDAR OFF)
 endif()
 # Decl option:
-set(BUILD_ROBOPEAK_LIDAR ${DEFAULT_BUILD_ROBOPEAK_LIDAR} CACHE BOOL "Build an embedded version of RoboPeak LIDAR SDK (interface to low-cost lidar)")
-if(BUILD_ROBOPEAK_LIDAR)
+set(MRPT_WITH_ROBOPEAK_LIDAR ${DEFAULT_BUILD_ROBOPEAK_LIDAR} CACHE BOOL "Build an embedded version of RoboPeak LIDAR SDK (interface to low-cost lidar)")
+if(MRPT_WITH_ROBOPEAK_LIDAR)
 	set(CMAKE_MRPT_HAS_ROBOPEAK_LIDAR 1)
 else()
 	set(CMAKE_MRPT_HAS_ROBOPEAK_LIDAR 0)
 endif()
 
 #-----------------------------------
-#  Build the hardware drivers?
-#-----------------------------------
-set(BUILD_HWDRIVERS ON CACHE BOOL "Build hardware drivers (library apps/lib_hwdrivers)?.")
-mark_as_advanced(BUILD_HWDRIVERS)
-
-#-----------------------------------
 #  Build with MRPT-MEX compatibility?
 #-----------------------------------
-set(BUILD_MATLAB OFF CACHE BOOL "Build with compatibility options for MEX wrapper?.")
+set(MRPT_WITH_MATLAB_WRAPPER OFF CACHE BOOL "Build with compatibility options for MEX wrapper?.")
 
 # GCC only:
 # ===================================================
@@ -194,13 +194,6 @@ mark_as_advanced(MRPT_ENABLE_PRECOMPILED_HDRS)
 # MRPT_TRY_START/END blocks
 # ===================================================
 set(MRPT_HAS_STACKED_EXCEPTIONS ON CACHE BOOL "Enable MRPT_TRY_START/END blocks (disable it for speed up).")
-
-# Optional MRPT embedded profiler:
-# ===================================================
-set(MRPT_ENABLE_EMBEDDED_GLOBAL_PROFILER OFF CACHE BOOL "Enable MRPT embedded profiler.")
-if (MRPT_ENABLE_EMBEDDED_GLOBAL_PROFILER)
-	add_definitions(-DMRPT_ENABLE_EMBEDDED_GLOBAL_PROFILER)
-endif()
 
 # ASSERT_ blocks
 set(MRPT_HAS_ASSERT ON CACHE BOOL "Enable ASSERT_ statements (disable it for speed up).")
@@ -253,6 +246,7 @@ endif()
 # Other sub-scripts:
 # ----------------------------------------------------------------------------
 include(cmakemodules/script_assimp.cmake REQUIRED)      # Check for system assimp lib (3D models)
+include(cmakemodules/script_bfd.cmake REQUIRED)      # BFD library for debug symbols for stack backtraces
 include(cmakemodules/script_clang_tidy.cmake REQUIRED)  # Clang tidy
 include(cmakemodules/script_duo3d.cmake REQUIRED)       # Support for DUO3D Camera
 include(cmakemodules/script_eigen.cmake REQUIRED)       # Eigen3
@@ -276,6 +270,7 @@ include(cmakemodules/script_libtclap.cmake REQUIRED)    # Check for system libtc
 include(cmakemodules/script_matlab.cmake REQUIRED)      # Support for Matlab MEX functions generation
 include(cmakemodules/script_mynteye.cmake REQUIRED)     # Support for MYNT EYE cameras
 include(cmakemodules/script_nanogui.cmake REQUIRED)     # Check for nanogui
+include(cmakemodules/script_nanoflann.cmake REQUIRED)   # Check for nanoflann
 include(cmakemodules/script_national_instruments.cmake REQUIRED)  # NI C library
 include(cmakemodules/script_nite2.cmake REQUIRED)       # Check for NITE2 library
 include(cmakemodules/script_octomap.cmake REQUIRED)     # Check for the octomap library
@@ -284,7 +279,7 @@ include(cmakemodules/script_openni2.cmake REQUIRED)     # Check for the OpenNI2 
 include(cmakemodules/script_pcap.cmake REQUIRED)        # Check for the libpcap library
 include(cmakemodules/script_phidget.cmake REQUIRED)     # Support for phidget Interface Kit with proximity sensor device :
 include(cmakemodules/script_qt.cmake REQUIRED)          # Check for wxWidgets + GL
-include(cmakemodules/script_ros1.cmake REQUIRED)        # Check for ROS1
+include(cmakemodules/script_ros.cmake REQUIRED)        # Check for ROS1 / ROS2
 include(cmakemodules/script_SIMD.cmake REQUIRED)        # SSE2/SSE3/... optimization options
 include(cmakemodules/script_simpleini.cmake REQUIRED)   # SimpleINI lib
 include(cmakemodules/script_suitesparse.cmake REQUIRED) # SuiteSparse libs
@@ -296,6 +291,8 @@ include(cmakemodules/script_wxwidgets.cmake REQUIRED)   # Check for wxWidgets + 
 include(cmakemodules/script_xsens.cmake REQUIRED)       # XSens Motion trackers / IMU drivers
 include(cmakemodules/script_zlib.cmake REQUIRED)        # Check for zlib
 
+include(cmakemodules/process_emscripten_embedded_files.cmake REQUIRED)
+
 # ---------------------------------------------------------------------------
 #			OPTIONS
 #The options for the user when using "cmakesetup" or "ccmake":
@@ -305,7 +302,7 @@ mark_as_advanced(FORCE MRPT_ALWAYS_CHECKS_DEBUG)
 option(MRPT_ALWAYS_CHECKS_DEBUG_MATRICES "Additional checks even in Release (Only in matrix classes)" "OFF")
 mark_as_advanced(FORCE MRPT_ALWAYS_CHECKS_DEBUG_MATRICES)
 
-# Include Asian fonts in utils::CMRPTCanvas ?
+# Include Asian fonts in CMRPTCanvas ?
 set( MRPT_HAS_ASIAN_FONTS ON CACHE BOOL "Enable Asian fonts in CMRPTCanvas (increases library size).")
 
 include(cmakemodules/script_declare_defines.cmake REQUIRED)  # Transform the variables MRPT_XXX="ON/OFF" to CMAKE_MRPT_XXX="1/0"
@@ -382,8 +379,9 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 	# High level of warnings.
 	# The -Wno-long-long is required in 64bit systems when including sytem headers.
 	# The -Wno-variadic-macros was needed for Eigen3, StdVector.h
-	add_compile_options(${CMAKE_CONFIGURE_CFLAGS} -Wall -Wabi=11 -Wno-long-long -Wno-variadic-macros -Wshadow)
+	add_compile_options(${CMAKE_CONFIGURE_CFLAGS} -Wall  -Wno-long-long -Wno-variadic-macros -Wshadow)
   add_compile_options(-Wreturn-local-addr   -Werror=return-local-addr)
+  add_compile_options(-Wno-psabi)
 
 	# Workaround: Eigen <3.4 produces *tons* of warnings in GCC >=6. See http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1221
 	if (NOT ${CMAKE_CXX_COMPILER_VERSION} LESS "6.0" AND "${MRPT_EIGEN_VERSION}" VERSION_LESS "3.4")
@@ -425,20 +423,23 @@ if (MRPT_COMPILER_IS_CLANG)
 	# High level of warnings.
 	# no-unused-private-field: clang seems to complain in templates without reason.
 	add_compile_options(${CMAKE_CONFIGURE_CFLAGS} -Wall -Wabi -Wno-unused-private-field -Wshadow-all)
-  add_compile_options(-Wreturn-stack-address   -Werror=return-stack-address)
+	add_compile_options(-Wreturn-stack-address   -Werror=return-stack-address)
 
- 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_CONFIGURE_CFLAGS}")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_CONFIGURE_CFLAGS}")
 
 	# Use "modern" C99 ! ;-)
- 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
-	if(NOT APPLE) # any reason for not using it in all platforms?
-	# Use the libstdc++ lib vs. libc++, to avoid some build errors in MacOS
+	if(NOT APPLE AND NOT ("${CMAKE_SYSTEM_NAME}" STREQUAL "Emscripten"))
+		# From: https://stackoverflow.com/a/16788372/1631514
+		# I would use the native library for each OS i.e. libstdc++ on GNU/Linux and libc++ on Mac OS X.
+		# libc++ is not 100% complete on GNU/Linux, and there's no real advantage to using it when libstdc++
+		# is more complete. Also, if you want to link to any other libraries written in C++ they will almost certainly have been built with libstdc++ so you'll need to link with that too to use them.
+		# Use the libstdc++ lib vs. libc++, to avoid some build errors in MacOS
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
 		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libstdc++")
 		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -stdlib=libstdc++")
 	endif()
-
 endif()
 
 # Shared options between GCC and CLANG:
@@ -551,26 +552,6 @@ set( EXECUTABLE_OUTPUT_PATH ${MRPT_BINARY_DIR}/bin CACHE PATH "Output directory 
 set( MEX_LIBRARY_OUTPUT_PATH ${MRPT_BINARY_DIR}/mex/+mrpt CACHE PATH "Output directory for mex functions" )
 set( MEX_EXECUTABLE_OUTPUT_PATH ${MRPT_BINARY_DIR}/mex/test CACHE PATH "Output directory for executable mexs" )
 
-#--------------------------------------------------------------
-# If we are building the final step of the Debian package,
-#  save each library files in the corresponding directories:
-#--------------------------------------------------------------
-if(CMAKE_MRPT_USE_DEB_POSTFIXS)
-	# Values when building a Debian package ---------------
-	message(STATUS "** mrpt cmake: Using Debian post-fix for install directories **")
-# DONT add CMAKE_INSTALL_PREFIX to this one. (Read DeclareMRPTLib.cmake notes)
-	set(libmrpt_common_dev_INSTALL_PREFIX "libmrpt-common-dev/usr/")
-	set(mrpt_apps_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/mrpt-apps/usr/")
-	set(mrpt_doc_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/mrpt-doc/usr/")
-	set(mrpt_common_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/mrpt-common/usr/")
-else()
-	# Values under normal conditions -----------------------
-	set(libmrpt_common_dev_INSTALL_PREFIX "")
-	set(mrpt_apps_INSTALL_PREFIX "")
-	set(mrpt_doc_INSTALL_PREFIX "")
-	set(mrpt_common_INSTALL_PREFIX "")
-endif()
-
 
 # This will become a list with all libraries to be built, and their
 #  dependencies stored in "mrpt-${name}_LIB_DEPS"
@@ -588,7 +569,7 @@ endif()
 #	get_directory_property(mrpt_root_dir_COMPILE_OPTIONS COMPILE_OPTIONS)
 #try_run(RUN_EIGEN_RETVAL BUILD_EIGEN_SUCCESS
 #	${CMAKE_BINARY_DIR}
-#	SOURCES "${CMAKE_SOURCE_DIR}/parse-files/eigen_detect_alignment.cpp"
+#	SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/parse-files/eigen_detect_alignment.cpp"
 #	COMPILE_DEFINITIONS ""
 #	CMAKE_FLAGS
 #	-DINCLUDE_DIRECTORIES:STRING=${MRPT_EIGEN_INCLUDE_DIR}
@@ -601,8 +582,14 @@ endif()
 #	string(REGEX MATCH "[0-9]+" EIGEN_MAX_STATIC_ALIGN_BYTES "${EIGEN_MAX_STATIC_ALIGN_BYTES}")
 #else()
 #message(STATUS "Test Eigen build failed, falling back to default alignment (BUILD_EIGEN_SUCCESS=${BUILD_EIGEN_SUCCESS} RUN_EIGEN_RETVAL=${RUN_EIGEN_RETVAL} BUILD_EIGEN_OUT=${EIGEN_TEST_OUT})")
-	set(EIGEN_MAX_ALIGN_BYTES 32)
-	set(EIGEN_MAX_STATIC_ALIGN_BYTES 32)
+if (MRPT_ARCH_INTEL_COMPATIBLE)
+    set(EIGEN_MAX_ALIGN_BYTES 32)
+    set(EIGEN_MAX_STATIC_ALIGN_BYTES 32)
+else()
+    # for aarch64, etc.
+    set(EIGEN_MAX_ALIGN_BYTES 16)
+    set(EIGEN_MAX_STATIC_ALIGN_BYTES 16)
+endif()
 #endif()
 
 include(cmakemodules/script_create_config_h.cmake REQUIRED)   # Build config.h
@@ -616,18 +603,18 @@ add_custom_target(all_mrpt_libs ALL) # all_mrpt_libs: target to build all mrpt-*
 add_subdirectory(3rdparty)   # The third-party libraries
 add_subdirectory(libs)        # The MRPT C++ libraries
 
-set(BUILD_APPLICATIONS ON CACHE BOOL "If you only want the MRPT libraries, disable this.")
-if(BUILD_APPLICATIONS)
+set(MRPT_BUILD_APPLICATIONS ON CACHE BOOL "If you only want the MRPT libraries, disable this.")
+if(MRPT_BUILD_APPLICATIONS)
 	add_subdirectory(apps)    # The applications:
 endif()
 
-if(BUILD_MATLAB)
+if(MRPT_WITH_MATLAB_WRAPPER)
     add_subdirectory(mex/apps)# The MEX applications
 endif()
 
 # Generate .h to locate MRPT sources:
 configure_file(
-	"${CMAKE_SOURCE_DIR}/parse-files/mrpt_paths_config.h.in"
+	"${CMAKE_CURRENT_SOURCE_DIR}/parse-files/mrpt_paths_config.h.in"
 	"${MRPT_CONFIG_FILE_INCLUDE_DIR}/mrpt/mrpt_paths_config.h"
 	)
 
@@ -636,10 +623,22 @@ add_subdirectory(doc)
 
 #   UNIT TESTS:
 # ----------------------------------------------------------------------------
-set(BUILD_TESTING ON CACHE BOOL "Build MRPT tests")
-if(BUILD_TESTING)
+if (DEFINED BUILD_TESTING)
+	set(_def_value ${BUILD_TESTING})
+else()
+	if ("$ENV{ROS_DISTRO}" STREQUAL "")
+		# Regular case:
+		set(_def_value ON)
+	else()
+		# We are in a ROS environment: disable tests by default to reduce build time in ROS build farms.
+		set(_def_value OFF)
+	endif()
+endif()
+set(MRPT_BUILD_TESTING ${_def_value} CACHE BOOL "Build MRPT tests")
+if(MRPT_BUILD_TESTING)
 	add_subdirectory(tests)  # Build my tests
 endif()
+unset(_def_value )
 
 #-----------------------------------
 # The python bindings
@@ -660,14 +659,9 @@ mark_as_advanced(FORCE
 	wxWidgets_wxrc_EXECUTABLE
 )
 
-set(IS_DEBIAN_DBG_PKG 0)
-if (CMAKE_MRPT_USE_DEB_POSTFIXS AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-	set(IS_DEBIAN_DBG_PKG 1)
-endif ()
-
 # Write MRPT-version file (the global one, each mrpt-xxxx also has its own):
 configure_file(
-	"${CMAKE_SOURCE_DIR}/parse-files/mrpt-config.cmake"
+	"${CMAKE_CURRENT_SOURCE_DIR}/parse-files/mrpt-config.cmake"
 	"${CMAKE_BINARY_DIR}/mrpt-config.cmake"
 	COPYONLY)
 write_basic_package_version_file(

@@ -2,19 +2,21 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
-#include "opengl-precomp.h"  // Precompiled header
-
+#include "opengl-precomp.h"	 // Precompiled header
+//
+#include <Eigen/Dense>	// First! to avoid conflicts with X.h
+//
 #include <mrpt/opengl/CSetOfObjects.h>
 #include <mrpt/opengl/CText.h>
 #include <mrpt/opengl/RenderQueue.h>
 #include <mrpt/opengl/opengl_api.h>
 #include <mrpt/system/os.h>
-#include <Eigen/Dense>
+
 #include <map>
 
 using namespace std;
@@ -29,7 +31,7 @@ void mrpt::opengl::enqueForRendering(
 	const mrpt::opengl::CListOpenGLObjects& objs,
 	const mrpt::opengl::TRenderMatrices& state, RenderQueue& rq)
 {
-#if MRPT_HAS_OPENGL_GLUT
+#if MRPT_HAS_OPENGL_GLUT || MRPT_HAS_EGL
 	using mrpt::math::CMatrixDouble44;
 
 	const char* curClassName = nullptr;
@@ -128,8 +130,7 @@ void mrpt::opengl::processRenderQueue(
 	std::map<shader_id_t, mrpt::opengl::Program::Ptr>& shaders,
 	const mrpt::opengl::TLightParameters& lights)
 {
-#if MRPT_HAS_OPENGL_GLUT
-	MRPT_PROFILE_FUNC_START
+#if MRPT_HAS_OPENGL_GLUT || MRPT_HAS_EGL
 
 	for (const auto& rqSet : rq)
 	{
@@ -162,10 +163,6 @@ void mrpt::opengl::processRenderQueue(
 					shader.uniformId("pmv_matrix"), 1, IS_TRANSPOSED,
 					rqe.renderState.pmv_matrix.data());
 
-			// Use Texture0:
-			if (shader.hasUniform("textureSampler"))
-				glUniform1i(shader.uniformId("textureSampler"), 0);
-
 			CRenderizable::RenderContext rc;
 			rc.shader = &shader;
 			rc.shader_id = rqSet.first;
@@ -184,14 +181,20 @@ void mrpt::opengl::processRenderQueue(
 #endif
 }
 
-#if MRPT_HAS_OPENGL_GLUT
+#if MRPT_HAS_OPENGL_GLUT || MRPT_HAS_EGL
 void mrpt::opengl::checkOpenGLErr_impl(
 	unsigned int glErrorCode, const char* filename, int lineno)
 {
 	if (glErrorCode == GL_NO_ERROR) return;
+#if MRPT_HAS_OPENGL_GLUT
 	const std::string sErr = mrpt::format(
 		"[%s:%i] OpenGL error: %s", filename, lineno,
 		reinterpret_cast<const char*>(gluErrorString(glErrorCode)));
+#else
+	// w/o glu:
+	const std::string sErr =
+		mrpt::format("[%s:%i] OpenGL error: %u", filename, lineno, glErrorCode);
+#endif
 	std::cerr << "[gl_utils::checkOpenGLError] " << sErr << std::endl;
 	THROW_EXCEPTION(sErr);
 }

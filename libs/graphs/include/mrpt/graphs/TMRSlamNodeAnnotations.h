@@ -2,13 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 #pragma once
 
 #include <mrpt/graphs/TNodeAnnotations.h>
+
 #include <cstdint>
 #include <sstream>
 #include <string>
@@ -32,6 +33,12 @@ struct TMRSlamNodeAnnotations : public TNodeAnnotations
 		: parent_t(other)
 	{
 		this->setAnnots(other);
+	}
+	TMRSlamNodeAnnotations& operator=(const TMRSlamNodeAnnotations& other)
+	{
+		parent_t::operator=(other);
+		this->setAnnots(other);
+		return *this;
 	}
 
 	TNodeAnnotations* getCopyOfAnnots() const
