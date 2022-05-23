@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -11,13 +11,6 @@
 
 namespace mrpt::graphslam
 {
-template <class GRAPH_T>
-const std::string CRegistrationDeciderOrOptimizer<GRAPH_T>::header_sep =
-	std::string(80, '-');
-template <class GRAPH_T>
-const std::string CRegistrationDeciderOrOptimizer<GRAPH_T>::report_sep =
-	std::string(2, '\n');
-
 template <class GRAPH_T>
 void CRegistrationDeciderOrOptimizer<GRAPH_T>::initializeLoggers(
 	const std::string& name)

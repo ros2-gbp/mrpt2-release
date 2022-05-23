@@ -2,18 +2,19 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
-#include "poses-precomp.h"  // Precompiled headers
-
+#include "poses-precomp.h"	// Precompiled headers
+//
 #include <mrpt/math/geometry.h>
 #include <mrpt/poses/CPose2D.h>
 #include <mrpt/poses/CPose3D.h>
 #include <mrpt/poses/Lie/SE.h>
 #include <mrpt/poses/Lie/SO.h>
+
 #include <Eigen/Dense>
 
 using namespace mrpt;
@@ -179,12 +180,13 @@ SE<3>::matrix_MxM SE<3>::jacob_dAB_dA(
 	using namespace mrpt::math;
 
 	matrix_MxM J = matrix_MxM::Zero();
-	// J_wrt_A = kron(B,eye(3));
+	// J_wrt_A = kron(B',eye(3));
 	const auto B_HM =
 		B.getHomogeneousMatrixVal<CMatrixDouble44>().transpose().eval();
 	for (int c = 0; c < 4; c++)
 		for (int r = 0; r < 4; r++)
-			for (int q = 0; q < 3; q++) J(r * 3 + q, c * 3 + q) = B_HM(r, c);
+			for (int q = 0; q < 3; q++)
+				J(r * 3 + q, c * 3 + q) = B_HM(r, c);
 
 	return J;
 }
@@ -195,7 +197,8 @@ SE<3>::matrix_MxM SE<3>::jacob_dAB_dB(
 	matrix_MxM J = matrix_MxM::Zero();
 	// J_wrt_B = kron(eye(3),A_rot);
 	const auto& AR = A.getRotationMatrix();
-	for (int c = 0; c < 4; c++) J.block<3, 3>(c * 3, c * 3) = AR.asEigen();
+	for (int c = 0; c < 4; c++)
+		J.block<3, 3>(c * 3, c * 3) = AR.asEigen();
 	return J;
 }
 

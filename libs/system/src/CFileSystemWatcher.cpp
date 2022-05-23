@@ -2,35 +2,41 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
-#include "system-precomp.h"  // Precompiled headers
-
+#include "system-precomp.h"	 // Precompiled headers
+//
 #include <mrpt/config.h>
 
 #ifdef _WIN32
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0400
 #endif
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #else
 #if MRPT_HAS_INOTIFY
 #include <sys/inotify.h>
 #endif
 
-//	#include <time.h>
+#if HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
 #include <unistd.h>
+
 #include <cerrno>
 #include <cstdio>
 #endif
 
 #include <mrpt/core/exceptions.h>  // for THROW_EXCEPTION, ASSERT_
 #include <mrpt/system/CFileSystemWatcher.h>
-#include <mrpt/system/filesystem.h>  // for directoryExists()
-#include <cstring>  // for NULL, memcpy
+#include <mrpt/system/filesystem.h>	 // for directoryExists()
+
+#include <cstring>	// for NULL, memcpy
 
 using namespace mrpt::system;
 using namespace std;
@@ -197,8 +203,7 @@ void CFileSystemWatcher::getChanges(TFileSystemChangeList& out_list)
 		if (len < 0)
 		{
 			if (errno == EINTR)
-			{
-				/* need to reissue system call */
+			{ /* need to reissue system call */
 			}
 			else
 				perror("[CFileSystemWatcher::getChanges] read");
@@ -215,7 +220,7 @@ void CFileSystemWatcher::getChanges(TFileSystemChangeList& out_list)
 			};
 			std::memcpy(
 				&event_val, &buf[i],
-				sizeof(event_val));  // Was: event = (struct inotify_event *) ;
+				sizeof(event_val));	 // Was: event = (struct inotify_event *) ;
 			struct inotify_event* event = &event_val;
 
 			i += EVENT_SIZE + event->len;
@@ -261,7 +266,7 @@ void CFileSystemWatcher::thread_win32_watch()
 
 	while (ReadDirectoryChangesW(
 		HANDLE(m_hNotif), buf, sizeof(buf),
-		false,  // No subtree
+		false,	// No subtree
 		FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME |
 			FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE |
 			FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_LAST_ACCESS |
@@ -341,10 +346,9 @@ void CFileSystemWatcher::thread_win32_watch()
 			}
 
 			// Next entry?
-			if (fni->NextEntryOffset > 0)
-				idx += fni->NextEntryOffset;
+			if (fni->NextEntryOffset > 0) idx += fni->NextEntryOffset;
 			else
-				break;  // done
+				break;	// done
 		}
 	}
 

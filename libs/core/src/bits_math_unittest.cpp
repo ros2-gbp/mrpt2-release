@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -90,6 +90,7 @@ TEST(bits_math, abs_diff)
 	EXPECT_EQ(mrpt::abs_diff(20, 10), 10);
 	EXPECT_DOUBLE_EQ(mrpt::abs_diff(20.0, 10.0), 10.0);
 	EXPECT_DOUBLE_EQ(mrpt::abs_diff(10.0, 20.0), 10.0);
+	EXPECT_DOUBLE_EQ(mrpt::abs_diff<float>(20.0, 10.0f), 10);
 }
 
 TEST(bits_math, min3)

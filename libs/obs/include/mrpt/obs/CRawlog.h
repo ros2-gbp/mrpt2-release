@@ -2,7 +2,7 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
@@ -23,43 +23,38 @@ using TTimeObservationPair =
 using TListTimeAndObservations =
 	std::multimap<mrpt::system::TTimeStamp, CObservation::Ptr>;
 
-/** This class stores a rawlog (robotic datasets) in one of two possible
+/** The main class for loading and processing robotics datasets, or "rawlogs".
+ *
+ * Please, refer to the [rawlog format specification](rawlog_format.html).
+ *
+ * In short, this class stores a sequence of objects, in one of two possible
  *formats:
- *		- Format #1: A sequence of actions and observations. There is a sequence
+ *  - Format #1: A sequence of actions and observations. There is a sequence
  *of objects, where each one can be of one type:
- *			- An action:	Implemented as a CActionCollection object, the
+ *    - An action:	Implemented as a CActionCollection object, the
  *actuation
  *of the robot (i.e. odometry increment).
- *			- Observations: Implemented as a CSensoryFrame, refering to a set of
+ *    - Observations: Implemented as a CSensoryFrame, refering to a set of
  *robot observations from the same pose.
- *		- Format #2: A sequence of actions and observations. There is a sequence
+ *  - Format #2: A sequence of actions and observations. There is a sequence
  *of objects, where each one can be of one type:
  *
- *	Refer to the wiki page about <a href="http://www.mrpt.org/Rawlog_Format"
- *>rawlog files</a>.
+ * See also [RawLogViewer](app_RawLogViewer.html) for a GUI application for
+ * quick inspection and analysis of rawlogs.
  *
- *  See also the application <a
- *href="http://www.mrpt.org/Application:RawLogViewer" >RawLogViewer</a > for the
- *GUI program that visualizes and manages rawlogs.
+ * There is a field for dataset plain-text comments (human-friendly description,
+ * blocks of parameters, etc.) accessible through CRawlog::getCommentText() and
+ * CRawlog::setCommentText().
  *
- *  This class also publishes a static helper method for loading rawlog files in
- *format #1: see CRawlog::readActionObservationPair
+ * This container provides a STL container-like interface (see CRawlog::begin,
+ * CRawlog::iterator, ...).
  *
- *  There is a field for comments and blocks of parameters (in ini-like format)
- *accessible through getCommentText and setCommentText
- *   (introduced in MRPT 0.6.4). When serialized to a rawlog file, the comments
- *are saved as an additional observation of the
- *   type CObservationComments at the beginning of the file, but this
- *observation does not appear after loading for clarity.
+ * \note There is a static helper method CRawlog::detectImagesDirectory() to
+ *       identify the directory where external images are stored.
  *
- * \note Since MRPT version 0.5.5, this class also provides a STL container-like
- *interface (see CRawlog::begin, CRawlog::iterator, ...).
- * \note The format #2 is supported since MRPT version 0.6.0.
- * \note There is a static helper method "detectImagesDirectory" for localizing
- *the external images directory of a rawlog.
+ * \sa CSensoryFrame,
+ *     [Dataset file format](robotics_file_formats.html#datasets).
  *
- * \sa CSensoryFrame, CPose2D, <a href="http://www.mrpt.org/Rawlog_Format">
- *RawLog file format</a>.
  * \ingroup mrpt_obs_grp
  */
 class CRawlog : public mrpt::serialization::CSerializable
@@ -94,15 +89,22 @@ class CRawlog : public mrpt::serialization::CSerializable
 	 */
 	enum TEntryType
 	{
+		/** The entry is of type mrpt::obs::CSensoryFrame */
 		etSensoryFrame = 0,
+		/** The entry is of type mrpt::obs::CActionCollection */
 		etActionCollection,
+		/** The entry is of type mrpt::obs::CObservation */
 		etObservation,
+		/** The entry is none of the types above */
 		etOther
 	};
 
 	/** Clear the sequence of actions/observations. Smart pointers to objects
 	 * previously in the rawlog will remain being valid. */
 	void clear();
+
+	/** Returns true if the rawlog is empty */
+	bool empty() const;
 
 	/** Add an action to the sequence: a collection of just one element is
 	 * created.
@@ -176,8 +178,7 @@ class CRawlog : public mrpt::serialization::CSerializable
 
 	/** Returns the i'th element in the sequence, as being an action, where
 	 * index=0 is the first object.
-	 *  If it is not an CSensoryFrame, it throws an exception. Do neighter
-	 * modify nor delete the returned pointer.
+	 *  If it is not an CSensoryFrame, it throws an exception.
 	 * \sa size, isAction, getAsAction, getAsObservation
 	 * \exception std::exception If index is out of bounds
 	 */
@@ -423,6 +424,6 @@ class CRawlog : public mrpt::serialization::CSerializable
 	 */
 	static std::string detectImagesDirectory(const std::string& rawlogFilename);
 
-};  // End of class def.
+};	// End of class def.
 
 }  // namespace mrpt::obs

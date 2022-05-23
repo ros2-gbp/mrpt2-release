@@ -2,25 +2,27 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "math-precomp.h"
-
+//
 #include <mrpt/core/initializer.h>
-
 #include <mrpt/math/CMatrixB.h>
 #include <mrpt/math/CMatrixD.h>
 #include <mrpt/math/CMatrixF.h>
 #include <mrpt/math/CPolygon.h>
 #include <mrpt/math/CSplineInterpolator1D.h>
-
-using namespace mrpt::math;
+#include <mrpt/math/registerAllClasses.h>
+// deps:
+#include <mrpt/serialization/registerAllClasses.h>
 
 MRPT_INITIALIZER(registerAllClasses_mrpt_math)
 {
+	using namespace mrpt::math;
+
 #if !defined(DISABLE_MRPT_AUTO_CLASS_REGISTRATION)
 	// Abstract classes are not registered since they can not be
 	//   instanciated, nor loaded from streams.
@@ -33,4 +35,11 @@ MRPT_INITIALIZER(registerAllClasses_mrpt_math)
 	registerClass(CLASS_ID(CPolygon));
 	registerClass(CLASS_ID(CSplineInterpolator1D));
 #endif
+}
+
+void mrpt::math::registerAllClasses_mrpt_math()
+{
+	::registerAllClasses_mrpt_math();
+	// deps:
+	mrpt::serialization::registerAllClasses_mrpt_serialization();
 }

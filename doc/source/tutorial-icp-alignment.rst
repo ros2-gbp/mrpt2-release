@@ -1,4 +1,4 @@
-.. tutorial-icp-alignment:
+.. _tutorial-icp-alignment:
 
 ===================================================================
 Iterative Closest Point (ICP) and other registration algorithms
@@ -225,9 +225,3 @@ computes a Sum of Gaussians (SOG) over the potential transformations
 using a **robust RANSAC stage**. Implemented
 in\ `tfest <group__mrpt__tfest__grp.html>`__::robustRigidTransformation.
 
-
-Bibliography
-=================
-
-.. bibliography:: bibliography.bib
-   :cited:

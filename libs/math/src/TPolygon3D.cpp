@@ -2,13 +2,14 @@
    |                     Mobile Robot Programming Toolkit (MRPT)            |
    |                          https://www.mrpt.org/                         |
    |                                                                        |
-   | Copyright (c) 2005-2020, Individual contributors, see AUTHORS file     |
+   | Copyright (c) 2005-2022, Individual contributors, see AUTHORS file     |
    | See: https://www.mrpt.org/Authors - All rights reserved.               |
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
 #include "math-precomp.h"  // Precompiled headers
-
+//
+#include <mrpt/containers/yaml.h>
 #include <mrpt/math/TLine2D.h>
 #include <mrpt/math/TPlane.h>
 #include <mrpt/math/TPolygon2D.h>
@@ -16,7 +17,10 @@
 #include <mrpt/math/TPose3D.h>
 #include <mrpt/math/TSegment2D.h>
 #include <mrpt/math/epsilon.h>
-#include <mrpt/math/geometry.h>  // project3D()
+#include <mrpt/math/geometry.h>	 // project3D()
+
+#include <iostream>
+
 #include "polygons_utils.h"
 
 using namespace mrpt::math;
@@ -97,7 +101,8 @@ TPolygon3D::TPolygon3D(const TPolygon2D& p) : std::vector<TPoint3D>()
 {
 	size_t N = p.size();
 	resize(N);
-	for (size_t i = 0; i < N; i++) operator[](i) = p[i];
+	for (size_t i = 0; i < N; i++)
+		operator[](i) = p[i];
 }
 void TPolygon3D::createRegularPolygon(
 	size_t numEdges, double radius, TPolygon3D& poly)
@@ -116,5 +121,47 @@ void TPolygon3D::createRegularPolygon(
 	size_t numEdges, double radius, TPolygon3D& poly, const TPose3D& pose)
 {
 	createRegularPolygon(numEdges, radius, poly);
-	for (size_t i = 0; i < numEdges; i++) pose.composePoint(poly[i], poly[i]);
+	for (size_t i = 0; i < numEdges; i++)
+		pose.composePoint(poly[i], poly[i]);
+}
+
+std::ostream& mrpt::math::operator<<(std::ostream& o, const TPolygon3D& p)
+{
+	o << "mrpt::math::TPolygon3D vertices:\n";
+	for (const auto& v : p)
+		o << " - " << v << "\n";
+	return o;
+}
+
+TPolygon3D TPolygon3D::FromYAML(const mrpt::containers::yaml& c)
+{
+	if (c.isNullNode() || c.empty()) return {};
+	TPolygon3D p;
+	ASSERT_(c.isSequence());
+	for (const auto& vertex : c.asSequence())
+	{
+		ASSERT_(vertex.isSequence());
+		const auto& vertexData = vertex.asSequence();
+		ASSERT_EQUAL_(vertexData.size(), 3U);
+		p.emplace_back(
+			vertexData.at(0).as<double>(), vertexData.at(1).as<double>(),
+			vertexData.at(2).as<double>());
+	}
+
+	return p;
+}
+
+mrpt::containers::yaml TPolygon3D::asYAML() const
+{
+	mrpt::containers::yaml c = mrpt::containers::yaml::Sequence();
+
+	for (const auto& vertex : *this)
+	{
+		auto pts =
+			mrpt::containers::yaml::Sequence({vertex.x, vertex.y, vertex.z});
+		pts.printInShortFormat = true;
+		c.push_back(pts);
+	}
+
+	return c;
 }
