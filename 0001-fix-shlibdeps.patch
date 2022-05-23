@@ -1,4 +1,4 @@
-From 1d279299f139d56f2ea86965980b1e80ca4b385a Mon Sep 17 00:00:00 2001
+From 050bde948f0a84f362a70269f00d4e1c208b6a1d Mon Sep 17 00:00:00 2001
 From: Jose Luis Blanco-Claraco <joseluisblancoc@gmail.com>
 Date: Wed, 2 Sep 2020 08:28:00 +0200
 Subject: [PATCH] fix shlibdeps
@@ -8,7 +8,7 @@ Subject: [PATCH] fix shlibdeps
  1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/debian/rules.em b/debian/rules.em
-index aa010fa..073befd 100755
+index aa010fad..073befdb 100755
 --- a/debian/rules.em
 +++ b/debian/rules.em
 @@ -18,6 +18,9 @@ export PKG_CONFIG_PATH=@(InstallationPrefix)/lib/pkgconfig
@@ -31,5 +31,5 @@ index aa010fa..073befd 100755
  override_dh_auto_install:
  	# In case we're installing to a non-standard location, look for a setup.sh
 -- 
-2.17.1
+2.25.1
 
