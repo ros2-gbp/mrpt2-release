@@ -1,4 +1,4 @@
-From c24409a5b14c9a6f2307bfbb28f8d39886489cef Mon Sep 17 00:00:00 2001
+From 907378feae442356a8ea6151c693b9ebdd22832f Mon Sep 17 00:00:00 2001
 From: Jose Luis Blanco-Claraco <joseluisblancoc@gmail.com>
 Date: Wed, 2 Sep 2020 08:28:00 +0200
 Subject: [PATCH] fix shlibdeps
