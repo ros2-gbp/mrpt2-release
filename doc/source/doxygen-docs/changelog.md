@@ -1,5 +1,23 @@
 \page changelog Change Log
 
+# Version 2.5.2: Released August 30th, 2022
+- BUG FIXES:
+  - mrpt::math::MatrixBase::eig_symmetric() now is ensured not to return negative eigenvalues due to numerical innacuracies in some platforms (i386).
+  - mrpt::maps::COccupancyGridMap2D::getAsPointCloud() did not return the outermost cells as obstacles.
+  - Fix unit test errors when compiling with LTO (Closes [Debian bug #1015550](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1015550))
+
+# Version 2.5.1: Released August 4th, 2022
+- Changes in applications:
+  - RawLogViewer:
+    - Bold points when selecting a sensor in the timeline UI.
+- Changes in libraries:
+  - Embedded nanoflann version upgraded to v1.4.3
+- BUG FIXES:
+  - Fix regression: mrpt::opengl::CAssimpModel may fail to resolve texture relative paths.
+  - mrpt::opengl::CMesh was implementing texture coordinates flipping (u,v) wrt documented behavior.
+  - Fix `static_assert()` failure in CTicTac when building with latest emscripten clang compiler.
+  - Fix regression: yaml parsing boolean values may throw an exception inside `std::stoi()`.
+
 # Version 2.5.0: Released July 18th, 2022
 - Changes in applications:
   - RawLogViewer:
