@@ -1,3 +1,26 @@
+## mrpt2 (iron) - 2.9.0-1
+
+The packages in the `mrpt2` repository were released into the `iron` distro by running `/usr/bin/bloom-release -r iron -y mrpt2` on `Wed, 07 Jun 2023 22:20:46 -0000`
+
+The `mrpt2` package was released.
+
+Version of package(s) in repository `mrpt2`:
+
+- upstream repository: https://github.com/MRPT/mrpt.git
+- release repository: https://github.com/ros2-gbp/mrpt2-release.git
+- rosdistro version: `2.8.1-2`
+- old version: `2.8.1-2`
+- new version: `2.9.0-1`
+
+Versions of tools used:
+
+- bloom version: `0.11.2`
+- catkin_pkg version: `0.5.2`
+- rosdep version: `0.22.2`
+- rosdistro version: `0.9.0`
+- vcstools version: `0.1.42`
+
+
 ## mrpt2 (humble) - 2.9.0-1
 
 The packages in the `mrpt2` repository were released into the `humble` distro by running `/usr/bin/bloom-release -r humble -y mrpt2` on `Wed, 07 Jun 2023 22:05:28 -0000`
