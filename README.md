@@ -1,3 +1,26 @@
+## mrpt2 (humble) - 2.12.2-1
+
+The packages in the `mrpt2` repository were released into the `humble` distro by running `/home/jlblanco/code/bloom-venv/bin/bloom-release -r humble -y mrpt2` on `Mon, 22 Apr 2024 23:54:09 -0000`
+
+The `mrpt2` package was released.
+
+Version of package(s) in repository `mrpt2`:
+
+- upstream repository: https://github.com/MRPT/mrpt.git
+- release repository: https://github.com/ros2-gbp/mrpt2-release.git
+- rosdistro version: `2.12.1-1`
+- old version: `2.12.1-1`
+- new version: `2.12.2-1`
+
+Versions of tools used:
+
+- bloom version: `0.11.2`
+- catkin_pkg version: `0.5.2`
+- rosdep version: `0.22.2`
+- rosdistro version: `0.9.0`
+- vcstools version: `0.1.42`
+
+
 ## mrpt2 (jazzy) - 2.12.1-1
 
 The packages in the `mrpt2` repository were released into the `jazzy` distro by running `/usr/local/google/home/marcogg/migration/bin/bloom-release mrpt2 --rosdistro jazzy` on `Mon, 22 Apr 2024 10:58:26 -0000`
