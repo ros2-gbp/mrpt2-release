@@ -1,0 +1,12 @@
+Source: ros-jazzy-mrpt2
+Section: misc
+Priority: optional
+Maintainer: Jose-Luis Blanco-Claraco <joseluisblancoc@gmail.com>
+Build-Depends: debhelper (>= 9.0.0), ament-cmake, cmake, ffmpeg, freeglut3-dev, libassimp-dev, libavcodec-dev, libavformat-dev, libavutil-dev, libcv-bridge-dev, libeigen3-dev, libfreenect-dev, libfyaml-dev, libgeometry-msgs-dev, libgl1-mesa-dev, libglfw3-dev, libglu1-mesa-dev, libjpeg-dev, libjsoncpp-dev, libnav-msgs-dev, libopencv-dev, libopenni2-dev, libpcap0.8-dev, libqt5opengl5-dev, libsensor-msgs-dev, libstd-msgs-dev, libstereo-msgs-dev, libsuitesparse-dev, libswscale-dev, libtf2-dev, libtf2-msgs-dev, libtinyxml2-dev, libudev-dev, libusb-1.0-0-dev, libwxgtk3.2-dev, libxrandr-dev, libxxf86vm-dev, pkg-config, pybind11-dev, python3-cv-bridge, python3-geometry-msgs, python3-nav-msgs, python3-pip, python3-sensor-msgs, python3-std-msgs, python3-stereo-msgs, python3-tf2, python3-tf2-msgs, qtbase5-dev, ros-environment, ros-geometry-msgs, ros-jazzy-rclcpp, ros-jazzy-rosbag2-storage, ros-nav-msgs, ros-sensor-msgs, ros-std-msgs, ros-stereo-msgs, ros-tf2-msgs, wx-common, zlib1g-dev, ros-jazzy-ros-workspace
+Homepage: https://www.mrpt.org/
+Standards-Version: 3.9.2
+
+Package: ros-jazzy-mrpt2
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, freeglut3-dev, libcv-bridge-dev, libeigen3-dev, libgeometry-msgs-dev, libgl1-mesa-dev, libglfw3-dev, libglu1-mesa-dev, libnav-msgs-dev, libopencv-dev, libsensor-msgs-dev, libstd-msgs-dev, libstereo-msgs-dev, libsuitesparse-dev, libtf2-dev, libtf2-msgs-dev, libxrandr-dev, libxxf86vm-dev, python3-cv-bridge, python3-geometry-msgs, python3-nav-msgs, python3-sensor-msgs, python3-std-msgs, python3-stereo-msgs, python3-tf2, python3-tf2-msgs, ros-geometry-msgs, ros-jazzy-rclcpp, ros-jazzy-rosbag2-storage, ros-nav-msgs, ros-sensor-msgs, ros-std-msgs, ros-stereo-msgs, ros-tf2-msgs, ros-jazzy-ros-workspace
+Description: Mobile Robot Programming Toolkit (MRPT) version 2.x
