@@ -1,4 +1,4 @@
-From c7f9a8d067c8dacf76f86fd4e0439d61bfa5bf62 Mon Sep 17 00:00:00 2001
+From eeaf6fefc74611af03f5e23ce190e3a2059fd9ee Mon Sep 17 00:00:00 2001
 From: Jose Luis Blanco-Claraco <joseluisblancoc@gmail.com>
 Date: Thu, 8 Jun 2023 23:07:08 +0200
 Subject: [PATCH] debian/rules: disable most mrpt apps to save build time
